@@ -41,6 +41,11 @@ import { getBearerToken } from "./requireAuth.js";
 import { assertUserCanAccessTenant } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 import { secureCompare } from "./secureCompare.js";
+import {
+  normalizePaymentStatus,
+  paymentEventKey,
+  recordPaymentEvent,
+} from "./paymentEvents.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -235,6 +240,10 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
   });
 
   app.post("/api/v1/checkout/efi/pix", checkoutRateLimit, async (req: Request, res: Response) => {
+    let auditTenantId: string | null = null;
+    let auditBillingCycle: BillingCycle = "monthly";
+    let auditAmountCents: number | null = null;
+    let auditPhase = "request";
     try {
       const pixEnv = resolveEfiPixEnv();
       if (!pixEnv) {
@@ -246,9 +255,11 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
 
       const tenant = await resolveTenantFromAuth(supabaseAdmin, req, req.body?.tenantId);
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
+      auditTenantId = tenant.tenantId;
 
       const purpose = String(req.body?.purpose || "onboarding").toLowerCase();
       const billingCycle = normalizeBillingCycle(req.body?.billingCycle);
+      auditBillingCycle = billingCycle;
       const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId, purpose);
       if (pending.ok === false) {
         if (pending.error === "already_active") {
@@ -274,6 +285,20 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         tenant.tenantId,
         billingCycle
       );
+      auditAmountCents = amountCents;
+      await recordPaymentEvent(supabaseAdmin, {
+        provider: "efi_pix",
+        externalId: paymentEventKey([tenant.tenantId, Date.now(), "requested"]),
+        tenantId: tenant.tenantId,
+        eventType: "pix_requested",
+        status: "processing",
+        paymentMethod: "pix",
+        amountCents,
+        billingCycle,
+        message: "Solicitação de PIX iniciada no checkout.",
+        metadata: { purpose },
+      });
+      auditPhase = "provider";
       const charge = await efiPixCreateImmediateCharge(pixEnv, {
         tenantId: tenant.tenantId,
         amountCents,
@@ -303,6 +328,20 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         return res.status(502).json({ error: "EFI Pix: código copia e cola ausente na resposta." });
       }
 
+      await recordPaymentEvent(supabaseAdmin, {
+        provider: "efi_pix",
+        externalId: paymentEventKey([charge.txid, "created"]),
+        tenantId: tenant.tenantId,
+        eventType: "pix_created",
+        status: normalizePaymentStatus(charge.status),
+        paymentMethod: "pix",
+        amountCents,
+        billingCycle,
+        chargeId: charge.txid,
+        message: "PIX gerado e disponibilizado ao cliente.",
+        metadata: { expiresIn: 3600, providerStatus: charge.status, purpose },
+      });
+
       res.json({
         txid: charge.txid,
         copyPaste: charge.copyPaste,
@@ -314,6 +353,21 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     } catch (err: any) {
       console.error("[checkout/pix]", err?.response?.data || err?.message || err);
       const raw = String(err?.message || "");
+      if (auditTenantId) {
+        await recordPaymentEvent(supabaseAdmin, {
+          provider: "efi_pix",
+          externalId: paymentEventKey([auditTenantId, Date.now(), auditPhase, "failed"]),
+          tenantId: auditTenantId,
+          eventType: "pix_failed",
+          status: "failed",
+          paymentMethod: "pix",
+          amountCents: auditAmountCents,
+          billingCycle: auditBillingCycle,
+          errorCode: String(err?.response?.status || err?.code || "pix_error"),
+          message: safeErrorMessage(err, "Erro ao gerar PIX."),
+          metadata: { phase: auditPhase },
+        });
+      }
       const tlsHang =
         /socket hang up|ECONNRESET|ECONNREFUSED|certificate|pfx|pkcs/i.test(raw);
       res.status(500).json({
@@ -325,19 +379,23 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
   });
 
   app.get("/api/v1/checkout/efi/pix/:txid/status", async (req: Request, res: Response) => {
+    let auditTenantId: string | null = null;
+    let auditTxid = String(req.params.txid || "").trim();
     try {
       const pixEnv = resolveEfiPixEnv();
       if (!pixEnv) return res.status(503).json({ error: "PIX não configurado." });
 
       const tenant = await resolveTenantFromAuth(supabaseAdmin, req);
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
+      auditTenantId = tenant.tenantId;
 
       const txid = String(req.params.txid || "").trim();
+      auditTxid = txid;
       if (!txid) return res.status(400).json({ error: "txid obrigatório" });
 
       const { data: subRow } = await supabaseAdmin
         .from("subscriptions")
-        .select("efi_pix_txid")
+        .select("efi_pix_txid, billing_cycle, pending_billing_cycle")
         .eq("id", tenant.tenantId)
         .maybeSingle();
 
@@ -346,11 +404,32 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       }
 
       const cob = await efiPixGetCob(pixEnv, txid);
+      const billingCycle = normalizeBillingCycle(subRow.pending_billing_cycle || subRow.billing_cycle);
+      const amountCents = await resolvePremiumOnboardingAmountCents(
+        supabaseAdmin,
+        tenant.tenantId,
+        billingCycle
+      );
+      const normalizedStatus = normalizePaymentStatus(cob.status);
+      await recordPaymentEvent(supabaseAdmin, {
+        provider: "efi_pix",
+        externalId: paymentEventKey([txid, "status", normalizedStatus]),
+        tenantId: tenant.tenantId,
+        eventType: cob.paid ? "payment_confirmed" : "pix_status_checked",
+        status: normalizedStatus,
+        paymentMethod: "pix",
+        amountCents,
+        billingCycle,
+        chargeId: txid,
+        message: cob.paid ? "Pagamento PIX confirmado." : "Status do PIX consultado.",
+        metadata: { providerStatus: cob.status },
+      });
 
       if (cob.paid) {
         await activateTenantSubscription(supabaseAdmin, tenant.tenantId, {
           chargeId: `pix:${txid}`,
           provider: "efi_pix",
+          billingCycle,
         });
         return res.json({ status: cob.status, paid: true, active: true });
       }
@@ -358,6 +437,19 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
       res.json({ status: cob.status, paid: false, active: false });
     } catch (err: any) {
       console.error("[checkout/pix/status]", err?.message || err);
+      if (auditTenantId && auditTxid) {
+        await recordPaymentEvent(supabaseAdmin, {
+          provider: "efi_pix",
+          externalId: paymentEventKey([auditTxid, Date.now(), "status_failed"]),
+          tenantId: auditTenantId,
+          eventType: "pix_status_failed",
+          status: "failed",
+          paymentMethod: "pix",
+          chargeId: auditTxid,
+          errorCode: String(err?.response?.status || err?.code || "status_error"),
+          message: safeErrorMessage(err, "Erro ao consultar PIX."),
+        });
+      }
       res.status(500).json({ error: safeErrorMessage(err, "Erro ao consultar PIX.") });
     }
   });
@@ -369,15 +461,20 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         suggestPix: true,
       });
     }
+    let auditTenantId: string | null = null;
+    let auditBillingCycle: BillingCycle = "monthly";
+    let auditAmountCents: number | null = null;
     try {
       const efi = resolveEfiEnv();
       if (!efi) return res.status(503).json({ error: "EFI não configurado." });
 
       const tenant = await resolveTenantFromAuth(supabaseAdmin, req, req.body?.tenantId);
       if (!tenant) return res.status(401).json({ error: "Não autorizado" });
+      auditTenantId = tenant.tenantId;
 
       const purpose = String(req.body?.purpose || "onboarding").toLowerCase();
       const billingCycle: BillingCycle = normalizeBillingCycle(req.body?.billingCycle);
+      auditBillingCycle = billingCycle;
       const pending = await assertPendingSubscription(supabaseAdmin, tenant.tenantId, purpose);
       if (pending.ok === false) {
         if (pending.error === "already_active") {
@@ -421,6 +518,19 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         tenant.tenantId,
         billingCycle
       );
+      auditAmountCents = amountCents;
+      await recordPaymentEvent(supabaseAdmin, {
+        provider: "efi_card",
+        externalId: paymentEventKey([tenant.tenantId, Date.now(), "requested"]),
+        tenantId: tenant.tenantId,
+        eventType: "card_requested",
+        status: "processing",
+        paymentMethod: "card",
+        amountCents,
+        billingCycle,
+        message: "Tentativa de pagamento no cartão iniciada.",
+        metadata: { purpose },
+      });
       const result = await efiCreateCardSubscriptionOneStep(efi, {
         tenantId: tenant.tenantId,
         email,
@@ -473,6 +583,35 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         });
       }
 
+      await recordPaymentEvent(supabaseAdmin, {
+        provider: "efi_card",
+        externalId: paymentEventKey([result.chargeId || result.subscriptionId, "created"]),
+        tenantId: tenant.tenantId,
+        eventType: "card_created",
+        status: normalizePaymentStatus(result.status),
+        paymentMethod: "card",
+        amountCents,
+        billingCycle,
+        chargeId: result.chargeId || result.subscriptionId,
+        message: "Cobrança no cartão criada.",
+        metadata: { providerStatus: result.status, subscriptionId: result.subscriptionId },
+      });
+      if (active) {
+        await recordPaymentEvent(supabaseAdmin, {
+          provider: "efi_card",
+          externalId: paymentEventKey([result.chargeId || result.subscriptionId, "paid"]),
+          tenantId: tenant.tenantId,
+          eventType: "payment_confirmed",
+          status: "paid",
+          paymentMethod: "card",
+          amountCents,
+          billingCycle,
+          chargeId: result.chargeId || result.subscriptionId,
+          message: "Pagamento no cartão confirmado.",
+          metadata: { providerStatus: result.status, subscriptionId: result.subscriptionId },
+        });
+      }
+
       res.json({
         subscriptionId: result.subscriptionId,
         chargeId: result.chargeId,
@@ -482,6 +621,20 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
     } catch (err: unknown) {
       console.error("[checkout/card]", (err as { response?: { data?: unknown } })?.response?.data || err);
       const httpStatus = (err as { response?: { status?: number } })?.response?.status;
+      if (auditTenantId) {
+        await recordPaymentEvent(supabaseAdmin, {
+          provider: "efi_card",
+          externalId: paymentEventKey([auditTenantId, Date.now(), "failed"]),
+          tenantId: auditTenantId,
+          eventType: "card_failed",
+          status: "failed",
+          paymentMethod: "card",
+          amountCents: auditAmountCents,
+          billingCycle: auditBillingCycle,
+          errorCode: String(httpStatus || (err as any)?.code || "card_error"),
+          message: safeErrorMessage(err, "Erro ao processar cartão."),
+        });
+      }
       const status =
         httpStatus === 400 || httpStatus === 422 || httpStatus === 412 ? 400 : 500;
       const suggestPix = isEfiCardProcessingFailure(err, { httpStatus });

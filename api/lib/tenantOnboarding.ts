@@ -26,6 +26,11 @@ import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.j
 import { slugifyCidadeOnly } from "./diretorioSlug.js";
 import { slugifyBairro } from "../../lib/diretorioBairro.js";
 import { normalizeBrazilPhone } from "../../lib/brazilPhone.js";
+import {
+  normalizePaymentStatus,
+  paymentEventKey,
+  recordPaymentEvent,
+} from "./paymentEvents.js";
 
 export type RegisterTenantInput = {
   email: string;
@@ -743,24 +748,6 @@ export async function processEfiNotificationToken(
 
   const entries = await efiFetchNotification(env, notificationToken);
   const { paid, chargeId, customId } = pickLatestPaidStatus(entries);
-
-  if (!paid) {
-    return { ok: true, message: "Notificação recebida; pagamento ainda não confirmado." };
-  }
-
-  const externalId = `${chargeId || "unknown"}:${notificationToken.slice(0, 32)}`;
-
-  const { error: idemErr } = await supabaseAdmin.from("payment_webhook_events").insert({
-    provider: "efi",
-    external_id: externalId,
-    tenant_id: customId || null,
-    payload: { entries, notificationToken: notificationToken.slice(0, 8) + "…" },
-  });
-
-  if (idemErr?.code === "23505") {
-    return { ok: true, message: "Evento já processado (idempotente)." };
-  }
-
   let tenantId = String(customId || "").trim();
 
   if (!tenantId && chargeId) {
@@ -781,14 +768,55 @@ export async function processEfiNotificationToken(
     tenantId = String(bySub?.tenant_id || bySub?.id || "").trim();
   }
 
+  const latestProviderStatus = [...entries]
+    .reverse()
+    .find((entry) => entry.currentStatus)?.currentStatus || (paid ? "paid" : "processed");
+  const normalizedStatus = paid ? "paid" : normalizePaymentStatus(latestProviderStatus);
+  await recordPaymentEvent(supabaseAdmin, {
+    provider: "efi",
+    externalId: paymentEventKey([chargeId || "unknown", notificationToken.slice(0, 32)]),
+    tenantId: tenantId || customId || null,
+    eventType: paid ? "payment_confirmed" : "webhook_status_received",
+    status: normalizedStatus,
+    paymentMethod: "card",
+    chargeId: chargeId || null,
+    message: paid
+      ? "Pagamento confirmado pelo webhook da Efí."
+      : "Atualização de cobrança recebida pelo webhook da Efí.",
+    metadata: {
+      entries,
+      notificationToken: notificationToken.slice(0, 8) + "…",
+      providerStatus: latestProviderStatus,
+    },
+  });
+
+  if (!paid) {
+    return { ok: true, message: "Notificação recebida; pagamento ainda não confirmado." };
+  }
+
   if (!tenantId) {
     return { ok: false, message: "Pagamento confirmado, mas tenant não identificado." };
   }
 
-  await activateTenantSubscription(supabaseAdmin, tenantId, {
-    chargeId,
-    provider: "efi",
-  });
+  try {
+    await activateTenantSubscription(supabaseAdmin, tenantId, {
+      chargeId,
+      provider: "efi",
+    });
+  } catch (error) {
+    await recordPaymentEvent(supabaseAdmin, {
+      provider: "efi",
+      externalId: paymentEventKey([chargeId || tenantId, notificationToken.slice(0, 16), "activation_failed"]),
+      tenantId,
+      eventType: "subscription_activation_failed",
+      status: "failed",
+      paymentMethod: "card",
+      chargeId: chargeId || null,
+      errorCode: "activation_failed",
+      message: error instanceof Error ? error.message : "Pagamento confirmado, mas a assinatura não foi ativada.",
+    });
+    throw error;
+  }
 
   return { ok: true, message: "Assinatura ativada." };
 }

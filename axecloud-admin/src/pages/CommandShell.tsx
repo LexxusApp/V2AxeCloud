@@ -29,6 +29,7 @@ import { GrowthProspectingPanel } from "./GrowthProspectingPanel";
 import { DirectoryClaimsPanel } from "./DirectoryClaimsPanel";
 import { ProfileRankingPanel } from "./ProfileRankingPanel";
 import { VisitorsPanel } from "./VisitorsPanel";
+import { PaymentsPanel } from "./PaymentsPanel";
 
 type Tab = AdminNavTab;
 
@@ -607,6 +608,7 @@ export function CommandShell({ session }: { session: Session }) {
           />
         )}
         {tab === "demo" && <DemoAccountPanel />}
+        {tab === "payments" && <PaymentsPanel />}
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}
         {tab === "wa-inbox" && <WhatsAppInboxPanel />}

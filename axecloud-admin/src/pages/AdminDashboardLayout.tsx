@@ -22,6 +22,7 @@ import {
   Sparkles,
   Trophy,
   UsersRound,
+  WalletCards,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -35,6 +36,7 @@ export type AdminNavTab =
   | "create"
   | "demo"
   | "plans"
+  | "payments"
   | "whatsapp"
   | "wa-inbox"
   | "growth"
@@ -50,6 +52,7 @@ type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon; tone: IconTon
 const MAIN_NAV: NavItem[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard, tone: "blue" },
   { id: "tenants", label: "Terreiros", icon: Building2, tone: "violet" },
+  { id: "payments", label: "Pagamentos", icon: WalletCards, tone: "emerald" },
   { id: "plans", label: "Mensalidades", icon: CreditCard, tone: "emerald" },
   { id: "logs", label: "Eventos", icon: ScrollText, tone: "amber" },
   { id: "whatsapp", label: "Notificações", icon: MessageCircle, tone: "teal" },
@@ -73,6 +76,7 @@ const ALL_NAV = [...MAIN_NAV, ...EXTRA_NAV];
 const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
   overview: "Resumo da plataforma e indicadores principais",
   tenants: "Gestão de terreiros e assinaturas",
+  payments: "Cobranças, confirmações, pendências e falhas",
   plans: "Catálogo de planos e mensalidades",
   logs: "Registo de eventos e auditoria",
   whatsapp: "Comunicados e notificações",
