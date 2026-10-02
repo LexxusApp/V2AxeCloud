@@ -123,4 +123,32 @@ if (fs.existsSync(path.join(OUT, 'entrar', 'index.html'))) {
   fail('/entrar não pode pertencer ao container de marketing');
 }
 
+const sitemapIndex = read('sitemap.xml');
+if (!sitemapIndex.includes('<sitemapindex') || sitemapIndex.includes('<urlset')) {
+  fail('sitemap.xml precisa ser um índice mestre, não uma lista parcial de URLs');
+}
+const sitemapChildren = [...sitemapIndex.matchAll(/<loc>https:\/\/axecloud\.com\.br\/(sitemap-[^<]+\.xml)<\/loc>/g)]
+  .map((match) => match[1]);
+if (!sitemapChildren.includes('sitemap-static.xml')) {
+  fail('sitemap.xml não referencia sitemap-static.xml');
+}
+if (!sitemapChildren.some((file) => /^sitemap-diretorio-\d+\.xml$/.test(file))) {
+  fail('sitemap.xml não referencia os blocos do diretório');
+}
+for (const child of sitemapChildren) {
+  const xml = read(child);
+  if (!xml.includes('<urlset') || !xml.includes('<loc>https://axecloud.com.br/')) {
+    fail(`sitemap filho inválido: ${child}`);
+  }
+}
+const directoryLocs = sitemapChildren
+  .filter((file) => file.startsWith('sitemap-diretorio-'))
+  .flatMap((file) => [...read(file).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
+if (directoryLocs.length < 1000) {
+  fail(`sitemap do diretório insuficiente: ${directoryLocs.length} URL(s)`);
+}
+if (new Set(directoryLocs).size !== directoryLocs.length) {
+  fail('sitemap do diretório contém URLs duplicadas');
+}
+
 console.log(`[marketing:validate] ${CINEMATIC.length} páginas novas e ${REACT.length} rotas preservadas validadas.`);

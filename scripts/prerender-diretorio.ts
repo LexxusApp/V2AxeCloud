@@ -8,10 +8,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import {
+  DIRETORIO_SEO_TEMPLATE_LASTMOD,
   buildCityPrerenderPage,
   buildDiretorioBodyInject,
   buildDiretorioHeadInject,
+  buildSitemapXml,
   buildTerreiroPrerenderPage,
+  staticSitemapRoutes,
   type DiretorioSeoTerreiro,
 } from "../lib/diretorioSeoShared.ts";
 import { slugifyCidadeOnly } from "../api/lib/diretorioSlug.ts";
@@ -34,6 +37,8 @@ const TABLE = "terreiros_diretorio";
 
 const HEAD_MARKER = /<!-- SEO_HEAD_INJECT -->[\s\S]*?<!-- \/SEO_HEAD_INJECT -->/;
 const BODY_MARKER = /<!-- SEO_BODY_INJECT -->[\s\S]*?<!-- \/SEO_BODY_INJECT -->/;
+const SITEMAP_CHUNK_SIZE = 1000;
+const SITE_ORIGIN = "https://axecloud.com.br";
 
 const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -125,6 +130,7 @@ async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
         latitude: optionalCoordinate(item.latitude, 90),
         longitude: optionalCoordinate(item.longitude, 180),
         coordinateSource: item.coordinateSource ? String(item.coordinateSource) : null,
+        verificada: Boolean(item.verificada),
         cidadeUrl: item.cidadeUrl ? String(item.cidadeUrl) : null,
       });
     }
@@ -406,6 +412,85 @@ function writePrerenderPage(template: string, page: ReturnType<typeof buildTerre
   fs.writeFileSync(path.join(outDir, "index.html"), html, "utf8");
 }
 
+function escapeXml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character] || character,
+  );
+}
+
+function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>) {
+  fs.writeFileSync(
+    path.join(OUT_DIR, "sitemap-static.xml"),
+    buildSitemapXml(SITE_ORIGIN, staticSitemapRoutes()),
+    "utf8",
+  );
+
+  for (const file of fs.readdirSync(OUT_DIR)) {
+    if (/^sitemap-diretorio-\d+\.xml$/.test(file)) {
+      fs.rmSync(path.join(OUT_DIR, file));
+    }
+  }
+
+  const directoryRoutes = [
+    ...[...cityMap.values()].flatMap((items) => {
+      const first = items[0];
+      if (!first?.estado || !first.cidadeSlug) return [];
+      return [{
+        path: `/terreiros/${first.estado.toLowerCase()}/${first.cidadeSlug}`,
+        changeFrequency: "weekly" as const,
+        priority: 0.85,
+        lastModified: DIRETORIO_SEO_TEMPLATE_LASTMOD,
+      }];
+    }),
+    ...rows.flatMap((row) => {
+      if (!row.slug || !isDiretorioListingIndexable(row)) return [];
+      return [{
+        path: `/terreiro/${row.slug}`,
+        changeFrequency: "monthly" as const,
+        priority: 0.65,
+        lastModified: DIRETORIO_SEO_TEMPLATE_LASTMOD,
+      }];
+    }),
+  ];
+
+  const seen = new Set<string>();
+  const uniqueRoutes = directoryRoutes.filter((route) => {
+    if (seen.has(route.path)) return false;
+    seen.add(route.path);
+    return true;
+  });
+  const chunkCount = Math.max(1, Math.ceil(uniqueRoutes.length / SITEMAP_CHUNK_SIZE));
+  const childSitemaps = ["/sitemap-static.xml"];
+  for (let index = 0; index < chunkCount; index += 1) {
+    const filename = `sitemap-diretorio-${index + 1}.xml`;
+    const chunk = uniqueRoutes.slice(index * SITEMAP_CHUNK_SIZE, (index + 1) * SITEMAP_CHUNK_SIZE);
+    fs.writeFileSync(path.join(OUT_DIR, filename), buildSitemapXml(SITE_ORIGIN, chunk), "utf8");
+    childSitemaps.push(`/${filename}`);
+  }
+
+  const lastmod = new Date().toISOString().slice(0, 10);
+  const indexXml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...childSitemaps.map((pathname) => [
+      "  <sitemap>",
+      `    <loc>${escapeXml(`${SITE_ORIGIN}${pathname}`)}</loc>`,
+      `    <lastmod>${lastmod}</lastmod>`,
+      "  </sitemap>",
+    ].join("\n")),
+    "</sitemapindex>",
+    "",
+  ].join("\n");
+  fs.writeFileSync(path.join(OUT_DIR, "sitemap.xml"), indexXml, "utf8");
+
+  return {
+    directoryUrls: uniqueRoutes.length,
+    indexableProfiles: uniqueRoutes.filter((route) => route.path.startsWith("/terreiro/")).length,
+    cityUrls: uniqueRoutes.filter((route) => route.path.startsWith("/terreiros/")).length,
+    childSitemaps: childSitemaps.length,
+  };
+}
+
 async function main() {
   const indexPath = path.join(OUT_DIR, "index.html");
   if (!fs.existsSync(indexPath)) {
@@ -460,6 +545,7 @@ async function main() {
   const cidades = writeDirectorySnapshots(cityMap);
   writeDirectoryRootPage(template, cidades);
   const mapCoverage = writeDirectoryMap(rows);
+  const sitemapCoverage = writeSitemaps(rows, cityMap);
 
   let terreiroPages = 0;
   for (const row of rows) {
@@ -472,7 +558,7 @@ async function main() {
   }
 
   console.log(
-    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapCoverage.exact} exatos de ${mapCoverage.listed} representados no mapa em ${path.relative(ROOT, OUT_DIR)}`,
+    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapCoverage.exact} exatos de ${mapCoverage.listed} representados no mapa; sitemap com ${sitemapCoverage.directoryUrls} URLs (${sitemapCoverage.cityUrls} cidades + ${sitemapCoverage.indexableProfiles} perfis) em ${sitemapCoverage.childSitemaps} arquivos filhos em ${path.relative(ROOT, OUT_DIR)}`,
   );
 }
 
