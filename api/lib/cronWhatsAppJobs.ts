@@ -187,16 +187,18 @@ async function whatsappLogExistsToday(
   tenantId: string,
   tipo: string,
   dedupeKey: string,
-  todayYmd?: string
+  todayYmd?: string,
+  filhoId?: string,
 ): Promise<boolean> {
   const ymd = todayYmd || brazilTodayParts().ymd;
-  const { count } = await sb
+  let query = sb
     .from("whatsapp_logs")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenantId)
     .eq("tipo", tipo)
-    .ilike("mensagem", `%${dedupeKey}%`)
     .gte("created_at", `${ymd}T00:00:00-03:00`);
+  query = filhoId ? query.eq("filho_id", filhoId) : query.ilike("mensagem", `%${dedupeKey}%`);
+  const { count } = await query;
   return (count || 0) > 0;
 }
 
@@ -338,7 +340,7 @@ async function runMensalidadeReminders(
             ? `${kind}-${fid}-${todayYmd}`
             : `${kind}-${fid}-${format(parseISO(dueYmd), "yyyy-MM")}`;
         const dedupeSinceYmd = kind === "disponivel" ? monthStart : todayYmd;
-        if (await whatsappLogExistsToday(sb, tenantId, tipo, dedupeKey, dedupeSinceYmd)) {
+        if (await whatsappLogExistsToday(sb, tenantId, tipo, dedupeKey, dedupeSinceYmd, fid)) {
           skipped++;
           continue;
         }
