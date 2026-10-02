@@ -15,7 +15,6 @@ interface Env {
 
 interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void;
-  passThroughOnException(): void;
 }
 
 const contentSecurityPolicy = [
@@ -45,7 +44,7 @@ function secureResponse(response: Response, url: URL): Response {
   if (url.pathname === "/") {
     headers.set(
       "Link",
-      '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap", </openapi.json>; rel="service-desc", </llms.txt>; rel="describedby", </auth.md>; rel="help"',
+      '</sitemap.xml>; rel="sitemap", </llms.txt>; rel="describedby"',
     );
   }
 
@@ -67,11 +66,6 @@ function secureResponse(response: Response, url: URL): Response {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Em produção o Worker fica na frente da VPS apenas na home. Se uma
-    // exceção inesperada ocorrer, o Cloudflare entrega a mesma requisição à
-    // origem em vez de derrubar a página pública.
-    ctx.passThroughOnException();
-
     const url = new URL(request.url);
 
     // O site legado usa este prefixo quando servido pelo proxy da VPS.
@@ -91,7 +85,7 @@ const worker = {
           const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
-      }, allowedWidths);
+      }, [...allowedWidths, 1440]);
     }
 
     const response = await handler.fetch(request, env, ctx);

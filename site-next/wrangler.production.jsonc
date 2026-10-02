@@ -30,6 +30,14 @@
       "zone_name": "axecloud.com.br"
     },
     {
+      "pattern": "axecloud.com.br/llms.txt*",
+      "zone_name": "axecloud.com.br"
+    },
+    {
+      "pattern": "axecloud.com.br/_vinext/image*",
+      "zone_name": "axecloud.com.br"
+    },
+    {
       "pattern": "axecloud.com.br/site-home-assets/*",
       "zone_name": "axecloud.com.br"
     }
