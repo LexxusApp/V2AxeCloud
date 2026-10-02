@@ -4,6 +4,7 @@ import { env as runtimeEnv } from "cloudflare:workers";
 type AxeCloudBindings = {
   AXECLOUD_API_CONTAINER: DurableObjectNamespace<AxeCloudApiContainer>;
   APP_ASSETS: Fetcher;
+  PROSPECT_API?: Fetcher;
   AXECLOUD_STAGING_TOKEN?: string;
   CRON_SECRET?: string;
   [name: string]: unknown;
@@ -140,6 +141,9 @@ export default {
     if (url.pathname === "/_worker/health") {
       return Response.json({ status: "ok", service: "axecloud-api-container-worker" });
     }
+    if (url.pathname.startsWith("/api/prospecting/") && env.PROSPECT_API) {
+      return env.PROSPECT_API.fetch(request);
+    }
 
     if (!isProductionPublicRequest(url)) {
       const stagingToken = env.AXECLOUD_STAGING_TOKEN;
@@ -185,8 +189,13 @@ export default {
     }
 
     const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
-    const runJob = async (job: "subscription-access" | "whatsapp-jobs") => {
-      const request = new Request(`http://axecloud-container/api/cron?job=${job}`, {
+    const runJob = async (
+      job: "subscription-access" | "whatsapp-jobs" | "mensalidades",
+      options: { forceDisponivel?: boolean } = {},
+    ) => {
+      const query = new URLSearchParams({ job });
+      if (options.forceDisponivel) query.set("forceDisponivel", "1");
+      const request = new Request(`http://axecloud-container/api/cron?${query.toString()}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${secret}` },
       });
@@ -207,12 +216,27 @@ export default {
       hour: "2-digit",
       hourCycle: "h23",
     }).format(new Date()));
+    const minuteInSaoPaulo = Number(new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      minute: "2-digit",
+    }).format(new Date()));
+    const dayInSaoPaulo = Number(new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+    }).format(new Date()));
+
+    // Recuperação idempotente: se o lote principal das 12h falhar, uma nova
+    // tentativa exclusiva de mensalidades acontece às 13h.
+    const primaryWhatsAppWindow = hourInSaoPaulo === 12 && minuteInSaoPaulo < 5;
+    const mensalidadeRecoveryWindow =
+      dayInSaoPaulo <= 2 && hourInSaoPaulo >= 13 && minuteInSaoPaulo % 15 < 5;
 
     // O gatilho continua horário para a reconciliação de assinaturas. Os jobs
     // de WhatsApp — incluindo reivindicações em 24h/72h — rodam uma vez ao dia.
     ctx.waitUntil(Promise.all([
       runJob("subscription-access"),
-      ...(hourInSaoPaulo === 12 ? [runJob("whatsapp-jobs")] : []),
+      ...(primaryWhatsAppWindow ? [runJob("whatsapp-jobs")] : []),
+      ...(mensalidadeRecoveryWindow ? [runJob("mensalidades", { forceDisponivel: true })] : []),
     ]).then(() => undefined));
   },
 } satisfies ExportedHandler<AxeCloudBindings>;

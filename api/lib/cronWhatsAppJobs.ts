@@ -15,6 +15,7 @@ import {
   capAndShuffleRecipients,
 } from "./whatsappSendGuards.js";
 import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
+import { filterActiveTenantIds } from "./activeTenantScope.js";
 
 function envInt(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -66,7 +67,7 @@ async function listMensalidadeTenantIds(sb: SupabaseClient, cfgMap: Map<string, 
     const tid = String((row as { tenant_id?: string }).tenant_id || (row as { lider_id?: string }).lider_id || "");
     if (tid) ids.add(tid);
   }
-  return [...ids];
+  return filterActiveTenantIds(sb, ids);
 }
 
 async function resolveCronTerreiroContext(sb: SupabaseClient, tenantId: string) {
@@ -204,7 +205,10 @@ async function isOfficialChannelReady(): Promise<boolean> {
   return st.status === "CONNECTED";
 }
 
-async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: number; skipped: number; errors: number }> {
+async function runMensalidadeReminders(
+  sb: SupabaseClient,
+  options: { forceDisponivel?: boolean } = {},
+): Promise<{ sent: number; skipped: number; errors: number }> {
   let sent = 0;
   let skipped = 0;
   let errors = 0;
@@ -249,7 +253,7 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
       const monthStart = `${y}-${String(m0 + 1).padStart(2, "0")}-01`;
       const lastDay = new Date(y, m0 + 1, 0).getDate();
       const monthEnd = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-      const calendarKind = resolveMensalidadeCronKind({
+      const calendarKind = options.forceDisponivel ? "disponivel" : resolveMensalidadeCronKind({
         todayYmd,
         monthStart,
         monthEnd,
@@ -333,7 +337,8 @@ async function runMensalidadeReminders(sb: SupabaseClient): Promise<{ sent: numb
           kind === "pendente" || kind === "atrasada"
             ? `${kind}-${fid}-${todayYmd}`
             : `${kind}-${fid}-${format(parseISO(dueYmd), "yyyy-MM")}`;
-        if (await whatsappLogExistsToday(sb, tenantId, tipo, dedupeKey, todayYmd)) {
+        const dedupeSinceYmd = kind === "disponivel" ? monthStart : todayYmd;
+        if (await whatsappLogExistsToday(sb, tenantId, tipo, dedupeKey, dedupeSinceYmd)) {
           skipped++;
           continue;
         }
@@ -858,12 +863,20 @@ async function runGiraReminders(
   return { sent, skipped, errors, events: eventsProcessed };
 }
 
-export async function runWhatsAppCronJobs(sb: SupabaseClient) {
+export async function runMensalidadeCronJobs(
+  sb: SupabaseClient,
+  options: { forceDisponivel?: boolean } = {},
+) {
   // Dia 1 (e demais dias do cron): gera pendências sem o zelador abrir o Financeiro,
   // para o disparo de mensalidade_disponivel / lembretes encontrar cobranças.
   const { syncAllMensalidadePendenciasForCron } = await import("./mensalidadePendenciasCron.js");
   const pendencias = await syncAllMensalidadePendenciasForCron(sb);
-  const mensalidade = await runMensalidadeReminders(sb);
+  const mensalidade = await runMensalidadeReminders(sb, options);
+  return { pendencias, mensalidade };
+}
+
+export async function runWhatsAppCronJobs(sb: SupabaseClient) {
+  const { pendencias, mensalidade } = await runMensalidadeCronJobs(sb);
   // Estoque crítico desligado (WA_DISABLE_ESTOQUE_ALERTS=1 por padrão).
   const estoque = { sent: 0, skipped: 0, errors: 0 };
   void runEstoqueAlerts;

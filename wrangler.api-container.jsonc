@@ -30,6 +30,10 @@
     {
       "binding": "APP_ASSETS",
       "service": "axecloud-app-assets"
+    },
+    {
+      "binding": "PROSPECT_API",
+      "service": "axecloud-prospect-api"
     }
   ],
   "containers": [

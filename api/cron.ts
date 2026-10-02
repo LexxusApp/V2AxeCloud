@@ -89,6 +89,25 @@ export default async function handler(req: any, res: any) {
     }
   }
 
+  if (job === "mensalidades" && method === "GET") {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!cronSecret || !secureCompare(authHeader, cronSecret)) {
+      return sendJson(res, 401, { error: "Não autorizado" });
+    }
+    const sb = getDiscreteSupabaseAdmin();
+    if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
+    try {
+      const { runMensalidadeCronJobs } = await import("./lib/cronWhatsAppJobs.js");
+      const forceDisponivel = String(req.query?.forceDisponivel || "") === "1";
+      const result = await runMensalidadeCronJobs(sb, { forceDisponivel });
+      return sendJson(res, 200, { ok: true, ...result });
+    } catch (error) {
+      console.error("[CRON] mensalidades:", error);
+      return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao executar mensalidades") });
+    }
+  }
+
   if (job === "subscription-access" && method === "GET") {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
@@ -124,5 +143,5 @@ export default async function handler(req: any, res: any) {
     }
   }
 
-  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|subscription-access|growth-prospecting|audit-tick" });
+  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|mensalidades|subscription-access|growth-prospecting|audit-tick" });
 }
