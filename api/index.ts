@@ -3899,7 +3899,7 @@ async function startServer() {
     resolveLeaderIdFn: (_sb, id) => resolveLeaderId(id),
   });
 
-  // Cron: ping Evolution (VPS Express)
+  // Agendamento: ping Evolution (runtime Express)
   app.get("/api/v1/cron/ping-evolution", async (req, res) => {
     req.query = { ...req.query, job: "ping-evolution" };
     await cronHandler(req, res);
@@ -5029,7 +5029,7 @@ async function startServer() {
     }
   });
 
-  // O mesmo roteador atende Express/VPS e as funções serverless, evitando
+  // O mesmo roteador atende o container Express e as funções serverless, evitando
   // divergência de autenticação, limites e comportamento entre ambientes.
   app.all(["/api/whatsapp/:action", "/webhook/meta"], async (req, res) => {
     const action = req.path === "/webhook/meta" ? "webhook" : String(req.params.action || "");

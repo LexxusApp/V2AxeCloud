@@ -286,7 +286,7 @@ export async function sendAdminMetaTemplateDispatch(
   }>;
 }> {
   if (!isMetaCloudDirectConfigured()) {
-    throw Object.assign(new Error("Meta Cloud API não configurada na VPS (WA_META_TOKEN / WA_PHONE_NUMBER_ID)."), {
+    throw Object.assign(new Error("Meta Cloud API não configurada no runtime (WA_META_TOKEN / WA_PHONE_NUMBER_ID)."), {
       status: 503,
     });
   }
