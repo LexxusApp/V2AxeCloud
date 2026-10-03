@@ -9,7 +9,7 @@ Dê dois cliques em `INICIAR-ADMIN-LOCAL.bat`. O inicializador abre o backend do
 O redesign administrativo é local e mantém as APIs, permissões, auditoria e ações existentes.
 
 - **Dev local:** `http://localhost:5174` (proxy `/api` → `http://localhost:3000`).
-- **Produção:** container Docker `admin` na VPS, servido em `https://admin.axecloud.com.br`. O Caddy faz proxy de `/api/*` para o container `app`.
+- **Produção:** Cloudflare Worker em `https://admin.axecloud.com.br`, com `/api/*` atendido pelo runtime de API no mesmo domínio.
 
 ## Acesso de administrador
 
@@ -18,13 +18,13 @@ O backend autoriza o utilizador se **uma** destas condições for verdadeira:
 1. e-mail listado em `ADMIN_CONSOLE_EMAILS` (ou `ADMIN_EMAILS`) no `.env` do servidor, **ou**
 2. `perfil_lider.is_admin_global = true` para o utilizador autenticado.
 
-Define no `.env` da raiz do AxéCloud, por exemplo:
+Defina nos secrets do Worker de API, por exemplo:
 
 ```env
 ADMIN_CONSOLE_EMAILS=teu@email.com
 ```
 
-Reinicia o servidor depois de alterar.
+Publique uma nova versão do Worker depois de alterar.
 
 ## Configuração local
 
@@ -32,21 +32,16 @@ Reinicia o servidor depois de alterar.
 2. Na raiz: `npm run dev` (API Express em `:3000`).
 3. `npm run dev:admin` na raiz **ou** `cd axecloud-admin && npm run dev`.
 
-## Publicação na VPS
+## Publicação no Cloudflare
 
-O painel entra no stack Docker (`deploy/docker-compose.yml`, serviço `admin`) e no Caddy (`admin.axecloud.com.br`).
-
-DNS (Cloudflare): registo **A** `admin` → IP da VPS, proxy ligado.
-
-Para actualizar:
+O painel é compilado e publicado pelo Worker configurado no repositório:
 
 ```bash
-cd /opt/axecloud && git pull
-docker compose -f deploy/docker-compose.yml --env-file .env build admin app
-docker compose -f deploy/docker-compose.yml --env-file .env up -d admin app
+npm run build:admin
+npx wrangler deploy --config wrangler.admin-production.jsonc
 ```
 
-O browser chama `/api/...` no mesmo host; o Caddy encaminha para o container `app`. Não é preciso `VITE_API_BASE_URL` em produção.
+O browser chama `/api/...` no mesmo host; o gateway Cloudflare encaminha para o runtime de API. Não é preciso `VITE_API_BASE_URL` em produção.
 
 ### Service Worker
 

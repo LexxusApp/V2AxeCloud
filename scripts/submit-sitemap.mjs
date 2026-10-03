@@ -45,7 +45,7 @@ function printSearchConsoleGuide(siteUrl, sitemapUrl) {
   console.log('3. Escolha verificação por "Tag HTML"');
   console.log('4. Copie o valor do atributo content= e coloque no .env:');
   console.log('   GOOGLE_SITE_VERIFICATION=seu_token_aqui');
-  console.log('5. Faça deploy (ou reinicie o app na VPS) e clique "Verificar" no Search Console');
+  console.log('5. Publique o Worker e clique "Verificar" no Search Console');
   console.log('6. Em "Sitemaps", envie manualmente: sitemap.xml');
   console.log('   URL do sitemap: ' + sitemapUrl);
   console.log('   ⚠ NÃO use sitemap.xm (sem o l) — o Google rejeita como HTML');

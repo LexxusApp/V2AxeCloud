@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Upsert WA_META_TEMPLATE_* no .env da VPS (sem imprimir segredos)."""
+"""Upsert WA_META_TEMPLATE_* no .env local (sem imprimir segredos)."""
 from pathlib import Path
 
-ENV_PATH = Path("/opt/axecloud/.env")
+ENV_PATH = Path(".env")
 
 NEED = {
     "WA_META_TEMPLATE_DADOS_ACESSO": "conta_ativa_axecloud",

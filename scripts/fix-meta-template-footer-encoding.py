@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-ENV_PATH = "/opt/axecloud/.env"
+ENV_PATH = ".env"
 FOOTER_TEXT = "Mensagem automática. Não responda."
 MOJIBAKE_MARKERS = ("automÃ", "NÃ£", "NÃƒ", "nÃ£", "Ã¡", "Ã©", "Ã­", "Ã³", "Ãº")
 SKIP_CATEGORIES = {"AUTHENTICATION"}

@@ -1,8 +1,8 @@
 /**
  * Cria instância WHATSAPP-BUSINESS (Meta Cloud API) na Evolution v2.
- * Uso na VPS:
+ * Uso local administrativo:
  *   docker compose -f deploy/docker-compose.yml --env-file .env exec -T app \
- *     node /opt/axecloud/deploy/scripts/create-business-instance.mjs
+ *     node deploy/scripts/create-business-instance.mjs
  *
  * Variáveis (env):
  *   EVOLUTION_API_KEY, EVOLUTION_API_BASE_URL

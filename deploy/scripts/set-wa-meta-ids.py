@@ -2,7 +2,7 @@
 """Atualiza apenas IDs Meta no .env (sem tocar no token)."""
 from pathlib import Path
 
-ENV_PATH = Path("/opt/axecloud/.env")
+ENV_PATH = Path(".env")
 UPDATES = {
     "WA_BUSINESS_ACCOUNT_ID": "27078466415169002",
     "WA_PHONE_NUMBER_ID": "1194550570409303",

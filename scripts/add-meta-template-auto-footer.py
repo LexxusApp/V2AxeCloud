@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-ENV_PATH = "/opt/axecloud/.env"
+ENV_PATH = ".env"
 FOOTER_TEXT = "Mensagem automática. Não responda."
 SKIP_CATEGORIES = {"AUTHENTICATION"}
 SKIP_STATUS = {"PENDING_DELETION", "DELETED"}

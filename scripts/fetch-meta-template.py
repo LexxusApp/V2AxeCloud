@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-ENV_PATH = Path("/opt/axecloud/.env")
+ENV_PATH = Path(".env")
 
 
 def load_env(path: Path) -> dict[str, str]:

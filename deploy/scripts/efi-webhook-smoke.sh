@@ -1,7 +1,8 @@
 #!/bin/bash
 # Smoke test do webhook EFI (secret + token inválido = fluxo seguro sem ativar tenant).
 set -euo pipefail
-cd /opt/axecloud
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$ROOT"
 SECRET=$(grep -m1 '^EFI_WEBHOOK_SECRET=' .env | cut -d= -f2-)
 BASE="https://axecloud.com.br/api/webhooks/efi"
 

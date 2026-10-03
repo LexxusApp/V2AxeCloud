@@ -7,7 +7,7 @@ Edita dois templates Meta (executar após 24h do último edit):
 from pathlib import Path
 import json, urllib.parse, urllib.request, urllib.error
 
-ENV = Path("/opt/axecloud/.env")
+ENV = Path(".env")
 FOOTER = "Mensagem automática. Não responda."
 
 

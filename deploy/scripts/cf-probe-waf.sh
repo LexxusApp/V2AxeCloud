@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ENV_FILE="${ENV_FILE:-/opt/axecloud/.env}"
+ENV_FILE="${ENV_FILE:-.env}"
 # shellcheck disable=SC1090
 source <(grep -E '^CLOUDFLARE_' "$ENV_FILE" | sed 's/\r$//')
 TOKEN="${CLOUDFLARE_API_TOKEN}"

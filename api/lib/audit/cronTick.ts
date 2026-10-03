@@ -1,5 +1,5 @@
 /**
- * Tick agendado pelo cron da VPS.
+ * Tick agendado pelo Cloudflare.
  *
  * Itera por todos os `audit_targets` com `enabled=true` e schedule compatível
  * (no momento ignoramos o schedule e rodamos todos os habilitados — o intervalo

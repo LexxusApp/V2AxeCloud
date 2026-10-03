@@ -5,7 +5,7 @@ Rascunhos para criar no **Meta Business Manager** → WhatsApp → Message templ
 - **Idioma:** Português (Brasil) — `pt_BR`
 - **Categoria sugerida:** **Utilidade** (lembretes, confirmações, alertas operacionais)
 - **Conta WABA:** `1035133915841971`
-- **Após aprovação:** adicionar as variáveis `WA_META_TEMPLATE_*` no `.env` da VPS e reiniciar o app
+- **Após aprovação:** adicionar as variáveis `WA_META_TEMPLATE_*` aos secrets do Worker e publicar a nova versão
 
 Os nomes abaixo devem ser **idênticos** aos usados no código (`api/lib/whatsappMetaCloud.ts`).
 
@@ -218,7 +218,7 @@ Pix e cartao no checkout oficial do AxeCloud.
 **Botão:** Pagar assinatura → `https://axecloud.com.br/assinatura/renovar`
 
 **Env:** `WA_META_TEMPLATE_COBRANCA_ASSINATURA=cobranca_assinatura_axecloud`
-**Submit:** `python3 scripts/submit-cobranca-assinatura-meta.py` (na VPS com `.env`)
+**Submit:** `python scripts/submit-cobranca-assinatura-meta.py` (localmente com `.env`)
 **Código:** `api/lib/subscriptionBillingWhatsApp.ts` (cron) + catálogo admin `cobranca_assinatura_zelador`
 
 ---
@@ -293,7 +293,7 @@ Até aprovar, manter:
 WA_META_TEMPLATE_AVISO_GIRA=aviso_gira_util_axecloud
 ```
 
-**Submissão:** `python3 scripts/submit-aviso-gira-lembrete-membro-meta.py` (na VPS com `.env`).
+**Submissão:** `python scripts/submit-aviso-gira-lembrete-membro-meta.py` (localmente com `.env`).
 
 **Disparo:** Calendário → novo evento / lembrete cron / reenvio → `dispatchGiraWhatsApp` para filhos ativos com telefone.
 
@@ -782,9 +782,9 @@ WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
 **Tipos no código:** `dados_acesso` e `guia_membro`.
 ---
 
-## Checklist pós-aprovação (VPS)
+## Checklist pós-aprovação (Cloudflare)
 
-1. Editar `/opt/axecloud/.env` e adicionar:
+1. Adicionar aos secrets/variables do Worker de API:
 
 ```env
 WA_META_TEMPLATE_MENSALIDADE_DISPONIVEL=mensalidade_disponivel_axecloud
@@ -809,7 +809,7 @@ WA_META_TEMPLATE_GUIA_MEMBRO=acesso_membro_guia_axecloud
 WA_META_TEMPLATE_FALHA_ACESSO_ZELADOR=acesso_falhou_avisar_zelador_axecloud
 ```
 
-2. `git pull` + rebuild/restart do container app.
+2. Publicar uma nova versão do Worker de API.
 
 3. Testar em Configurações → WhatsApp → envio de teste (usa `comunicado_terreiro_axecloud`).
 

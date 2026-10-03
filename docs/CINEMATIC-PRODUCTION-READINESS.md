@@ -10,7 +10,7 @@ O site novo faz parte do build oficial de marketing. Ele não cria um segundo si
 | `/register`, `/termos`, `/privacidade`, artigos e páginas dinâmicas de cidade, terreiro e evento | React de marketing atual |
 | `/entrar`, painel e APIs | aplicação principal |
 
-O arquivo `__react_shell.html` é interno ao nginx e preserva rotas públicas dinâmicas que ainda não tenham HTML pré-renderizado.
+O arquivo `__react_shell.html` preserva rotas públicas dinâmicas que ainda não tenham HTML pré-renderizado.
 
 ## Build e conferência local
 
@@ -24,4 +24,4 @@ O `build:landing` falha automaticamente se uma página nova perder canonical/des
 
 ## Publicação e reversão
 
-A publicação continua usando o fluxo Docker atual. O container `marketing` recebe `landing-dist`; Caddy mantém APIs e autenticação no container `app`. Em caso de regressão, volte para a imagem anterior do container de marketing e valide `/register` e `/entrar` antes de reabrir tráfego.
+A publicação usa os Workers versionados do Cloudflare. Em caso de regressão, restaure a versão anterior do Worker e valide `/register`, `/entrar`, `/api/health-check` e checkout antes de reabrir tráfego.

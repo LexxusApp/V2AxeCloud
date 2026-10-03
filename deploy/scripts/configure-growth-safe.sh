@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENV_FILE="${1:-/opt/axecloud/.env}"
+ENV_FILE="${1:-.env}"
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "ENV_FILE_NOT_FOUND"
   exit 1

@@ -1,7 +1,7 @@
 /**
  * Testa os templates Meta aprovados via Evolution (instância oficial).
  *
- * Uso (na VPS ou local com .env):
+ * Uso local com .env:
  *   node scripts/meta-whatsapp-test-templates.mjs
  *   node scripts/meta-whatsapp-test-templates.mjs 5511999999999
  *   node scripts/meta-whatsapp-test-templates.mjs 5511999999999 financeiro

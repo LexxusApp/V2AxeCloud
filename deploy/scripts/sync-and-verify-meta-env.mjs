@@ -1,10 +1,10 @@
 /**
- * Lê Meta token/phone da Evolution (instância console) e atualiza /opt/axecloud/.env.
+ * Lê Meta token/phone da Evolution (instância console) e atualiza .env.
  * Não imprime segredos.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-const envPath = process.env.AXE_ENV_PATH || "/opt/axecloud/.env";
+const envPath = process.env.AXE_ENV_PATH || ".env";
 const key = String(process.env.EVOLUTION_API_KEY || "").trim();
 const base = String(process.env.EVOLUTION_API_BASE_URL || "http://evolution:8080")
   .trim()

@@ -11,7 +11,7 @@ export function isHomePath(path: string): boolean {
 export const ROUTES = {
   home: '/',
   login: '/entrar',
-  /** @deprecated Use ROUTES.login — redirect 301 em produção (Caddy). */
+  /** @deprecated Use ROUTES.login — redirect 301 em produção no edge. */
   loginLegacy: '/login',
   register: '/register',
   checkout: '/checkout',
@@ -104,7 +104,7 @@ export function checkinPortariaPath(token: string): string {
   return `/checkin-portaria/${encodeURIComponent(token)}`;
 }
 
-/** Rotas servidas pelo site de marketing estático (Caddy → container marketing). */
+/** Rotas servidas pelo site de marketing no Cloudflare. */
 export const MARKETING_SITE_PATHS = [
   ROUTES.home,
   ROUTES.register,

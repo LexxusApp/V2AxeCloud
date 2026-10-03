@@ -158,8 +158,8 @@ const securityStats = [
 const securityPoints = [
   {
     icon: Shield,
-    title: 'Servidores dedicados',
-    body: 'Infraestrutura própria em VPS dedicado na Europa — sem dividir máquina com sites genéricos. Performance e controle total do ambiente AxéCloud.',
+    title: 'Infraestrutura distribuída',
+    body: 'Aplicação distribuída na rede global da Cloudflare, com dados protegidos no Supabase Brasil. Desempenho, redundância e escala sem depender de uma única máquina.',
   },
   {
     icon: Lock,

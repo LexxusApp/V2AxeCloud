@@ -11,7 +11,7 @@ RULE_DESCRIPTION='AxeCloud Block scanner paths'
 RULE_EXPRESSION='(http.request.uri.path contains "/wp-admin") or (http.request.uri.path contains "/.env") or (http.request.uri.path contains "/.git") or (http.request.uri.path contains "/phpmyadmin") or (http.request.uri.path contains "/pma/") or (http.request.uri.path contains "/xmlrpc.php") or (http.request.uri.path contains "/vendor/phpunit") or (http.request.uri.path contains "/actuator") or (http.request.uri.path contains "/containers/json")'
 
 API_BASE='https://api.cloudflare.com/client/v4'
-ENV_FILE="${ENV_FILE:-/opt/axecloud/.env}"
+ENV_FILE="${ENV_FILE:-.env}"
 if [ -f "$ENV_FILE" ]; then
   set -a
   # shellcheck disable=SC1090

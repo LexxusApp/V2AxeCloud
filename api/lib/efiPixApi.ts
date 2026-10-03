@@ -96,7 +96,7 @@ function resolveCertPathFromDisk(): string | null {
 }
 
 function resolvePixCertPfx(): { pfx: Buffer; cacheKey: string } | null {
-  // Preferir .p12 montado em disco (VPS: /run/secrets/...) — evita base64 stale no .env.
+  // Aceita .p12 montado em disco para desenvolvimento; em produção use o secret Base64.
   const certPath = resolveCertPathFromDisk();
   if (certPath) {
     return { pfx: fs.readFileSync(certPath), cacheKey: `file:${certPath}` };
@@ -132,7 +132,7 @@ export function getEfiPixSetupDiagnostics(): EfiPixSetupDiagnostics {
   }
   if (!certEnvKeysPresent.length) {
     issues.push(
-      "Defina EFI_PIX_CERT_BASE64 com o arquivo .p12 inteiro em Base64, ou EFI_CERTIFICATE_PATH na VPS."
+      "Defina EFI_PIX_CERT_BASE64 nos secrets do Worker com o arquivo .p12 inteiro em Base64."
     );
   } else if (!cert) {
     const key = certEnvKeysPresent[0]!;
@@ -143,7 +143,7 @@ export function getEfiPixSetupDiagnostics(): EfiPixSetupDiagnostics {
       );
     } else if (/\.p12|\.pfx|[\\/]/.test(sample) && sample.length < 400) {
       issues.push(
-        `${key}: caminho de arquivo informado, mas o .p12 não foi encontrado neste computador. No localhost o PIX só funciona com o certificado na pasta certs/; clientes pagam no site no ar (VPS).`
+        `${key}: caminho de arquivo informado, mas o .p12 não foi encontrado neste computador. No ambiente publicado, configure o certificado Base64 nos secrets do Worker.`
       );
     } else if (sample.length < 200) {
       issues.push(

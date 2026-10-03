@@ -1,5 +1,5 @@
 /**
- * Ramp — sobe VUs até 200 para achar teto. Pare se CrowdSec/Caddy bloquear seu IP.
+ * Ramp — sobe VUs até 200 para achar teto. Pare se o WAF ou rate limiting bloquear seu IP.
  * Env: BASE_URL
  */
 import http from "k6/http";

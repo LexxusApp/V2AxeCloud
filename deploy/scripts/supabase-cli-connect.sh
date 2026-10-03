@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Conecta o Supabase CLI ao projeto remoto e aplica migrations pendentes.
-# Uso na VPS: SUPABASE_ACCESS_TOKEN=sbp_xxx bash deploy/scripts/supabase-cli-connect.sh
+# Uso local: SUPABASE_ACCESS_TOKEN=sbp_xxx bash deploy/scripts/supabase-cli-connect.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

@@ -10,7 +10,7 @@ O job `growth-prospecting`, executado a cada cinco minutos, também coordena o f
 - vendedor de IA somente após uma mensagem inbound daquele prospecto;
 - opt-out imediato para “pare”, “sair”, “não quero” e equivalentes.
 
-Variáveis do servidor:
+Variáveis do runtime:
 
 ```env
 GROWTH_SAFE_OUTREACH_ENABLED=false
@@ -29,7 +29,7 @@ O sistema não tenta preencher formulários arbitrários automaticamente. Formul
 Ativação recomendada:
 
 1. Aplicar a migration `20260811003000_growth_safe_outreach.sql`.
-2. Na VPS, executar `deploy/scripts/configure-growth-safe.sh`; ele cria um backup do `.env`, liga a pesquisa e mantém envios/IA desligados.
+2. Configurar os secrets/variables do Worker, ligando a pesquisa e mantendo envios/IA desligados.
 3. Executar o cron uma vez para validar até duas pesquisas sem envio.
 4. Confirmar SMTP e número comercial.
 5. Alterar `GROWTH_SAFE_OUTREACH_TEST_MODE=false`.

@@ -19,8 +19,8 @@ function normalizeIp(value: string): string {
 /**
  * Retorna IP validado sem confiar em X-Forwarded-For fornecido pelo cliente.
  *
- * Na VPS, o Caddy só escreve x-axecloud-client-ip após validar o peer contra
- * as faixas oficiais da Cloudflare.
+ * O gateway Cloudflare escreve x-axecloud-client-ip a partir do endereço
+ * validado na borda; o runtime só confia nesse cabeçalho quando habilitado.
  */
 export function resolveClientIp(req: RequestLike): string | null {
   if (process.env.TRUST_PROXY_CLIENT_IP === "1") {

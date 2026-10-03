@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test — marketing vs app no mesmo domínio (rodar na VPS ou com BASE_URL).
+# Smoke test — marketing e app no domínio oficial do Cloudflare.
 set -euo pipefail
 
 BASE="${BASE_URL:-https://axecloud.com.br}"

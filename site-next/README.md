@@ -19,15 +19,15 @@ npm run check
 
 O comando valida lint, build, HTML renderizado, metadados, JSON-LD, robots, sitemap e arquivos de descoberta.
 
-O build gera `dist/standalone/server.js`, próprio para executar em container ou diretamente na VPS.
+O build gera o bundle consumido pelo Worker do Cloudflare.
 
 ```bash
-docker build -t axecloud-site .
-docker run --rm -p 3000:3000 axecloud-site
+npm run build
+npx wrangler deploy --config ../wrangler.site-home.jsonc
 ```
 
 ## Limites de produção
 
 Este projeto substitui somente a experiência institucional da raiz (`/`). O aplicativo autenticado, o login real, cadastro, checkout, diretório, eventos, conteúdo, páginas legais, APIs e sitemap dinâmico continuam pertencendo ao sistema principal.
 
-Veja [deploy/PRODUCTION-INTEGRATION.md](deploy/PRODUCTION-INTEGRATION.md) antes de alterar o proxy da VPS.
+Antes de publicar, valide as rotas canônicas, assets, sitemap e o gateway de produção.

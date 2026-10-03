@@ -68,7 +68,7 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // O site legado usa este prefixo quando servido pelo proxy da VPS.
+    // Mantém compatibilidade com o prefixo histórico dos assets do site.
     // No Worker dedicado, os mesmos assets vivem na raiz do binding ASSETS.
     if (url.pathname.startsWith("/site-home-assets/")) {
       const assetUrl = new URL(url);

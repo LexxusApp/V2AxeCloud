@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-ENV_PATH = "/opt/axecloud/.env"
+ENV_PATH = ".env"
 FOOTER = "Mensagem automática. Não responda."
 
 TEMPLATE = {

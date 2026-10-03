@@ -404,7 +404,7 @@ export function RegistrationCheckoutPanel({
     if (!config?.payeeCode || config.cardTokenizationReady === false) {
       setError(
         config?.cardSetup?.issues?.[0] ||
-          'Configure EFI_PAYEE_CODE no .env da VPS (Efí → API → Introdução → Identificador de conta).'
+          'Configure EFI_PAYEE_CODE nos secrets do Worker (Efí → API → Introdução → Identificador de conta).'
       );
       return;
     }
@@ -732,7 +732,7 @@ export function RegistrationCheckoutPanel({
               </motion.div>
             ) : !config?.cardAvailable ? (
               <p className={cn('text-sm', t.textMuted)}>
-                Pagamento com cartão indisponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET no .env da VPS.
+                Pagamento com cartão indisponível. Configure EFI_CLIENT_ID e EFI_CLIENT_SECRET nos secrets do Worker.
               </p>
             ) : (
               <form onSubmit={(e) => void handleCardPay(e)} className={formGap}>

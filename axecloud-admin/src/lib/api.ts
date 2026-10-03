@@ -4,7 +4,7 @@ export const API_UNAVAILABLE = "API_UNAVAILABLE";
 
 /**
  * Base da API no browser.
- * Em produção na VPS, `/api/...` no mesmo host (Caddy faz proxy para o container app).
+ * Em produção, `/api/...` usa o mesmo host e é roteado pelo Cloudflare Worker.
  * Override: VITE_API_BASE_URL=https://axecloud.com.br (chamada cross-origin direta).
  */
 export function resolveApiBaseUrl(): string {

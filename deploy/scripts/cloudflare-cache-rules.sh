@@ -6,7 +6,7 @@
 set -euo pipefail
 
 API_BASE='https://api.cloudflare.com/client/v4'
-ENV_FILE="${ENV_FILE:-/opt/axecloud/.env}"
+ENV_FILE="${ENV_FILE:-.env}"
 if [ -f "$ENV_FILE" ]; then
   set -a
   # shellcheck disable=SC1090

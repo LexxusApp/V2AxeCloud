@@ -1,6 +1,6 @@
 const BRAZIL_TIME_ZONE = "America/Sao_Paulo";
 
-/** Data civil brasileira (YYYY-MM-DD), sem depender do fuso horário da VPS. */
+/** Data civil brasileira (YYYY-MM-DD), independente do fuso horário do runtime. */
 export function brazilDate(now = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: BRAZIL_TIME_ZONE,

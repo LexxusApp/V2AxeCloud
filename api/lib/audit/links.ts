@@ -3,7 +3,7 @@
  * relativas, e dispara HEAD/GET em paralelo controlado para classificar como
  * ok / redirect / broken (4xx/5xx) / timeout / network.
  *
- * Limites pensados para o cron da VPS:
+ * Limites pensados para o agendamento do Cloudflare:
  *  - máximo 30 links por chamada (configurável até 60).
  *  - 8 requests concorrentes.
  *  - 6s de timeout por link.
