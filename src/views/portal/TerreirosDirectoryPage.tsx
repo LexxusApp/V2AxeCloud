@@ -136,6 +136,16 @@ export default function TerreirosDirectoryPage() {
     [cidades],
   );
 
+  const crawlableCities = useMemo(
+    () => [...cidades]
+      .filter((cidade) => cidade.totalTerreiros > 0 && cidade.estado && cidade.cidadeSlug)
+      .sort((a, b) =>
+        String(a.estado).localeCompare(String(b.estado), 'pt-BR') ||
+        a.cidade.localeCompare(b.cidade, 'pt-BR'),
+      ),
+    [cidades],
+  );
+
   return (
     <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
       <MatrizPageBackground />
@@ -201,6 +211,30 @@ export default function TerreirosDirectoryPage() {
             Encontrar minha casa
           </a>
         </section>
+
+        {crawlableCities.length > 0 ? (
+          <section className="mt-8 rounded-2xl border border-[#e8dfd0] bg-white/70 px-5 py-4" aria-label="Cidades do diretório">
+            <details>
+              <summary className="cursor-pointer text-sm font-extrabold text-[#243127]">
+                Ver todas as {crawlableCities.length} cidades mapeadas
+              </summary>
+              <nav className="mt-5" aria-label="Lista completa de cidades com terreiros">
+                <ul className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  {crawlableCities.map((cidade) => (
+                    <li key={`${cidade.estado}:${cidade.cidadeSlug}`}>
+                      <a
+                        href={`/terreiros/${String(cidade.estado).toLowerCase()}/${cidade.cidadeSlug}`}
+                        className="text-[#5f4a16] underline decoration-[#c99400]/35 underline-offset-4 hover:text-[#172019]"
+                      >
+                        {cidade.cidade}, {cidade.estado} ({cidade.totalTerreiros})
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </details>
+          </section>
+        ) : null}
       </main>
     </div>
   );

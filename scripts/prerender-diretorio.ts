@@ -55,6 +55,8 @@ type SnapshotRow = DiretorioSeoTerreiro & {
   longitude: number | null;
   coordinateSource: string | null;
   verificada?: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 type PublicCity = {
@@ -131,6 +133,8 @@ async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
         longitude: optionalCoordinate(item.longitude, 180),
         coordinateSource: item.coordinateSource ? String(item.coordinateSource) : null,
         verificada: Boolean(item.verificada),
+        createdAt: item.criadaEm ? String(item.criadaEm) : null,
+        updatedAt: item.atualizadaEm ? String(item.atualizadaEm) : null,
         cidadeUrl: item.cidadeUrl ? String(item.cidadeUrl) : null,
       });
     }
@@ -178,6 +182,8 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     longitude: hasCoordinates ? longitude : null,
     coordinateSource: hasCoordinates ? String(row.coordinate_source || "google_maps_url") : null,
     verificada: Boolean(row.verified_at),
+    createdAt: row.created_at ? String(row.created_at) : null,
+    updatedAt: row.updated_at ? String(row.updated_at) : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
   };
 }
@@ -199,6 +205,7 @@ function publicSnapshotItem(row: SnapshotRow) {
     latitude: row.latitude,
     longitude: row.longitude,
     coordinateSource: row.coordinateSource,
+    indexable: isDiretorioListingIndexable(row),
     perfilUrl: row.slug ? `/terreiro/${row.slug}` : null,
     cidadeUrl: row.cidadeUrl,
   };
@@ -418,6 +425,16 @@ function escapeXml(value: string): string {
   );
 }
 
+function latestSitemapDate(...values: Array<string | null | undefined>): string {
+  return values
+    .map((value) => String(value || "").trim())
+    .filter((value) => value && !Number.isNaN(new Date(value).getTime()))
+    .map((value) => new Date(value).toISOString().slice(0, 10))
+    .concat(DIRETORIO_SEO_TEMPLATE_LASTMOD)
+    .sort()
+    .at(-1) as string;
+}
+
 function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>) {
   fs.writeFileSync(
     path.join(OUT_DIR, "sitemap-static.xml"),
@@ -439,7 +456,9 @@ function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>)
         path: `/terreiros/${first.estado.toLowerCase()}/${first.cidadeSlug}`,
         changeFrequency: "weekly" as const,
         priority: 0.85,
-        lastModified: DIRETORIO_SEO_TEMPLATE_LASTMOD,
+        lastModified: latestSitemapDate(
+          ...items.flatMap((item) => [item.updatedAt, item.createdAt]),
+        ),
       }];
     }),
     ...rows.flatMap((row) => {
@@ -448,7 +467,7 @@ function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>)
         path: `/terreiro/${row.slug}`,
         changeFrequency: "monthly" as const,
         priority: 0.65,
-        lastModified: DIRETORIO_SEO_TEMPLATE_LASTMOD,
+        lastModified: latestSitemapDate(row.updatedAt, row.createdAt),
       }];
     }),
   ];
@@ -460,19 +479,26 @@ function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>)
     return true;
   });
   const chunkCount = Math.max(1, Math.ceil(uniqueRoutes.length / SITEMAP_CHUNK_SIZE));
-  const childSitemaps = ["/sitemap-static.xml"];
+  const staticLastmod = latestSitemapDate(
+    ...staticSitemapRoutes().map((route) => route.lastModified),
+  );
+  const childSitemaps: Array<{ pathname: string; lastmod: string }> = [
+    { pathname: "/sitemap-static.xml", lastmod: staticLastmod },
+  ];
   for (let index = 0; index < chunkCount; index += 1) {
     const filename = `sitemap-diretorio-${index + 1}.xml`;
     const chunk = uniqueRoutes.slice(index * SITEMAP_CHUNK_SIZE, (index + 1) * SITEMAP_CHUNK_SIZE);
     fs.writeFileSync(path.join(OUT_DIR, filename), buildSitemapXml(SITE_ORIGIN, chunk), "utf8");
-    childSitemaps.push(`/${filename}`);
+    childSitemaps.push({
+      pathname: `/${filename}`,
+      lastmod: latestSitemapDate(...chunk.map((route) => route.lastModified)),
+    });
   }
 
-  const lastmod = new Date().toISOString().slice(0, 10);
   const indexXml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ...childSitemaps.map((pathname) => [
+    ...childSitemaps.map(({ pathname, lastmod }) => [
       "  <sitemap>",
       `    <loc>${escapeXml(`${SITE_ORIGIN}${pathname}`)}</loc>`,
       `    <lastmod>${lastmod}</lastmod>`,
@@ -504,7 +530,7 @@ async function main() {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, verified_at", (query, { from, to }) =>
+    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, verified_at, created_at, updated_at", (query, { from, to }) =>
       query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
     );
     rows = (data || [])
@@ -536,7 +562,7 @@ async function main() {
         cidadeSlug: first.cidadeSlug,
         total: items.length,
       },
-      items,
+      items.filter((item) => isDiretorioListingIndexable(item)),
     );
     writePrerenderPage(template, page);
     cityPages += 1;

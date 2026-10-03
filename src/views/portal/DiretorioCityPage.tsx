@@ -125,6 +125,13 @@ export default function DiretorioCityPage() {
     });
   }, [bairros]);
 
+  const indexableTerreiros = useMemo(
+    () => allTerreiros
+      .filter((terreiro) => terreiro.indexable)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
+    [allTerreiros],
+  );
+
   const selectedBairro = useMemo(
     () => bairros.find((bairro) => bairro.slug === selectedBairroSlug) || null,
     [bairros, selectedBairroSlug],
@@ -376,6 +383,30 @@ export default function DiretorioCityPage() {
             </div>
           </section>
         </div>
+
+        {indexableTerreiros.length > 0 ? (
+          <section className="mt-8 rounded-2xl border border-[#dcd2c2] bg-[#fffdf7] px-5 py-4" aria-label="Perfis públicos da cidade">
+            <details>
+              <summary className="cursor-pointer text-sm font-extrabold text-[#243127]">
+                Lista completa de {indexableTerreiros.length} perfis públicos em {cityName}
+              </summary>
+              <nav className="mt-5" aria-label={`Terreiros indexáveis em ${cityName}`}>
+                <ul className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  {indexableTerreiros.map((terreiro) => (
+                    <li key={terreiro.slug}>
+                      <a
+                        href={`/terreiro/${terreiro.slug}`}
+                        className="text-[#5f4a16] underline decoration-[#c99400]/35 underline-offset-4 hover:text-[#172019]"
+                      >
+                        {terreiro.nome}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </details>
+          </section>
+        ) : null}
 
       </main>
     </MatrizEditorialLayout>

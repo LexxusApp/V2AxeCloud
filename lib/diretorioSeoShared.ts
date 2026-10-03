@@ -6,8 +6,8 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-08-31";
-export const PUBLIC_SITE_SHELL_LASTMOD = "2026-08-31";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-10-03";
+export const PUBLIC_SITE_SHELL_LASTMOD = "2026-10-03";
 
 export const STATIC_SITEMAP_PATHS: readonly {
   path: string;
@@ -355,7 +355,6 @@ export function buildCityPrerenderPage(
         const pb = FEATURED_TERREIRO_COPY[b.slug] ? 0 : 1;
         return pa - pb;
       })
-      .slice(0, 30)
       .map((t) => ({
         href: `/terreiro/${t.slug}`,
         label: t.nome,

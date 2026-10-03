@@ -186,10 +186,10 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
         const { estado, cidadeSlug } = parsed;
         const data = await fetchTerreirosByCitySlug(sb, TABLE, SELECT, estado, cidadeSlug);
 
-        const items = data
+        const publishableRows = data
           .filter((row) => isDiretorioListingPublishable(row))
-          .filter((row) => resolveDiretorioTipo(row.tipo, String(row.nome || '')) === 'terreiro')
-          .map((row) => mapSeoRow(row));
+          .filter((row) => resolveDiretorioTipo(row.tipo, String(row.nome || '')) === 'terreiro');
+        const items = publishableRows.map((row) => mapSeoRow(row));
         if (items.length === 0) return res.status(404).send("Cidade não encontrada");
 
         const first = items[0];
@@ -204,7 +204,9 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
             cidadeSlug,
             total: items.length,
           },
-          items,
+          publishableRows
+            .filter((row) => isDiretorioListingIndexable(row))
+            .map((row) => mapSeoRow(row)),
         );
 
         res.setHeader("Content-Type", "text/html; charset=utf-8");

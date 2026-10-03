@@ -11,6 +11,7 @@ type AxeCloudBindings = {
 };
 
 const PRODUCTION_HOST = "axecloud.com.br";
+const RETIRED_SITEMAP_RE = /^\/sitemap-terreiros(?:-\d+)?\.xml$/;
 const PRODUCTION_PUBLIC_EXACT_PATHS = new Set([
   "/sitemap.xml",
   "/.well-known/api-catalog",
@@ -125,6 +126,17 @@ export class AxeCloudApiContainer extends Container {
 export default {
   async fetch(request: Request, env: AxeCloudBindings): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.hostname === PRODUCTION_HOST && RETIRED_SITEMAP_RE.test(url.pathname)) {
+      return new Response("Sitemap antigo removido. Use https://axecloud.com.br/sitemap.xml", {
+        status: 410,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400, s-maxage=86400",
+          Link: '<https://axecloud.com.br/sitemap.xml>; rel="sitemap"',
+        },
+      });
+    }
 
     if (url.pathname === "/api/v1/app-build") {
       const buildUrl = new URL("/build-info.json", request.url);

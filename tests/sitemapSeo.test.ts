@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { STATIC_SITEMAP_PATHS, PUBLIC_SITE_SHELL_LASTMOD, buildSitemapXml, buildTerreiroPrerenderPage, staticSitemapRoutes } from '../lib/diretorioSeoShared';
+import { STATIC_SITEMAP_PATHS, PUBLIC_SITE_SHELL_LASTMOD, buildCityPrerenderPage, buildSitemapXml, buildTerreiroPrerenderPage, staticSitemapRoutes } from '../lib/diretorioSeoShared';
 import { omitSelectColumn, selectColumnFromSchemaError } from '../lib/diretorioQuery';
 import { PUBLIC_PRERENDER_PAGES } from '../src/constants/seoPublicPages';
 import { FEATURE_PAGE_PATHS } from '../src/constants/featurePagesContent';
@@ -27,6 +28,38 @@ test('fallback estático do sitemap é XML válido e inclui rotas comerciais', (
   assert.match(xml, /https:\/\/axecloud\.com\.br\/recursos</);
   assert.match(xml, /https:\/\/axecloud\.com\.br\/por-que-axecloud</);
   assert.equal(xml.includes('/entrar'), false);
+});
+
+test('página de cidade liga todos os perfis indexáveis recebidos', () => {
+  const profiles = Array.from({ length: 45 }, (_, index) => ({
+    slug: `terreiro-${index + 1}`,
+    nome: `Terreiro ${index + 1}`,
+    endereco: `Rua ${index + 1}, 100`,
+    telefone: '(11) 99999-0000',
+    fotoUrl: '/foto.jpg',
+    linkMaps: null,
+    cidade: 'Campinas',
+    estado: 'SP',
+    cidadeSlug: 'campinas',
+    cidadeUrl: '/terreiros/sp/campinas',
+  }));
+  const page = buildCityPrerenderPage(
+    { cidade: 'Campinas', estado: 'SP', cidadeSlug: 'campinas', total: 139 },
+    profiles,
+  );
+
+  assert.equal(page.listLinks?.length, 45);
+  assert.equal(page.listLinks?.at(-1)?.href, '/terreiro/terreiro-45');
+});
+
+test('sitemaps legados respondem 410 no Express e no Worker de borda', () => {
+  const expressRoutes = readFileSync(new URL('../api/lib/sitemapRoutes.ts', import.meta.url), 'utf8');
+  const edgeWorker = readFileSync(new URL('../cloudflare/api-container-worker.ts', import.meta.url), 'utf8');
+
+  assert.match(expressRoutes, /res\.status\(410\)/);
+  assert.match(expressRoutes, /\/sitemap-terreiros-:page\.xml/);
+  assert.match(edgeWorker, /RETIRED_SITEMAP_RE/);
+  assert.match(edgeWorker, /status:\s*410/);
 });
 
 test('select do diretório remove coluna ausente do PostgREST', () => {
