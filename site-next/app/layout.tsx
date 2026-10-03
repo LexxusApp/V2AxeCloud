@@ -6,7 +6,7 @@ import "./cinematic.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://axecloud.com.br"),
   title: {
-    default: "Software para Terreiro | AxéCloud",
+    default: "Software de Gestão para Terreiros | AxéCloud",
     template: "%s | AxéCloud",
   },
   description: "Software para terreiro de Umbanda, Candomblé e Jurema. Organize filhos de santo, mensalidades, giras, comunicados, patrimônio e memória no AxéCloud.",
@@ -23,13 +23,13 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: "/",
     siteName: "AxéCloud",
-    title: "Software para Terreiro | AxéCloud",
+    title: "Software de Gestão para Terreiros | AxéCloud",
     description: "Software para terreiro de Umbanda, Candomblé e Jurema: filhos de santo, mensalidades, giras, comunicados, patrimônio e memória em um só lugar.",
     images: [{ url: "/og.jpg", width: 1200, height: 630, alt: "AxéCloud — Toda casa carrega uma história" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Software para Terreiro | AxéCloud",
+    title: "Software de Gestão para Terreiros | AxéCloud",
     description: "Software completo para terreiros de Umbanda, Candomblé e Jurema.",
     images: ["/og.jpg"],
   },

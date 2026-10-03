@@ -48,7 +48,7 @@ test("home entrega SEO, conteúdo e imagens estáveis", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") || "", /^text\/html/i);
   assert.match(text, /<html[^>]+lang="pt-BR"/i);
-  assert.match(text, /<title>Software para Terreiro \| AxéCloud<\/title>/i);
+  assert.match(text, /<title>Software de Gestão para Terreiros \| AxéCloud<\/title>/i);
   assert.match(text, /<meta[^>]+name="description"[^>]+Software para terreiro de Umbanda/i);
   assert.match(text, /<link[^>]+rel="canonical"[^>]+href="https:\/\/axecloud\.com\.br\/"/i);
   assert.equal((text.match(/<h1[\s>]/gi) || []).length, 1);
