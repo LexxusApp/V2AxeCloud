@@ -26,6 +26,7 @@ const assets = new Map([
   ['/styles-claro.css', path.join(SOURCE, 'styles-claro.css')],
   ['/app.js', path.join(SOURCE, 'app.js')],
   ['/shared-footer.css', path.join(SOURCE, 'shared-footer.css')],
+  ['/terreiros-v2.css', path.join(SOURCE, 'terreiros-v2.css')],
   ['/shared-footer.js', path.join(SOURCE, 'shared-footer.js')],
   ['/favicon.svg', path.join(SOURCE, 'favicon.svg')],
   ['/production-bridge.js', path.join(SOURCE, 'production-bridge.js')],

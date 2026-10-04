@@ -15,9 +15,7 @@
 <meta property="og:url" content="https://axecloud.com.br/terreiros" />
 <meta property="og:image" content="https://axecloud.com.br/og-image.png" />
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Diretório de Terreiros","url":"https://axecloud.com.br/terreiros","isPartOf":{"@type":"WebSite","name":"AxéCloud","url":"https://axecloud.com.br/"}}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="preload" href="/fonts/manrope-variable.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
 <link rel="preload" href="/diretorio-cidades.json" as="fetch" crossorigin />
 <link rel="preload" href="/terreiros/mapa.json" as="fetch" crossorigin />
@@ -582,58 +580,144 @@ footer { text-align: center; padding: 40px 6vw 60px; color: var(--tinta-fraca); 
 footer a { color: var(--ouro); text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
-  <link rel="stylesheet" href="/shared-footer.css" />
+  <link rel="stylesheet" href="/terreiros-v2.css" />
 </head>
-<body>
+<body id="inicio">
+<a class="skip-link" href="#buscar">Ir para a busca</a>
+<div class="mariwo" aria-hidden="true" hidden><svg id="mariwo-svg" preserveAspectRatio="none"></svg></div>
 
-<div class="mariwo" aria-hidden="true"><svg id="mariwo-svg" preserveAspectRatio="none"></svg></div>
-
-<nav>
-  <a class="marca" href="/">Axé<em>Cloud</em></a>
-  <div class="menu">
-    <a href="/">Início</a>
-    <a href="/terreiros" class="atual">Terreiros</a>
+<header class="cx-header">
+  <a class="cx-brand" href="/" aria-label="AxéCloud, página inicial">
+    <span class="cx-brand-trident" aria-hidden="true"></span>
+    <strong><span>Axé</span><em>Cloud</em></strong>
+  </a>
+  <nav aria-label="Navegação principal">
+    <a href="/sistema-de-gestao-para-terreiros">Sistema</a>
+    <a class="is-current" aria-current="page" href="/terreiros">Terreiros</a>
     <a href="/eventos">Eventos</a>
     <a href="/conteudo">Conteúdo</a>
-    <a href="/conteudo/calendario-liturgico">Calendário</a>
-    <a href="/por-que-axecloud">Por quê?</a>
-    <a href="/espaco-do-fiel">Espaço do Fiel</a>
+    <a href="/por-que-axecloud">Comparar</a>
+    <a href="/#plano">Planos</a>
+  </nav>
+  <a class="cx-header-contact" href="https://wa.me/5511920033501?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud." target="_blank" rel="noreferrer">Fale conosco</a>
+  <a class="cx-header-login" href="/entrar">Entrar</a>
+  <a class="cx-header-cta" href="/register">Testar 30 dias <span aria-hidden="true">→</span></a>
+  <button class="menu-button" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-principal">
+    <svg class="menu-open-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    <svg class="menu-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+  </button>
+  <div class="cx-menu" id="menu-principal" role="navigation" aria-label="Navegação móvel" hidden>
+    <a href="/sistema-de-gestao-para-terreiros">Sistema de gestão</a>
+    <a class="is-current" aria-current="page" href="/terreiros">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/por-que-axecloud">Comparar opções</a>
+    <a href="/#plano">Planos</a>
+    <div class="cx-menu-actions">
+      <a class="cx-menu-login" href="/entrar">Entrar</a>
+      <a class="cx-menu-contact" href="https://wa.me/5511920033501?text=Ol%C3%A1%2C%20quero%20conhecer%20melhor%20o%20Ax%C3%A9Cloud." target="_blank" rel="noreferrer">Fale conosco</a>
+      <a class="cx-menu-trial" href="/register">Testar 30 dias <span aria-hidden="true">→</span></a>
+    </div>
   </div>
-</nav>
+</header>
 
-<section class="mapa-intro">
-  <p class="kicker">✦ diretório mapeado · dados reais do sistema</p>
-  <h1>Encontre uma casa de axé <em>perto de você</em></h1>
-  <p class="lede">Explore o mapa e abra o perfil da casa para conhecer seus dados públicos e atendimentos. Use sua localização para encontrar as casas mais próximas. <strong id="total-geral">Carregando…</strong></p>
-</section>
+<main class="directory-main">
+  <section class="discovery" id="descobrir" aria-labelledby="page-title">
+    <div class="hero-copy">
+      <h1 id="page-title">Toda casa começa com um caminho.</h1>
+      <p>Encontre terreiros de Umbanda e Candomblé, conheça cada perfil e planeje sua visita com respeito.</p>
 
-<div class="mapa-wrap">
-  <div class="mapa-card">
-    <div class="mapa-cabeca">
-      <div class="mapa-controles">
-        <button type="button" class="btn-perto" id="btn-perto">Identificar minha localização</button>
-      </div>
-      <div class="mapa-legenda-flutuante">
-        <div class="mapa-legenda" aria-label="Legenda do mapa">
-          <span><i aria-hidden="true"></i>Agrupamentos</span>
-          <span class="reivindicado"><i aria-hidden="true"></i>Verificadas</span>
+      <form class="search-box" id="search-form" role="search">
+        <label for="buscar">Cidade, bairro ou nome da casa</label>
+        <div class="search-control">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="buscar" name="q" type="search" autocomplete="off" value="Campinas" placeholder="Ex.: Campinas ou Pai Joaquim" />
+          <button class="clear-search" type="button" aria-label="Limpar busca" hidden>×</button>
+          <button class="search-submit" type="submit">Buscar</button>
         </div>
+      </form>
+
+      <div class="hero-actions">
+        <button class="location-button" type="button" id="btn-perto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+          Usar minha localização
+        </button>
+        <p class="coverage-copy" id="total-geral"><strong>Carregando o mapa…</strong></p>
+      </div>
+      <p class="location-status" id="location-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="map-stage">
+      <div class="map-shell" id="map-shell">
+        <div id="mapa" aria-label="Mapa interativo dos terreiros brasileiros"></div>
+        <div class="map-vignette" aria-hidden="true"></div>
+        <div class="map-scan" aria-hidden="true"></div>
+        <div class="map-toolbar" aria-label="Filtros do mapa">
+          <button type="button" data-map-filter="all" aria-pressed="true">Todas</button>
+          <button type="button" data-map-filter="verified" aria-pressed="false">Verificadas</button>
+        </div>
+        <p class="mapa-status" id="mapa-status" role="status" aria-live="polite"></p>
+        <p class="mapa-nota" id="mapa-nota">Carregando pontos do mapa…</p>
       </div>
     </div>
-    <p class="mapa-status" id="mapa-status" role="status"></p>
-    <div id="mapa" aria-label="Mapa interativo dos terreiros"></div>
-    <p class="mapa-nota" id="mapa-nota">carregando pontos do mapeamento…</p>
-  </div>
-</div>
+  </section>
 
-<div class="cidades-chips" id="chips" hidden></div>
-<p class="contagem" id="contagem" hidden></p>
-<main class="grade" id="grade" hidden></main>
+  <section class="results-section" id="resultados" aria-labelledby="results-title">
+    <header class="results-heading">
+      <div>
+        <h2 id="results-title">Casas em Campinas</h2>
+        <p id="results-summary">Carregando perfis públicos…</p>
+      </div>
+      <a id="results-link" href="/terreiros/sp/campinas">Ver página da cidade</a>
+    </header>
+    <div class="cidades-chips" id="chips"></div>
+    <p class="contagem" id="contagem" aria-live="polite"></p>
+    <div class="grade" id="grade"></div>
+    <div class="empty-state" id="empty-state" hidden>
+      <h3>Nenhuma casa encontrada</h3>
+      <p>Tente buscar pelo nome da cidade ou use menos palavras.</p>
+      <button type="button" id="reset-search">Limpar busca</button>
+    </div>
+  </section>
 
-<div id="site-footer"></div>
+  <section class="territory-index" aria-labelledby="territory-title">
+    <div class="territory-copy">
+      <h2 id="territory-title">O axé está espalhado pelo Brasil.</h2>
+      <p>Entre por um estado e encontre cidades, bairros e perfis públicos que já fazem parte do mapa.</p>
+    </div>
+    <div class="state-list" id="state-list" aria-label="Estados com mais casas mapeadas"></div>
+  </section>
+
+  <section class="claim-section" aria-labelledby="claim-title">
+    <div>
+      <h2 id="claim-title">Sua casa já está no mapa?</h2>
+      <p>Encontre o perfil e solicite a atualização dos dados públicos.</p>
+    </div>
+    <a href="#buscar">Encontrar minha casa</a>
+  </section>
+</main>
+
+<footer class="cx-footer">
+  <a class="cx-brand" href="/" aria-label="AxéCloud, página inicial">
+    <span class="cx-brand-trident" aria-hidden="true"></span>
+    <strong><span>Axé</span><em>Cloud</em></strong>
+  </a>
+  <p>Gestão profissional para casas de Umbanda, Candomblé e Jurema.</p>
+  <nav aria-label="Links do rodapé">
+    <a href="/sistema-de-gestao-para-terreiros">Sistema</a>
+    <a href="/recursos">Recursos</a>
+    <a href="/terreiros">Terreiros</a>
+    <a href="/eventos">Eventos</a>
+    <a href="/conteudo">Conteúdo</a>
+    <a href="/privacidade">Privacidade</a>
+    <a href="/termos">Termos</a>
+  </nav>
+  <a class="cx-footer-top" href="#inicio">Voltar ao início ↑</a>
+</footer>
 
 <script src="/vendor/leaflet/leaflet.js"></script>
 <script src="/vendor/L.TileLayer.NoGap.js"></script>
+<script src="/vendor/gsap.min.js"></script>
 <script>
 const $ = (s, c = document) => c.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -704,6 +788,7 @@ document.addEventListener("click", (event) => {
 /* Mariwo: centenas de fios finos de palha, curvos e afilados, em SVG */
 (function mariwo() {
   const svg = $("#mariwo-svg");
+  if (!svg || svg.closest("[hidden]")) return;
   const W = innerWidth;
   const H = 130;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -751,8 +836,9 @@ let cidadeAtual = null;   // { estado, cidadeSlug, cidade } — filtro opcional
 let itens = [];           // terreiros do estado (ou cidade) carregado
 let totalItens = 0;
 let listaCompleta = true;
-let visiveis = 24;        // paginação local
+let visiveis = 6;         // paginação local
 let termo = "";
+let filtroMapa = "all";
 
 const ESTADO_NOMES = {
   AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará",
@@ -775,7 +861,7 @@ const contagem = $("#contagem");
 let mapa = null;
 let camadaPontos = null;
 let todosPontos = []; // { slug, nome, cidade, estado, lat, lng, perfilUrl }
-let totaisMapa = { listed: 0, exact: 0, grouped: 0 };
+let totaisMapa = { listed: 0, exact: 0, grouped: 0, db: 0 };
 let pontosAtivos = []; // pontos desenhados no canvas
 let itensPorSlug = new Map();
 const detalhesPopupPorSlug = new Map();
@@ -1208,6 +1294,7 @@ function pontosDoContexto() {
 function aplicaPontosNoMapa(pontos, { ajustarVista = true } = {}) {
   if (!window.L) return;
   garanteMapa();
+  if (filtroMapa === "verified") pontos = pontos.filter((p) => p.verificada);
   pontosAtivos = pontos;
   camadaPontos.setPoints(pontos);
 
@@ -1257,13 +1344,13 @@ function atualizaMapa(filtrados) {
 }
 
 $("#btn-perto").addEventListener("click", () => {
-  const status = $("#mapa-status");
+  const status = $("#location-status");
   if (!navigator.geolocation) {
-    status.textContent = "Localização não disponível neste navegador.";
+    status.textContent = "Seu navegador não oferece localização. Pesquise pela cidade.";
     return;
   }
   if (!pontosAtivos.length) {
-    status.textContent = "O mapa ainda não tem pontos nesta seleção.";
+    status.textContent = "O mapa ainda está carregando. Tente novamente em instantes.";
     return;
   }
   status.textContent = "Localizando você…";
@@ -1277,9 +1364,9 @@ $("#btn-perto").addEventListener("click", () => {
       status.textContent = `${nearest.nome}, em ${nearest.cidade}, é a casa mapeada mais próxima.`;
       window.setTimeout(() => {
         if (status.textContent.includes(nearest.nome)) status.textContent = "";
-      }, 3600);
+      }, 5200);
     },
-    () => { status.textContent = "Permita a localização no navegador para usar “perto de mim”."; },
+    () => { status.textContent = "Não foi possível acessar sua localização. Pesquise pela cidade."; },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
   );
 });
@@ -1307,7 +1394,8 @@ async function carregaCidades() {
     lista = data.cidades || [];
   }
   cidades = lista;
-  const total = cidades.reduce((s, c) => s + (c.count || 0), 0);
+  const totalPublicavel = cidades.reduce((s, c) => s + (c.count || 0), 0);
+  const total = Number(totaisMapa.db || totalPublicavel) || totalPublicavel;
 
   const porUf = new Map();
   for (const c of cidades) {
@@ -1319,7 +1407,12 @@ async function carregaCidades() {
   }
   estados = [...porUf.values()].sort((a, b) => b.count - a.count || a.nome.localeCompare(b.nome, "pt-BR"));
 
-  $("#total-geral").textContent = `${total.toLocaleString("pt-BR")} casas mapeadas em ${cidades.length} cidades · ${estados.length} estado${estados.length === 1 ? "" : "s"}.`;
+  $("#total-geral").innerHTML = `<strong>${total.toLocaleString("pt-BR")} casas</strong> em ${cidades.length.toLocaleString("pt-BR")} cidades brasileiras.`;
+  $("#state-list").innerHTML = estados.slice(0, 7).map((e) => `
+    <a href="/terreiros/${esc(e.estado.toLowerCase())}">
+      <span>${esc(e.nome)}</span>
+      <strong>${e.count.toLocaleString("pt-BR")}</strong>
+    </a>`).join("");
 
   $("#chips").innerHTML =
     `<button class="chip" type="button" data-uf="">Todos<small>${total}</small></button>` +
@@ -1367,7 +1460,7 @@ async function carregaTodos() {
   }));
   totalItens = itens.length || totaisMapa.exact || 0;
   listaCompleta = true;
-  visiveis = 24;
+  visiveis = 6;
   desenha();
 }
 
@@ -1388,7 +1481,7 @@ async function carregaEstado(uf) {
     itens = data.items || [];
     totalItens = Number(data.total) || itens.length;
     listaCompleta = itens.length >= totalItens;
-    visiveis = 24;
+    visiveis = 6;
     desenha();
   } catch (e) {
     console.warn(e);
@@ -1411,7 +1504,7 @@ async function carregaCidade(uf, slug) {
     itens = data.items || [];
     totalItens = Number(data.total) || itens.length;
     listaCompleta = itens.length >= totalItens;
-    visiveis = 24;
+    visiveis = 6;
     syncUrlEstado(estadoAtual.estado, data.cidadeSlug);
     desenha();
   } catch (e) {
@@ -1460,16 +1553,41 @@ async function garanteListaCompleta() {
 }
 
 function desenha() {
-  const t = termo.toLowerCase();
+  const normalizaBusca = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const t = normalizaBusca(termo);
   const filtrados = t
     ? itens.filter((i) =>
-        (i.nome || "").toLowerCase().includes(t) ||
-        (i.bairro || "").toLowerCase().includes(t) ||
-        (i.cidade || "").toLowerCase().includes(t) ||
-        (i.endereco || "").toLowerCase().includes(t))
+        normalizaBusca(i.nome).includes(t) ||
+        normalizaBusca(i.bairro).includes(t) ||
+        normalizaBusca(i.cidade).includes(t) ||
+        normalizaBusca(i.endereco).includes(t))
     : itens;
 
   const totalExibido = !t && !listaCompleta ? totalItens : filtrados.length;
+  const titulo = cidadeAtual
+    ? `Casas em ${cidadeAtual.cidade}`
+    : estadoAtual
+      ? `Casas em ${estadoAtual.nomeEstado}`
+      : t
+        ? "Resultados da busca"
+        : "Casas em todo o Brasil";
+  $("#results-title").textContent = titulo;
+  $("#results-summary").textContent = totalExibido
+    ? `${totalExibido.toLocaleString("pt-BR")} ${totalExibido === 1 ? "perfil público" : "perfis públicos"} nesta seleção.`
+    : "Nenhum perfil público corresponde a esta busca.";
+  const resultsLink = $("#results-link");
+  if (cidadeAtual) {
+    resultsLink.hidden = false;
+    resultsLink.href = `/terreiros/${encodeURIComponent(String(cidadeAtual.estado || "").toLowerCase())}/${encodeURIComponent(cidadeAtual.cidadeSlug)}`;
+    resultsLink.textContent = "Ver página da cidade";
+  } else if (estadoAtual) {
+    resultsLink.hidden = false;
+    resultsLink.href = `/terreiros/${encodeURIComponent(estadoAtual.estado.toLowerCase())}`;
+    resultsLink.textContent = "Ver página do estado";
+  } else {
+    resultsLink.hidden = true;
+  }
+
   if (cidadeAtual) {
     contagem.textContent = `${totalExibido} terreiro${totalExibido === 1 ? "" : "s"} em ${cidadeAtual.cidade} – ${cidadeAtual.estado}`;
   } else if (estadoAtual) {
@@ -1479,60 +1597,49 @@ function desenha() {
   }
 
   atualizaMapa(filtrados);
-
-  // A página principal agora é centrada no mapa. As fichas completas continuam
-  // disponíveis nas páginas de cidade e nos perfis individuais indexáveis.
-  grade.replaceChildren();
-  const notaMapa = $("#mapa-nota");
-  if (notaMapa) {
-    notaMapa.textContent = `${totalExibido || todosPontos.length} casa${(totalExibido || todosPontos.length) === 1 ? "" : "s"} com localização confirmada`;
-  }
-  return;
-
-  if (!filtrados.length && !todosPontos.length) {
-    grade.innerHTML = '<p class="estado">Nenhum terreiro encontrado com esse filtro nesta seleção.</p>';
-    return;
-  }
-
+  const empty = $("#empty-state");
   if (!filtrados.length) {
-    grade.innerHTML = '<p class="estado">Nenhuma ficha nesta seleção — o mapa acima continua com os pins disponíveis.</p>';
+    grade.replaceChildren();
+    empty.hidden = false;
     return;
   }
+  empty.hidden = true;
 
   const fatia = filtrados.slice(0, visiveis);
   grade.innerHTML = fatia.map((c) => {
-    const foto = urlSegura(c.fotoUrl);
-    const maps = urlSegura(c.linkMaps);
-    const telefone = telefoneSeguro(c.telefone);
+    const fotoCandidata = urlSegura(c.fotoUrl);
+    const foto = fotoCandidata.includes("/api/v1/public/diretorio/foto/") ? "" : fotoCandidata;
     const perfil = perfilLocal(c);
+    const local = [c.cidade, c.estado].filter(Boolean).join(", ");
+    const endereco = c.endereco || c.bairro || local || "Localização disponível no perfil";
     return `
-    <article class="ficha">
-      <div class="ficha-topo" ${foto ? `style="background-image:url('${esc(foto)}')"` : ""}></div>
-      <div class="ficha-corpo">
-        <h2 class="ficha-nome">${esc(c.nome)}</h2>
-        ${c.verificada ? '<span class="ficha-selo">✓ Terreiro verificado e reivindicado</span>' : ''}
-        <p class="ficha-endereco">${esc(c.endereco || [c.cidade, c.estado].filter(Boolean).join(" · "))}</p>
-        ${c.bairro ? `<span class="ficha-bairro">${esc(c.bairro)}</span>` : ""}
-        <div class="ficha-acoes">
-          ${perfil ? `<a class="acao" href="${esc(perfil)}" data-profile-click="${esc(c.slug)}">Ver perfil</a>` : ""}
-          ${maps ? `<a class="acao acao-maps" href="${esc(maps)}" target="_blank" rel="noopener noreferrer">Ver no mapa</a>` : ""}
-          ${telefone ? `<a class="acao acao-tel" href="tel:${esc(telefone)}">Ligar</a>` : ""}
-        </div>
+    <a class="house-card" href="${esc(perfil || "#mapa")}" ${perfil ? `data-profile-click="${esc(c.slug)}"` : ""}>
+      <div class="house-card-media">${foto ? `<img src="${esc(foto)}" alt="Foto pública de ${esc(c.nome)}" width="296" height="348" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}</div>
+      <div class="house-card-content">
+        <p class="house-card-city">${esc(local || "Brasil")}</p>
+        <h3>${esc(c.nome)}</h3>
+        ${c.verificada ? '<span class="house-card-badge">Perfil verificado</span>' : ""}
+        <p class="house-card-address">${esc(endereco)}</p>
+        <span class="house-card-action">Conhecer esta casa <span aria-hidden="true">↗</span></span>
       </div>
-    </article>`;
+    </a>`;
   }).join("") + (totalExibido > visiveis
-    ? `<div class="mais-wrap"><button class="mais" id="mais">mostrar mais casas (${totalExibido - visiveis})</button></div>`
+    ? `<div class="mais-wrap"><button class="mais" id="mais">Mostrar mais casas (${(totalExibido - visiveis).toLocaleString("pt-BR")})</button></div>`
     : "");
 
-  const obs = new IntersectionObserver((es) => {
-    es.forEach((e, i) => {
-      if (e.isIntersecting) {
-        setTimeout(() => e.target.classList.add("visivel"), (i % 6) * 80);
-        obs.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.08 });
-  document.querySelectorAll(".ficha").forEach((f) => obs.observe(f));
+  const cards = document.querySelectorAll(".house-card");
+  if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (!entry.isIntersecting) return;
+        window.setTimeout(() => entry.target.classList.add("visivel"), (index % 6) * 55);
+        obs.unobserve(entry.target);
+      });
+    }, { threshold: .08 });
+    cards.forEach((card) => obs.observe(card));
+  } else {
+    cards.forEach((card) => card.classList.add("visivel"));
+  }
 
   const mais = document.getElementById("mais");
   if (mais) mais.addEventListener("click", async () => {
@@ -1540,7 +1647,7 @@ function desenha() {
     mais.textContent = "carregando mais casas…";
     try {
       if (!listaCompleta && visiveis >= itens.length) await garanteListaCompleta();
-      visiveis += 24;
+      visiveis += 6;
       desenha();
     } catch (e) {
       console.warn(e);
@@ -1570,6 +1677,102 @@ $("#chips").addEventListener("click", (e) => {
   marcaChipEstado(uf);
   carregaEstado(uf);
 });
+
+const normalizaTermo = (value) =>
+  String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+async function executaBusca() {
+  const campo = $("#buscar");
+  const consulta = campo.value.trim();
+  $(".clear-search").hidden = !consulta;
+  const normalizada = normalizaTermo(consulta);
+  if (!normalizada) {
+    termo = "";
+    await carregaTodos();
+  } else {
+    const cidadeEncontrada = cidades.find((c) => {
+      const nome = normalizaTermo(c.cidade);
+      const composta = normalizaTermo(`${c.cidade} ${c.estado}`);
+      return nome === normalizada || composta === normalizada || nome.startsWith(normalizada);
+    });
+    if (cidadeEncontrada) {
+      termo = "";
+      marcaChipEstado(cidadeEncontrada.estado);
+      await carregaCidade(String(cidadeEncontrada.estado).toLowerCase(), cidadeEncontrada.cidadeSlug);
+    } else {
+      termo = consulta;
+      await carregaTodos();
+      termo = consulta;
+      desenha();
+    }
+  }
+  $("#resultados").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+$("#search-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void executaBusca();
+});
+$("#buscar").addEventListener("input", (event) => {
+  $(".clear-search").hidden = !event.currentTarget.value;
+});
+$(".clear-search").addEventListener("click", () => {
+  $("#buscar").value = "";
+  $(".clear-search").hidden = true;
+  termo = "";
+  void carregaTodos().then(() => $("#buscar").focus());
+});
+$("#reset-search").addEventListener("click", () => {
+  $("#buscar").value = "";
+  $(".clear-search").hidden = true;
+  termo = "";
+  void carregaTodos().then(() => $("#buscar").focus());
+});
+
+document.querySelectorAll("[data-map-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    filtroMapa = button.dataset.mapFilter || "all";
+    document.querySelectorAll("[data-map-filter]").forEach((item) =>
+      item.setAttribute("aria-pressed", String(item === button)));
+    desenha();
+  });
+});
+
+const siteHeader = $(".cx-header");
+const menuButton = $(".menu-button");
+const mobileMenu = $("#menu-principal");
+function defineMenuMovel(aberto, moverFoco = false) {
+  siteHeader.classList.toggle("menu-open", aberto);
+  mobileMenu.classList.toggle("is-open", aberto);
+  mobileMenu.hidden = !aberto;
+  menuButton.setAttribute("aria-expanded", String(aberto));
+  menuButton.setAttribute("aria-label", aberto ? "Fechar menu" : "Abrir menu");
+  document.body.style.overflow = aberto ? "hidden" : "";
+  if (aberto && moverFoco) mobileMenu.querySelector("a")?.focus();
+}
+menuButton.addEventListener("click", () =>
+  defineMenuMovel(menuButton.getAttribute("aria-expanded") !== "true", true));
+mobileMenu.addEventListener("click", (event) => {
+  if (event.target.closest("a")) defineMenuMovel(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && menuButton.getAttribute("aria-expanded") === "true") {
+    defineMenuMovel(false);
+    menuButton.focus();
+  }
+});
+matchMedia("(min-width: 901px)").addEventListener("change", ({ matches }) => {
+  if (matches) defineMenuMovel(false);
+});
+
+if (window.gsap && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  gsap.from(".hero-copy > *", { autoAlpha: 0, y: 22, duration: .72, stagger: .07, ease: "power3.out", clearProps: "transform,opacity,visibility" });
+  gsap.fromTo(".map-shell", { clipPath: "inset(0 0 100% 0 round 24px)", y: 18 }, {
+    clipPath: "inset(0 0 0% 0 round 24px)", y: 0, duration: 1.05, ease: "power3.inOut",
+    clearProps: "transform,clipPath", onComplete: () => mapa?.invalidateSize(),
+  });
+  gsap.to(".map-scan", { rotation: 360, duration: 14, repeat: -1, ease: "none" });
+}
 
 /* Início: mapa aparece na hora; lista carrega em paralelo */
 (async function init() {
@@ -1646,6 +1849,14 @@ $("#chips").addEventListener("click", (e) => {
             return;
           }
         }
+        const campinas = cidades.find((c) =>
+          String(c.estado || "").toUpperCase() === "SP" &&
+          (String(c.cidadeSlug || "").toLowerCase() === "campinas" || normalizaTermo(c.cidade) === "campinas"));
+        if (campinas) {
+          marcaChipEstado("sp");
+          await carregaCidade("sp", campinas.cidadeSlug);
+          return;
+        }
         await carregaTodos();
       })(),
     ]);
@@ -1655,6 +1866,5 @@ $("#chips").addEventListener("click", (e) => {
   }
 })();
 </script>
-  <script src="/shared-footer.js"></script>
 </body>
 </html>
