@@ -1,4 +1,4 @@
-import { isMarketingSitePath, normalizePath } from './routes';
+import { isMarketingHostedAppPath, isMarketingSitePath, normalizePath } from './routes';
 import { purgeLegacyAppServiceWorker } from './purgeServiceWorker';
 import { cleanBrowserUrl } from './urlHygiene';
 
@@ -6,7 +6,11 @@ export const MARKETING_SW_FIX_KEY = 'axecloud_app_on_marketing_fix';
 export const MARKETING_REDIRECT_ATTEMPTS_KEY = 'axecloud_marketing_redirect_attempts';
 
 export function isMarketingDocumentPath(pathname: string): boolean {
-  return isMarketingSitePath(normalizePath(pathname));
+  const path = normalizePath(pathname);
+  // `/register` compartilha componentes com o site, mas em produção é entregue
+  // pelo Worker do app. Ele precisa inicializar o AppRouter em vez de tentar
+  // escapar para o documento de marketing e acabar redirecionado para `/`.
+  return isMarketingSitePath(path) && !isMarketingHostedAppPath(path);
 }
 
 /** Bundle do app carregado em URL de marketing — remove SW e força documento da rede. */
