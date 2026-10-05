@@ -1038,6 +1038,60 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  // -------------- Cobrança manual de mensalidades --------------------
+  app.get("/api/admin-console/mensalidades/tenants", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { listAdminMensalidadeTenants } = await import("./lib/adminMensalidadeDispatch.js");
+      res.json(await listAdminMensalidadeTenants(deps.supabaseAdmin));
+    } catch (e: any) {
+      console.error("[admin-console/mensalidades/tenants]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar terreiros") });
+    }
+  });
+
+  app.get("/api/admin-console/mensalidades/preview", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { previewAdminMensalidadeDispatch } = await import("./lib/adminMensalidadeDispatch.js");
+      res.json(await previewAdminMensalidadeDispatch(deps.supabaseAdmin, String(req.query.tenantId || "")));
+    } catch (e: any) {
+      const status = Number(e?.status) || 500;
+      console.error("[admin-console/mensalidades/preview]", e);
+      res.status(status).json({ error: safeErrorMessage(e, "Erro ao preparar cobrança") });
+    }
+  });
+
+  app.post("/api/admin-console/mensalidades/send", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = (req.body || {}) as Record<string, unknown>;
+    try {
+      const { sendAdminMensalidadeDispatch } = await import("./lib/adminMensalidadeDispatch.js");
+      const result = await sendAdminMensalidadeDispatch(deps.supabaseAdmin, {
+        tenantId: String(body.tenantId || ""),
+        confirmation: String(body.confirmation || ""),
+      });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "mensalidade.manual-dispatch",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "tenant",
+        targetId: String(body.tenantId || ""),
+        description: `Cobrança manual: ${result.sent} enviadas, ${result.failed} falhas.`,
+        metadata: { sent: result.sent, failed: result.failed, skipped: result.skipped },
+        req,
+      });
+      res.json({ success: true, ...result });
+    } catch (e: any) {
+      const status = Number(e?.status) || 500;
+      console.error("[admin-console/mensalidades/send]", e);
+      res.status(status).json({ error: safeErrorMessage(e, "Falha ao enviar cobranças") });
+    }
+  });
+
   // -------------- Disparo de gira (corrente) --------------------
   app.get("/api/admin-console/gira-dispatch/templates", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);

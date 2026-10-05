@@ -18,6 +18,7 @@ import { cn } from "@/lib/cn";
 import { MetaTemplateDispatchPanel } from "./MetaTemplateDispatchPanel";
 import { GiraDispatchPanel } from "./GiraDispatchPanel";
 import { WhatsAppDeliveryCenter } from "./WhatsAppDeliveryCenter";
+import { MensalidadeDispatchPanel } from "./MensalidadeDispatchPanel";
 
 type StatusPayload = {
   instanceName: string;
@@ -54,7 +55,7 @@ function maskPhone(value: string): string {
 }
 
 export function WhatsAppPanel() {
-  const [tab, setTab] = useState<"deliveries" | "connect" | "templates" | "giras" | "welcome">("deliveries");
+  const [tab, setTab] = useState<"deliveries" | "connect" | "templates" | "giras" | "mensalidades" | "welcome">("deliveries");
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [phone, setPhone] = useState("");
   const [testPhone, setTestPhone] = useState("");
@@ -192,6 +193,7 @@ export function WhatsAppPanel() {
           {(
             [
               ["deliveries", "Central de envios"],
+              ["mensalidades", "Cobrança manual"],
               ["giras", "Disparo de gira"],
               ["templates", "Templates Meta"],
               ["connect", "Conexão Baileys"],
@@ -216,6 +218,7 @@ export function WhatsAppPanel() {
       </header>
 
       {tab === "deliveries" && <WhatsAppDeliveryCenter />}
+      {tab === "mensalidades" && <MensalidadeDispatchPanel />}
       {tab === "giras" && <GiraDispatchPanel />}
       {tab === "templates" && <MetaTemplateDispatchPanel />}
 

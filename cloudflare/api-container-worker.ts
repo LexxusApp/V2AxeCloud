@@ -237,11 +237,12 @@ export default {
       day: "2-digit",
     }).format(new Date()));
 
-    // Recuperação idempotente: se o lote principal das 12h falhar, uma nova
-    // tentativa exclusiva de mensalidades acontece às 13h.
+    // Recuperação idempotente somente no dia 1: se o lote principal das 12h
+    // falhar, uma nova tentativa exclusiva acontece às 13h. Nunca cobra em
+    // outros dias automaticamente.
     const primaryWhatsAppWindow = hourInSaoPaulo === 12 && minuteInSaoPaulo < 5;
     const mensalidadeRecoveryWindow =
-      dayInSaoPaulo <= 2 && hourInSaoPaulo >= 13 && minuteInSaoPaulo % 15 < 5;
+      dayInSaoPaulo === 1 && hourInSaoPaulo >= 13 && minuteInSaoPaulo % 15 < 5;
 
     // O gatilho continua horário para a reconciliação de assinaturas. Os jobs
     // de WhatsApp — incluindo reivindicações em 24h/72h — rodam uma vez ao dia.
