@@ -1,5 +1,34 @@
 const ASSET_PATH_RE = /\.[a-z0-9]{2,16}$/i;
 
+const LEGACY_DASHBOARD_TABS = new Map([
+  ['/children', 'children'],
+  ['/obligations', 'obligations'],
+  ['/financial', 'financial'],
+  ['/financial-mensalidades', 'financial-mensalidades'],
+  ['/financial-configs', 'financial-configs'],
+  ['/calendar', 'calendar'],
+  ['/frequencia', 'frequencia'],
+  ['/mural', 'mural'],
+  ['/chat', 'chat'],
+  ['/gallery', 'gallery'],
+  ['/inventory', 'inventory'],
+  ['/library', 'library'],
+  ['/store', 'store'],
+  ['/radar', 'radar'],
+  ['/subscription', 'subscription'],
+  ['/settings', 'settings'],
+  ['/suporte', 'suporte'],
+  ['/reports', 'reports'],
+  ['/patrimony', 'patrimony'],
+  ['/documents', 'documents'],
+  ['/consulentes', 'consulentes'],
+  ['/atendimento-agenda', 'atendimento-agenda'],
+  ['/journey', 'journey'],
+  ['/liturgical', 'liturgical'],
+  ['/development', 'development'],
+  ['/camarinha', 'camarinha'],
+  ['/atendimentos', 'consulentes'],
+]);
 const APP_CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net",
@@ -56,9 +85,17 @@ export default {
       return finish(new Response('Method Not Allowed', { status: 405 }), url.pathname, preview);
     }
 
+    const legacyTab = LEGACY_DASHBOARD_TABS.get(url.pathname.replace(/\/+$/, '') || '/');
+    if (legacyTab) {
+      return finish(redirect('/dashboard?tab=' + encodeURIComponent(legacyTab), 301), url.pathname, preview);
+    }
     if (url.pathname === '/login' || url.pathname.startsWith('/login/')) {
       const suffix = url.pathname.slice('/login'.length);
       return finish(redirect(`/entrar${suffix}${url.search}`, 301), url.pathname, preview);
+    }
+    if (url.pathname === '/cadastro' || url.pathname.startsWith('/cadastro/')) {
+      const suffix = url.pathname.slice('/cadastro'.length);
+      return finish(redirect(`/register${suffix}${url.search}`, 301), url.pathname, preview);
     }
 
     const legacyIconMatch = url.pathname.match(/^\/icon-(32|48|96|192|512)\.png$/);

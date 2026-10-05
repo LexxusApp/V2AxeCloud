@@ -64,6 +64,35 @@ import { goToLogin } from './lib/navigation';
 import { withCompatibleAbortTimeout } from './lib/browserCapabilities';
 
 const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'obrigacoes', 'financial', 'calendar', 'library', 'store', 'mural', 'chat']);
+const ZELADOR_DEEP_LINK_TABS = new Set([
+  'dashboard',
+  'children',
+  'obligations',
+  'calendar',
+  'frequencia',
+  'mural',
+  'chat',
+  'gallery',
+  'inventory',
+  'library',
+  'store',
+  'radar',
+  'subscription',
+  'settings',
+  'suporte',
+  'financial',
+  'financial-mensalidades',
+  'financial-configs',
+  'reports',
+  'patrimony',
+  'documents',
+  'consulentes',
+  'atendimento-agenda',
+  'journey',
+  'liturgical',
+  'development',
+  'camarinha',
+]);
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 const TENANT_ANCHOR_KEY = 'tenant_id';
@@ -149,6 +178,17 @@ function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
 
 function normalizeFilhoTab(tab: string) {
   return FILHO_ALLOWED_TABS.has(tab) ? tab : 'profile';
+}
+
+function normalizeZeladorDeepLinkTab(tab: string) {
+  // O módulo antigo de atendimentos foi consolidado em Rotinas da Casa.
+  const normalized = tab === 'atendimentos' ? 'consulentes' : tab;
+  return ZELADOR_DEEP_LINK_TABS.has(normalized) ? normalized : null;
+}
+
+function requestedTabFromLocation() {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('tab');
 }
 
 function resolveTerreiroNomeFallback(userId?: string | null, nome?: string | null): string {
@@ -841,11 +881,14 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               }
             }
 
-            // Sempre inicia na Home após sessão válida; evita aba 'profile' órfã (sem filho)
-            // da sessão anterior. Filhos de santo são reposicionados em loadAllTenantData.
+            // Preserva o módulo solicitado no primeiro boot da sessão.
             const isFilhoAuth = readPersistedFilhoFlag(session.user.id) || isFilhoIdentity(session.user);
             persistFilhoFlag(isFilhoAuth, session.user.id);
-            setActiveTab(isFilhoAuth ? 'profile' : 'dashboard');
+            const requestedTab = requestedTabFromLocation();
+            const initialTab = isFilhoAuth
+              ? normalizeFilhoTab(requestedTab || 'profile')
+              : (requestedTab ? normalizeZeladorDeepLinkTab(requestedTab) : null) || 'dashboard';
+            setActiveTab(initialTab);
             if (isFilhoAuth) {
               setUserRole('filho');
               setIsAdminGlobal(false);
@@ -1047,16 +1090,15 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const tab = new URLSearchParams(window.location.search).get('tab');
+    const tab = requestedTabFromLocation();
     if (!tab) return;
     if (userRole === 'filho') {
       if (FILHO_ALLOWED_TABS.has(tab)) setActiveTab(tab);
       return;
     }
-    // Zelador / admin: deep links de push (ex.: /dashboard?tab=mural)
-    if (['dashboard', 'mural', 'calendar', 'library', 'store', 'chat', 'children', 'financial', 'settings', 'suporte', 'gallery', 'inventory'].includes(tab)) {
-      setActiveTab(tab);
-    }
+    // Zelador / admin: links diretos de todos os módulos do painel.
+    const normalizedTab = normalizeZeladorDeepLinkTab(tab);
+    if (normalizedTab) setActiveTab(normalizedTab);
   }, [userRole]);
 
   /** Loading prolongado: evita recarga automática para não entrar em loop no mobile. */
@@ -1249,7 +1291,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }
 
   const navigateToTab = (tab: string) => {
-    const requestedTab = tab === 'atendimentos' ? 'dashboard' : tab;
+    const requestedTab = tab === 'atendimentos' ? 'consulentes' : tab;
     const nextTab = userRole === 'filho' ? normalizeFilhoTab(requestedTab) : requestedTab;
     if (nextTab === activeTab) return;
     const transitionDocument = document as Document & { startViewTransition?: (update: () => void) => void };
