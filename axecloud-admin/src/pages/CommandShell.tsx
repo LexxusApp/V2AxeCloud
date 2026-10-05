@@ -29,6 +29,7 @@ import { GrowthProspectingPanel } from "./GrowthProspectingPanel";
 import { DirectoryClaimsPanel } from "./DirectoryClaimsPanel";
 import { ProfileRankingPanel } from "./ProfileRankingPanel";
 import { VisitorsPanel } from "./VisitorsPanel";
+import { ProspectingDashboard } from "./prospecting/ProspectingDashboard";
 import { PaymentsPanel } from "./PaymentsPanel";
 
 type Tab = AdminNavTab;
@@ -148,7 +149,16 @@ function formatAuditLogView(r: {
 }
 
 export function CommandShell({ session }: { session: Session }) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const initialTab = useMemo<Tab>(() => {
+    try {
+      const path = window.location.pathname.toLowerCase();
+      if (path.includes("prospeccao") || path.includes("prospecting")) return "growth";
+    } catch {
+      /* ignore */
+    }
+    return "overview";
+  }, []);
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [plansCatalog, setPlansCatalog] = useState<Record<string, unknown>>({});
@@ -612,7 +622,7 @@ export function CommandShell({ session }: { session: Session }) {
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}
         {tab === "wa-inbox" && <WhatsAppInboxPanel />}
-        {tab === "growth" && <GrowthProspectingPanel />}
+        {tab === "growth" && <ProspectingDashboard />}
         {tab === "claims" && <DirectoryClaimsPanel tenants={tenants} onMessage={setMsg} />}
         {tab === "visitors" && <VisitorsPanel />}
         {tab === "ranking" && <ProfileRankingPanel />}

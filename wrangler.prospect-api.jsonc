@@ -1,0 +1,93 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "axecloud-prospect-api",
+  "main": "cloudflare/prospect-worker/src/index.ts",
+  "compatibility_date": "2026-09-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "SUPABASE_URL": "https://vlaojhfwhqmwudqsumpi.supabase.co",
+    "ADMIN_CONSOLE_EMAILS": "lucasilvasiqueira@outlook.com.br"
+  },
+  "routes": [
+    {
+      "pattern": "axecloud.com.br/api/prospecting/*",
+      "zone_name": "axecloud.com.br"
+    },
+    {
+      "pattern": "admin.axecloud.com.br/api/prospecting/*",
+      "zone_name": "axecloud.com.br"
+    },
+    {
+      "pattern": "axecloud.com.br/api/whatsapp/webhook*",
+      "zone_name": "axecloud.com.br"
+    },
+    {
+      "pattern": "axecloud.com.br/webhook/meta*",
+      "zone_name": "axecloud.com.br"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+  "workflows": [
+    {
+      "name": "prospecting-discovery-workflow",
+      "binding": "DISCOVERY_WORKFLOW",
+      "class_name": "ProspectingDiscoveryWorkflow"
+    },
+    {
+      "name": "prospecting-lead-workflow",
+      "binding": "LEAD_WORKFLOW",
+      "class_name": "ProspectingLeadWorkflow"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "queue": "prospecting-enrichment",
+        "binding": "ENRICHMENT_QUEUE"
+      },
+      {
+        "queue": "prospecting-ai-analysis",
+        "binding": "AI_ANALYSIS_QUEUE"
+      },
+      {
+        "queue": "prospecting-conversation",
+        "binding": "CONVERSATION_QUEUE"
+      },
+      {
+        "queue": "prospecting-dlq",
+        "binding": "DLQ"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "prospecting-enrichment",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+        "dead_letter_queue": "prospecting-dlq"
+      },
+      {
+        "queue": "prospecting-ai-analysis",
+        "max_batch_size": 5,
+        "max_batch_timeout": 30,
+        "dead_letter_queue": "prospecting-dlq"
+      },
+      {
+        "queue": "prospecting-conversation",
+        "max_batch_size": 5,
+        "max_batch_timeout": 15,
+        "dead_letter_queue": "prospecting-dlq"
+      }
+    ]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "axecloud-prospect-worker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "deploy": "wrangler deploy --config ../../wrangler.prospect-api.jsonc"
+  }
+}
