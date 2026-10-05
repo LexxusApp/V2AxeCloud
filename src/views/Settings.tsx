@@ -49,6 +49,10 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
     const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:settings-section') : null;
     return requested === 'whatsapp' || requested === 'profile' ? requested : 'profile';
   });
+  const [initialWhatsAppView] = useState<'automacoes' | 'teste' | 'historico'>(() => {
+    const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:whatsapp-view') : null;
+    return requested === 'historico' || requested === 'teste' ? requested : 'automacoes';
+  });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [deleteCurrentPassword, setDeleteCurrentPassword] = useState('');
@@ -220,7 +224,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                   />
                 </>
               ) : (
-                <SettingsWhatsAppPanel />
+                <SettingsWhatsAppPanel initialView={initialWhatsAppView} />
               )}
             </div>
           </main>

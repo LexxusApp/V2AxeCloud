@@ -122,8 +122,13 @@ function WaLiveDot({ active, className }: { active: boolean; className?: string 
   );
 }
 
-export function SettingsWhatsAppPanel() {
+interface SettingsWhatsAppPanelProps {
+  initialView?: 'automacoes' | 'teste' | 'historico';
+}
+
+export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProps = {}) {
   const [waView, setWaView] = useState<'automacoes' | 'teste' | 'historico'>(() => {
+    if (initialView) return initialView;
     const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:whatsapp-view') : null;
     return requested === 'historico' || requested === 'teste' ? requested : 'automacoes';
   });
