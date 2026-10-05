@@ -631,7 +631,7 @@ footer a { color: var(--ouro); text-decoration: none; }
         <label for="buscar">Cidade, bairro ou nome da casa</label>
         <div class="search-control">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-          <input id="buscar" name="q" type="search" autocomplete="off" value="Campinas" placeholder="Ex.: Campinas ou Pai Joaquim" />
+          <input id="buscar" name="q" type="search" autocomplete="off" placeholder="Ex.: Campinas ou Pai Joaquim" />
           <button class="clear-search" type="button" aria-label="Limpar busca" hidden>×</button>
           <button class="search-submit" type="submit">Buscar</button>
         </div>
@@ -665,10 +665,10 @@ footer a { color: var(--ouro); text-decoration: none; }
   <section class="results-section" id="resultados" aria-labelledby="results-title">
     <header class="results-heading">
       <div>
-        <h2 id="results-title">Casas em Campinas</h2>
+        <h2 id="results-title">Casas em todo o Brasil</h2>
         <p id="results-summary">Carregando perfis públicos…</p>
       </div>
-      <a id="results-link" href="/terreiros/sp/campinas">Ver página da cidade</a>
+      <a id="results-link" href="/terreiros" hidden>Ver página da cidade</a>
     </header>
     <div class="cidades-chips" id="chips"></div>
     <p class="contagem" id="contagem" aria-live="polite"></p>
@@ -1849,14 +1849,7 @@ if (window.gsap && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
             return;
           }
         }
-        const campinas = cidades.find((c) =>
-          String(c.estado || "").toUpperCase() === "SP" &&
-          (String(c.cidadeSlug || "").toLowerCase() === "campinas" || normalizaTermo(c.cidade) === "campinas"));
-        if (campinas) {
-          marcaChipEstado("sp");
-          await carregaCidade("sp", campinas.cidadeSlug);
-          return;
-        }
+        await pontosPromise;
         await carregaTodos();
       })(),
     ]);
