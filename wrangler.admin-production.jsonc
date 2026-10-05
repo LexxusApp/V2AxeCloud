@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "axecloud-admin-assets",
+  "main": "cloudflare/admin-shell-worker.js",
+  "compatibility_date": "2026-09-27",
+  "workers_dev": false,
+  "assets": {
+    "directory": "./axecloud-admin/dist",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "run_worker_first": true
+  },
+  "routes": [
+    {
+      "pattern": "admin.axecloud.com.br/*",
+      "zone_name": "axecloud.com.br"
+    }
+  ],
+  "services": [
+    {
+      "binding": "API",
+      "service": "axecloud-api-staging"
+    }
+  ]
+}
