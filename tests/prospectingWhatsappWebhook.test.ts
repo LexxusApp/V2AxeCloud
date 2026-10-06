@@ -35,10 +35,10 @@ test('CrmService propaga webhook para inbox, logs, entrega e linha do tempo', as
   const originalFetch = globalThis.fetch;
   const calls: Array<{ url: string; method: string; body: any }> = [];
 
-  globalThis.fetch = async (input, init = {}) => {
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    const method = String(init.method || 'GET');
-    const body = init.body ? JSON.parse(String(init.body)) : null;
+    const method = String(init?.method || 'GET');
+    const body = init?.body ? JSON.parse(String(init.body)) : null;
     calls.push({ url, method, body });
 
     if (url.includes('/whatsapp_deliveries?') && method === 'GET') {
@@ -78,10 +78,10 @@ test('CrmService não regride uma entrega lida para enviada', async () => {
   const originalFetch = globalThis.fetch;
   const calls: Array<{ url: string; method: string; body: any }> = [];
 
-  globalThis.fetch = async (input, init = {}) => {
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    const method = String(init.method || 'GET');
-    const body = init.body ? JSON.parse(String(init.body)) : null;
+    const method = String(init?.method || 'GET');
+    const body = init?.body ? JSON.parse(String(init.body)) : null;
     calls.push({ url, method, body });
     if (url.includes('/whatsapp_deliveries?') && method === 'GET') {
       return new Response(JSON.stringify([{ id: 'delivery-2', status: 'read' }]), {

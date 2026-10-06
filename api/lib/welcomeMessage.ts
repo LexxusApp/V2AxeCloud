@@ -165,10 +165,32 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
   email: string;
   senha?: string;
   site?: string;
-}): Promise<{ channel: "meta_template" | "text"; messageId?: string }> {
+  sb?: SupabaseClient;
+  tenantId?: string;
+}): Promise<{ channel: "meta_template" | "text"; messageId?: string; logged: boolean }> {
   const { sendEvolutionTextQueued } = await import("./evolutionSendQueue.js");
   const { CONSOLE_ADMIN_INSTANCE_NAME } = await import("../../src/services/evolution.service.js");
   const envTemplate = String(process.env.WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR || "").trim();
+
+  const logDelivery = async (channel: "meta_template" | "text", messageId?: string): Promise<boolean> => {
+    if (!opts.sb || !opts.tenantId) return false;
+    try {
+      const { error } = await opts.sb.from("whatsapp_logs").insert({
+        tenant_id: opts.tenantId,
+        filho_id: null,
+        tipo: "boas_vindas_zelador",
+        telefone: opts.msisdn,
+        mensagem: `Boas-vindas do zelador enviadas por ${channel}.`,
+        status: "sent",
+        external_id: messageId || `welcome_${Date.now()}_${opts.tenantId.slice(0, 8)}`,
+      });
+      if (error) throw error;
+      return true;
+    } catch (logError) {
+      console.warn("[welcome] falha ao registrar envio:", logError instanceof Error ? logError.message : logError);
+      return false;
+    }
+  };
 
   if (envTemplate) {
     try {
@@ -210,7 +232,11 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
             );
           }
         }
-        return { channel: "meta_template", messageId: out?.messageId };
+        return {
+          channel: "meta_template",
+          messageId: out?.messageId,
+          logged: await logDelivery("meta_template", out?.messageId),
+        };
       }
     } catch (err: unknown) {
       console.warn(
@@ -225,5 +251,10 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
     opts.msisdn,
     opts.freeText
   );
-  return { channel: "text", messageId: out?.messageId };
+  return {
+    channel: "text",
+    messageId: out?.messageId,
+    logged: await logDelivery("text", out?.messageId),
+  };
 }
+import type { SupabaseClient } from "@supabase/supabase-js";

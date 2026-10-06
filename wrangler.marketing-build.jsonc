@@ -29,6 +29,7 @@
     { "pattern": "axecloud.com.br/eventos*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/evento*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/senhas*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/register*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap.xml*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap-static.xml*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap-diretorio-*", "zone_name": "axecloud.com.br" },

@@ -98,13 +98,13 @@ export function registerGrowthProspectingRoutes(app: Express, deps: GrowthDeps) 
         fetchAllTerreirosRows(deps.supabaseAdmin, "admin_whatsapp_conversations", "phone_e164"),
       ]);
       const confirmedPhones = new Set(
-        conversations.map((row) => normalizePhone(row.phone_e164)).filter(Boolean),
+        conversations.map((row) => normalizePhone(String(row.phone_e164 || ""))).filter(Boolean),
       );
       const items = rows
         .filter((row) => {
           const latitude = Number(row.latitude);
           const longitude = Number(row.longitude);
-          return resolveDiretorioTipo(row.tipo, row.nome) === "terreiro" &&
+          return resolveDiretorioTipo(String(row.tipo || ""), String(row.nome || "")) === "terreiro" &&
             isDiretorioListingPublishable(row) &&
             Number.isFinite(latitude) && Number.isFinite(longitude) &&
             isPlausibleDiretorioCoordinate(latitude, longitude);

@@ -1,8 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { MetaTemplateComponent } from "../../src/services/evolution.service.js";
 import { isMetaCloudDirectConfigured, sendMetaCloudTemplate } from "./metaCloudSend.js";
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
-import { resolveMetaTemplateLanguage } from "./whatsappMetaCloud.js";
+import {
+  buildReivindicacaoAprovadaComponents,
+  resolveMetaTemplateLanguage,
+} from "./whatsappMetaCloud.js";
 import { resolveDirectoryClaimTemplateName } from "./directoryClaimMetaTemplates.js";
 
 
@@ -31,32 +33,6 @@ async function claimTemplateName(linked: boolean, kind: ClaimNotificationKind): 
     return resolveDirectoryClaimTemplateName(kind);
   }
   return resolveDirectoryClaimTemplateName("approval");
-}
-
-function textParam(value: string, max: number): { type: "text"; text: string } {
-  return { type: "text", text: String(value || "").trim().slice(0, max) || "-" };
-}
-
-function claimComponents(
-  linked: boolean,
-  name: string,
-  terreiro: string,
-  claimId: string,
-): MetaTemplateComponent[] {
-  const body: MetaTemplateComponent = {
-    type: "body",
-    parameters: [textParam(name || "Zelador", 60), textParam(terreiro || "Terreiro", 80)],
-  };
-  if (linked) return [body];
-  return [
-    body,
-    {
-      type: "button",
-      sub_type: "url",
-      index: "0",
-      parameters: [textParam(claimId, 80)],
-    },
-  ];
 }
 
 export function directoryClaimRegisterUrl(claimId: string): string {
@@ -107,7 +83,8 @@ export async function notifyApprovedTerreiroClaim(
   const templateName = await claimTemplateName(linked, notificationKind);
   const nome = directoryClaimFirstName(input.requesterName);
   const terreiro = String(input.terreiroNome || "Terreiro").trim() || "Terreiro";
-  const components = claimComponents(linked, nome, terreiro, claimId);
+  const approvalComponents = buildReivindicacaoAprovadaComponents(nome, terreiro, claimId);
+  const components = linked ? approvalComponents.slice(0, 1) : approvalComponents;
 
   const registerUrl = linked ? `${PUBLIC_SITE}/entrar` : directoryClaimRegisterUrl(claimId);
 

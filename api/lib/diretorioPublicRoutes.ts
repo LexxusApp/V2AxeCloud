@@ -539,14 +539,21 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       const { data, error } = await sb.from(TABLE).select("foto_url").eq("slug", slug).maybeSingle();
       if (error) throw error;
       const rawUrl = data?.foto_url ? String(data.foto_url).trim() : "";
-      if (!rawUrl || !isAllowedGooglePhotoUrl(rawUrl)) return res.status(404).end();
+      // Foto é opcional. Uma origem ausente/expirada não deve transformar a
+      // página pública em uma sequência de erros 404; o cliente usa o 204 para
+      // ativar o placeholder visual já existente.
+      if (!rawUrl || !isAllowedGooglePhotoUrl(rawUrl)) {
+        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        return res.status(204).end();
+      }
 
       const photo = await fetchBestGooglePhoto(rawUrl);
       if (!photo) {
         console.warn("[public/diretorio/foto] sem imagem útil", slug);
         // A URL de origem do Google pode expirar. Isso significa que a foto
         // deixou de existir, não que o servidor do AxéCloud esteja indisponível.
-        return res.status(404).end();
+        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        return res.status(204).end();
       }
 
       res.setHeader("Content-Type", photo.contentType);

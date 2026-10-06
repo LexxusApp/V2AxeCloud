@@ -128,7 +128,7 @@ export function renderAdminMetaTemplatePreview(
 export function buildAdminMetaTemplateComponents(
   tpl: AdminMetaTemplateDefinition,
   values: Record<string, string>
-): Array<{ type: string; parameters: Array<{ type: string; text: string }> }> {
+): MetaTemplateComponent[] {
   const ordered = [...tpl.variables].sort((a, b) => Number(a.key) - Number(b.key));
   return [
     {
@@ -154,3 +154,4 @@ export function validateAdminMetaTemplateValues(
   }
   return null;
 }
+import type { MetaTemplateComponent } from "../../src/services/evolution.service.js";

@@ -42,7 +42,6 @@ import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
 import {
   clearCachedTenantIdForUser,
   peekCachedTenantId,
-  peekCachedTerreiroNome,
   readCachedTenantIdForUser,
   writeCachedTenantIdForUser,
 } from './lib/tenantCache';
@@ -62,150 +61,25 @@ import {
 } from './lib/logout';
 import { goToLogin } from './lib/navigation';
 import { withCompatibleAbortTimeout } from './lib/browserCapabilities';
-
-const FILHO_ALLOWED_TABS = new Set(['profile', 'perfil', 'obrigacoes', 'financial', 'calendar', 'library', 'store', 'mural', 'chat']);
-const ZELADOR_DEEP_LINK_TABS = new Set([
-  'dashboard',
-  'children',
-  'obligations',
-  'calendar',
-  'frequencia',
-  'mural',
-  'chat',
-  'gallery',
-  'inventory',
-  'library',
-  'store',
-  'radar',
-  'subscription',
-  'settings',
-  'suporte',
-  'financial',
-  'financial-mensalidades',
-  'financial-configs',
-  'reports',
-  'patrimony',
-  'documents',
-  'consulentes',
-  'atendimento-agenda',
-  'journey',
-  'liturgical',
-  'development',
-  'camarinha',
-]);
-const FILHO_FLAG_KEY = 'axecloud_is_filho';
-const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
-const TENANT_ANCHOR_KEY = 'tenant_id';
-const USER_ROLE_KEY = 'axecloud_user_role';
-let isSessionReadyGlobal = false;
-export function getIsSessionReady() {
-  return isSessionReadyGlobal;
-}
+import {
+  FILHO_ALLOWED_TABS,
+  isFilhoIdentity,
+  markSessionReadyGlobal,
+  normalizeFilhoTab,
+  normalizeZeladorDeepLinkTab,
+  persistFilhoFlag,
+  readPersistedFilhoFlag,
+  readTenantAnchorFromStorage,
+  readUserRoleAnchor,
+  requestedTabFromLocation,
+  resolveTerreiroNomeFallback,
+  writeTenantAnchorToStorage,
+  writeUserRoleAnchor,
+} from './lib/appSessionAnchors';
+export { getIsSessionReady } from './lib/appSessionAnchors';
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
 const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 77;
-
-function readTenantAnchorFromStorage() {
-  try {
-    const raw = localStorage.getItem(TENANT_ANCHOR_KEY);
-    const value = String(raw || '').trim();
-    return value || null;
-  } catch {
-    return null;
-  }
-}
-
-function writeTenantAnchorToStorage(tenantId?: string | null) {
-  const value = String(tenantId || '').trim();
-  try {
-    if (value) {
-      localStorage.setItem(TENANT_ANCHOR_KEY, value);
-    } else {
-      localStorage.removeItem(TENANT_ANCHOR_KEY);
-    }
-  } catch {
-    // no-op
-  }
-}
-
-function readUserRoleAnchor() {
-  try {
-    const raw = String(localStorage.getItem(USER_ROLE_KEY) || '').toLowerCase().trim();
-    if (raw === 'filho' || raw === 'admin') return raw;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function writeUserRoleAnchor(role?: 'admin' | 'filho' | null) {
-  try {
-    if (!role) {
-      localStorage.removeItem(USER_ROLE_KEY);
-      return;
-    }
-    localStorage.setItem(USER_ROLE_KEY, role);
-  } catch {
-    // no-op
-  }
-}
-
-function readPersistedFilhoFlag(userId?: string | null) {
-  try {
-    const isFilho = localStorage.getItem(FILHO_FLAG_KEY) === 'true';
-    if (!isFilho) return false;
-    if (!userId) return true;
-    const flaggedUserId = localStorage.getItem(FILHO_FLAG_USER_KEY);
-    return !flaggedUserId || flaggedUserId === userId;
-  } catch {
-    return false;
-  }
-}
-
-function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
-  try {
-    if (isFilho) {
-      localStorage.setItem(FILHO_FLAG_KEY, 'true');
-      if (userId) localStorage.setItem(FILHO_FLAG_USER_KEY, userId);
-      return;
-    }
-    localStorage.removeItem(FILHO_FLAG_KEY);
-    localStorage.removeItem(FILHO_FLAG_USER_KEY);
-  } catch {
-    // no-op
-  }
-}
-
-function normalizeFilhoTab(tab: string) {
-  return FILHO_ALLOWED_TABS.has(tab) ? tab : 'profile';
-}
-
-function normalizeZeladorDeepLinkTab(tab: string) {
-  // O módulo antigo de atendimentos foi consolidado em Rotinas da Casa.
-  const normalized = tab === 'atendimentos' ? 'consulentes' : tab;
-  return ZELADOR_DEEP_LINK_TABS.has(normalized) ? normalized : null;
-}
-
-function requestedTabFromLocation() {
-  if (typeof window === 'undefined') return null;
-  return new URLSearchParams(window.location.search).get('tab');
-}
-
-function resolveTerreiroNomeFallback(userId?: string | null, nome?: string | null): string {
-  const direct = String(nome || '').trim();
-  if (direct) return direct;
-  if (userId) {
-    const cached = peekCachedTerreiroNome(userId);
-    if (cached) return cached;
-  }
-  return 'Meu Terreiro';
-}
-
-function isFilhoIdentity(user?: { email?: string | null; user_metadata?: any } | null, emailFallback?: string, roleFallback?: string) {
-  const role = String(user?.user_metadata?.role || roleFallback || '').toLowerCase().trim();
-  const email = String(user?.email || emailFallback || '').toLowerCase().trim();
-  return role === 'filho' || (email.startsWith('f_') && email.endsWith('@axecloud.internal'));
-}
 
 export type AppSurface = 'login' | 'dashboard';
 
@@ -315,7 +189,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       !!userRole &&
       !!effectiveTenantId &&
       !(roleAnchor === 'filho' && userRole !== 'filho');
-    isSessionReadyGlobal = ready;
+    markSessionReadyGlobal(ready);
     setIsSessionReady(ready);
   }, [session?.user, userRole, effectiveTenantId, roleAnchor]);
 

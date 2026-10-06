@@ -70,7 +70,7 @@ test("aprovação dispara WhatsApp com link de cadastro vinculado ao protocolo",
   const buttonParam = components[1]?.parameters?.[0];
   assert.equal(buttonParam && "text" in buttonParam ? buttonParam.text : undefined, "11111111-1111-4111-8111-111111111111");
   assert.match(claimNotify, /normalizeBrazilMsisdn/);
-  assert.match(metaCloud, /reivindicacao_aprovada_axecloud/);
+  assert.match(activationTemplates, /reivindicacao_aprovada_axecloud/);
   assert.match(claimTemplates, /register\?claim=\{\{1\}\}/);
   assert.match(claimTemplates, /category: "UTILITY"/);
 });
@@ -159,7 +159,7 @@ test("mapa consulta os pontos atuais da API e mantém o arquivo estático como c
   assert.match(appMap, /verifiedCount/);
 
   const marketingMap = readFileSync("cinematic-site/terreiros.html", "utf8");
-  assert.match(marketingMap, /Terreiro verificado e reivindicado/);
+  assert.match(marketingMap, /Perfil verificado/);
   assert.match(marketingMap, /point\.verificada \? "#16865f" : "#e5ae12"/);
   assert.match(marketingMap, /verifiedCount/);
   assert.match(marketingMap, /axe-map-profile__photo/);

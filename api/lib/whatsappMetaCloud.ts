@@ -1,5 +1,8 @@
 /** Templates Meta Cloud API (WhatsApp Business) — payloads Evolution v2. */
-import type { MetaTemplateComponent } from "../../src/services/evolution.service.js";
+import type {
+  MetaTemplateComponent,
+  MetaTemplateTextParam,
+} from "../../src/services/evolution.service.js";
 
 export type { MetaTemplateComponent };
 
@@ -62,6 +65,52 @@ function normalizeTipo(tipo: string): string {
 
 export function resolveMetaTemplateLanguage(): string {
   return String(process.env.WA_META_TEMPLATE_LANGUAGE || DEFAULT_LANGUAGE).trim() || DEFAULT_LANGUAGE;
+}
+
+/** Payload do template de aprovação de reivindicação, com botão URL dinâmico. */
+export function buildReivindicacaoAprovadaComponents(
+  nome: string,
+  terreiro: string,
+  claimId: string,
+): MetaTemplateComponent[] {
+  const text = (value: string, max: number): MetaTemplateTextParam => ({
+    type: "text",
+    text: String(value || "").trim().slice(0, max) || "-",
+  });
+  return [
+    {
+      type: "body",
+      parameters: [text(nome || "Zelador", 60), text(terreiro || "Terreiro", 80)],
+    },
+    {
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [text(claimId, 80)],
+    },
+  ];
+}
+
+/** Corpo do template Utility de renovação da assinatura do zelador. */
+export function buildCobrancaAssinaturaComponents(
+  nome: string,
+  terreiro: string,
+  vencimento: string,
+  valor: string,
+): MetaTemplateComponent[] {
+  const text = (value: string, max: number): MetaTemplateTextParam => ({
+    type: "text",
+    text: String(value || "").trim().slice(0, max) || "-",
+  });
+  return [{
+    type: "body",
+    parameters: [
+      text(nome || "Zelador", 60),
+      text(terreiro || "Terreiro", 80),
+      text(vencimento, 80),
+      text(valor, 30),
+    ],
+  }];
 }
 
 /** Nome do template aprovado na Meta para o tipo de notificação. */

@@ -42,7 +42,7 @@ function cellLabel(value: ComparisonCell): string {
 
 export default function PorQueAxeCloudPage() {
   return (
-    <div className="landing-v3 landing-mockup-theme min-h-dvh bg-[#fdf8f0] text-[#1b1813]">
+    <div className="landing-v3 landing-mockup-theme min-h-dvh overflow-x-clip bg-[#fdf8f0] text-[#1b1813]">
       <main>
         <LandingSection aria-labelledby="comparativo-head">
           <div className="landing-section-inner mx-auto max-w-4xl">

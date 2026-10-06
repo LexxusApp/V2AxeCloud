@@ -27,8 +27,8 @@ test('gerador preserva a política de robots nos próximos builds', () => {
   assert.doesNotMatch(generator, /'Disallow: \/register'/);
 });
 
-test('foto externa expirada responde como recurso ausente, não como falha do servidor', () => {
+test('foto externa expirada responde sem conteúdo e deixa o cliente usar o placeholder', () => {
   const photoRoute = directoryRoutes.match(/app\.get\("\/api\/v1\/public\/diretorio\/foto\/:slug"[\s\S]*?\n  \}\);/)?.[0] || '';
-  assert.match(photoRoute, /if \(!photo\)[\s\S]*?res\.status\(404\)\.end\(\)/);
+  assert.match(photoRoute, /if \(!photo\)[\s\S]*?res\.status\(204\)\.end\(\)/);
   assert.doesNotMatch(photoRoute, /if \(!photo\)[\s\S]*?res\.status\(502\)\.end\(\)/);
 });

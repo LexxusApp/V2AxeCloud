@@ -450,7 +450,13 @@ export async function handleAdminTenants(sb: SupabaseClient) {
       return true;
     }) || [];
 
-  const augmentedProfiles = realTenants.map((p: { id: string; tenant_id?: string | null; updated_at?: string | null }) => {
+  const augmentedProfiles = realTenants.map((p: {
+    id: string;
+    tenant_id?: string | null;
+    updated_at?: string | null;
+    is_blocked?: boolean | null;
+    access_block_reason?: string | null;
+  }) => {
     const sub = subs?.find((s: { id?: string }) => s.id === p.id);
     const expired = isSubscriptionExpired(sub);
     return {
