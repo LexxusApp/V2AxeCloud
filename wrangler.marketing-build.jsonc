@@ -4,6 +4,7 @@
   "main": "cloudflare/marketing-preview-worker.js",
   "compatibility_date": "2026-09-22",
   "workers_dev": false,
+  "services": [{ "binding": "API", "service": "axecloud-api-staging" }],
   "vars": { "PREVIEW_MODE": "false" },
   "assets": {
     "directory": "./landing-dist",

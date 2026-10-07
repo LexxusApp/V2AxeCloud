@@ -33,7 +33,7 @@ test('perfil ausente retorna 404 tanto para visitante quanto Googlebot', async (
   const originalFetch = globalThis.fetch;
   try {
     globalThis.fetch = async () => new Response('Não encontrado', { status: 404 });
-    const env = { PREVIEW_MODE: 'false', ASSETS: { fetch: async () => new Response('Not Found', { status: 404 }) } };
+    const env = { PREVIEW_MODE: 'false', ASSETS: { fetch: async () => new Response('Not Found', { status: 404 }) }, API: { fetch: async () => new Response('Não encontrado', { status: 404 }) } };
     for (const agent of ['Mozilla/5.0', 'Googlebot']) {
       const response = await worker.fetch(new Request('https://axecloud.com.br/terreiro/ausente', { headers: { 'User-Agent': agent } }), env);
       assert.equal(response.status, 404);

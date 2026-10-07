@@ -138,7 +138,7 @@ export default {
       // The same lookup/status is used for visitors and crawlers.
       try {
         const renderUrl = new URL(`/api/v1/public/diretorio/render/terreiro/${encodeURIComponent(decodeURIComponent(profile[1]))}`, url);
-        const rendered = await fetch(new Request(renderUrl, request));
+        const rendered = await env.API.fetch(new Request(renderUrl, request));
         return respond(rendered);
       } catch {
         return respond(new Response('Perfil temporariamente indisponível.', { status: 503 }));
