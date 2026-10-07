@@ -22,6 +22,7 @@ import {
   Trash2,
   Undo2,
   WalletCards,
+  PieChart,
   X,
   Bell,
 } from 'lucide-react';
@@ -242,7 +243,7 @@ export default function Financial({
     chave_pix: '',
     tipo_chave: 'cpf',
     nome_beneficiario: '',
-    valor_mensalidade: '89.90',
+    valor_mensalidade: '69.90',
     dia_vencimento: '10',
     mensalidade_ativa: true,
   });
@@ -344,14 +345,14 @@ export default function Financial({
   /** Pix + lista de filhos (modal de lançamento / configs). Mensalidades pendentes vêm da API (status pendente ou legado com "(vencimento" na descrição). */
   async function fetchMensalidadesGrid() {
     let dia = parseInt(pixConfig.dia_vencimento, 10) || 10;
-    let valorPadrao = pixConfig.valor_mensalidade || '89.90';
+    let valorPadrao = pixConfig.valor_mensalidade || '69.90';
     try {
       const res = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId || '')}`);
       if (res.ok) {
         const { data } = await res.json();
         if (data) {
           dia = parseInt(String(data.dia_vencimento), 10) || 10;
-          valorPadrao = data.valor_mensalidade?.toString() || '89.90';
+          valorPadrao = data.valor_mensalidade?.toString() || '69.90';
           setPixConfig({
             chave_pix: data.chave_pix || '',
             tipo_chave: data.tipo_chave || 'cpf',
@@ -615,7 +616,68 @@ export default function Financial({
         <AppDemoPanelHeader
           title="Financeiro do terreiro"
           description="Controle simplificado de fluxo de caixa."
-        />
+        />
+
+      {isAdmin && (
+        <div data-financial-tabs="true" className="mb-6 flex flex-wrap items-center gap-2 border-b border-[#252B33]/60 pb-3">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveView('overview');
+              setActiveTab?.('financial');
+            }}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all',
+              activeView === 'overview'
+                ? 'bg-primary text-[#080A0D] shadow-sm'
+                : 'border border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-primary/40 hover:text-[#F1F5F9]'
+            )}
+          >
+            <PieChart className="h-4 w-4" />
+            Visão geral
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveView('mensalidades');
+              setActiveTab?.('financial-mensalidades');
+            }}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all',
+              activeView === 'mensalidades'
+                ? 'bg-primary text-[#080A0D] shadow-sm'
+                : 'border border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-primary/40 hover:text-[#F1F5F9]'
+            )}
+          >
+            <WalletCards className="h-4 w-4" />
+            Mensalidades
+            {mensalidadesPendentes.length > 0 && (
+              <span className={cn(
+                'ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black',
+                activeView === 'mensalidades' ? 'bg-[#080A0D]/20 text-[#080A0D]' : 'bg-amber-400/20 text-amber-300'
+              )}>
+                {mensalidadesPendentes.length}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveView('configs');
+              setActiveTab?.('financial-configs');
+            }}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all',
+              activeView === 'configs'
+                ? 'bg-primary text-[#080A0D] shadow-sm'
+                : 'border border-[#1E242B] bg-[#12161A] text-[#94A3B8] hover:border-primary/40 hover:text-[#F1F5F9]'
+            )}
+          >
+            <Smartphone className="h-4 w-4" />
+            Configurações Pix
+          </button>
+        </div>
+      )}
         <FinanceiroBasico tenantId={tenantId} userId={userId} />
       </AppPageShell>
     );
@@ -1880,7 +1942,7 @@ export default function Financial({
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-black text-white px-0">Caixinha do Axé</h3>
-                  <p className="text-gray-400 font-medium px-0">Gerencie as metas e arrecadações coletivas.</p>
+                  <p className="text-[#383127] font-semibold px-0">Gerencie as metas e arrecadações coletivas.</p>
                 </div>
                 <button 
                   onClick={() => setIsMetaModalOpen(true)}
@@ -1902,11 +1964,11 @@ export default function Financial({
                       <AppDemoCard key={donation.id} className="flex flex-col gap-4 border-l-4 border-l-red-500">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Doador</p>
+                            <p className="text-xs font-extrabold text-[#383127] uppercase tracking-widest">Doador</p>
                             <p className="font-bold text-white">{donation.filhos_de_santo?.nome || 'Anônimo'}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-black text-gray-500 uppercase tracking-widest">Valor</p>
+                            <p className="text-xs font-extrabold text-[#383127] uppercase tracking-widest">Valor</p>
                             <p className="font-black text-primary text-lg">R$ {Number(donation.valor).toFixed(2)}</p>
                           </div>
                         </div>
@@ -1956,9 +2018,9 @@ export default function Financial({
                       </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-end">
-                          <p className="text-xs font-black text-gray-500 uppercase tracking-widest px-0">Progresso</p>
+                          <p className="text-xs font-extrabold text-[#383127] uppercase tracking-widest px-0">Progresso</p>
                           <p className="text-sm font-black text-white px-0">
-                            R$ {Number(meta.valor_atual).toFixed(2)} <span className="text-gray-500">/ R$ {Number(meta.valor_alvo).toFixed(2)}</span>
+                            R$ {Number(meta.valor_atual).toFixed(2)} <span className="text-[#443c31] font-bold">/ R$ {Number(meta.valor_alvo).toFixed(2)}</span>
                           </p>
                         </div>
                         <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -1967,7 +2029,7 @@ export default function Financial({
                       </div>
                       {meta.qr_code_url && (
                         <div className="pt-4 border-t border-white/5">
-                          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">QR Code Pix Configurado</p>
+                          <p className="text-[10px] font-extrabold text-[#383127] uppercase tracking-widest mb-3">QR Code Pix Configurado</p>
                           <div className="w-20 h-20 rounded-xl overflow-hidden bg-white p-1">
                             <img src={meta.qr_code_url} alt="QR Code" className="w-full h-full object-contain" />
                           </div>
@@ -2002,7 +2064,7 @@ export default function Financial({
                           value={pixConfig.valor_mensalidade}
                           onChange={(e) => setPixConfig({ ...pixConfig, valor_mensalidade: e.target.value })}
                           className={cn(appInputClass, 'pl-9')}
-                          placeholder="89,90"
+                          placeholder="69,90"
                         />
                       </div>
                     </div>

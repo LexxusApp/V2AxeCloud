@@ -141,6 +141,19 @@ function RoutedPage({ path }: { path: string }) {
       return <ForgotPasswordPage />;
     case ROUTES.dashboard:
       return <DashboardPage />;
+    case ROUTES.financialApp:
+    case ROUTES.financialAppAlt:
+    case ROUTES.duesApp:
+    case '/financeiro':
+    case '/financial':
+    case '/mensalidades':
+      if (typeof window !== 'undefined') {
+        const targetUrl = new URL(window.location.href);
+        targetUrl.pathname = ROUTES.dashboard;
+        targetUrl.searchParams.set('tab', 'financial');
+        window.history.replaceState({}, '', targetUrl.toString());
+      }
+      return <DashboardPage />;
     default:
       // Em DEV, páginas públicas do diretório/marketing ficam no próprio :3000
       // (evita redirect morto para :5174 quando a landing não está rodando).

@@ -229,12 +229,28 @@ function NavGroupMobileSection({
     if (isGroupActive) setExpanded(true);
   }, [isGroupActive]);
 
+  const hasDirectNavTarget = items.length > 0 && (items[0].id === 'financial' || items.some((i) => i.id === 'financial'));
+
+  const handleHeaderClick = () => {
+    if (hasDirectNavTarget) {
+      setExpanded(true);
+      onSelect(items[0]);
+    } else {
+      setExpanded((o) => !o);
+    }
+  };
+
+  const handleToggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpanded((o) => !o);
+  };
+
   if (variant === 'drawer') {
     return (
       <div className={cn(expanded && 'rounded-xl bg-white/[0.02]')}>
         <button
           type="button"
-          onClick={() => setExpanded((o) => !o)}
+          onClick={handleHeaderClick}
           aria-expanded={expanded}
           className={cn(
             'flex w-full min-h-[36px] items-center gap-2.5 px-3 py-1.5 text-left text-[13px] font-bold transition-colors touch-manipulation',
@@ -246,10 +262,25 @@ function NavGroupMobileSection({
         >
           <GroupIcon className="h-4 w-4 shrink-0" aria-hidden />
           <span className="flex-1">{label}</span>
-          <ChevronDown
-            className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
-            aria-hidden
-          />
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={handleToggleExpand}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                setExpanded((o) => !o);
+              }
+            }}
+            className="rounded p-1 text-[#94A3B8] transition hover:bg-white/10 hover:text-[#F1F5F9]"
+            aria-label={expanded ? `Recolher ${label}` : `Expandir ${label}`}
+          >
+            <ChevronDown
+              className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
+              aria-hidden
+            />
+          </span>
         </button>
         {expanded ? (
           <div
@@ -277,7 +308,7 @@ function NavGroupMobileSection({
     <div className="col-span-2 space-y-2 sm:col-span-3">
       <button
         type="button"
-        onClick={() => setExpanded((o) => !o)}
+        onClick={handleHeaderClick}
         aria-expanded={expanded}
         className={cn(
           'flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-colors',
@@ -288,10 +319,25 @@ function NavGroupMobileSection({
       >
         <GroupIcon className="h-4 w-4 shrink-0" aria-hidden />
         <span className="flex-1">{label}</span>
-        <ChevronDown
-          className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
-          aria-hidden
-        />
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={handleToggleExpand}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              setExpanded((o) => !o);
+            }
+          }}
+          className="rounded p-1 text-[#94A3B8] transition hover:bg-white/10 hover:text-[#F1F5F9]"
+          aria-label={expanded ? `Recolher ${label}` : `Expandir ${label}`}
+        >
+          <ChevronDown
+            className={cn('h-4 w-4 shrink-0 transition-transform', expanded && 'rotate-180')}
+            aria-hidden
+          />
+        </span>
       </button>
       {expanded ? (
         <div className="grid grid-cols-3 gap-2">

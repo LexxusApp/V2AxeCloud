@@ -70,6 +70,7 @@ const MANAGEMENT_HUB_BY_TAB: Record<string, string> = {
 
 /** Mantém o grupo correto destacado quando uma rotina interna está aberta. */
 export function managementHubFromTab(tab: string): string {
+  if (isFinancialNavTab(tab)) return 'financial';
   return MANAGEMENT_HUB_BY_TAB[tab] || tab;
 }
 

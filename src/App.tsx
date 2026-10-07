@@ -967,7 +967,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     const tab = requestedTabFromLocation();
     if (!tab) return;
     if (userRole === 'filho') {
-      if (FILHO_ALLOWED_TABS.has(tab)) setActiveTab(tab);
+      if (FILHO_ALLOWED_TABS.has(tab) || isFinancialNavTab(tab)) setActiveTab(isFinancialNavTab(tab) ? 'financial' : tab);
       return;
     }
     // Zelador / admin: links diretos de todos os módulos do painel.
@@ -1185,7 +1185,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         case 'perfil': return <PerfilFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
         case 'obrigacoes':
           return <ObrigacoesFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
-        case 'financial': return <MensalidadeFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
+        case 'financial':
+        case 'financial-mensalidades':
+        case 'financial-configs': return <MensalidadeFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
         case 'calendar': return <Calendar user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} userRole={userRole} />;
         case 'library': return <Library user={session.user} userRole={userRole} tenantData={hijoTenantData} isAdminGlobal={false} setActiveTab={navigateToTab} />;
         case 'store': return <Store userRole={userRole} tenantData={hijoTenantData} userId={session.user.id} isAdminGlobal={false} setActiveTab={navigateToTab} />;
