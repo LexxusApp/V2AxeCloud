@@ -228,53 +228,68 @@
 .settings-v6-page .wa-settings-panel__card h6,
 .settings-v6-page .wa-settings-panel__layout > div > .rounded-2xl h6,
 .settings-v6-page .wa-history-console h6 {
-  color: #17633b !important;
+  color: #143823 !important;
+  font-weight: 900 !important;
 }
 
 .settings-v6-page .wa-settings-panel__card p,
 .settings-v6-page .wa-settings-panel__layout > div > .rounded-2xl p,
 .settings-v6-page .wa-history-console > div > p {
-  color: #70685d !important;
+  color: #1a1612 !important;
+  font-weight: 500 !important;
 }
 
 .settings-v6-page .wa-settings-panel__card > div > div,
 .settings-v6-page .wa-settings-pref-card,
 .settings-v6-page .wa-history-console .bg-\[\#12161A\] {
-  border-color: #e0d7ca !important;
+  border-color: #d8d0c4 !important;
   background: #ffffff !important;
+  color: #1a1612 !important;
 }
 
 .settings-v6-page .wa-settings-pref-card[aria-pressed='true'] {
-  border-color: rgba(23, 99, 59, 0.36) !important;
-  background: #f1f6ef !important;
+  border-color: #166534 !important;
+  background: #f0f7f2 !important;
 }
 
 .settings-v6-page .wa-settings-pref-card h6 {
-  color: #28231c !important;
+  color: #143823 !important;
+  font-weight: 900 !important;
 }
 
 .settings-v6-page .wa-settings-pref-card p {
-  color: #736b60 !important;
+  color: #262018 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.45 !important;
 }
 
 .settings-v6-page .wa-settings-panel input {
   min-height: 44px;
-  border-color: #d9d0c3 !important;
+  border-color: #d8d0c4 !important;
   background: #ffffff !important;
-  color: #211c16 !important;
+  color: #171410 !important;
+  font-weight: 700 !important;
 }
 
 .settings-v6-page .wa-settings-panel input::placeholder {
-  color: #9b9184 !important;
+  color: #6e6456 !important;
+  font-weight: 500 !important;
 }
 
 .settings-v6-page .wa-history-console .wa-settings-panel__logs-list > div {
-  border-color: #e0d7ca !important;
+  border-color: #d8d0c4 !important;
   background: #ffffff !important;
 }
 
 .settings-v6-page .wa-history-console .wa-settings-panel__logs-list p {
-  color: #625a50 !important;
+  color: #171410 !important;
+  font-weight: 600 !important;
+}
+
+.settings-v6-page .wa-history-console .wa-settings-panel__logs-list span {
+  color: #2a241c !important;
+  font-weight: 700 !important;
 }
 
 @media (min-width: 1024px) and (max-width: 1279px) {

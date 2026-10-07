@@ -549,9 +549,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 <div className="library-reading-room grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <AppDemoCard className="flex min-h-[108px] items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Materiais</span>
-                      <p className="mt-2 text-2xl font-black text-[#F1F5F9]">{libraryStats.total}</p>
-                      <p className="mt-1 text-[10px] text-[#64748B]">PDFs disponíveis</p>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Materiais</span>
+                      <p className="mt-2 text-2xl font-black text-white">{libraryStats.total}</p>
+                      <p className="mt-1 text-[10px] font-medium text-amber-200/90">PDFs disponíveis</p>
                     </div>
                     <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
                       <Files className="h-5 w-5" />
@@ -559,9 +559,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                   </AppDemoCard>
                   <AppDemoCard className="flex min-h-[108px] items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Categorias</span>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Categorias</span>
                       <p className="mt-2 text-2xl font-black text-cyan-300">{libraryStats.categories}</p>
-                      <p className="mt-1 text-[10px] text-[#64748B]">áreas de estudo</p>
+                      <p className="mt-1 text-[10px] font-medium text-amber-200/90">áreas de estudo</p>
                     </div>
                     <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/40 text-cyan-300">
                       <Tags className="h-5 w-5" />
@@ -569,9 +569,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                   </AppDemoCard>
                   <AppDemoCard className="flex min-h-[108px] items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Novos no mês</span>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Novos no mês</span>
                       <p className="mt-2 text-2xl font-black text-violet-300">{libraryStats.recent}</p>
-                      <p className="mt-1 text-[10px] text-[#64748B]">adições recentes</p>
+                      <p className="mt-1 text-[10px] font-medium text-amber-200/90">adições recentes</p>
                     </div>
                     <div className="grid h-10 w-10 place-items-center rounded-xl border border-violet-500/20 bg-violet-950/40 text-violet-300">
                       <CalendarDays className="h-5 w-5" />
@@ -725,10 +725,10 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
                   <BookOpen className="h-6 w-6" />
                 </div>
-                <h3 className="mt-3 text-sm font-black text-[#F1F5F9]">
+                <h3 className="mt-3 text-sm font-black text-[#17130D]">
                   {searchQuery ? 'Nenhum material encontrado' : 'A biblioteca começa aqui'}
                 </h3>
-                <p className="mx-auto mt-1 max-w-sm text-xs font-medium text-[#64748B]">
+                <p className="mx-auto mt-1 max-w-sm text-xs font-semibold text-[#665F55]">
                   {searchQuery
                     ? 'Tente outro termo ou escolha uma categoria diferente.'
                     : isAdmin

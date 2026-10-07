@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -334,9 +334,9 @@ export default function Inventory({
         <div className="inventory-pulse-board grid grid-cols-2 gap-3 xl:grid-cols-4">
           <AppDemoCard className="flex min-h-[108px] items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Itens cadastrados</span>
-              <p className="mt-2 text-2xl font-black text-[#F1F5F9]">{products.length}</p>
-              <p className="mt-1 text-[10px] text-[#64748B]">{totalUnits} unidades no total</p>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Itens cadastrados</span>
+              <p className="mt-2 text-2xl font-black text-white">{products.length}</p>
+              <p className="mt-1 text-[10px] font-medium text-slate-300">{totalUnits} unidades no total</p>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
               <Boxes className="h-5 w-5" />
@@ -344,9 +344,9 @@ export default function Inventory({
           </AppDemoCard>
           <AppDemoCard className="flex min-h-[108px] items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Estoque em dia</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Estoque em dia</span>
               <p className="mt-2 text-2xl font-black text-emerald-400">{healthyStockItems.length}</p>
-              <p className="mt-1 text-[10px] text-[#64748B]">acima do mínimo</p>
+              <p className="mt-1 text-[10px] font-medium text-slate-300">acima do mínimo</p>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
               <CheckCircle2 className="h-5 w-5" />
@@ -354,11 +354,11 @@ export default function Inventory({
           </AppDemoCard>
           <AppDemoCard className="flex min-h-[108px] items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Estoque baixo</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Estoque baixo</span>
               <p className="mt-2 text-2xl font-black text-amber-300">
                 {Math.max(0, lowStockItems.length - outOfStockItems.length)}
               </p>
-              <p className="mt-1 text-[10px] text-[#64748B]">pedem reposição</p>
+              <p className="mt-1 text-[10px] font-medium text-slate-300">pedem reposição</p>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-xl border border-amber-500/20 bg-amber-950/40 text-amber-300">
               <AlertTriangle className="h-5 w-5" />
@@ -366,9 +366,9 @@ export default function Inventory({
           </AppDemoCard>
           <AppDemoCard className="flex min-h-[108px] items-center justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Esgotados</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Esgotados</span>
               <p className="mt-2 text-2xl font-black text-rose-400">{outOfStockItems.length}</p>
-              <p className="mt-1 text-[10px] text-[#64748B]">reposição urgente</p>
+              <p className="mt-1 text-[10px] font-medium text-slate-300">reposição urgente</p>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-400">
               <XCircle className="h-5 w-5" />
@@ -598,7 +598,7 @@ export default function Inventory({
               <Package className="h-6 w-6" />
             </div>
             <h3 className="mt-3 text-sm font-black text-white">Nenhum item encontrado</h3>
-            <p className="mx-auto mt-1 max-w-sm text-xs font-medium text-[#64748B]">
+            <p className="mx-auto mt-1 max-w-sm text-xs font-medium text-slate-300">
               Ajuste a busca ou os filtros. Se o almoxarifado estiver vazio, cadastre o primeiro item.
             </p>
             {isAdmin && products.length === 0 ? (

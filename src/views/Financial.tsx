@@ -1203,9 +1203,9 @@ export default function Financial({
           <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Entradas</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Entradas</span>
                 <p className="mt-2 text-2xl font-black text-emerald-400">{formatBRL(stats.entradas)}</p>
-                <p className="mt-1 text-[10px] font-medium text-[#64748B]">receitas confirmadas</p>
+                <p className="mt-1 text-[10px] font-medium text-slate-300">receitas confirmadas</p>
               </div>
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/40 p-2.5 text-emerald-400">
                 <ArrowUpRight className="h-5 w-5" />
@@ -1213,9 +1213,9 @@ export default function Financial({
             </AppDemoCard>
             <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase text-[#94A3B8]">Saídas</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Saídas</span>
                 <p className="mt-2 text-2xl font-black text-rose-400">{formatBRL(stats.saidas)}</p>
-                <p className="mt-1 text-[10px] font-medium text-[#64748B]">despesas registradas</p>
+                <p className="mt-1 text-[10px] font-medium text-slate-300">despesas registradas</p>
               </div>
               <div className="rounded-xl border border-rose-500/20 bg-rose-950/40 p-2.5 text-rose-400">
                 <ArrowDownRight className="h-5 w-5" />
@@ -1223,11 +1223,11 @@ export default function Financial({
             </AppDemoCard>
             <AppDemoCard className="group flex min-h-[118px] items-center justify-between border-primary/25">
               <div>
-                <span className="text-[10px] font-bold uppercase text-primary">Saldo</span>
-                <p className={cn('mt-2 text-2xl font-black', saldo >= 0 ? 'text-[#F1F5F9]' : 'text-rose-400')}>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">Saldo</span>
+                <p className={cn('mt-2 text-2xl font-black', saldo >= 0 ? 'text-white' : 'text-rose-400')}>
                   {formatBRL(saldo)}
                 </p>
-                <p className="mt-1 text-[10px] font-medium text-[#64748B]">saldo financeiro real</p>
+                <p className="mt-1 text-[10px] font-medium text-slate-300">saldo financeiro real</p>
               </div>
               <div className="rounded-xl border border-primary/20 bg-[#1E252E] p-2.5 text-primary">
                 <WalletCards className="h-5 w-5" />
@@ -1235,9 +1235,9 @@ export default function Financial({
             </AppDemoCard>
             <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase text-[#94A3B8]">A receber</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">A receber</span>
                 <p className="mt-2 text-2xl font-black text-amber-300">{formatBRL(pendingMonthlyTotal)}</p>
-                <p className="mt-1 text-[10px] font-medium text-[#64748B]">
+                <p className="mt-1 text-[10px] font-medium text-slate-300">
                   {mensalidadesPendentes.length} mensalidade{mensalidadesPendentes.length === 1 ? '' : 's'} pendente{mensalidadesPendentes.length === 1 ? '' : 's'}
                 </p>
               </div>
@@ -1528,9 +1528,9 @@ export default function Financial({
               <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <AppDemoCard className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Em aberto</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Em aberto</span>
                     <p className="mt-2 text-2xl font-black text-amber-300">{formatBRL(pendingMonthlyTotal)}</p>
-                    <p className="mt-1 text-[10px] text-[#64748B]">{mensalidadesPendentes.length} cobranças pendentes</p>
+                    <p className="mt-1 text-[10px] font-medium text-slate-300">{mensalidadesPendentes.length} cobranças pendentes</p>
                   </div>
                   <div className="grid h-11 w-11 place-items-center rounded-xl border border-amber-500/20 bg-amber-950/40 text-amber-300">
                     <Clock3 className="h-5 w-5" />
@@ -1538,9 +1538,9 @@ export default function Financial({
                 </AppDemoCard>
                 <AppDemoCard className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Recebido</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Recebido</span>
                     <p className="mt-2 text-2xl font-black text-emerald-400">{formatBRL(paidMonthlyTotal)}</p>
-                    <p className="mt-1 text-[10px] text-[#64748B]">{mensalidadesPagas.length} pagamentos confirmados</p>
+                    <p className="mt-1 text-[10px] font-medium text-slate-300">{mensalidadesPagas.length} pagamentos confirmados</p>
                   </div>
                   <div className="grid h-11 w-11 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
                     <CheckCircle2 className="h-5 w-5" />
@@ -1548,9 +1548,9 @@ export default function Financial({
                 </AppDemoCard>
                 <AppDemoCard className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Em atraso</span>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Em atraso</span>
                     <p className="mt-2 text-2xl font-black text-rose-400">{overdueMonthlyCount}</p>
-                    <p className="mt-1 text-[10px] text-[#64748B]">pedem acompanhamento</p>
+                    <p className="mt-1 text-[10px] font-medium text-slate-300">pedem acompanhamento</p>
                   </div>
                   <div className="grid h-11 w-11 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-400">
                     <CalendarDays className="h-5 w-5" />
@@ -1560,7 +1560,7 @@ export default function Financial({
 
               <AppDemoCard>
               <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-3 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3">
+                <div className="flex items-start gap-3 rounded-xl border border-[#2A3441] bg-[#151D26] px-4 py-3">
                   <button
                     type="button"
                     role="switch"
@@ -1590,10 +1590,10 @@ export default function Financial({
                     ) : null}
                   </button>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-[#F1F5F9]">
+                    <p className="text-sm font-bold text-white">
                       Cobrança de mensalidade {mensalidadeAtiva ? 'ativa' : 'desativada'}
                     </p>
-                    <p className="text-xs text-[#94A3B8]">
+                    <p className="text-xs text-slate-300">
                       {mensalidadeAtiva
                         ? 'O sistema gera pendentes mensais e os filhos veem a cobrança no portal.'
                         : 'Nenhuma mensalidade nova será gerada. Ideal para terreiros que não cobram contribuição fixa.'}
@@ -1605,7 +1605,7 @@ export default function Financial({
                 <div
                   role="tablist"
                   aria-label="Mensalidades por status"
-                  className="flex shrink-0 rounded-xl border border-[#1E242B] bg-[#12161A] p-1"
+                  className="flex shrink-0 rounded-xl border border-[#2A3441] bg-[#151D26] p-1"
                 >
                   <button
                     type="button"
@@ -1617,7 +1617,7 @@ export default function Financial({
                       'rounded-lg px-4 py-2 text-xs font-bold transition-all sm:px-5',
                       mensalidadesTab === 'pendentes'
                         ? 'bg-primary text-[#080A0D] shadow-sm'
-                        : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+                        : 'text-slate-300 hover:text-white',
                     )}
                   >
                     Pendentes
@@ -1632,7 +1632,7 @@ export default function Financial({
                       'rounded-lg px-4 py-2 text-xs font-bold transition-all sm:px-5',
                       mensalidadesTab === 'pagas'
                         ? 'bg-primary text-[#080A0D] shadow-sm'
-                        : 'text-[#94A3B8] hover:text-[#F1F5F9]',
+                        : 'text-slate-300 hover:text-white',
                     )}
                   >
                     Pagas
@@ -1762,12 +1762,12 @@ export default function Financial({
                         <AppDemoTableShell>
                         <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                           <thead>
-                            <tr className="border-b border-[#1E242B] bg-[#12161A]">
-                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Filho</th>
-                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Valor (R$)</th>
-                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Vencimento</th>
-                              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Status</th>
-                              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Ações</th>
+                            <tr className="border-b border-[#2A3441] bg-[#1A222C]">
+                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Filho</th>
+                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Valor (R$)</th>
+                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Vencimento</th>
+                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Status</th>
+                              <th className="px-4 py-3 text-right text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Ações</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#1E242B]">
@@ -1806,7 +1806,7 @@ export default function Financial({
                                       onClick={() => void handleMensalidadeLiquidar(row)}
                                       disabled={processingMensalidadeId !== null}
                                       aria-busy={processingMensalidadeId === row.id}
-                                      className="inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643] disabled:cursor-wait disabled:opacity-55"
+                                      className="inline-flex items-center gap-2 rounded-xl border border-[#2A3441] bg-[#1E252E] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#2A3441] disabled:cursor-wait disabled:opacity-55"
                                     >
                                       {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                       {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
@@ -1890,11 +1890,11 @@ export default function Financial({
                         <AppDemoTableShell>
                           <table className="w-full min-w-[560px] border-collapse text-left text-sm">
                             <thead>
-                              <tr className="border-b border-[#1E242B] bg-[#12161A]">
-                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Filho</th>
-                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Valor</th>
-                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Data do pagamento</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Ações</th>
+                              <tr className="border-b border-[#2A3441] bg-[#1A222C]">
+                                <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Filho</th>
+                                <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Valor</th>
+                                <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Data do pagamento</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Ações</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#1E242B]">
@@ -1941,8 +1941,8 @@ export default function Financial({
             <div className="space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-black text-white px-0">Caixinha do Axé</h3>
-                  <p className="text-[#383127] font-semibold px-0">Gerencie as metas e arrecadações coletivas.</p>
+                  <h3 className="text-2xl font-black text-[#17130D]">Caixinha do Axé</h3>
+                  <p className="font-semibold text-[#665F55]">Gerencie as metas e arrecadações coletivas.</p>
                 </div>
                 <button 
                   onClick={() => setIsMetaModalOpen(true)}
@@ -1955,25 +1955,25 @@ export default function Financial({
 
               {pendingDonations.length > 0 && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-red-500">
+                  <div className="flex items-center gap-2 text-rose-600">
                     <Bell className="w-5 h-5 animate-bounce" />
                     <h4 className="font-black uppercase tracking-widest text-sm">Doações Pendentes de Validação</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {pendingDonations.map(donation => (
-                      <AppDemoCard key={donation.id} className="flex flex-col gap-4 border-l-4 border-l-red-500">
+                      <AppDemoCard key={donation.id} className="flex flex-col gap-4 border-l-4 border-l-rose-500">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-xs font-extrabold text-[#383127] uppercase tracking-widest">Doador</p>
-                            <p className="font-bold text-white">{donation.filhos_de_santo?.nome || 'Anônimo'}</p>
+                            <p className="text-xs font-extrabold uppercase tracking-wider text-[#665F55]">Doador</p>
+                            <p className="font-bold text-[#17130D]">{donation.filhos_de_santo?.nome || 'Anônimo'}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xs font-extrabold text-[#383127] uppercase tracking-widest">Valor</p>
-                            <p className="font-black text-primary text-lg">R$ {Number(donation.valor).toFixed(2)}</p>
+                            <p className="text-xs font-extrabold uppercase tracking-wider text-[#665F55]">Valor</p>
+                            <p className="font-black text-amber-600 text-lg">R$ {Number(donation.valor).toFixed(2)}</p>
                           </div>
                         </div>
                         {donation.comprovante_url && (
-                          <div className="relative group aspect-video rounded-xl overflow-hidden bg-black/40 border border-white/5">
+                          <div className="relative group aspect-video rounded-xl overflow-hidden bg-black/40 border border-[#D8D0C4]">
                             <img src={donation.comprovante_url} alt="Comprovante" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <a href={donation.comprovante_url} target="_blank" rel="noopener noreferrer" className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold text-white border border-white/10 transition-all hover:bg-white/20">
@@ -1983,10 +1983,10 @@ export default function Financial({
                           </div>
                         )}
                         <div className="flex gap-2 pt-2">
-                          <button onClick={() => handleValidateDonation(donation.id, 'confirmado', Number(donation.valor), donation.meta_id)} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-black text-xs hover:bg-emerald-600 transition-colors">
+                          <button onClick={() => handleValidateDonation(donation.id, 'confirmado', Number(donation.valor), donation.meta_id)} className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-black text-xs hover:bg-emerald-700 transition-colors">
                             Confirmar Recebimento
                           </button>
-                          <button onClick={() => handleValidateDonation(donation.id, 'rejeitado', Number(donation.valor), donation.meta_id)} className="px-4 bg-white/5 text-gray-500 py-3 rounded-xl font-black text-xs hover:bg-red-500/10 hover:text-red-500 transition-all">
+                          <button onClick={() => handleValidateDonation(donation.id, 'rejeitado', Number(donation.valor), donation.meta_id)} className="px-4 bg-[#EDE7DA] text-[#665F55] py-3 rounded-xl font-black text-xs hover:bg-rose-100 hover:text-rose-700 transition-all">
                             Rejeitar
                           </button>
                         </div>
@@ -2002,35 +2002,35 @@ export default function Financial({
                   return (
                     <AppDemoCard key={meta.id} className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                          <Target className="w-6 h-6 text-primary" />
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                          <Target className="w-6 h-6 text-amber-600" />
                         </div>
                         <span className={cn(
                           "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                          meta.status === 'active' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-gray-500/10 text-gray-500 border-gray-500/20"
+                          meta.status === 'active' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-700 border-gray-300"
                         )}>
                           {meta.status === 'active' ? 'Em Andamento' : 'Concluída'}
                         </span>
                       </div>
                       <div>
-                        <h4 className="text-xl font-black text-white mb-1">{meta.titulo}</h4>
-                        <p className="text-xs font-bold text-white/60 uppercase tracking-widest">Meta do Terreiro</p>
+                        <h4 className="text-xl font-black text-[#17130D] mb-1">{meta.titulo}</h4>
+                        <p className="text-xs font-bold text-[#665F55] uppercase tracking-wider">Meta do Terreiro</p>
                       </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-end">
-                          <p className="text-xs font-extrabold text-[#383127] uppercase tracking-widest px-0">Progresso</p>
-                          <p className="text-sm font-black text-white px-0">
-                            R$ {Number(meta.valor_atual).toFixed(2)} <span className="text-[#443c31] font-bold">/ R$ {Number(meta.valor_alvo).toFixed(2)}</span>
+                          <p className="text-xs font-extrabold uppercase tracking-wider text-[#665F55]">Progresso</p>
+                          <p className="text-sm font-black text-[#17130D]">
+                            R$ {Number(meta.valor_atual).toFixed(2)} <span className="text-[#665F55] font-bold">/ R$ {Number(meta.valor_alvo).toFixed(2)}</span>
                           </p>
                         </div>
-                        <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="h-full bg-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.3)]" />
+                        <div className="h-3 bg-[#E8E2D5] rounded-full overflow-hidden border border-[#D8D0C4]">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="h-full bg-amber-500 shadow-sm" />
                         </div>
                       </div>
                       {meta.qr_code_url && (
-                        <div className="pt-4 border-t border-white/5">
-                          <p className="text-[10px] font-extrabold text-[#383127] uppercase tracking-widest mb-3">QR Code Pix Configurado</p>
-                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-white p-1">
+                        <div className="pt-4 border-t border-[#D8D0C4]">
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#665F55] mb-3">QR Code Pix Configurado</p>
+                          <div className="w-20 h-20 rounded-xl overflow-hidden bg-white p-1 border border-[#D8D0C4]">
                             <img src={meta.qr_code_url} alt="QR Code" className="w-full h-full object-contain" />
                           </div>
                         </div>

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CheckCircle,
   Clock3,
@@ -50,13 +50,13 @@ const MAX_VISIBLE_LOGS = 40;
 const LOG_FETCH_LIMIT = 50;
 
 const BADGE_COLORS: Record<WaLogTipo, string> = {
-  gira: 'bg-emerald-950/40 text-emerald-400 border-emerald-600/10',
-  financeiro: 'bg-blue-950/40 text-blue-400 border-blue-600/10',
-  reza: 'bg-rose-950/40 text-rose-400 border-rose-600/10',
-  acesso: 'bg-sky-950/40 text-sky-300 border-sky-600/10',
-  teste: 'bg-amber-950/40 text-[#FACC15] border-amber-600/10',
-  broadcast: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
-  transmissao: 'bg-violet-950/40 text-violet-300 border-violet-600/10',
+  gira: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-black',
+  financeiro: 'bg-blue-100 text-blue-900 border-blue-300 font-black',
+  reza: 'bg-rose-100 text-rose-900 border-rose-300 font-black',
+  acesso: 'bg-sky-100 text-sky-900 border-sky-300 font-black',
+  teste: 'bg-amber-100 text-amber-900 border-amber-300 font-black',
+  broadcast: 'bg-purple-100 text-purple-900 border-purple-300 font-black',
+  transmissao: 'bg-purple-100 text-purple-900 border-purple-300 font-black',
 };
 
 const BADGE_LABELS: Record<WaLogTipo, string> = {
@@ -463,44 +463,39 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
       <div id={`wa-panel-${waView}`} role="tabpanel" className="wa-settings-panel__layout grid min-w-0 grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
         <div className={cn('min-w-0 space-y-6', waView === 'historico' ? 'hidden' : 'lg:col-span-12')}>
           {waView !== 'historico' ? (
-          <div className="wa-settings-panel__card relative overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <div
-              className="pointer-events-none absolute right-0 top-0 hidden h-32 w-32 rounded-full bg-[#10B981]/10 sm:block"
-              aria-hidden
-            />
-
-            <h6 className="relative mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
-              <Shield className="h-4 w-4" />
+          <div className="wa-settings-panel__card relative overflow-hidden rounded-2xl border-2 border-[#D8D0C4] bg-white p-5 shadow-xs">
+            <h6 className="relative mb-4 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#14532D]">
+              <Shield className="h-4 w-4 text-[#14532D]" />
               Canal oficial AxéCloud
             </h6>
 
             <div className="relative space-y-4">
-              <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-emerald-500/15 bg-emerald-950/10 p-4 sm:flex-row sm:items-center">
+              <div className="flex flex-col items-start justify-between gap-4 rounded-xl border-2 border-emerald-600/30 bg-[#F0F7F2] p-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-emerald-600 p-3 text-white">
+                  <div className="rounded-xl bg-[#166534] p-3 text-white shadow-sm">
                     <Wifi className={cn('h-5 w-5', !connected && 'opacity-50')} />
                   </div>
                   <div className="space-y-0.5">
-                    <span className="mb-1 block text-[9.5px] font-black uppercase tracking-wide text-emerald-400">
+                    <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-[#15803D]">
                       {connected ? 'Status: Ativo & Operante' : 'Status: Inicializando'}
                     </span>
-                    <h6 className="text-sm font-bold text-[#F1F5F9]">WhatsApp Business verificado · AxéCloud</h6>
-                    <p className="text-[9.5px] text-gray-400">
+                    <h6 className="text-sm font-black text-[#143823]">WhatsApp Business verificado · AxéCloud</h6>
+                    <p className="text-xs font-semibold text-[#2C241C]">
                       {channelMessage ||
-                        'Canal pronto para enviar mensagens automáticas da sua casa.'}
+                        'Canal oficial AxéCloud ativo. Suas notificações serão enviadas pelo número verificado da plataforma.'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs leading-relaxed text-[#94A3B8]">
+              <div className="rounded-xl border-2 border-[#D8D0C4] bg-white p-4 text-xs font-semibold leading-relaxed text-[#1A1612] shadow-xs">
                 Não é necessário escanear QR Code ou manter um celular conectado. As mensagens são enviadas pelo canal
                 oficial do AxéCloud somente para os contatos da sua casa.
               </div>
 
-              <div className="flex flex-col gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-xs text-[#94A3B8] sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 rounded-xl border-2 border-[#D8D0C4] bg-white p-4 text-xs font-bold text-[#1A1612] shadow-xs sm:flex-row sm:items-center sm:justify-between">
                 <span>Sincronizando com Giras, Financeiro e Altar Virtual:</span>
-                <span className="flex shrink-0 items-center gap-1.5 text-[8px] font-bold uppercase tracking-wider text-emerald-400">
+                <span className="flex shrink-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-[#15803D]">
                   <WaLiveDot active={connected} className="h-2 w-2" />
                   {connected ? 'Webhook Online' : 'Aguardando canal'}
                 </span>
@@ -510,12 +505,12 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
           ) : null}
 
           {waView === 'automacoes' ? (
-          <div className="wa-settings-panel__card overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-              <Settings className="h-4 w-4" />
+          <div className="wa-settings-panel__card overflow-hidden rounded-2xl border-2 border-[#D8D0C4] bg-white p-5 shadow-xs">
+            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#92400E]">
+              <Settings className="h-4 w-4 text-[#92400E]" />
               Avisos automáticos
             </h6>
-            <p className="mb-4 text-xs font-light leading-relaxed text-gray-400">
+            <p className="mb-4 text-xs font-semibold leading-relaxed text-[#2A241C]">
               Escolha quais acontecimentos devem gerar mensagens para filhos de santo ou fiéis:
             </p>
             <div className="wa-settings-pref-grid grid min-w-0 grid-cols-1 gap-3.5 md:grid-cols-2">
@@ -528,18 +523,18 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                   onClick={() => togglePref(card.key, card.toastLabel)}
                   onKeyDown={(e) => e.key === 'Enter' && togglePref(card.key, card.toastLabel)}
                   className={cn(
-                    'wa-settings-pref-card flex min-w-0 cursor-pointer items-start gap-3 overflow-hidden rounded-xl border p-3.5 transition-colors',
+                    'wa-settings-pref-card flex min-w-0 cursor-pointer items-start gap-3 overflow-hidden rounded-xl border-2 p-3.5 transition-all shadow-xs',
                     preferences[card.key]
-                      ? 'border-emerald-500/30 bg-[#1E252E]'
-                      : 'border-[#1E242B] bg-[#0F1216] text-[#94A3B8]',
+                      ? 'border-[#166534] bg-[#F0F7F2]'
+                      : 'border-[#D8D0C4] bg-[#FAF8F5] text-[#2A241C] hover:border-[#166534]/50',
                   )}
                 >
                   <span
                     className={cn(
                       'wa-settings-pref-check mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[4px] border text-[10px] font-black leading-none',
                       preferences[card.key]
-                        ? 'border-emerald-500 bg-emerald-500 text-[#06251B]'
-                        : 'border-[#334155] bg-[#111827] text-transparent',
+                        ? 'border-[#166534] bg-[#166534] text-white'
+                        : 'border-[#948777] bg-white text-transparent',
                     )}
                     aria-hidden
                   >
@@ -548,16 +543,16 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                   <div className="min-w-0 flex-1">
                     <h6
                       className={cn(
-                        'text-xs font-bold leading-snug',
-                        preferences[card.key] ? 'text-[#F1F5F9]' : 'text-[#94A3B8]',
+                        'text-xs font-black leading-snug',
+                        preferences[card.key] ? 'text-[#143823]' : 'text-[#2A241C]',
                       )}
                     >
                       {card.title}
                     </h6>
                     <p
                       className={cn(
-                        'mt-1 break-words text-[10px] leading-relaxed',
-                        preferences[card.key] ? 'text-gray-400' : 'text-[#64748B]',
+                        'mt-1 break-words text-[11px] font-medium leading-relaxed',
+                        preferences[card.key] ? 'text-[#1F2922]' : 'text-[#4A4033]',
                       )}
                     >
                       {card.desc}
@@ -570,15 +565,15 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
           ) : null}
 
           {waView === 'teste' ? (
-          <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
-              <Send className="h-4 w-4" />
+          <div className="rounded-2xl border-2 border-[#D8D0C4] bg-white p-5 shadow-xs">
+            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#14532D]">
+              <Send className="h-4 w-4 text-[#14532D]" />
               Testar no seu celular
             </h6>
             <div className="space-y-3">
-              <p className="text-[11px] leading-relaxed text-gray-400">
+              <p className="text-xs font-semibold leading-relaxed text-[#2A241C]">
                 Envie um teste direto para o número que você informar. A mensagem chega pelo{' '}
-                <strong className="text-gray-300">WhatsApp Business oficial do AxéCloud</strong> (não pelo seu número
+                <strong className="font-black text-[#143823]">WhatsApp Business oficial do AxéCloud</strong> (não pelo seu número
                 pessoal).
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -587,13 +582,13 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
                   placeholder="Seu celular com DDD, ex.: 11999999999"
-                  className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-[#10B981]"
+                  className="w-full rounded-xl border-2 border-[#D8D0C4] bg-white px-3.5 py-2.5 text-xs font-bold text-[#1A1612] placeholder:text-[#6E6456] focus:border-[#166534] focus:outline-none focus:ring-2 focus:ring-[#166534]/20"
                 />
                 <button
                   type="button"
                   onClick={() => void handleTestToPhone()}
                   disabled={sendingTest || !testPhone.trim()}
-                  className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-2.5 text-xs font-black text-white transition-colors hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
                 >
                   {sendingTest ? 'Enviando…' : 'Enviar teste'}
                 </button>
@@ -603,13 +598,13 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
           ) : null}
 
           {waView === 'automacoes' ? (
-          <div className="rounded-2xl border border-[#1E242B] bg-[#13171D] p-5">
-            <h6 className="mb-3 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-400">
-              <Send className="h-4 w-4" />
+          <div className="rounded-2xl border-2 border-[#D8D0C4] bg-white p-5 shadow-xs">
+            <h6 className="mb-3 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#6B21A8]">
+              <Send className="h-4 w-4 text-[#6B21A8]" />
               Onde enviar comunicados
             </h6>
-            <p className="text-[11px] leading-relaxed text-gray-400">
-              Para avisar a corrente via WhatsApp, use o menu <strong className="text-gray-300">Comunicados</strong>.
+            <p className="text-xs font-semibold leading-relaxed text-[#2A241C]">
+              Para avisar a corrente via WhatsApp, use o menu <strong className="font-black text-[#143823]">Comunicados</strong>.
               Lá você publica o aviso no app e pode marcar a opção de transmitir automaticamente, com proteção anti-spam integrada.
             </p>
           </div>
@@ -617,33 +612,33 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
         </div>
 
         {waView === 'historico' ? (
-        <div className="wa-settings-panel__logs wa-history-console flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-[#1E242B] bg-[#0E1318] p-5 lg:col-span-12">
+        <div className="wa-settings-panel__logs wa-history-console flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border-2 border-[#D8D0C4] bg-white p-5 lg:col-span-12 shadow-xs">
           <div className="flex min-h-0 flex-1 flex-col space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1E242B] pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E5DDD0] pb-3">
               <div className="flex items-center gap-2">
-                <WaLiveDot active className="h-1.5 w-1.5" />
-                <h6 className="font-display text-sm font-bold text-[#F1F5F9]">Histórico de envios</h6>
+                <WaLiveDot active className="h-2 w-2" />
+                <h6 className="font-display text-sm font-black text-[#143823]">Histórico de envios</h6>
               </div>
-              <button type="button" onClick={() => void loadLogs()} disabled={logsLoading} className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-emerald-500/20 bg-[#12161A] px-3 text-[9px] font-extrabold uppercase tracking-wider text-[#10B981] disabled:cursor-wait disabled:opacity-60">
+              <button type="button" onClick={() => void loadLogs()} disabled={logsLoading} className="inline-flex min-h-9 items-center gap-2 rounded-xl border-2 border-[#166534] bg-[#F0F7F2] px-3.5 text-[10px] font-black uppercase tracking-wider text-[#166534] hover:bg-[#E2EFE5] disabled:cursor-wait disabled:opacity-60 transition-colors">
                 <RefreshCw className={cn('h-3.5 w-3.5', logsLoading && 'animate-spin')} />
                 {logsLoading ? 'Atualizando' : 'Atualizar'}
               </button>
             </div>
 
-            <p className="text-[11px] font-light text-gray-400">
+            <p className="text-xs font-semibold text-[#2A241C]">
               Veja quem recebeu, o conteúdo enviado e o resultado informado pelo WhatsApp.
             </p>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               {[
-                { label: 'Registrados', value: logs.length, color: 'text-white' },
-                { label: 'Entregues', value: deliveredLogsCount, color: 'text-emerald-300' },
-                { label: 'Lidos', value: readLogsCount, color: 'text-sky-300' },
-                { label: 'Com falha', value: failedLogsCount, color: failedLogsCount ? 'text-rose-300' : 'text-gray-400' },
+                { label: 'Registrados', value: logs.length, color: 'text-[#143823]' },
+                { label: 'Entregues', value: deliveredLogsCount, color: 'text-[#047857]' },
+                { label: 'Lidos', value: readLogsCount, color: 'text-[#0369A1]' },
+                { label: 'Com falha', value: failedLogsCount, color: failedLogsCount ? 'text-[#B91C1C]' : 'text-[#524A3E]' },
               ].map((metric) => (
-                <div key={metric.label} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-3">
-                  <strong className={cn('block text-xl font-black', metric.color)}>{metric.value}</strong>
-                  <span className="text-[8px] font-black uppercase tracking-wider text-gray-500">{metric.label}</span>
+                <div key={metric.label} className="rounded-xl border-2 border-[#D8D0C4] bg-[#FAF8F5] p-3.5 shadow-xs">
+                  <strong className={cn('block text-2xl font-black', metric.color)}>{metric.value}</strong>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#3D352A]">{metric.label}</span>
                 </div>
               ))}
             </div>
@@ -657,54 +652,54 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                 { id: 'acesso' as const, label: 'Acessos' },
                 { id: 'transmissao' as const, label: 'Comunicados' },
               ].map((filter) => (
-                <button key={filter.id} type="button" onClick={() => setLogFilter(filter.id)} className={cn('min-h-9 shrink-0 rounded-xl border px-3 text-[9px] font-black uppercase tracking-wide transition', logFilter === filter.id ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-200' : 'border-[#27303A] bg-[#12161A] text-gray-400 hover:text-white')}>
+                <button key={filter.id} type="button" onClick={() => setLogFilter(filter.id)} className={cn('min-h-9 shrink-0 rounded-xl border-2 px-3 text-[10px] font-black uppercase tracking-wide transition-all', logFilter === filter.id ? 'border-[#143823] bg-[#143823] text-white shadow-xs' : 'border-[#D8D0C4] bg-[#FAF8F5] text-[#2A241C] hover:border-[#143823] hover:text-[#143823]')}>
                   {filter.label}
                 </button>
               ))}
             </div>
 
             {logsError ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 p-3 text-[10px] font-bold text-rose-200">
+              <div className="flex items-center justify-between gap-3 rounded-xl border-2 border-rose-300 bg-rose-50 p-3 text-xs font-bold text-rose-800">
                 <span>{logsError}</span>
-                <button type="button" onClick={() => void loadLogs()} className="shrink-0 underline">Tentar novamente</button>
+                <button type="button" onClick={() => void loadLogs()} className="shrink-0 underline font-black">Tentar novamente</button>
               </div>
             ) : null}
 
-            <div className="wa-settings-panel__logs-list max-h-[min(32rem,58dvh)] min-h-[12rem] space-y-0 overflow-y-auto overscroll-contain pr-1">
+            <div className="wa-settings-panel__logs-list max-h-[min(32rem,58dvh)] min-h-[12rem] space-y-2.5 overflow-y-auto overscroll-contain pr-1">
               {logsLoading && logs.length === 0 ? (
-                <div className="flex min-h-32 items-center justify-center gap-2 text-xs font-bold text-gray-400"><RefreshCw className="h-4 w-4 animate-spin" /> Carregando envios…</div>
+                <div className="flex min-h-32 items-center justify-center gap-2 text-xs font-bold text-[#4D4438]"><RefreshCw className="h-4 w-4 animate-spin" /> Carregando envios…</div>
               ) : visibleLogs.length === 0 ? (
-                <p className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-center text-[10px] text-gray-500">
+                <p className="rounded-xl border-2 border-[#D8D0C4] bg-[#FAF8F5] p-5 text-center text-xs font-bold text-[#4D4438]">
                   {logFilter === 'todos' ? 'Nenhuma transmissão registrada ainda.' : 'Nenhum envio encontrado neste filtro.'}
                 </p>
               ) : (
                 visibleLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="space-y-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-3 transition-colors hover:bg-[#1E242B]/20"
+                    className="space-y-2 rounded-xl border-2 border-[#D8D0C4] bg-white p-3.5 shadow-xs transition-colors hover:bg-[#FAF8F5]"
                   >
                     <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex min-w-0 items-center gap-1.5">
-                        <span className="min-w-0 max-w-[170px] truncate text-[10px] font-bold text-white">{log.destino}</span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="min-w-0 max-w-[200px] truncate text-xs font-black text-[#143823]">{log.destino}</span>
                         <span
-                          className={`rounded border px-1.5 py-0.5 text-[8px] font-bold uppercase ${BADGE_COLORS[log.tipo]}`}
+                          className={`rounded-md border px-2 py-0.5 text-[9px] font-black uppercase ${BADGE_COLORS[log.tipo]}`}
                         >
                           {BADGE_LABELS[log.tipo]}
                         </span>
                       </div>
-                      <span className="shrink-0 font-mono text-[8px] text-gray-500">{log.data}</span>
+                      <span className="shrink-0 font-mono text-[10px] font-bold text-[#4D4438]">{log.data}</span>
                     </div>
-                    {log.telefone !== log.destino ? <p className="font-mono text-[9px] text-gray-500">{log.telefone}</p> : null}
-                    <p className="rounded bg-black/15 p-2 text-[10.5px] italic leading-relaxed text-gray-300">
+                    {log.telefone !== log.destino ? <p className="font-mono text-xs font-bold text-[#2A241C]">{log.telefone}</p> : null}
+                    <p className="rounded-xl bg-[#F6F1E8] border border-[#DDD3C4] p-3 text-xs font-semibold leading-relaxed text-[#171410]">
                       &quot;{log.mensagem}&quot;
                     </p>
-                    <div className="flex items-center justify-between border-t border-[#1E242B]/80 pt-1 text-[8.5px]">
-                      <span className="font-bold text-gray-500">Status Gateway:</span>
+                    <div className="flex items-center justify-between border-t border-[#E5DDD0] pt-2 text-[10px]">
+                      <span className="font-black text-[#3D352A]">Status Gateway:</span>
                       <span
-                        className={`flex items-center gap-0.5 font-bold ${
+                        className={`flex items-center gap-1 font-black ${
                           log.status === 'Falha'
-                            ? 'text-rose-400'
-                            : 'text-emerald-400'
+                            ? 'text-[#B91C1C]'
+                            : 'text-[#047857]'
                         }`}
                       >
                         {log.status === 'Falha' ? '✗' : '✓'} {log.status}
@@ -715,20 +710,20 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
               )}
             </div>
             {hiddenLogsCount > 0 ? (
-              <p className="rounded-lg border border-[#1E242B] bg-[#12161A]/70 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-wide text-[#64748B]">
+              <p className="rounded-xl border-2 border-[#D8D0C4] bg-[#FAF8F5] px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-[#4D4438]">
                 +{hiddenLogsCount} registro(s) além do limite desta tela.
               </p>
             ) : null}
           </div>
 
-          <div className="mt-6 space-y-1.5 rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[10px] leading-relaxed text-gray-400">
-            <div className="mb-1 flex items-center gap-1 font-bold text-[#F1F5F9]">
-              <CheckCircle className="h-3.5 w-3.5 text-[#10B981]" /> Como testar no AxéCloud:
+          <div className="mt-6 space-y-1.5 rounded-xl border-2 border-[#B7DBC3] bg-[#F0F7F2] p-4 text-xs leading-relaxed text-[#143823]">
+            <div className="mb-1 flex items-center gap-1.5 font-black text-[#0F2D1C] text-sm">
+              <CheckCircle className="h-4 w-4 text-[#166534]" /> Como testar no AxéCloud:
             </div>
-            <p>
+            <p className="font-medium text-[#1F2922]">
               Confira se o canal oficial está ativo. Depois, experimente criar uma nova Gira na aba{' '}
-              <strong>Giras</strong>, registrar um lançamento na aba <strong>Financeiro</strong> ou aceitar/rezar por um
-              pedido na aba <strong>Pedidos de Reza</strong>. Você verá os envios automáticos e relatórios de fluxo
+              <strong className="font-black text-[#0F2D1C]">Giras</strong>, registrar um lançamento na aba <strong className="font-black text-[#0F2D1C]">Financeiro</strong> ou aceitar/rezar por um
+              pedido na aba <strong className="font-black text-[#0F2D1C]">Pedidos de Reza</strong>. Você verá os envios automáticos e relatórios de fluxo
               surgindo neste painel em tempo real!
             </p>
           </div>
