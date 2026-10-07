@@ -133,16 +133,25 @@ export default {
     }
 
     const profile = path.match(/^\/terreiro\/([^/]+)\/?$/);
-    if (profile) {
+    const city = path.match(/^\/terreiros\/([a-z]{2})\/([^/]+)\/?$/i);
+    if (profile || city) {
       // Newly published houses may not be in the last static build yet.
       // The same lookup/status is used for visitors and crawlers.
       try {
-        const renderUrl = new URL(`/api/v1/public/diretorio/render/terreiro/${encodeURIComponent(decodeURIComponent(profile[1]))}`, url);
+        const renderPath = profile
+          ? `/api/v1/public/diretorio/render/terreiro/${encodeURIComponent(decodeURIComponent(profile[1]))}`
+          : `/api/v1/public/diretorio/render/${city[1].toLowerCase()}/${encodeURIComponent(decodeURIComponent(city[2]))}`;
+        const renderUrl = new URL(renderPath, url);
         const rendered = await env.API.fetch(new Request(renderUrl, request));
+        if (rendered.status === 400) return respond(new Response('Página não encontrada.', { status: 404 }));
         return respond(rendered);
       } catch {
         return respond(new Response('Perfil temporariamente indisponível.', { status: 503 }));
       }
+    }
+
+    if (/^\/(?:conteudo|recursos|por-que-axecloud)(?:\/|$)/.test(path)) {
+      return respond(new Response('Página não encontrada.', { status: 404 }));
     }
 
     const fallback = /^\/senhas\/[^/]+\/?$/.test(path)

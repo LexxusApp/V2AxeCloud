@@ -40,3 +40,11 @@ test('perfil ausente retorna 404 tanto para visitante quanto Googlebot', async (
     }
   } finally { globalThis.fetch = originalFetch; }
 });
+test('cidades, artigos e recursos ausentes não viram cópias da home com HTTP 200', async () => {
+  const env = { PREVIEW_MODE: 'false', ASSETS: { fetch: async () => new Response('Not Found', { status: 404 }) }, API: { fetch: async () => new Response('Cidade não encontrada', { status: 404 }) } };
+  for (const route of ['/terreiros/sp/cidade-ausente', '/conteudo/artigo-ausente', '/recursos/recurso-ausente']) {
+    const response = await worker.fetch(new Request(`https://axecloud.com.br${route}`), env);
+    assert.equal(response.status, 404);
+    assert.equal((await response.text()).includes('rel="canonical"'), false);
+  }
+});
