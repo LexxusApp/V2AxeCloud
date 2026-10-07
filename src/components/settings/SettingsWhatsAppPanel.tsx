@@ -123,20 +123,18 @@ function WaLiveDot({ active, className }: { active: boolean; className?: string 
 }
 
 interface SettingsWhatsAppPanelProps {
-  initialView?: 'automacoes' | 'teste' | 'historico';
+  initialView?: 'automacoes' | 'historico';
 }
 
 export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProps = {}) {
-  const [waView, setWaView] = useState<'automacoes' | 'teste' | 'historico'>(() => {
+  const [waView, setWaView] = useState<'automacoes' | 'historico'>(() => {
     if (initialView) return initialView;
     const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:whatsapp-view') : null;
-    return requested === 'historico' || requested === 'teste' ? requested : 'automacoes';
+    return requested === 'historico' ? requested : 'automacoes';
   });
   const [connected, setConnected] = useState(false);
   const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
-  const [testPhone, setTestPhone] = useState('');
-  const [sendingTest, setSendingTest] = useState(false);
   const [logs, setLogs] = useState<WaLogUi[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState('');
@@ -303,41 +301,6 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
     notify(`Gatilho de ${label} ${next[key] ? 'ativado' : 'desativado'}!`, 'info');
   };
 
-  const handleTestToPhone = async () => {
-    if (!connected) {
-      notify('Canal oficial indisponível no momento. Tente novamente em instantes.', 'error');
-      return;
-    }
-    const digits = testPhone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      notify('Informe um celular válido com DDD (ex.: 11999999999).', 'error');
-      return;
-    }
-    setSendingTest(true);
-    try {
-      const token = await getAccessToken();
-      const userId = await getSessionUserId();
-      const res = await fetch(whatsappApiUrl('/whatsapp/test-message'), {
-        method: 'POST',
-        headers: whatsappRailwayHeaders(token, userId),
-        body: whatsappRailwayJsonBody(userId, { phone: digits }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(String(data.error || 'Falha no envio de teste'));
-      }
-      notify(
-        'Mensagem de teste enviada! Verifique o WhatsApp do número informado — ela chega pelo canal oficial AxéCloud.',
-        'success',
-      );
-      void loadLogs();
-    } catch (e: unknown) {
-      notify(e instanceof Error ? e.message : 'Erro ao enviar teste', 'error');
-    } finally {
-      setSendingTest(false);
-    }
-  };
-
   const prefCards: { key: keyof WaPreferences; title: string; desc: string; toastLabel: string }[] = [
     {
       key: 'notifGiras',
@@ -395,7 +358,7 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#5EEBA5]">Central de comunicação</p>
               <h3 className="mt-1 font-display text-2xl font-black tracking-tight text-white">WhatsApp AxéCloud</h3>
               <p className="mt-1 max-w-2xl text-xs font-semibold leading-relaxed text-emerald-50/65">
-                Automações, testes e rastreamento dos avisos oficiais da sua casa em um só canal.
+                Automações e rastreamento dos avisos oficiais da sua casa em um só canal.
               </p>
               <span
                 className={cn(
@@ -434,7 +397,6 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
       <div className="wa-view-tabs flex gap-1 overflow-x-auto rounded-2xl border border-[#252C35] bg-[#11151A] p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Áreas do WhatsApp">
         {[
           { id: 'automacoes' as const, label: 'Automações', icon: Zap },
-          { id: 'teste' as const, label: 'Testar envio', icon: Send },
           { id: 'historico' as const, label: 'Histórico', icon: Clock3 },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -560,39 +522,6 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-          ) : null}
-
-          {waView === 'teste' ? (
-          <div className="rounded-2xl border-2 border-[#D8D0C4] bg-white p-5 shadow-xs">
-            <h6 className="mb-4 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-[#14532D]">
-              <Send className="h-4 w-4 text-[#14532D]" />
-              Testar no seu celular
-            </h6>
-            <div className="space-y-3">
-              <p className="text-xs font-semibold leading-relaxed text-[#2A241C]">
-                Envie um teste direto para o número que você informar. A mensagem chega pelo{' '}
-                <strong className="font-black text-[#143823]">WhatsApp Business oficial do AxéCloud</strong> (não pelo seu número
-                pessoal).
-              </p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  type="tel"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="Seu celular com DDD, ex.: 11999999999"
-                  className="w-full rounded-xl border-2 border-[#D8D0C4] bg-white px-3.5 py-2.5 text-xs font-bold text-[#1A1612] placeholder:text-[#6E6456] focus:border-[#166534] focus:outline-none focus:ring-2 focus:ring-[#166534]/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleTestToPhone()}
-                  disabled={sendingTest || !testPhone.trim()}
-                  className="flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-2.5 text-xs font-black text-white transition-colors hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
-                >
-                  {sendingTest ? 'Enviando…' : 'Enviar teste'}
-                </button>
-              </div>
             </div>
           </div>
           ) : null}

@@ -764,6 +764,10 @@ export async function sendWhatsAppForTenant(
   sb: SupabaseClient,
   input: WhatsAppSendInput
 ): Promise<{ success: true; externalId: string }> {
+  // Impede teste inclusive por /send e chamadas internas ou clientes antigos.
+  if (String(input.tipo || "").trim().toLowerCase() === "teste") {
+    throw httpError("Envio de teste removido do painel do zelador.", 410);
+  }
   const ctx = await resolveTerreiroWhatsAppContext(sb, input.tenantId, input.tenantId);
 
   let phone: string;

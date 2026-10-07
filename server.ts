@@ -4527,38 +4527,8 @@ async function startServer() {
     });
   });
 
-  app.post("/api/whatsapp/test-message", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-      const token = authHeader.replace("Bearer ", "");
-      const { user, error: authError } = await verifyUser(token);
-      if (authError || !user) return res.status(401).json({ error: "Unauthorized" });
-
-      const { phone } = req.body;
-      if (!phone) return res.status(400).json({ error: "Telefone é obrigatório." });
-
-      const { sendWhatsAppForTenant, resolveTerreiroWhatsAppContext } = await import("./api/lib/whatsappSendCore.js");
-      const ctx = await resolveTerreiroWhatsAppContext(supabaseAdmin, user.id, user.id);
-      const result = await sendWhatsAppForTenant(supabaseAdmin, {
-        tenantId: user.id,
-        tipo: "teste",
-        forcePhone: phone,
-        variables: {
-          nome_filho: "Teste",
-          nome_terreiro: ctx.nomeTerreiro,
-          zelador: ctx.zelador || "",
-          nome_zelador: ctx.zelador || "",
-          comunicado:
-            "Se você recebeu esta mensagem, o canal oficial do AxéCloud está funcionando corretamente.",
-        },
-      });
-      return res.json({ success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
-    } catch (err: any) {
-      if (err?.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-      res.status(500).json({ error: err?.message || "Falha ao enviar." });
-    }
+  app.all("/api/whatsapp/test-message", (_req, res) => {
+    res.status(410).json({ error: "Envio de teste removido do painel do zelador.", code: "WHATSAPP_TEST_DISABLED" });
   });
 
   app.get("/api/whatsapp/status", async (_req, res) => {

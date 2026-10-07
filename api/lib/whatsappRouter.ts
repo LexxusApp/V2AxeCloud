@@ -54,6 +54,10 @@ async function requireAuthUser(
 }
 
 export async function handleWhatsappRoute(action: string, req: any, res: any): Promise<void> {
+  // Endpoint retirado: não autentica, não enfileira e não envia mensagens.
+  if (String(action).trim().toLowerCase() === "test-message") {
+    return sendJson(res, 410, { error: "Envio de teste removido do painel do zelador.", code: "WHATSAPP_TEST_DISABLED" });
+  }
   const sb = getDiscreteSupabaseAdmin();
   if (!sb) {
     sendJson(res, 503, { error: "Supabase não configurado na servidor." });
@@ -297,7 +301,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
           return whatsappInitializingResponse(res, err);
         }
         const status =
-          e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : e.statusCode === 429 ? 429 : 500;
+          e.statusCode === 410 ? 410 : e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : e.statusCode === 429 ? 429 : 500;
         return sendJson(res, status, { error: safeErrorMessage(e, "Erro ao enviar mensagem") });
       }
     }
@@ -307,35 +311,6 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         error: "Conexão por QR/pareamento foi descontinuada. As notificações saem pelo WhatsApp oficial do AxéCloud.",
         channel: "official",
       });
-    }
-
-    if (act === "test-message" && method === "POST") {
-      const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "wa-test" });
-      if (!rl.allowed) {
-        return sendJson(res, 429, { error: "Limite de testes WhatsApp excedido. Tente mais tarde." });
-      }
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const { phone } = body;
-      if (!phone) return sendJson(res, 400, { error: "Telefone é obrigatório." });
-      const ctx = await resolveTerreiroWhatsAppContext(sb, user.id, user.id);
-      try {
-        const result = await sendWhatsAppForTenant(sb, {
-          tenantId: user.id,
-          tipo: "teste",
-          forcePhone: phone,
-          variables: {
-            nome_filho: "Teste",
-            nome_terreiro: ctx.nomeTerreiro,
-            comunicado:
-              "Se você recebeu esta mensagem, o canal oficial do AxéCloud está funcionando corretamente.",
-          },
-        });
-        return sendJson(res, 200, { success: true, message: "Mensagem enviada com sucesso!", externalId: result.externalId });
-      } catch (err: unknown) {
-        const e = err as { code?: string; message?: string };
-        if (e.code === "WHATSAPP_INITIALIZING") return whatsappInitializingResponse(res, err);
-        throw err;
-      }
     }
 
     if (act === "status" && method === "GET") {

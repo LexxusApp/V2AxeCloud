@@ -127,6 +127,14 @@ export default {
   async fetch(request: Request, env: AxeCloudBindings): Promise<Response> {
     const url = new URL(request.url);
 
+    // Defesa no edge para clientes antigos: não chega ao container nem à Meta.
+    if (/^\/api\/whatsapp\/test-message\/?$/i.test(url.pathname)) {
+      return Response.json(
+        { error: "Envio de teste removido do painel do zelador.", code: "WHATSAPP_TEST_DISABLED" },
+        { status: 410, headers: { "cache-control": "no-store", "x-axecloud-runtime": "cloudflare-container" } },
+      );
+    }
+
     if (url.hostname === PRODUCTION_HOST && RETIRED_SITEMAP_RE.test(url.pathname)) {
       return new Response("Sitemap antigo removido. Use https://axecloud.com.br/sitemap.xml", {
         status: 410,

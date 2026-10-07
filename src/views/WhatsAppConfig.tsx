@@ -68,9 +68,6 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [serviceNotice, setServiceNotice] = useState<string | null>(null);
-  const [testPhone, setTestPhone] = useState('');
-  const [sendingTest, setSendingTest] = useState(false);
-  const [testStatus, setTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [templates, setTemplates] = useState<Record<WhatsAppTemplateType, string>>(WHATSAPP_TEMPLATE_DEFAULTS);
   const [savingTemplates, setSavingTemplates] = useState(false);
   const [templatesSaved, setTemplatesSaved] = useState(false);
@@ -421,67 +418,6 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
     }
   };
 
-  const handleTestMessage = async () => {
-    if (!testPhone) return;
-    
-    setSendingTest(true);
-    setTestStatus('idle');
-    setErrorMsg(null);
-    try {
-      const token = await getAccessToken();
-      const userId = await getSessionUserId();
-
-      const response = await fetch(whatsappApiUrl('/whatsapp/test-message'), {
-        method: 'POST',
-        headers: whatsappRailwayHeaders(token, userId),
-        body: whatsappRailwayJsonBody(userId, { phone: testPhone }),
-      });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 401) {
-          setErrorMsg(
-            typeof (data as { error?: string })?.error === 'string'
-              ? (data as { error: string }).error
-              : 'Sessão expirada. Faça login novamente.',
-          );
-          setTestStatus('error');
-          return;
-        }
-        if (isBadGatewayOrTimeout(response.status) || isWhatsappServiceWarmingPayload(data, response.status)) {
-          setServiceNotice(
-            typeof (data as { error?: string })?.error === 'string'
-              ? (data as { error: string }).error
-              : WHATSAPP_INIT_FALLBACK,
-          );
-          setErrorMsg(null);
-          setTestStatus('idle');
-          return;
-        }
-        throw new Error(String((data as { error?: string })?.error || 'Falha no envio'));
-      }
-
-      setTestStatus('success');
-      setTestPhone('');
-    } catch (err) {
-      console.error('Erro ao enviar mensagem de teste:', err);
-      const isNetwork =
-        err instanceof TypeError ||
-        (err instanceof Error && /network|failed to fetch|load failed|abort/i.test(err.message));
-      if (isNetwork) {
-        setServiceNotice(WHATSAPP_INIT_FALLBACK);
-        setErrorMsg(null);
-        setTestStatus('idle');
-        return;
-      }
-      setTestStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Erro ao enviar mensagem de teste.');
-    } finally {
-      setSendingTest(false);
-      setTimeout(() => setTestStatus('idle'), 5000);
-    }
-  };
-
   const loadTemplates = async () => {
     try {
       const token = await getAccessToken();
@@ -647,37 +583,6 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
           <p className="text-xs text-gray-500">
             Seu Terreiro já está conectado. No celular, reconecte com o código numérico; no computador, use o QR.
           </p>
-        </div>
-
-        <div className="mt-6 w-full max-w-sm space-y-4 rounded-3xl border border-white/10 bg-[#181818] p-4">
-          <p className="text-left text-xs font-bold uppercase tracking-widest text-white">Teste de Conexão</p>
-          <div className="flex flex-col gap-3">
-            <input
-              type="text"
-              value={testPhone}
-              onChange={(e) => setTestPhone(e.target.value)}
-              placeholder="Ex: 11999999999"
-              className="w-full rounded-xl border border-white/10 bg-[#121212] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-gray-600 focus:border-emerald-500"
-            />
-            <button
-              onClick={handleTestMessage}
-              disabled={sendingTest || !testPhone}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-black uppercase tracking-widest text-background transition-colors hover:bg-emerald-400 disabled:opacity-50"
-            >
-              {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
-              {sendingTest ? 'Enviando...' : 'Enviar Mensagem de Teste'}
-            </button>
-          </div>
-          {testStatus === 'success' && (
-            <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-widest text-emerald-500">
-              <CheckCircle2 className="h-3 w-3" /> Mensagem Enviada!
-            </div>
-          )}
-          {testStatus === 'error' && (
-            <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-widest text-red-500">
-              <AlertCircle className="h-3 w-3" /> Erro ao enviar
-            </div>
-          )}
         </div>
 
         <button
