@@ -171,7 +171,7 @@ test('diretório rejeita anúncios comerciais sem excluir casas de axé', () => 
       endereco: 'Rua das Flores, 123 - Centro',
       telefone: '(11) 99999-0000',
     }),
-    false,
+    true,
   );
   assert.equal(
     isDiretorioPriorityIndexSlug('e-u-j-a-espaco-universalista-dr-jose-de-arimateia'),

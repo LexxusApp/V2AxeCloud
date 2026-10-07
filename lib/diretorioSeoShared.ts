@@ -6,7 +6,7 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-10-03";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-10-07";
 export const PUBLIC_SITE_SHELL_LASTMOD = "2026-10-03";
 
 export const STATIC_SITEMAP_PATHS: readonly {
@@ -177,7 +177,8 @@ export function buildLocalBusinessJsonLd(terreiro: DiretorioSeoTerreiro): Record
           addressCountry: "BR",
         }
       : undefined,
-    image: terreiro.fotoUrl ? `${SITE_ORIGIN}${terreiro.fotoUrl}` : undefined,
+    telephone: terreiro.telefone || undefined,
+    image: terreiro.fotoUrl ? new URL(terreiro.fotoUrl, SITE_ORIGIN).href : undefined,
     sameAs: terreiro.linkMaps ? [terreiro.linkMaps] : undefined,
   };
   return Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined));
@@ -264,7 +265,7 @@ export function buildTerreiroPrerenderPage(
   if (terreiro.telefone) {
     sections.push({
       heading: "Contato",
-      body: `Há um contato cadastrado para ${terreiro.nome}. Use o botão de WhatsApp exibido no perfil e prefira horários comerciais e linguagem respeitosa ao falar com a diretoria.`,
+      body: `Telefone público de ${terreiro.nome}: ${terreiro.telefone}. Confirme diretamente com a casa os horários de atendimento e as orientações para visita.`,
     });
   }
   if (terreiro.linkMaps) {
@@ -304,7 +305,7 @@ export function buildTerreiroPrerenderPage(
     `Informações de ${terreiro.nome}`,
     loc ? `em ${loc}` : null,
     terreiro.endereco ? "com endereço" : null,
-    terreiro.telefone ? "contato via WhatsApp" : null,
+    terreiro.telefone ? "telefone de contato" : null,
     "no diretório AxéCloud",
   ].filter(Boolean);
 

@@ -29,7 +29,8 @@ const SELECT =
 
 function sitemapLastModified(rawModified: string): string | undefined {
   if (rawModified && !Number.isNaN(new Date(rawModified).getTime())) {
-    return new Date(rawModified).toISOString().slice(0, 10);
+    const date = new Date(rawModified).toISOString().slice(0, 10);
+    return date > DIRETORIO_SEO_TEMPLATE_LASTMOD ? date : DIRETORIO_SEO_TEMPLATE_LASTMOD;
   }
   return DIRETORIO_SEO_TEMPLATE_LASTMOD;
 }
@@ -102,7 +103,7 @@ export async function buildDiretorioSitemapRoutes(sb: SupabaseClient) {
       cityRoutes.set(cityPath, modifiedDate);
     }
 
-    // Sitemap só com perfis ricos — thin/off-topic ficam no site com noindex.
+    // Mesma elegibilidade usada no HTML público e no prerender.
     const slug = String(row.slug || "").trim();
     if (slug && isDiretorioListingIndexable(row)) {
       const featured = isDiretorioPriorityIndexSlug(slug);

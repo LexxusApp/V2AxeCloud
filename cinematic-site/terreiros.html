@@ -688,6 +688,8 @@ footer a { color: var(--ouro); text-decoration: none; }
     <div class="state-list" id="state-list" aria-label="Estados com mais casas mapeadas"></div>
   </section>
 
+  <!-- DIRECTORY_CITY_LINKS -->
+
   <section class="claim-section" aria-labelledby="claim-title">
     <div>
       <h2 id="claim-title">Sua casa já está no mapa?</h2>
@@ -1409,7 +1411,7 @@ async function carregaCidades() {
 
   $("#total-geral").innerHTML = `<strong>${total.toLocaleString("pt-BR")} casas</strong> em ${cidades.length.toLocaleString("pt-BR")} cidades brasileiras.`;
   $("#state-list").innerHTML = estados.slice(0, 7).map((e) => `
-    <a href="/terreiros/${esc(e.estado.toLowerCase())}">
+      <a href="/terreiros?uf=${esc(e.estado.toLowerCase())}">
       <span>${esc(e.nome)}</span>
       <strong>${e.count.toLocaleString("pt-BR")}</strong>
     </a>`).join("");

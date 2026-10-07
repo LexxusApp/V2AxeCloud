@@ -1,4 +1,3 @@
-const crawlerPattern = /googlebot|bingbot|yandex|baiduspider|facebookexternalhit|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|applebot|petalbot|semrushbot|ahrefsbot|mj12bot|dotbot|crawler|spider/i;
 const missingAssetPattern = /\.(?:png|jpe?g|gif|webp|ico|svg|woff2?|css|js|json|xml|txt|webmanifest|pdf|mp4|webm)$/i;
 const linkHeader = '</.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap", </openapi.json>; rel="service-desc", </llms.txt>; rel="describedby", </auth.md>; rel="help"';
 const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.pagseguro.uol.com.br https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://static.cloudflareinsights.com https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://cloudflareinsights.com https://*.r2.cloudflarestorage.com https://*.r2.dev https://*.backblazeb2.com https://s3.us-east-005.backblazeb2.com https://*.s3.us-east-005.backblazeb2.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://www.google.com https://www.googleadservices.com https://*.doubleclick.net https://*.googleadservices.com https://pagead2.googlesyndication.com https://www.google.com.br; frame-src 'self' blob: https://vlaojhfwhqmwudqsumpi.supabase.co https://*.efi.com.br https://*.gerencianet.com.br https://tokenizer.sejaefi.com.br https://www.googletagmanager.com https://*.doubleclick.net; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://*.efi.com.br https://*.gerencianet.com.br; upgrade-insecure-requests";
@@ -80,24 +79,26 @@ export default {
     if (path === '/terreiro/associacao-araxa' || path === '/terreiro/templo-de-umbanda-pai-jobim-da-guine') {
       return respond(new Response('Perfil removido por solicitação do responsável.', { status: 410 }));
     }
-    // Directory HTML is pre-rendered, but crawler metadata can change after deploy.
-    // Use the live API render to avoid stale noindex on profiles in the sitemap.
-    const crawlerProfile = path.match(/^\/terreiro\/([^/]+)\/?$/);
-    if (crawlerProfile && crawlerPattern.test(request.headers.get('User-Agent') || '')) {
-      const renderUrl = new URL(
-        `/api/v1/public/diretorio/render/terreiro/${encodeURIComponent(decodeURIComponent(crawlerProfile[1]))}`,
-        url,
-      );
-      const rendered = await fetch(new Request(renderUrl, request));
-      if (rendered.ok || rendered.status === 404) return respond(rendered);
-    }
     if (path === '/conteudo' && url.searchParams.get('aba') === 'glossario') {
       return respond(redirect('/conteudo/glossario', 301));
     }
     const legacyCity = path.match(/^\/terreiros\/cidade\/([^/]+)\/?$/);
-    if (legacyCity) return respond(redirect(`/terreiros?cidade=${encodeURIComponent(legacyCity[1])}`, 302));
+    if (legacyCity) {
+      const catalogUrl = new URL('/diretorio-cidades.json', url);
+      const catalog = await env.ASSETS.fetch(new Request(catalogUrl));
+      if (catalog.ok) {
+        const data = await catalog.json();
+        const cities = (data.cidades || []).filter((city) => city.cidadeSlug === decodeURIComponent(legacyCity[1]));
+        if (cities.length === 1 && cities[0].estado) {
+          return respond(redirect(`/terreiros/${String(cities[0].estado).toLowerCase()}/${encodeURIComponent(cities[0].cidadeSlug)}`, 301));
+        }
+      }
+      return respond(redirect(`/terreiros?cidade=${encodeURIComponent(legacyCity[1])}`, 301));
+    }
+    const legacyState = path.match(/^\/terreiros\/([a-z]{2})\/?$/i);
+    if (legacyState) return respond(redirect(`/terreiros?uf=${legacyState[1].toLowerCase()}`, 301));
     const legacyProfile = path.match(/^\/terreiros\/([^/.]+)\/?$/);
-    if (legacyProfile) return respond(redirect(`/terreiro/${legacyProfile[1]}`, 302));
+    if (legacyProfile) return respond(redirect(`/terreiro/${legacyProfile[1]}`, 301));
     if (path.startsWith('/api/')) return respond(new Response('Not Found', { status: 404 }));
 
     const asset = async (pathname) => {
@@ -131,9 +132,17 @@ export default {
       return respond(direct);
     }
 
-    const profile = /^\/terreiro\/[^/]+\/?$/.test(path);
-    if (profile && crawlerPattern.test(request.headers.get('User-Agent') || '')) {
-      return respond(new Response('Not Found', { status: 404 }));
+    const profile = path.match(/^\/terreiro\/([^/]+)\/?$/);
+    if (profile) {
+      // Newly published houses may not be in the last static build yet.
+      // The same lookup/status is used for visitors and crawlers.
+      try {
+        const renderUrl = new URL(`/api/v1/public/diretorio/render/terreiro/${encodeURIComponent(decodeURIComponent(profile[1]))}`, url);
+        const rendered = await fetch(new Request(renderUrl, request));
+        return respond(rendered);
+      } catch {
+        return respond(new Response('Perfil temporariamente indisponível.', { status: 503 }));
+      }
     }
 
     const fallback = /^\/senhas\/[^/]+\/?$/.test(path)

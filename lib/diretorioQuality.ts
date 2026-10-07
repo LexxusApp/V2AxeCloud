@@ -142,13 +142,10 @@ export function isDiretorioListingPublishable(row: DiretorioQualityInput): boole
 }
 
 /**
- * Critério mais rigoroso para sitemap + robots index.
- * Thin / genérico permanece no site (reivindicação) com noindex.
- *
- * O Google recusou ~5 mil perfis-clone. Só pedimos índice para:
- * - casas em destaque (allowlist)
- * - perfis reivindicados/verificados
- * - perfis ricos: endereço + telefone + foto + nome com sinal de axé
+ * Casas identificáveis com localização útil podem participar da busca.
+ * Foto e telefone são opcionais e não devem causar noindex isoladamente.
+ * Pedidos de retirada, locais fora do escopo e registros genéricos continuam
+ * excluídos; a regra é compartilhada pelo HTML, API e sitemap.
  */
 export function isDiretorioListingIndexable(row: DiretorioQualityInput): boolean {
   if (!isDiretorioListingPublishable(row)) return false;
@@ -156,13 +153,8 @@ export function isDiretorioListingIndexable(row: DiretorioQualityInput): boolean
 
   const verificada = Boolean(row.verified_at || row.verificada);
   const endereco = String(row.endereco || "").trim();
-  const telefone = String(row.telefone || "").trim();
-  const foto = String(row.foto_url || row.fotoUrl || row.owner_photo_url || "").trim();
   const hasAxeSignal = hasAxeContextInName(row.nome);
 
   if (!endereco || endereco.length < 12) return false;
-  if (verificada && telefone) return true;
-  if (!telefone || !foto || !hasAxeSignal) return false;
-
-  return true;
+  return verificada || hasAxeSignal || normalize(row.tipo) === "terreiro";
 }

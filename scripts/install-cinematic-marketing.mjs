@@ -129,6 +129,24 @@ for (const [sourceName, outputRelative] of pages) {
   const sourcePath = path.join(SOURCE, sourceName);
   assertFile(sourcePath);
   let html = fs.readFileSync(sourcePath, 'utf8');
+  if (sourceName === 'terreiros.html') {
+    // Links reais no HTML: a descoberta das cidades não depende do canvas/JS.
+    const catalog = JSON.parse(fs.readFileSync(path.join(OUT, 'diretorio-cidades.json'), 'utf8'));
+    const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const states = new Map();
+    for (const city of catalog.cidades || []) {
+      if (!city.estado || !city.cidadeSlug) continue;
+      const state = String(city.estado).toUpperCase();
+      const cities = states.get(state) || [];
+      cities.push(city);
+      states.set(state, cities);
+    }
+    const links = [...states].sort(([a], [b]) => a.localeCompare(b)).map(([state, cities]) =>
+      `<details><summary>${escape(state)} · ${cities.length} cidades</summary><ul>${cities.sort((a, b) => a.cidade.localeCompare(b.cidade, 'pt-BR')).map((city) => `<li><a href="/terreiros/${encodeURIComponent(state.toLowerCase())}/${encodeURIComponent(city.cidadeSlug)}">${escape(city.cidade)} (${Number(city.count) || 0})</a></li>`).join('')}</ul></details>`
+    ).join('\n');
+    html = html.replace('<!-- DIRECTORY_CITY_LINKS -->', `<section class="directory-city-links" aria-labelledby="city-directory-title"><h2 id="city-directory-title">Terreiros por cidade</h2><p>Explore as casas mapeadas em cada cidade do Brasil.</p>${links}</section>`);
+    html = html.replace('</head>', `<style>.directory-city-links{margin:3rem auto;width:min(1120px,calc(100% - 40px))}.directory-city-links h2{font-size:1.75rem}.directory-city-links p{margin:1rem 0}.directory-city-links details{padding:1rem 0;border-bottom:1px solid rgba(180,150,60,.25)}.directory-city-links summary{cursor:pointer}.directory-city-links ul{columns:3;list-style:none;padding:1rem 0}.directory-city-links li{break-inside:avoid;margin:0 0 .75rem}.directory-city-links a{color:inherit;text-decoration:underline;text-underline-offset:3px}@media(max-width:700px){.directory-city-links ul{columns:1}}</style></head>`);
+  }
   for (const [from, to] of [...urls.entries()].sort((a, b) => b[0].length - a[0].length)) {
     html = html.replaceAll(`"${from}"`, `"${to}"`).replaceAll(`'${from}'`, `'${to}'`);
   }
