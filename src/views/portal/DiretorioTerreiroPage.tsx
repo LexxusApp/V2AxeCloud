@@ -261,7 +261,7 @@ function ContactPanel({ terreiro, whatsappHref, onWhatsapp }: {
     <h2 id="information-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Informações da casa</h2>
     <div className="mt-6 rounded-2xl border border-[#ded3c0] bg-white px-5">
       <InfoRow icon={MapPin} label="Endereço">{terreiro.endereco || 'Endereço não informado'}</InfoRow>
-      <InfoRow icon={Phone} label="Telefone">{terreiro.telefone ? <span className="select-text">{formatTelefoneBr(terreiro.telefone)}</span> : 'Telefone não informado'}</InfoRow>
+      {!terreiro.gerenciada ? <InfoRow icon={Phone} label="Telefone">{terreiro.telefone ? <span className="select-text">{formatTelefoneBr(terreiro.telefone)}</span> : 'Telefone não informado'}</InfoRow> : null}
       {whatsappHref ? <InfoRow icon={MessageCircle} label="WhatsApp"><a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={onWhatsapp}
         className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#16794b] px-4 py-2.5 text-sm font-black text-white"><WhatsAppIcon />Conversar com a casa</a></InfoRow> : null}
       {terreiro.instagramUrl ? <InfoRow icon={Instagram} label="Instagram"><a href={terreiro.instagramUrl} target="_blank" rel="noopener noreferrer"
@@ -435,7 +435,7 @@ export default function DiretorioTerreiroPage() {
           <div className="flex gap-3 border-t border-[#e1d8c8] px-5 py-4 sm:border-r sm:border-t-0"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#9d7400]" />
             <div><strong className="block text-xs text-[#263029]">Visitas com confirmação</strong><span className="text-[11px] text-[#707970]">consulte a agenda antes de ir</span></div></div>
           <div className="flex gap-3 border-t border-[#e1d8c8] px-5 py-4 sm:border-t-0"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-            <div><strong className="block text-xs text-[#263029]">Contato protegido</strong><span className="text-[11px] text-[#707970]">o número não fica exposto</span></div></div>
+            <div><strong className="block text-xs text-[#263029]">{terreiro.gerenciada ? 'Contato da casa' : 'Telefone público'}</strong><span className="text-[11px] text-[#707970]">{terreiro.gerenciada ? 'atendimento administrado pela casa' : 'exibido apenas como texto'}</span></div></div>
         </div>
         <div className="overflow-x-auto"><div className="flex min-w-max gap-1 px-3 pt-2 sm:px-6" role="tablist" aria-label="Seções do perfil">
           {PROFILE_TABS.map((tab, index) => <button key={tab.id} id={'tab-' + tab.id}

@@ -31,6 +31,8 @@ test('todas as ações do perfil usam a política de contato e números não rei
   assert.equal(profile.includes('wa.me'), false);
   assert.match(profile, /!terreiro.gerenciada && terreiro.telefone/);
   assert.match(profile, /label="Telefone"/);
+  assert.equal(profile.includes('o número não fica exposto'), false);
+  assert.match(profile, /!terreiro.gerenciada \? <InfoRow icon=\{Phone\}/);
   assert.match(card, /terreiro.gerenciada \? <a/);
   assert.match(card, /<\/a> : <span className="select-text font-semibold">/);
   assert.match(api, /const whatsapp = resolveDiretorioPublicWhatsapp\(row\)/);
