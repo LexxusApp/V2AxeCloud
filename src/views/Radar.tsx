@@ -3,6 +3,8 @@ import { Eye, MapPinned, Radio, Sparkles, TrendingUp } from 'lucide-react';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { ClaimedDirectoryProfileSettings } from '../components/settings/ClaimedDirectoryProfileSettings';
 import { TerreiroServicosSettings } from '../components/settings/TerreiroServicosSettings';
+import { DirectoryPublicProfileSettings } from '../components/settings/DirectoryPublicProfileSettings';
+import { TerreiroPublicacoesSettings } from '../components/settings/TerreiroPublicacoesSettings';
 import { authFetch } from '../lib/authenticatedFetch';
 
 type RadarSummary = {
@@ -91,6 +93,8 @@ export default function Radar() {
           {summary ? (
             <>
               <ClaimedDirectoryProfileSettings />
+              <DirectoryPublicProfileSettings />
+              <TerreiroPublicacoesSettings />
               <TerreiroServicosSettings />
             </>
           ) : (

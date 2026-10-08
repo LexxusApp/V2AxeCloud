@@ -34,11 +34,14 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
 
         const { data: terreiro, error: tErr } = await sb
           .from("terreiros_diretorio")
-          .select("id, telefone, whatsapp_atendimento")
+          .select("id, telefone, whatsapp_atendimento, publicacao_status")
           .eq("slug", slug)
           .maybeSingle();
         if (tErr) throw tErr;
         if (!terreiro) return res.status(404).json({ error: "Terreiro não encontrado." });
+        if (String(terreiro.publicacao_status || "publicado") !== "publicado") {
+          return res.status(404).json({ error: "Terreiro não encontrado." });
+        }
 
         const { data: servicos, error: sErr } = await sb
           .from("terreiro_servicos")

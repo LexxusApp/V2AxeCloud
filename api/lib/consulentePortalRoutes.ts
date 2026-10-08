@@ -18,6 +18,7 @@ type Deps = {
 };
 
 const TRADICOES = new Set(["umbanda", "candomble", "jurema", "mista", "outra"]);
+const DIRECTORY_PUBLICATION_STATUSES = new Set(["rascunho", "publicado", "oculto"]);
 const PEDIDO_STATUSES = new Set(["pendente", "aceito", "em_oracao", "concluido", "cancelado"]);
 const VELAS = new Set(["Branca", "Vermelha", "Azul", "Verde", "Amarela", "Preta", "Nenhuma"]);
 
@@ -70,6 +71,22 @@ function validInstagramUrl(raw: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+function validPublicImageUrl(raw: unknown): string | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString().slice(0, 1000) : null;
+  } catch {
+    return null;
+  }
+}
+
+function validPublicGallery(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.map(validPublicImageUrl).filter((url): url is string => Boolean(url)))].slice(0, 8);
 }
 
 async function geocodeDirectoryAddress(address: string, city: string, state: string) {
@@ -158,7 +175,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const { data, error } = await sb
         .from("terreiros_diretorio")
-        .select("id, nome, endereco, telefone, owner_photo_url, link_maps, instagram_url, cidade, estado, slug, bairro, latitude, longitude, gira_horarios, verified_at, updated_at")
+        .select("id, nome, endereco, telefone, owner_photo_url, cover_photo_url, gallery_photo_urls, link_maps, instagram_url, descricao_publica, orientacoes_visita, tradicao, publicacao_status, cidade, estado, slug, bairro, latitude, longitude, gira_horarios, verified_at, updated_at")
         .eq("claimed_by_tenant_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -177,8 +194,14 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
           endereco: data.endereco,
           telefone: data.telefone,
           ownerPhotoUrl: data.owner_photo_url,
+          coverPhotoUrl: data.cover_photo_url,
+          galleryPhotoUrls: validPublicGallery(data.gallery_photo_urls),
           linkMaps: data.link_maps,
           instagramUrl: data.instagram_url,
+          descricaoPublica: data.descricao_publica,
+          orientacoesVisita: data.orientacoes_visita,
+          tradicao: data.tradicao,
+          publicacaoStatus: data.publicacao_status,
           cidade: data.cidade,
           estado: data.estado,
           slug: data.slug,
@@ -203,28 +226,44 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     try {
       const { data: current, error: currentError } = await sb
         .from("terreiros_diretorio")
-        .select("id, latitude, longitude, owner_photo_url")
+        .select("id, nome, endereco, telefone, cidade, estado, bairro, link_maps, instagram_url, latitude, longitude, gira_horarios, owner_photo_url, cover_photo_url, gallery_photo_urls, descricao_publica, orientacoes_visita, tradicao, publicacao_status")
         .eq("claimed_by_tenant_id", user.id)
         .maybeSingle();
       if (currentError) throw currentError;
       if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });
 
       const body = req.body && typeof req.body === "object" ? req.body : {};
-      const nome = String(body.nome || "").trim().slice(0, 180);
-      const endereco = String(body.endereco || "").trim().slice(0, 400);
-      const telefone = normalizeWhatsapp(String(body.telefone || "")).slice(0, 15) || null;
-      const cidade = String(body.cidade || "").trim().slice(0, 120);
-      const estado = String(body.estado || "").trim().toUpperCase().slice(0, 2);
-      const bairro = String(body.bairro || "").trim().slice(0, 120) || null;
-      const linkMaps = validGoogleMapsUrl(body.linkMaps);
-      const instagramUrl = validInstagramUrl(body.instagramUrl);
-      const horariosGira = normalizeGiraSchedule(body.horariosGira);
+      const nome = String(body.nome ?? current.nome ?? "").trim().slice(0, 180);
+      const endereco = String(body.endereco ?? current.endereco ?? "").trim().slice(0, 400);
+      const telefone = normalizeWhatsapp(String(body.telefone ?? current.telefone ?? "")).slice(0, 15) || null;
+      const cidade = String(body.cidade ?? current.cidade ?? "").trim().slice(0, 120);
+      const estado = String(body.estado ?? current.estado ?? "").trim().toUpperCase().slice(0, 2);
+      const bairro = String(body.bairro ?? current.bairro ?? "").trim().slice(0, 120) || null;
+      const linkMaps = validGoogleMapsUrl(body.linkMaps ?? current.link_maps);
+      const instagramUrl = validInstagramUrl(body.instagramUrl ?? current.instagram_url);
+      const horariosGira = normalizeGiraSchedule(body.horariosGira ?? current.gira_horarios);
+      const descricaoPublica = String(body.descricaoPublica ?? current.descricao_publica ?? "").trim().slice(0, 2000) || null;
+      const orientacoesVisita = String(body.orientacoesVisita ?? current.orientacoes_visita ?? "").trim().slice(0, 1500) || null;
+      const tradicaoRaw = String(body.tradicao ?? current.tradicao ?? "mista").trim().toLowerCase();
+      const tradicao = TRADICOES.has(tradicaoRaw) ? tradicaoRaw : "mista";
+      const publicacaoStatusRaw = String(body.publicacaoStatus ?? current.publicacao_status ?? "publicado").trim().toLowerCase();
+      const publicacaoStatus = DIRECTORY_PUBLICATION_STATUSES.has(publicacaoStatusRaw) ? publicacaoStatusRaw : "rascunho";
+      const coverPhotoUrl = body.coverPhotoUrl === undefined
+        ? validPublicImageUrl(current.cover_photo_url)
+        : validPublicImageUrl(body.coverPhotoUrl);
+      const galleryPhotoUrls = body.galleryPhotoUrls === undefined
+        ? validPublicGallery(current.gallery_photo_urls)
+        : validPublicGallery(body.galleryPhotoUrls);
       if (nome.length < 3) return res.status(400).json({ error: "Informe o nome público da casa." });
       if (endereco.length < 8) return res.status(400).json({ error: "Informe o endereço completo." });
       if (cidade.length < 2) return res.status(400).json({ error: "Informe a cidade." });
       if (!/^[A-Z]{2}$/.test(estado)) return res.status(400).json({ error: "Informe uma UF válida." });
       if (body.linkMaps && !linkMaps) return res.status(400).json({ error: "Informe um link válido do Google Maps." });
       if (body.instagramUrl && !instagramUrl) return res.status(400).json({ error: "Informe um perfil válido do Instagram." });
+      if (body.coverPhotoUrl && !coverPhotoUrl) return res.status(400).json({ error: "A capa precisa usar uma URL HTTPS válida." });
+      if (Array.isArray(body.galleryPhotoUrls) && body.galleryPhotoUrls.length !== galleryPhotoUrls.length) {
+        return res.status(400).json({ error: "A galeria contém uma imagem inválida ou repetida." });
+      }
 
       let latitude = Number(body.latitude);
       let longitude = Number(body.longitude);
@@ -243,14 +282,14 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       }
 
       const photoSourceRaw = String(body.photoSource || "").trim().toLowerCase();
-      const photoSource =
+      const photoSource: "identity" | "custom" | "none" | "preserve" =
         photoSourceRaw === "identity" || photoSourceRaw === "custom" || photoSourceRaw === "none"
           ? photoSourceRaw
           : body.useIdentityPhoto === true
             ? "identity"
             : body.useIdentityPhoto === false
               ? "none"
-              : "custom";
+              : "preserve";
 
       let ownerPhotoUrl: string | null = current.owner_photo_url ? String(current.owner_photo_url) : null;
       if (photoSource === "identity") {
@@ -264,7 +303,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         if (!ownerPhotoUrl) return res.status(400).json({ error: "Adicione primeiro uma foto em Conta e Casa." });
       } else if (photoSource === "none") {
         ownerPhotoUrl = null;
-      } else {
+      } else if (photoSource === "custom") {
         const requested = String(body.ownerPhotoUrl || "").trim();
         if (requested) {
           let parsed: URL;
@@ -295,6 +334,13 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         instagram_url: instagramUrl,
         gira_horarios: horariosGira,
         owner_photo_url: ownerPhotoUrl,
+        cover_photo_url: coverPhotoUrl,
+        gallery_photo_urls: galleryPhotoUrls,
+        descricao_publica: descricaoPublica,
+        orientacoes_visita: orientacoesVisita,
+        tradicao,
+        publicacao_status: publicacaoStatus,
+        publicado_em: publicacaoStatus === "publicado" ? new Date().toISOString() : null,
       };
       const hasCoordinates = isPlausibleDiretorioCoordinate(latitude, longitude);
       if (hasCoordinates) {
@@ -308,7 +354,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .update(update)
         .eq("id", current.id)
         .eq("claimed_by_tenant_id", user.id)
-        .select("slug, updated_at, owner_photo_url")
+        .select("slug, updated_at, owner_photo_url, cover_photo_url, gallery_photo_urls, descricao_publica, orientacoes_visita, tradicao, publicacao_status")
         .single();
       if (saveError) throw saveError;
       return res.json({
@@ -316,6 +362,12 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         perfilUrl: saved?.slug ? `/terreiro/${saved.slug}` : null,
         updatedAt: saved?.updated_at || new Date().toISOString(),
         ownerPhotoUrl: saved?.owner_photo_url || null,
+        coverPhotoUrl: saved?.cover_photo_url || null,
+        galleryPhotoUrls: validPublicGallery(saved?.gallery_photo_urls),
+        descricaoPublica: saved?.descricao_publica || null,
+        orientacoesVisita: saved?.orientacoes_visita || null,
+        tradicao: saved?.tradicao || "mista",
+        publicacaoStatus: saved?.publicacao_status || "rascunho",
         warning: hasCoordinates ? null : "Dados salvos, mas a posição no mapa precisa de latitude e longitude.",
       });
     } catch (error: unknown) {
@@ -341,12 +393,14 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const contentType = String(req.body?.contentType || "image/jpeg");
       if (!fileData || !fileName) return res.status(400).json({ error: "Dados da imagem ausentes." });
 
+      const kindRaw = String(req.body?.kind || "profile").trim().toLowerCase();
+      const kind = ["profile", "cover", "gallery", "publication"].includes(kindRaw) ? kindRaw : "profile";
       const ext = (fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const safeName = `diretorio/${user.id}-${Date.now()}.${ext}`.slice(0, 160);
+      const safeName = `diretorio/${user.id}/${kind}-${Date.now()}.${ext}`.slice(0, 180);
       const buffer = Buffer.from(fileData, "base64");
       const safeContentType = assertSafeImageBuffer(buffer, contentType);
-      if (buffer.length > 5 * 1024 * 1024) {
-        return res.status(400).json({ error: "Imagem maior que 5 MB." });
+      if (buffer.length > 8 * 1024 * 1024) {
+        return res.status(400).json({ error: "Imagem maior que 8 MB." });
       }
 
       const { error: uploadError } = await sb.storage.from("perfil_fotos").upload(safeName, buffer, {

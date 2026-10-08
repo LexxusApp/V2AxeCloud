@@ -8,8 +8,8 @@ import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditoria
 import { TerreiroClaimDialog } from '../../components/portal/TerreiroClaimDialog';
 import { TerreiroClaimStatusDialog } from '../../components/portal/TerreiroClaimStatusDialog';
 import {
-  fetchDiretorioTerreiro, fetchDiretorioTerreiroServicos, trackDiretorioGoogleProfileView,
-  trackDiretorioWhatsappClick, type DiretorioTerreiro, type TerreiroServico,
+  fetchDiretorioTerreiro, fetchDiretorioTerreiroPublicacoes, fetchDiretorioTerreiroServicos, trackDiretorioGoogleProfileView,
+  trackDiretorioWhatsappClick, type DiretorioPublicacao, type DiretorioTerreiro, type TerreiroServico,
   type TerreiroServicosPublic,
 } from '../../lib/diretorioPublic';
 import { useDiretorioTerreiroJsonLd } from '../../lib/diretorioJsonLd';
@@ -24,10 +24,10 @@ import {
 } from '../../../lib/giraSchedule';
 import { PLAN_PRICE_STANDARD_LABEL, TRIAL_DAYS } from '../../../lib/planPricing';
 
-type ProfileTab = 'visao-geral' | 'agenda' | 'publicacoes' | 'fotos' | 'informacoes';
+type ProfileTab = 'visao-geral' | 'agenda' | 'publicacoes' | 'atendimentos' | 'fotos' | 'informacoes';
 const PROFILE_TABS: Array<{ id: ProfileTab; label: string }> = [
   { id: 'visao-geral', label: 'Visão geral' }, { id: 'agenda', label: 'Agenda' },
-  { id: 'publicacoes', label: 'Publicações' }, { id: 'fotos', label: 'Fotos' },
+  { id: 'publicacoes', label: 'Publicações' }, { id: 'atendimentos', label: 'Atendimentos' }, { id: 'fotos', label: 'Fotos' },
   { id: 'informacoes', label: 'Informações' },
 ];
 const TRADITION_LABELS: Record<string, string> = {
@@ -95,10 +95,12 @@ function ServiceCard({ service }: { service: TerreiroServico }) {
     </div>
   </article>;
 }
-function ServicesPanel({ services }: { services: TerreiroServico[] }) {
+function ServicesPanel({ services, whatsappHref, onWhatsapp }: { services: TerreiroServico[]; whatsappHref?: string | null; onWhatsapp?: () => void }) {
   return <section className="rounded-2xl border border-[#ddd2bf] bg-[#fbf6ec] p-5 sm:p-7" aria-labelledby="services-title">
-    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Atendimentos</p>
-    <h2 id="services-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Serviços da casa</h2>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Atendimentos</p>
+      <h2 id="services-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Atendimentos oferecidos</h2>
+      <p className="mt-2 text-sm leading-relaxed text-[#657067]">Consulte disponibilidade, valores e orientações diretamente com a casa.</p></div>
+      {whatsappHref ? <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={onWhatsapp} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#16794b] px-5 py-3 text-sm font-black text-white"><WhatsAppIcon />Solicitar atendimento</a> : null}</div>
     {services.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{services.map((service) => <ServiceCard key={service.id} service={service} />)}</div> :
       <div className="mt-5 rounded-2xl border border-dashed border-[#ccbfa9] bg-white/65 px-5 py-8 text-center"><Sparkles className="mx-auto h-5 w-5 text-[#a67900]" /><p className="mt-3 text-sm font-bold text-[#566159]">Nenhum atendimento foi publicado neste perfil.</p></div>}
   </section>;
@@ -144,33 +146,34 @@ function NextGiraCard({ schedules, whatsappHref, onWhatsapp, onOpenAgenda }: {
   </section>;
 }
 
-function PublicationFeed({ terreiro, services, onOpenInfo }: {
-  terreiro: DiretorioTerreiro; services: TerreiroServico[]; onOpenInfo: () => void;
+function PublicationFeed({ terreiro, publications }: {
+  terreiro: DiretorioTerreiro; publications: DiretorioPublicacao[];
 }) {
   return <section aria-labelledby="feed-title">
     <div className="mb-4"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Novidades da casa</p>
       <h2 id="feed-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Publicações recentes</h2></div>
-    {terreiro.descricao ? <article className="overflow-hidden rounded-2xl border border-[#ddd2bf] bg-white">
-      <header className="flex items-center gap-3 p-5">
-        <div className="h-11 w-11 overflow-hidden rounded-full border-2 border-[#e5ad00]"><ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} /></div>
-        <div className="min-w-0"><strong className="block truncate text-sm text-[#172019]">{terreiro.nome}</strong><span className="text-xs text-[#6b746d]">Apresentação oficial da casa</span></div>
-        {terreiro.verificada || terreiro.gerenciada ? <BadgeCheck className="ml-auto h-5 w-5 shrink-0 text-emerald-600" aria-label="Perfil oficial" /> : null}
-      </header>
-      <div className="border-t border-[#eee6d8] px-5 py-5"><h3 className="text-lg font-black tracking-[-0.025em] text-[#172019]">Sobre nossa casa</h3>
-        <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#4f5a52]">{terreiro.descricao}</p></div>
-      {terreiro.fotoUrl ? <div className="h-64 overflow-hidden bg-[#13241a] sm:h-80"><ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} /></div> : null}
-      <footer className="flex items-center justify-between gap-3 border-t border-[#eee6d8] px-5 py-4 text-xs text-[#6b746d]"><span>Informação publicada pela casa</span>
-        <button type="button" onClick={onOpenInfo} className="min-h-11 font-black text-[#725400]">Ver informações</button></footer>
-    </article> : <div className="rounded-2xl border border-dashed border-[#cfc2ac] bg-white/60 px-6 py-10 text-center">
+    {publications.length ? <div className="space-y-4">{publications.map((publication) => <article key={publication.id} className="overflow-hidden rounded-2xl border border-[#ddd2bf] bg-white">
+      <header className="flex items-center gap-3 p-5"><div className="h-11 w-11 overflow-hidden rounded-full border-2 border-[#e5ad00]"><ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} /></div>
+        <div className="min-w-0"><strong className="block truncate text-sm text-[#172019]">{terreiro.nome}</strong><time className="text-xs text-[#6b746d]" dateTime={publication.publicado_em}>{new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(publication.publicado_em))}</time></div>
+        {terreiro.verificada || terreiro.gerenciada ? <BadgeCheck className="ml-auto h-5 w-5 shrink-0 text-emerald-600" aria-label="Perfil oficial" /> : null}</header>
+      <div className="border-t border-[#eee6d8] px-5 py-5"><h3 className="text-lg font-black tracking-[-0.025em] text-[#172019]">{publication.titulo}</h3><p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#4f5a52]">{publication.conteudo}</p></div>
+      {publication.imagem_url ? <img src={publication.imagem_url} alt={`Imagem da publicação ${publication.titulo}`} className="max-h-[34rem] w-full object-cover" loading="lazy" /> : null}
+    </article>)}</div> : <div className="rounded-2xl border border-dashed border-[#cfc2ac] bg-white/60 px-6 py-10 text-center">
       <MessageCircle className="mx-auto h-6 w-6 text-[#9f7500]" /><h3 className="mt-3 font-black text-[#172019]">A casa ainda não publicou novidades</h3>
       <p className="mt-2 text-sm leading-relaxed text-[#657067]">Quando houver uma apresentação ou comunicado público, ele aparecerá aqui.</p>
     </div>}
-    {services.length ? <article className="mt-4 rounded-2xl border border-[#ddd2bf] bg-white p-5">
-      <div className="flex items-start gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f5e6ae] text-[#765600]"><Sparkles className="h-5 w-5" /></span>
-        <div><strong className="text-sm text-[#172019]">Atendimentos publicados</strong>
-          <p className="mt-1 text-sm leading-relaxed text-[#5d6860]">Esta casa possui {services.length} {services.length === 1 ? 'atendimento disponível' : 'atendimentos disponíveis'} no perfil.</p></div></div>
-    </article> : null}
   </section>;
+}
+
+function ServicesPreview({ services, onOpen }: { services: TerreiroServico[]; onOpen: () => void }) {
+  if (!services.length) return null;
+  return <section className="rounded-2xl border border-[#ddd2bf] bg-[#fbf6ec] p-5 sm:p-6" aria-labelledby="services-preview-title">
+    <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Atendimentos da casa</p><h2 id="services-preview-title" className="mt-1 text-xl font-black tracking-[-0.035em] text-[#172019]">O que você pode consultar</h2></div><button type="button" onClick={onOpen} className="min-h-11 text-sm font-black text-[#765600]">Ver todos ({services.length})</button></div>
+    <div className="mt-4 grid gap-3 sm:grid-cols-2">{services.slice(0, 4).map((service) => <ServiceCard key={service.id} service={service} />)}</div>
+  </section>;
+}
+function publicPhotos(terreiro: DiretorioTerreiro): string[] {
+  return [...new Set([terreiro.fotoUrl, ...(terreiro.galleryPhotoUrls || [])].filter((url): url is string => Boolean(url)))];
 }
 
 function OverviewSidebar({ terreiro, onOpenInfo, onOpenPhotos }: {
@@ -181,6 +184,7 @@ function OverviewSidebar({ terreiro, onOpenInfo, onOpenPhotos }: {
   const about = terreiro.descricao || (terreiro.verificada || terreiro.gerenciada
     ? 'Esta casa ainda não publicou sua apresentação.'
     : 'Informações públicas organizadas para ajudar você a conhecer e visitar esta casa.');
+  const photos = publicPhotos(terreiro);
   return <aside className="space-y-4" aria-label="Informações da casa">
     <section className="rounded-2xl border border-[#ddd2bf] bg-white p-5">
       <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-black tracking-[-0.03em] text-[#172019]">Sobre a casa</h2>
@@ -195,16 +199,16 @@ function OverviewSidebar({ terreiro, onOpenInfo, onOpenPhotos }: {
     </section>
     <section className="rounded-2xl border border-[#ddd2bf] bg-white p-5">
       <h2 className="text-lg font-black tracking-[-0.03em] text-[#172019]">Antes de visitar</h2>
-      <ol className="mt-4 space-y-3 text-sm leading-relaxed text-[#59645c]">
+      {terreiro.orientacoesVisita ? <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[#59645c]">{terreiro.orientacoesVisita}</p> : <ol className="mt-4 space-y-3 text-sm leading-relaxed text-[#59645c]">
         <li className="flex gap-3"><span className="font-black text-[#a17800]">01</span><span>Confirme o dia e o horário diretamente com a casa.</span></li>
         <li className="flex gap-3"><span className="font-black text-[#a17800]">02</span><span>Consulte orientações sobre roupas e chegada.</span></li>
         <li className="flex gap-3"><span className="font-black text-[#a17800]">03</span><span>Respeite as orientações da comunidade anfitriã.</span></li>
-      </ol>
+      </ol>}
     </section>
     <section className="overflow-hidden rounded-2xl border border-[#ddd2bf] bg-white">
       <div className="flex items-center justify-between gap-3 p-5"><h2 className="text-lg font-black tracking-[-0.03em] text-[#172019]">Fotos da casa</h2>
         <button type="button" onClick={onOpenPhotos} className="min-h-11 text-xs font-black text-[#765600]">Ver fotos</button></div>
-      {terreiro.fotoUrl ? <div className="h-44 overflow-hidden"><ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} /></div> :
+      {photos[0] ? <div className="h-44 overflow-hidden"><ProfilePhoto fotoUrl={photos[0]} nome={terreiro.nome} /></div> :
         <div className="grid h-36 place-items-center bg-[#f0e8da] text-center text-xs font-bold text-[#7c827d]"><span><ImageOff className="mx-auto mb-2 h-5 w-5" />Nenhuma foto publicada</span></div>}
     </section>
     <section className="rounded-2xl border border-[#ddd2bf] bg-white p-5">
@@ -241,13 +245,11 @@ function AgendaPanel({ schedules, whatsappHref, onWhatsapp }: {
 }
 
 function PhotosPanel({ terreiro }: { terreiro: DiretorioTerreiro }) {
+  const photos = publicPhotos(terreiro);
   return <section className="rounded-2xl border border-[#ddd2bf] bg-[#fbf6ec] p-5 sm:p-8" aria-labelledby="photos-title">
     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Galeria pública</p>
     <h2 id="photos-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Fotos da casa</h2>
-    {terreiro.fotoUrl ? <figure className="mt-6 overflow-hidden rounded-2xl border border-[#d8ccb8] bg-[#13241a]">
-      <div className="h-[22rem] max-h-[60vh]"><ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} /></div>
-      <figcaption className="bg-white px-5 py-4 text-sm font-semibold text-[#59645c]">Imagem pública de {terreiro.nome}</figcaption>
-    </figure> : <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-[#cfc2ac] bg-white/70 text-center">
+    {photos.length ? <div className="mt-6 grid gap-3 sm:grid-cols-2">{photos.map((url, index) => <figure key={url} className={`overflow-hidden rounded-2xl border border-[#d8ccb8] bg-[#13241a] ${index === 0 && photos.length > 2 ? 'sm:col-span-2' : ''}`}><img src={url} alt={`Foto ${index + 1} de ${terreiro.nome}`} className={`w-full object-cover ${index === 0 ? 'h-80' : 'h-64'}`} loading={index === 0 ? 'eager' : 'lazy'} /><figcaption className="bg-white px-4 py-3 text-xs font-semibold text-[#59645c]">Foto {index + 1} de {terreiro.nome}</figcaption></figure>)}</div> : <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-[#cfc2ac] bg-white/70 text-center">
       <span><Camera className="mx-auto h-7 w-7 text-[#a57b00]" /><strong className="mt-3 block text-[#172019]">Nenhuma foto publicada</strong><small className="mt-2 block text-[#647067]">A galeria aparecerá quando a casa adicionar imagens.</small></span>
     </div>}
   </section>;
@@ -306,19 +308,20 @@ export default function DiretorioTerreiroPage() {
   const slug = slugFromPath();
   const [terreiro, setTerreiro] = useState<DiretorioTerreiro | null>(null);
   const [servicosData, setServicosData] = useState<TerreiroServicosPublic>({ servicos: [], whatsappAtendimento: null });
+  const [publicacoes, setPublicacoes] = useState<DiretorioPublicacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('visao-geral');
   const [shareStatus, setShareStatus] = useState('');
   const tabRefs = useRef<Record<ProfileTab, HTMLButtonElement | null>>({
-    'visao-geral': null, agenda: null, publicacoes: null, fotos: null, informacoes: null,
+    'visao-geral': null, agenda: null, publicacoes: null, atendimentos: null, fotos: null, informacoes: null,
   });
 
   useEffect(() => {
     if (!slug) { setError('Endereço inválido.'); setLoading(false); return; }
-    void Promise.all([fetchDiretorioTerreiro(slug), fetchDiretorioTerreiroServicos(slug)])
-      .then(([profile, services]) => {
-        setTerreiro(profile); setServicosData(services); trackDiretorioGoogleProfileView(profile.slug);
+    void Promise.all([fetchDiretorioTerreiro(slug), fetchDiretorioTerreiroServicos(slug), fetchDiretorioTerreiroPublicacoes(slug)])
+      .then(([profile, services, posts]) => {
+        setTerreiro(profile); setServicosData(services); setPublicacoes(posts); trackDiretorioGoogleProfileView(profile.slug);
         const location = [profile.cidade, profile.estado].filter(Boolean).join(', ');
         const featured = getFeaturedTerreiroCopy(profile.slug);
         applyCustomPageSeo({
@@ -362,6 +365,7 @@ export default function DiretorioTerreiroPage() {
   </main></MatrizEditorialLayout>;
 
   const official = Boolean(terreiro.verificada || terreiro.gerenciada);
+  const whatsappContextMessage = `Conheci o ${terreiro.nome} no AxéCloud e quero saber mais sobre giras e atendimentos.`;
   const whatsappHref = buildDiretorioWhatsappHref(terreiro, servicosData.whatsappAtendimento);
   const tradition = traditionLabel(terreiro.tradicao);
   const location = [terreiro.cidade, terreiro.estado].filter(Boolean).join(', ');
@@ -388,7 +392,7 @@ export default function DiretorioTerreiroPage() {
       <article className="overflow-hidden rounded-2xl border border-[#d8cdb9] bg-white shadow-[0_22px_65px_rgba(48,39,23,.12)]">
         <header>
           <div className="relative min-h-[13rem] overflow-hidden bg-[#102118] sm:min-h-[17rem]">
-            <div className="absolute inset-0"><ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} eager className="opacity-75" /></div>
+            <div className="absolute inset-0"><ProfilePhoto fotoUrl={terreiro.coverPhotoUrl || terreiro.fotoUrl} nome={terreiro.nome} eager className="opacity-75" /></div>
             <div className="absolute inset-0 bg-gradient-to-t from-[#09130e]/90 via-[#102118]/25 to-black/20" />
             <a href={ROUTES.terreiros} className="absolute left-4 top-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/25 bg-[#0b1510]/65 px-4 py-2 text-xs font-black text-white backdrop-blur sm:left-6 sm:top-6">
               <ArrowLeft className="h-4 w-4" />Voltar para o Mapa
@@ -417,7 +421,7 @@ export default function DiretorioTerreiroPage() {
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-[#566159] sm:text-base">{summary}</p>
               </div>
               <div className="flex flex-wrap gap-2.5" aria-label="Ações do perfil">
-                {whatsappHref ? <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={trackWhatsapp}
+                {whatsappHref ? <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={trackWhatsapp} title={whatsappContextMessage}
                   className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[#16794b] px-5 py-3 text-sm font-black text-white shadow-[0_10px_25px_rgba(22,121,75,.2)]"><WhatsAppIcon />Falar no WhatsApp</a> : null}
                 {terreiro.linkMaps ? <a href={terreiro.linkMaps} target="_blank" rel="noopener noreferrer"
                   className="inline-flex min-h-12 items-center gap-2 rounded-full border border-[#cfc3ad] px-5 py-3 text-sm font-black text-[#172019]"><Route className="h-4 w-4" />Como chegar</a> : null}
@@ -454,20 +458,19 @@ export default function DiretorioTerreiroPage() {
           <div className="space-y-5">
             <NextGiraCard schedules={terreiro.horariosGira || []} whatsappHref={whatsappHref}
               onWhatsapp={trackWhatsapp} onOpenAgenda={() => activateTab('agenda')} />
-            <PublicationFeed terreiro={terreiro} services={servicosData.servicos}
-              onOpenInfo={() => activateTab('informacoes')} />
+            <ServicesPreview services={servicosData.servicos} onOpen={() => activateTab('atendimentos')} />
+            <PublicationFeed terreiro={terreiro} publications={publicacoes.slice(0, 3)} />
           </div>
           <OverviewSidebar terreiro={terreiro} onOpenInfo={() => activateTab('informacoes')}
             onOpenPhotos={() => activateTab('fotos')} />
         </div> : null}
         {activeTab === 'agenda' ? <AgendaPanel schedules={terreiro.horariosGira || []}
           whatsappHref={whatsappHref} onWhatsapp={trackWhatsapp} /> : null}
-        {activeTab === 'publicacoes' ? <PublicationFeed terreiro={terreiro}
-          services={servicosData.servicos} onOpenInfo={() => activateTab('informacoes')} /> : null}
+        {activeTab === 'publicacoes' ? <PublicationFeed terreiro={terreiro} publications={publicacoes} /> : null}
+        {activeTab === 'atendimentos' ? <ServicesPanel services={servicosData.servicos} whatsappHref={whatsappHref} onWhatsapp={trackWhatsapp} /> : null}
         {activeTab === 'fotos' ? <PhotosPanel terreiro={terreiro} /> : null}
         {activeTab === 'informacoes' ? <div className="space-y-5">
           <ContactPanel terreiro={terreiro} whatsappHref={whatsappHref} onWhatsapp={trackWhatsapp} />
-          <ServicesPanel services={servicosData.servicos} />
         </div> : null}
       </div>
       <ClaimSection terreiro={terreiro} official={official} />

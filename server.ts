@@ -61,6 +61,7 @@ import { registerFundamentosRoutes } from "./api/lib/fundamentosRoutes.js";
 import { registerPreceitoRoutes } from "./api/lib/preceitoRoutes.js";
 import { registerAdvancedManagementRoutes } from "./api/lib/advancedManagementRoutes.js";
 import { registerTerreiroServicosRoutes } from "./api/lib/terreiroServicosRoutes.js";
+import { registerDirectoryProfilePublicationsRoutes } from "./api/lib/directoryProfilePublicationsRoutes.js";
 import { handleFilhoLoginRoute } from "./api/lib/filhoLoginRoute.js";
 import { filhoLoginRateLimit, webhookRateLimit } from "./api/lib/rateLimit.js";
 import { handleTenantInfoRoute } from "./api/lib/tenantInfoRoute.js";
@@ -3156,6 +3157,7 @@ async function startServer() {
   registerPreceitoRoutes(app, { supabaseAdmin });
   registerAdvancedManagementRoutes(app, { supabaseAdmin });
   registerTerreiroServicosRoutes(app, { supabaseAdmin });
+  registerDirectoryProfilePublicationsRoutes(app, { supabaseAdmin });
 
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);

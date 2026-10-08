@@ -10,9 +10,12 @@ export type DiretorioTerreiro = {
   whatsapp?: string | null;
   hasWhatsapp?: boolean;
   fotoUrl: string | null;
+  coverPhotoUrl?: string | null;
+  galleryPhotoUrls?: string[];
   linkMaps: string | null;
   instagramUrl?: string | null;
   descricao?: string | null;
+  orientacoesVisita?: string | null;
   cidade: string | null;
   estado: string | null;
   cidadeSlug: string | null;
@@ -22,6 +25,7 @@ export type DiretorioTerreiro = {
   verificada: boolean;
   gerenciada?: boolean;
   tradicao?: string | null;
+  publicacaoStatus?: string | null;
   criadaEm?: string | null;
   indexable?: boolean;
   perfilUrl: string | null;
@@ -212,6 +216,28 @@ export type TerreiroServicosPublic = {
   servicos: TerreiroServico[];
   whatsappAtendimento: string | null;
 };
+
+export type DiretorioPublicacao = {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  imagem_url: string | null;
+  status: 'publicado';
+  publicado_em: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchDiretorioTerreiroPublicacoes(slug: string): Promise<DiretorioPublicacao[]> {
+  try {
+    const res = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}/publicacoes`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const json = await readApiJson<{ publicacoes?: DiretorioPublicacao[]; error?: string }>(res, '');
+    return json.publicacoes || [];
+  } catch {
+    return [];
+  }
+}
 
 export async function fetchDiretorioTerreiroServicos(slug: string): Promise<TerreiroServicosPublic> {
   try {

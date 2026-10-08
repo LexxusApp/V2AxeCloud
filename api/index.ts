@@ -73,6 +73,7 @@ import { registerFundamentosRoutes } from "./lib/fundamentosRoutes.js";
 import { registerPreceitoRoutes } from "./lib/preceitoRoutes.js";
 import { registerAdvancedManagementRoutes } from "./lib/advancedManagementRoutes.js";
 import { registerTerreiroServicosRoutes } from "./lib/terreiroServicosRoutes.js";
+import { registerDirectoryProfilePublicationsRoutes } from "./lib/directoryProfilePublicationsRoutes.js";
 import { registerAdminMetricsRoutes } from "./lib/adminMetricsRoutes.js";
 import { registerChatRoutes } from "./lib/chatRoutes.js";
 import { registerAccountCredentialsRoutes } from "./lib/accountCredentialsRoutes.js";
@@ -3891,6 +3892,7 @@ async function startServer() {
   registerPreceitoRoutes(app, { supabaseAdmin });
   registerAdvancedManagementRoutes(app, { supabaseAdmin });
   registerTerreiroServicosRoutes(app, { supabaseAdmin });
+  registerDirectoryProfilePublicationsRoutes(app, { supabaseAdmin });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerChatRoutes(app, {
     supabaseAdmin,

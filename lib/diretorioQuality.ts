@@ -17,6 +17,8 @@ export type DiretorioQualityInput = {
   verificada?: unknown;
   latitude?: unknown;
   longitude?: unknown;
+  publicacao_status?: unknown;
+  publicacaoStatus?: unknown;
 };
 
 const DIRETORIO_REMOVED_SLUGS = new Set([
@@ -128,6 +130,8 @@ export function isClearlyOutsideDiretorioScope(value: unknown): boolean {
  */
 export function isDiretorioListingPublishable(row: DiretorioQualityInput): boolean {
   if (isDiretorioRemovalBlocked(row)) return false;
+  const publicationStatus = String(row.publicacao_status || row.publicacaoStatus || '').trim().toLowerCase();
+  if (publicationStatus && publicationStatus !== 'publicado') return false;
   const slug = String(row.slug || '').trim();
   const cidade = String(row.cidade || '').trim();
   const estado = String(row.estado || '').trim();

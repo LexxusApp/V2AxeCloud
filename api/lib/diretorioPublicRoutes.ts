@@ -164,6 +164,7 @@ function mapRow(row: Record<string, unknown>) {
     descricao: row.descricao_publica ? String(row.descricao_publica).trim() : null,
     orientacoesVisita: row.orientacoes_visita ? String(row.orientacoes_visita).trim() : null,
     tradicao: row.tradicao ? String(row.tradicao).trim() : null,
+    publicacaoStatus: row.publicacao_status ? String(row.publicacao_status).trim() : null,
     horariosGira: normalizeGiraSchedule(row.gira_horarios),
     cidade: cidade || null,
     estado,
@@ -433,7 +434,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
           const data = await fetchAllTerreirosRows(
             sb,
             TABLE,
-            "nome, endereco, link_maps, slug, cidade, estado, cidade_slug, tipo",
+            "nome, endereco, link_maps, slug, cidade, estado, cidade_slug, tipo, publicacao_status",
           );
 
           const map = new Map<
@@ -500,7 +501,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       const data = await fetchAllTerreirosRows(
         sb,
         TABLE,
-        "nome, endereco, link_maps, instagram_url, slug, cidade, estado, tipo, latitude, longitude, claimed_by_tenant_id, verified_at",
+        "nome, endereco, link_maps, instagram_url, slug, cidade, estado, tipo, latitude, longitude, claimed_by_tenant_id, verified_at, publicacao_status",
       );
       const rows = (data || [])
         .filter((row) => isDiretorioListingPublishable(row))
