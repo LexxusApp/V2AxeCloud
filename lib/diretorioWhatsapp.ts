@@ -24,3 +24,20 @@ export function resolveDiretorioWhatsapp(explicitWhatsapp: unknown, telefone: un
   const nationalNumber = inferred.slice(4);
   return nationalNumber.length === 9 && nationalNumber.startsWith("9") ? inferred : null;
 }
+
+/** Importação ou verificação não equivalem a um perfil administrado pela casa. */
+export function resolveDiretorioPublicWhatsapp(row: Record<string, unknown>): string | null {
+  if (!row.claimed_by_tenant_id && row.gerenciada !== true) return null;
+  return resolveDiretorioWhatsapp(row.whatsapp_atendimento || row.whatsapp, row.telefone);
+}
+
+export function buildDiretorioWhatsappHref(
+  profile: { nome: string; gerenciada?: boolean; whatsapp?: string | null },
+  preferred?: string | null,
+): string | null {
+  if (profile.gerenciada !== true) return null;
+  const phone = normalizeBrazilianPhone(preferred || profile.whatsapp);
+  if (!phone) return null;
+  const message = `Olá! Conheci o ${profile.nome} através do AxéCloud Gestão de Terreiros e gostaria de receber mais informações sobre giras e atendimentos.`;
+  return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+}

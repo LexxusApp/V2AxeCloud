@@ -23,7 +23,7 @@ import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingIndexable, isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 import { cachedJson } from "./ttlCache.js";
 import { normalizeGiraSchedule } from "../../lib/giraSchedule.js";
-import { resolveDiretorioWhatsapp } from "../../lib/diretorioWhatsapp.js";
+import { resolveDiretorioPublicWhatsapp } from "../../lib/diretorioWhatsapp.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -138,7 +138,7 @@ function mapRow(row: Record<string, unknown>) {
     latitude !== null &&
     longitude !== null &&
     isPlausibleDiretorioCoordinate(latitude, longitude);
-  const whatsapp = resolveDiretorioWhatsapp(row.whatsapp_atendimento, row.telefone);
+  const whatsapp = resolveDiretorioPublicWhatsapp(row);
   const galleryPhotoUrls = Array.isArray(row.gallery_photo_urls)
     ? row.gallery_photo_urls
         .map((value) => String(value || "").trim())

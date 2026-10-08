@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import {
   ArrowLeft, ArrowRight, BadgeCheck, CalendarDays, Camera, CheckCircle2, Clock,
   Compass, DollarSign, ExternalLink, ImageOff, Instagram, Loader2, MapPin,
-  MessageCircle, Route, Share2, ShieldCheck, Sparkles,
+  MessageCircle, Phone, Route, Share2, ShieldCheck, Sparkles,
 } from 'lucide-react';
 import { MatrizEditorialLayout } from '../../components/marketing/MatrizEditorialLayout';
 import { TerreiroClaimDialog } from '../../components/portal/TerreiroClaimDialog';
@@ -17,6 +17,8 @@ import { ROUTES } from '../../lib/routes';
 import { applyCustomPageSeo } from '../../lib/seo';
 import { trackConversionEvent } from '../../lib/trackConversion';
 import { getFeaturedTerreiroCopy } from '../../../lib/diretorioSeoShared';
+import { buildDiretorioWhatsappHref } from '../../../lib/diretorioWhatsapp';
+import { formatTelefoneBr } from '../../lib/formatTelefone';
 import {
   formatGiraTime, getNextGiraScheduleItem, GIRA_WEEKDAYS, type GiraScheduleItem,
 } from '../../../lib/giraSchedule';
@@ -37,17 +39,6 @@ const TRADITION_LABELS: Record<string, string> = {
 function slugFromPath(): string {
   const parts = window.location.pathname.replace(/\/+$/, '').split('/');
   return decodeURIComponent(parts[parts.indexOf('terreiro') + 1] || '');
-}
-function normalizeWhatsapp(value: string | null | undefined): string | null {
-  let digits = String(value || '').replace(/\D/g, '');
-  if (digits.length === 10 || digits.length === 11) digits = '55' + digits;
-  return digits.length >= 12 && digits.length <= 13 ? digits : null;
-}
-function whatsappHrefFor(terreiro: DiretorioTerreiro, preferred?: string | null): string | null {
-  const phone = normalizeWhatsapp(preferred || terreiro.whatsapp);
-  if (!phone) return null;
-  const message = `Olá! Conheci o ${terreiro.nome} através do AxéCloud Gestão de Terreiros e gostaria de receber mais informações sobre giras e atendimentos.`;
-  return 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
 }
 function traditionLabel(value: string | null | undefined): string | null {
   const normalized = String(value || '').trim();
@@ -270,8 +261,9 @@ function ContactPanel({ terreiro, whatsappHref, onWhatsapp }: {
     <h2 id="information-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Informações da casa</h2>
     <div className="mt-6 rounded-2xl border border-[#ded3c0] bg-white px-5">
       <InfoRow icon={MapPin} label="Endereço">{terreiro.endereco || 'Endereço não informado'}</InfoRow>
-      <InfoRow icon={MessageCircle} label="WhatsApp">{whatsappHref ? <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={onWhatsapp}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#16794b] px-4 py-2.5 text-sm font-black text-white"><WhatsAppIcon />Conversar com a casa</a> : 'WhatsApp não disponível'}</InfoRow>
+      <InfoRow icon={Phone} label="Telefone">{terreiro.telefone ? <span className="select-text">{formatTelefoneBr(terreiro.telefone)}</span> : 'Telefone não informado'}</InfoRow>
+      {whatsappHref ? <InfoRow icon={MessageCircle} label="WhatsApp"><a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={onWhatsapp}
+        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#16794b] px-4 py-2.5 text-sm font-black text-white"><WhatsAppIcon />Conversar com a casa</a></InfoRow> : null}
       {terreiro.instagramUrl ? <InfoRow icon={Instagram} label="Instagram"><a href={terreiro.instagramUrl} target="_blank" rel="noopener noreferrer"
         className="inline-flex min-h-11 items-center gap-2 py-2 font-black text-[#765600]">Abrir Instagram<ExternalLink className="h-4 w-4" /></a></InfoRow> : null}
     </div>
@@ -370,7 +362,7 @@ export default function DiretorioTerreiroPage() {
   </main></MatrizEditorialLayout>;
 
   const official = Boolean(terreiro.verificada || terreiro.gerenciada);
-  const whatsappHref = whatsappHrefFor(terreiro, servicosData.whatsappAtendimento);
+  const whatsappHref = buildDiretorioWhatsappHref(terreiro, servicosData.whatsappAtendimento);
   const tradition = traditionLabel(terreiro.tradicao);
   const location = [terreiro.cidade, terreiro.estado].filter(Boolean).join(', ');
   const summary = terreiro.descricao || (official
@@ -419,6 +411,9 @@ export default function DiretorioTerreiroPage() {
                   {location ? <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-[#a77b00]" />{location}</span> : null}
                   {location && tradition ? <span>·</span> : null}{tradition ? <span>{tradition}</span> : null}
                 </p>
+                {!terreiro.gerenciada && terreiro.telefone ? <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#566159]">
+                  <Phone className="h-4 w-4 shrink-0" aria-hidden /><span className="select-text">Telefone: {formatTelefoneBr(terreiro.telefone)}</span>
+                </p> : null}
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-[#566159] sm:text-base">{summary}</p>
               </div>
               <div className="flex flex-wrap gap-2.5" aria-label="Ações do perfil">

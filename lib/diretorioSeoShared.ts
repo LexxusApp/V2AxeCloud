@@ -6,7 +6,7 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-10-07";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-10-08";
 export const PUBLIC_SITE_SHELL_LASTMOD = "2026-10-03";
 
 export const STATIC_SITEMAP_PATHS: readonly {
@@ -222,9 +222,9 @@ const FEATURED_TERREIRO_COPY: Record<
   "e-u-j-a-espaco-universalista-dr-jose-de-arimateia": {
     title: "E.U.J.A. Espaço Universalista Dr. José de Arimateia — Terreiro em Sorocaba, SP | AxéCloud",
     description:
-      "E.U.J.A. (Espaço Universalista Dr. José de Arimateia), casa de axé em Vila Augusta, Sorocaba. Endereço, contato via WhatsApp e rota no Google Maps.",
+      "E.U.J.A. (Espaço Universalista Dr. José de Arimateia), casa de axé em Vila Augusta, Sorocaba. Endereço, telefone de contato e rota no Google Maps.",
     intro:
-      "O E.U.J.A. — Espaço Universalista Dr. José de Arimateia — é uma casa de axé em Vila Augusta, Sorocaba (SP). Este perfil público reúne o endereço na Rua Santa Catarina, 72, o contato via WhatsApp e a rota no Google Maps para quem busca visitar com respeito.",
+      "O E.U.J.A. — Espaço Universalista Dr. José de Arimateia — é uma casa de axé em Vila Augusta, Sorocaba (SP). Este perfil público reúne o endereço na Rua Santa Catarina, 72, o telefone de contato e a rota no Google Maps para quem busca visitar com respeito.",
     extraSections: [
       {
         heading: "Terreiro em Vila Augusta, Sorocaba",
@@ -232,7 +232,7 @@ const FEATURED_TERREIRO_COPY: Record<
       },
       {
         heading: "Como visitar o E.U.J.A.",
-        body: "Use o botão de WhatsApp ou o mapa para planejar a chegada. Leve respeito à casa: vista-se de forma adequada, pergunte se a visita precisa de agendamento e siga as orientações de quem recebe na porteira.",
+        body: "Consulte o telefone ou o mapa para planejar a chegada. Leve respeito à casa: vista-se de forma adequada, pergunte se a visita precisa de agendamento e siga as orientações de quem recebe na porteira.",
       },
     ],
   },

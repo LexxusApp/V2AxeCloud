@@ -74,13 +74,13 @@ export function DiretorioTerreiroCard({ terreiro }: Props) {
           {terreiro.telefone ? (
             <p className="flex items-center gap-1.5 text-sm text-[#1b1813]/75">
               <Phone className="h-3.5 w-3.5 shrink-0 text-[#FFC107]" aria-hidden />
-              <a
+              {terreiro.gerenciada ? <a
                 href={telefoneHref(terreiro.telefone)}
                 className="rounded-sm font-semibold hover:text-[#8d6800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8d6800] focus-visible:ring-offset-2"
                 onClick={(e) => e.stopPropagation()}
               >
                 {formatTelefoneBr(terreiro.telefone)}
-              </a>
+              </a> : <span className="select-text font-semibold">{formatTelefoneBr(terreiro.telefone)}</span>}
             </p>
           ) : (
             <p className="text-xs text-[#1b1813]/45">Telefone não informado no Maps</p>
