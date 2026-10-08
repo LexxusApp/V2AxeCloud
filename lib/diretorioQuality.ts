@@ -20,6 +20,7 @@ export type DiretorioQualityInput = {
 };
 
 const DIRETORIO_REMOVED_SLUGS = new Set([
+  "centro-espirita-lar-de-nana",
   "associacao-araxa",
   "templo-de-umbanda-pai-jobim-da-guine",
 ]);
@@ -74,6 +75,9 @@ function normalize(value: unknown): string {
 export function isDiretorioRemovalBlocked(row: DiretorioQualityInput): boolean {
   const slug = String(row.slug || '').trim().toLowerCase();
   if (DIRETORIO_REMOVED_SLUGS.has(slug)) return true;
+  // Pedido de retirada: protege também contra republicação com outro slug.
+  if (normalize(row.nome) === 'centro espirita lar de nana' &&
+      normalize(row.cidade) === 'belo horizonte' && normalize(row.estado) === 'mg') return true;
 
   const phone = String(row.telefone || '').replace(/\D/g, '');
   if (phone && DIRETORIO_REMOVED_PHONE_DIGITS.has(phone)) return true;

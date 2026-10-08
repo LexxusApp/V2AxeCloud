@@ -76,8 +76,11 @@ export default {
     if (path === '/sitemap.xm') return respond(redirect('/sitemap.xml', 301));
     if (/^\/recursos\/(?:%3c|<)a/i.test(path)) return respond(redirect('/recursos', 301));
     if (path === '/terreiro') return respond(redirect('/terreiros', 302));
-    if (path === '/terreiro/associacao-araxa' || path === '/terreiro/templo-de-umbanda-pai-jobim-da-guine') {
-      return respond(new Response('Perfil removido por solicitação do responsável.', { status: 410 }));
+    if (/^\/(?:terreiro|terreiros)\/(?:associacao-araxa|templo-de-umbanda-pai-jobim-da-guine|centro-espirita-lar-de-nana)\/?$/.test(path)) {
+      return respond(new Response('Perfil removido por solicitação do responsável.', {
+        status: 410,
+        headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' },
+      }));
     }
     if (path === '/conteudo' && url.searchParams.get('aba') === 'glossario') {
       return respond(redirect('/conteudo/glossario', 301));

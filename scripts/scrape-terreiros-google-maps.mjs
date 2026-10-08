@@ -1022,6 +1022,12 @@ async function scrapeCidade(page, supabase, meta, options, usedSlugs, existingLi
         stats.errors += 1;
         continue;
       }
+      if (normalizeForQuality(details.nome) === 'centro espirita lar de nana' &&
+          normalizeForQuality(cidade) === 'belo horizonte' && normalizeForQuality(estado) === 'mg') {
+        console.warn('    ⚠ Instituição com pedido de retirada — não coletar novamente');
+        stats.skipped += 1;
+        continue;
+      }
       if (
         !isValidScrapedName(details.nome) ||
         isClearlyOutsideScrapeScope(details.nome, details.category)
