@@ -76,7 +76,7 @@ export default {
     if (path === '/sitemap.xm') return respond(redirect('/sitemap.xml', 301));
     if (/^\/recursos\/(?:%3c|<)a/i.test(path)) return respond(redirect('/recursos', 301));
     if (path === '/terreiro') return respond(redirect('/terreiros', 302));
-    if (/^\/(?:terreiro|terreiros)\/(?:associacao-araxa|templo-de-umbanda-pai-jobim-da-guine|centro-espirita-lar-de-nana)\/?$/.test(path)) {
+    if (/^\/(?:terreiro|terreiros)\/(?:associacao-araxa|templo-de-umbanda-pai-jobim-da-guine|centro-espirita-lar-de-nana)(?:\/.*|\.md)?$/.test(path)) {
       return respond(new Response('Perfil removido por solicitação do responsável.', {
         status: 410,
         headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' },

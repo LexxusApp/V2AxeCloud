@@ -17,7 +17,7 @@ test('pedido de retirada impede publicação, indexação e novo slug da mesma i
 });
 test('URL removida retorna 410 antes dos assets, inclusive barra final, legado e Googlebot', async () => {
   const env = { PREVIEW_MODE: 'false', ASSETS: { fetch: async () => { throw new Error('Não deve consultar uma cópia antiga'); } } };
-  for (const route of ['/terreiro/centro-espirita-lar-de-nana', '/terreiro/centro-espirita-lar-de-nana/', '/terreiros/centro-espirita-lar-de-nana']) {
+  for (const route of ['/terreiro/centro-espirita-lar-de-nana', '/terreiro/centro-espirita-lar-de-nana/', '/terreiros/centro-espirita-lar-de-nana', '/terreiro/centro-espirita-lar-de-nana/index.html', '/terreiro/centro-espirita-lar-de-nana.md']) {
     for (const agent of ['Mozilla/5.0', 'Googlebot']) {
       const response = await worker.fetch(new Request(`https://axecloud.com.br${route}`, { headers: { 'User-Agent': agent } }), env);
       assert.equal(response.status, 410);
