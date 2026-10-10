@@ -178,6 +178,8 @@ export interface ProspectingEnv {
   WA_PHONE_NUMBER_ID?: string;
   WA_BUSINESS_TOKEN_WEBHOOK?: string;
   WA_META_APP_SECRET?: string;
+  WA_OPS_ALERT_PHONE_SECRET?: string;
+  WA_OPS_ALERT_PHONE?: string;
 
   // AI
   GEMINI_API_KEY?: string;

@@ -234,7 +234,9 @@ export class ChatOnboardingService {
     // 5. Notifica o administrador (Lucas) via WhatsApp sobre o novo terreiro criado
     try {
       const meta = new MetaCloudClient(this.env);
-      const adminPhone = String((this.env as any).WA_OPS_ALERT_PHONE || '').replace(/\D/g, '');
+      const adminPhone = String(
+        this.env.WA_OPS_ALERT_PHONE_SECRET || this.env.WA_OPS_ALERT_PHONE || '',
+      ).replace(/\D/g, '');
       if (meta.isConfigured() && adminPhone) {
         const contactInfo = `E-mail: ${email} · WA: ${phoneDigits} · origem: WhatsApp Chat IA`;
         try {
@@ -244,7 +246,7 @@ export class ChatOnboardingService {
             'pt_BR',
             [nomeTerreiro, nomeZelador || 'Zelador', contactInfo],
           );
-          console.log(`[ChatOnboarding] Alerta de novo terreiro enviado via template para admin ${adminPhone}`);
+          console.log('[ChatOnboarding] Alerta de novo terreiro enviado via template ao canal operacional.');
         } catch (tmplErr) {
           console.warn('[ChatOnboarding] Falha ao enviar template de alerta para admin, tentando texto livre:', tmplErr);
           const alertText = `🎉 *Novo Terreiro Cadastrado no AxéCloud!*\n\n🏛️ *Terreiro:* ${nomeTerreiro}\n👤 *Zelador:* ${nomeZelador || 'Não informado'}\n📧 *E-mail:* ${email}\n📱 *WhatsApp:* +${phoneDigits}\n🚀 *Origem:* Chat de Prospecção IA (30 dias de teste)`;
