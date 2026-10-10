@@ -17,6 +17,7 @@ import {
   ExternalLink,
   ChevronRight,
   Filter,
+  Sparkles,
 } from "lucide-react";
 import { apiJson } from "@/lib/api";
 import { cn } from "@/lib/cn";
@@ -110,6 +111,8 @@ export function TenantFailuresPanel({ onMessage }: { onMessage?: (msg: string) =
     }
   };
 
+  const [autoHealing, setAutoHealing] = useState(false);
+
   const handleResolveAll = async () => {
     if (!confirm("Deseja marcar todas as falhas visíveis como resolvidas?")) return;
     setLoading(true);
@@ -124,6 +127,28 @@ export function TenantFailuresPanel({ onMessage }: { onMessage?: (msg: string) =
       onMessage?.(err instanceof Error ? err.message : "Erro ao resolver falhas em lote.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAutoHeal = async () => {
+    setAutoHealing(true);
+    try {
+      const res = await apiJson<{ ok: boolean; resolved: number; persistent: number }>(
+        `/api/admin-console/tenant-feature-failures/auto-heal`,
+        { method: "POST" }
+      );
+      if (res.resolved > 0) {
+        onMessage?.(`Auto-Cura concluída: ${res.resolved} falha(s) auto-resolvida(s) com sucesso!`);
+      } else if (res.persistent > 0) {
+        onMessage?.(`Diagnóstico executado: ${res.persistent} falha(s) persistente(s) requerem atenção técnica.`);
+      } else {
+        onMessage?.("Auto-Cura: Funções e bancos de dados estão 100% saudáveis.");
+      }
+      void loadFailures();
+    } catch (err: unknown) {
+      onMessage?.(err instanceof Error ? err.message : "Erro ao acionar auto-cura.");
+    } finally {
+      setAutoHealing(false);
     }
   };
 
@@ -218,6 +243,20 @@ export function TenantFailuresPanel({ onMessage }: { onMessage?: (msg: string) =
         title="Monitor de Falhas do Zelador"
         action={
           <div className="flex flex-wrap items-center gap-2">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              Auto-Cura Ativa (a cada 5 min)
+            </span>
+            <button
+              type="button"
+              onClick={() => void handleAutoHeal()}
+              disabled={loading || autoHealing}
+              className="admin-btn-secondary text-xs flex items-center gap-1.5 px-3 py-1.5 text-indigo-900 bg-indigo-50 border-indigo-300 hover:bg-indigo-100 font-semibold shadow-xs transition-colors"
+              title="Dispara o ciclo autônomo de diagnóstico e auto-resolução em tempo real"
+            >
+              <Sparkles className={cn("h-3.5 w-3.5 text-indigo-600", autoHealing && "animate-spin")} />
+              {autoHealing ? "Diagnosticando..." : "Auto-Cura Agora"}
+            </button>
             <button
               type="button"
               onClick={() => void loadFailures()}
@@ -409,10 +448,29 @@ export function TenantFailuresPanel({ onMessage }: { onMessage?: (msg: string) =
                   {/* Ação de Resolução */}
                   <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                     {isResolved ? (
-                      <span className="text-xs text-emerald-950 font-semibold flex items-center gap-1 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-full shadow-xs">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
-                        Resolvido
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs text-emerald-950 font-semibold flex items-center gap-1 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-full shadow-xs">
+                          {row.metadata?.auto_healed ? (
+                            <>
+                              <Sparkles className="h-3.5 w-3.5 text-indigo-700" />
+                              Auto-Curado
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                              Resolvido
+                            </>
+                          )}
+                        </span>
+                        {row.metadata?.resolution_reason && (
+                          <span
+                            className="text-[10px] text-neutral-600 max-w-[200px] text-right truncate font-medium"
+                            title={String(row.metadata.resolution_reason)}
+                          >
+                            {String(row.metadata.resolution_reason)}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <button
                         type="button"

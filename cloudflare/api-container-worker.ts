@@ -210,7 +210,7 @@ export default {
 
     const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
     const runJob = async (
-      job: "subscription-access" | "whatsapp-jobs" | "mensalidades",
+      job: "subscription-access" | "whatsapp-jobs" | "mensalidades" | "self-healing",
       options: { forceDisponivel?: boolean } = {},
     ) => {
       const query = new URLSearchParams({ job });
@@ -252,10 +252,10 @@ export default {
     const mensalidadeRecoveryWindow =
       dayInSaoPaulo === 1 && hourInSaoPaulo >= 13 && minuteInSaoPaulo % 15 < 5;
 
-    // O gatilho continua horário para a reconciliação de assinaturas. Os jobs
-    // de WhatsApp — incluindo reivindicações em 24h/72h — rodam uma vez ao dia.
+    // O gatilho roda a cada 5 min: executa subscription-access e self-healing contínuo.
     ctx.waitUntil(Promise.all([
       runJob("subscription-access"),
+      runJob("self-healing"),
       ...(primaryWhatsAppWindow ? [runJob("whatsapp-jobs")] : []),
       ...(mensalidadeRecoveryWindow ? [runJob("mensalidades", { forceDisponivel: true })] : []),
     ]).then(() => undefined));

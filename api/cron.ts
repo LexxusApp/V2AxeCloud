@@ -143,5 +143,27 @@ export default async function handler(req: any, res: any) {
     }
   }
 
-  return sendJson(res, 404, { error: "Cron job não encontrado", hint: "job=ping-evolution|whatsapp-jobs|mensalidades|subscription-access|growth-prospecting|audit-tick" });
+  if (job === "self-healing" && method === "GET") {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = String(req.headers?.authorization || "").replace(/^Bearer\s+/i, "");
+    if (!cronSecret || !secureCompare(authHeader, cronSecret)) {
+      return sendJson(res, 401, { error: "Não autorizado" });
+    }
+    const sb = getDiscreteSupabaseAdmin();
+    if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
+    try {
+      const { runSelfHealingTick } = await import("./lib/selfHealing.js");
+      const result = await runSelfHealingTick(sb);
+      return sendJson(res, 200, { ok: true, ...result });
+    } catch (error) {
+      console.error("[CRON] self-healing:", error);
+      return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao executar self-healing") });
+    }
+  }
+
+  return sendJson(res, 404, {
+    error: "Cron job não encontrado",
+    hint: "job=ping-evolution|whatsapp-jobs|mensalidades|subscription-access|growth-prospecting|self-healing|audit-tick",
+  });
 }
+

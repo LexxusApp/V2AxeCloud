@@ -422,5 +422,19 @@ export function registerFeatureFailureRoutes(
         res.status(500).json({ error: "Erro ao resolver falhas em lote" });
       }
     });
+
+    app.post("/api/admin-console/tenant-feature-failures/auto-heal", async (req: Request, res: Response) => {
+      const ctx = await requireAdmin(req, res);
+      if (!ctx) return;
+
+      try {
+        const { runSelfHealingTick } = await import("./selfHealing.js");
+        const result = await runSelfHealingTick(deps.supabaseAdmin);
+        res.json({ ok: true, ...result });
+      } catch (err: unknown) {
+        console.error("[feature-monitor] auto-heal erro:", err);
+        res.status(500).json({ error: "Erro ao executar ciclo de auto-cura" });
+      }
+    });
   }
 }

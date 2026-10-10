@@ -172,6 +172,23 @@ export async function handleTenantFeatureFailuresEdge(
       });
     }
 
+    // Sub-rota: POST /auto-heal
+    if (url.pathname === "/api/admin-console/tenant-feature-failures/auto-heal" && request.method === "POST") {
+      try {
+        const { runSelfHealingTick } = await import("../api/lib/selfHealing.js");
+        const result = await runSelfHealingTick(sb);
+        return new Response(JSON.stringify({ ok: true, ...result }), {
+          status: 200,
+          headers: corsHeaders,
+        });
+      } catch (err: unknown) {
+        return new Response(JSON.stringify({ error: "Erro ao executar ciclo de auto-cura." }), {
+          status: 500,
+          headers: corsHeaders,
+        });
+      }
+    }
+
     // Sub-rota: POST /:id/resolve
     const resolveMatch = url.pathname.match(
       /^\/api\/admin-console\/tenant-feature-failures\/([0-9a-fA-F-]+)\/resolve\/?$/
