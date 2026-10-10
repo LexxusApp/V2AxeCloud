@@ -211,15 +211,15 @@ async function fetchDashboardFinanceBundle(
   try {
     await ensureFreshAccessToken();
 
-    let lojaTenantPk: string | null = null;
+    let lojaTenantPkPromise: PromiseLike<string | null> = Promise.resolve(null);
     if (userRole !== 'filho') {
       const seed = tenantIdEfetivo || user.id;
-      const { data: plRow } = await supabase
+      lojaTenantPkPromise = supabase
         .from('perfil_lider')
         .select('id')
         .or(`id.eq.${seed},tenant_id.eq.${seed}`)
-        .maybeSingle();
-      lojaTenantPk = plRow?.id || seed;
+        .maybeSingle()
+        .then(({ data: plRow }) => plRow?.id || seed);
     }
 
     const txUrl = `/api/transactions?tenantId=${encodeURIComponent(
@@ -254,12 +254,16 @@ async function fetchDashboardFinanceBundle(
         }
         return r.json() as Promise<{ data?: any[] }>;
       }),
-      userRole !== 'filho' && lojaTenantPk
-        ? authFetch(
-            `/api/loja-pedidos?userId=${encodeURIComponent(user.id)}&userRole=${encodeURIComponent(
-              userRole || ''
-            )}&tenantId=${encodeURIComponent(tenantIdEfetivo || '')}`
-          ).then((r) => parseApiJson<{ data?: any[] }>(r, { data: [] }))
+      userRole !== 'filho'
+        ? lojaTenantPkPromise.then((lojaTenantPk) =>
+            lojaTenantPk
+              ? authFetch(
+                  `/api/loja-pedidos?userId=${encodeURIComponent(user.id)}&userRole=${encodeURIComponent(
+                    userRole || ''
+                  )}&tenantId=${encodeURIComponent(tenantIdEfetivo || '')}`
+                ).then((r) => parseApiJson<{ data?: any[] }>(r, { data: [] }))
+              : { data: [] as any[] },
+          )
         : Promise.resolve({ data: [] as any[] }),
       userRole !== 'filho'
         ? authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${tidEnc}`).then((r) =>

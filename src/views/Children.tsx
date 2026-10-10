@@ -93,6 +93,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [openActionsId, setOpenActionsId] = useState<string | null>(null);
   const [sendingCredentialsId, setSendingCredentialsId] = useState<string | null>(null);
   const [pendingPayments, setPendingPayments] = useState<any[]>([]);
+  const [pendingPaymentsLoading, setPendingPaymentsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'nome' | 'entrada' | 'aniversario'>('nome');
   const [previewChildId, setPreviewChildId] = useState<string | null>(null);
 
@@ -133,6 +134,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
   async function fetchChildren() {
     setLoading(true);
+    setPendingPaymentsLoading(true);
+    setPendingPayments([]);
     let finished = false;
     const timeoutId = setTimeout(() => {
       if (finished) return;
@@ -144,33 +147,39 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
     try {
       if (!user) throw new Error("Usuário não autenticado");
-      
-      const [response, paymentsResponse] = await Promise.all([
-        authFetch(
-          `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
-          { cache: 'no-store' },
-        ),
-        // Mesma fonte do Controle de Mensalidades (em aberto, qualquer mês).
-        authFetch(
-          `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId || '')}&view=pendentes`,
-          { cache: 'no-store' },
-        ),
-      ]);
-      const [result, paymentsResult] = await Promise.all([
-        response.json(),
-        paymentsResponse.json().catch(() => ({ data: [] })),
-      ]);
+
+      // A lista principal não deve esperar a consulta financeira mais pesada.
+      // As duas chamadas continuam concorrentes; apenas exibimos cada resultado
+      // assim que estiver disponível.
+      void authFetch(
+        `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId || '')}&view=pendentes`,
+        { cache: 'no-store' },
+      )
+        .then(async (paymentsResponse) => {
+          const paymentsResult = await paymentsResponse.json().catch(() => ({ data: [] }));
+          setPendingPayments(
+            paymentsResponse.ok && Array.isArray(paymentsResult.data)
+              ? paymentsResult.data
+              : [],
+          );
+        })
+        .catch((error) => {
+          console.error('Error fetching pending payments:', error);
+          setPendingPayments([]);
+        })
+        .finally(() => setPendingPaymentsLoading(false));
+
+      const response = await authFetch(
+        `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
+        { cache: 'no-store' },
+      );
+      const result = await response.json();
 
       if (!response.ok) {
         throw new Error(result.error || "Erro ao buscar filhos");
       }
 
       setChildren(result.data || []);
-      setPendingPayments(
-        paymentsResponse.ok
-          ? (paymentsResult.data || [])
-          : []
-      );
     } catch (error) {
       console.error('Error fetching children:', error);
     } finally {
@@ -481,7 +490,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           },
           {
             label: 'Mensalidades pendentes',
-            value: pendingPayments.length,
+            value: pendingPaymentsLoading ? '…' : pendingPayments.length,
             icon: Clock3,
             color: 'text-rose-300',
             bg: 'border-rose-400/20 bg-rose-400/10',
@@ -845,14 +854,20 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
 
                 <div className={cn(
                   'mt-3 flex items-center gap-3 rounded-xl border p-3',
-                  pendingChildIds.has(previewChild.id)
+                  pendingPaymentsLoading
+                    ? 'border-white/10 bg-white/[0.035]'
+                    : pendingChildIds.has(previewChild.id)
                     ? 'border-rose-400/20 bg-rose-400/[0.07]'
                     : 'border-emerald-400/20 bg-emerald-400/[0.07]',
                 )}>
-                  {pendingChildIds.has(previewChild.id) ? <AlertCircle className="h-5 w-5 text-rose-300" /> : <UserCheck className="h-5 w-5 text-emerald-300" />}
+                  {pendingPaymentsLoading
+                    ? <Loader2 className="h-5 w-5 animate-spin text-[#AEB8C6]" />
+                    : pendingChildIds.has(previewChild.id)
+                      ? <AlertCircle className="h-5 w-5 text-rose-300" />
+                      : <UserCheck className="h-5 w-5 text-emerald-300" />}
                   <div>
-                    <p className="text-xs font-black">{pendingChildIds.has(previewChild.id) ? 'Mensalidade pendente' : 'Sem mensalidade pendente'}</p>
-                    <p className="text-[10px] font-semibold text-[#7F8B9C]">Situação financeira atual</p>
+                    <p className="text-xs font-black">{pendingPaymentsLoading ? 'Carregando mensalidades…' : pendingChildIds.has(previewChild.id) ? 'Mensalidade pendente' : 'Sem mensalidade pendente'}</p>
+                    <p className="text-[10px] font-semibold text-[#7F8B9C]">{pendingPaymentsLoading ? 'A lista de membros já está disponível' : 'Situação financeira atual'}</p>
                   </div>
                 </div>
 
