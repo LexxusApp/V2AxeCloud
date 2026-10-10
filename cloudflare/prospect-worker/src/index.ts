@@ -25,6 +25,7 @@ import { ProspectingLeadWorkflow } from './workflows/ProspectingLeadWorkflow.js'
 import { listAvailableProviders } from './providers/providerRegistry.js';
 import { FollowUpService } from './services/followup/FollowUpService.js';
 import { ChatOnboardingService } from './services/onboarding/ChatOnboardingService.js';
+import { AutonomousProspectingService } from './services/outreach/AutonomousProspectingService.js';
 
 // Exporta as classes de Workflow para o runtime da Cloudflare
 export { ProspectingDiscoveryWorkflow, ProspectingLeadWorkflow };
@@ -719,6 +720,16 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
       return jsonResponse({ success: true, sentCount, total: eligible.length, results });
     }
 
+    // POST /api/prospecting/outbound/trigger-cycle
+    if (url.pathname === '/api/prospecting/outbound/trigger-cycle' && request.method === 'POST') {
+      const body = (await request.json().catch(() => ({}))) as any;
+      const force = Boolean(body.force);
+      const limit = Math.min(Math.max(1, Number(body.limit) || 5), 20);
+      const outreach = new AutonomousProspectingService(env);
+      const result = await outreach.runAutonomousOutreachCycle(force, limit);
+      return jsonResponse(result);
+    }
+
     // GET /api/prospecting/conversations/:leadId
     const convMatch = url.pathname.match(/^\/api\/prospecting\/conversations\/([a-zA-Z0-9-]+)$/);
     if (convMatch && request.method === 'GET') {
@@ -920,6 +931,20 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
           console.log('[Cron:FollowUp] Concluído:', res);
         } catch (fErr) {
           console.warn('[Cron:FollowUp] Falha ao processar follow-ups:', fErr);
+        }
+      })(),
+    );
+
+    // 3. Disparo autônomo de novos contatos qualificados com template e imagem (dentro do horário comercial)
+    ctx.waitUntil(
+      (async () => {
+        try {
+          console.log('[Cron:Outreach] Verificando leads qualificados para contato autônomo...');
+          const outreach = new AutonomousProspectingService(env);
+          const res = await outreach.runAutonomousOutreachCycle(false, 5);
+          console.log('[Cron:Outreach] Ciclo de prospecção autônoma concluído:', res);
+        } catch (oErr) {
+          console.warn('[Cron:Outreach] Falha ao processar ciclo de prospecção autônoma:', oErr);
         }
       })(),
     );
