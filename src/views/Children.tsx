@@ -19,6 +19,7 @@ import { PLAN_LIMITS, PLAN_NAMES, canonicalPlanSlug } from '../constants/plans';
 import ChildrenCurrentExperience from '../components/children/ChildrenCurrentExperience';
 import BodyPortal from '../components/BodyPortal';
 import { confirmAction } from '../lib/confirmAction';
+import { reportFeatureFailureClient } from '../lib/telemetryClient';
 
 const paperLabelClass =
   'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
@@ -227,6 +228,16 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       showHouseToast(`${nome} entrou na corrente`);
     } catch (error: any) {
       console.error('[Children] Error adding child:', error);
+      void reportFeatureFailureClient({
+        feature: 'membros',
+        action: 'cadastrar_filho_de_santo',
+        error,
+        metadata: {
+          nome: formData.nome,
+          cargo: formData.cargo,
+          hasPhone: Boolean(formData.whatsapp_phone),
+        },
+      });
       setSubmitError(error.message || 'Erro ao cadastrar filho de santo.');
     } finally {
       setIsSubmitting(false);

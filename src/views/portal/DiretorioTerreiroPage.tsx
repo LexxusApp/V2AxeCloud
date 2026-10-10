@@ -366,7 +366,9 @@ export default function DiretorioTerreiroPage() {
 
   const official = Boolean(terreiro.verificada || terreiro.gerenciada);
   const whatsappContextMessage = `Conheci o ${terreiro.nome} no AxéCloud e quero saber mais sobre giras e atendimentos.`;
-  const whatsappHref = buildDiretorioWhatsappHref(terreiro, servicosData.whatsappAtendimento);
+  const whatsappHref = terreiro.gerenciada
+    ? buildDiretorioWhatsappHref(terreiro, servicosData.whatsappAtendimento)
+    : null;
   const tradition = traditionLabel(terreiro.tradicao);
   const location = [terreiro.cidade, terreiro.estado].filter(Boolean).join(', ');
   const summary = terreiro.descricao || (official
