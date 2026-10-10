@@ -31,6 +31,7 @@ import { ProfileRankingPanel } from "./ProfileRankingPanel";
 import { VisitorsPanel } from "./VisitorsPanel";
 import { ProspectingDashboard } from "./prospecting/ProspectingDashboard";
 import { PaymentsPanel } from "./PaymentsPanel";
+import { TenantFailuresPanel } from "./TenantFailuresPanel";
 
 type Tab = AdminNavTab;
 
@@ -618,6 +619,7 @@ export function CommandShell({ session }: { session: Session }) {
           />
         )}
         {tab === "demo" && <DemoAccountPanel />}
+        {tab === "failures" && <TenantFailuresPanel onMessage={setMsg} />}
         {tab === "payments" && <PaymentsPanel />}
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}

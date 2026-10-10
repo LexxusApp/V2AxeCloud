@@ -122,6 +122,18 @@ export const AXECLOUD_KNOWLEDGE_BASE: KnowledgeBaseData = {
       answer: 'Não. Apenas o terreiro assina a plataforma. Todos os médiuns e filhos da casa usam o aplicativo do portal do filho gratuitamente.',
     },
     {
+      question: 'O zelador precisa mandar link para os filhos da casa?',
+      answer: 'Não precisa mandar links manuais nem ficar criando grupos! Quando você cadastra o médium no AxéCloud (informando nome e WhatsApp), o próprio sistema gera o Registro oficial da casa e envia as instruções e dados de acesso direto no WhatsApp do médium com um clique. O filho entra no Portal do Filho pelo celular com o seu Registro e os 6 primeiros dígitos do CPF, de forma super simples e sem complicações.',
+    },
+    {
+      question: 'Como os filhos de santo entram no sistema?',
+      answer: 'Os filhos acessam o Portal do Filho (um aplicativo PWA leve para Android e iPhone que não ocupa espaço na memória). O médium entra com o número do seu Registro na casa + os 6 primeiros dígitos do CPF (ou senha) e já consegue ver as datas das giras, confirmar presença, pegar a chave Pix da mensalidade, ver seus preceitos e acessar o mural de avisos da casa.',
+    },
+    {
+      question: 'Como funciona a cobrança de mensalidades dos médiuns?',
+      answer: 'O sistema gera automaticamente para cada médium a chave Pix e o QR Code dinâmico com o valor da mensalidade da casa. O sistema envia lembrete no WhatsApp do médium antes do vencimento com o Pix Copia e Cola, e quando o médium paga, o sistema confere e dá baixa na mensalidade da corrente, tudo organizado no painel financeiro sem o zelador precisar cobrar ninguém.',
+    },
+    {
       question: 'Funciona no celular?',
       answer: 'Sim! O AxéCloud funciona perfeitamente em qualquer celular (Android ou iPhone) como um aplicativo (PWA), sem precisar baixar arquivos pesados que ocupam memória.',
     },
@@ -131,7 +143,7 @@ export const AXECLOUD_KNOWLEDGE_BASE: KnowledgeBaseData = {
     },
     {
       question: 'Como faço para começar o teste gratuito?',
-      answer: 'É só acessar https://axecloud.com.br/register, preencher o nome do seu terreiro e começar a usar na hora, com 30 dias grátis para explorar tudo.',
+      answer: 'É super simples: você pode liberar seu acesso de 30 dias grátis agora mesmo por aqui no WhatsApp, só informando seu melhor e-mail e o nome do terreiro, sem precisar preencher formulários. Se preferir se cadastrar pelo site, o endereço é https://axecloud.com.br/register.',
     },
   ],
 };

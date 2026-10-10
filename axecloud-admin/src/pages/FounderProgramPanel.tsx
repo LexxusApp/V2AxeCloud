@@ -74,10 +74,10 @@ function whatsappHref(digits: string): string {
 
 function statusBadge(status: FounderStatus) {
   const map: Record<FounderStatus, string> = {
-    pending: "bg-amber-500/10 text-amber-400 border-amber-500/25",
-    contacted: "bg-sky-500/10 text-sky-400 border-sky-500/25",
-    accepted: "bg-emerald-500/10 text-emerald-400 border-emerald-500/25",
-    rejected: "bg-red-500/10 text-red-400 border-red-500/25",
+    pending: "bg-amber-100 text-amber-950 border-amber-300 font-semibold",
+    contacted: "bg-sky-100 text-sky-950 border-sky-300 font-semibold",
+    accepted: "bg-emerald-100 text-emerald-950 border-emerald-300 font-semibold",
+    rejected: "bg-red-100 text-red-950 border-red-300 font-semibold",
   };
   return map[status];
 }

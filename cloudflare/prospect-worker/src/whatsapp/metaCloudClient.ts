@@ -54,6 +54,7 @@ export class MetaCloudClient {
     templateName: string,
     language = 'pt_BR',
     bodyParameters: string[] = [],
+    headerImageUrl?: string,
   ): Promise<{ messageId: string }> {
     const to = String(toPhone).replace(/\D/g, '');
     if (!to) throw new Error('Número de telefone destinatário inválido.');
@@ -62,14 +63,26 @@ export class MetaCloudClient {
     }
 
     const url = `https://graph.facebook.com/${this.version}/${this.phoneNumberId}/messages`;
-    const components = bodyParameters.length
-      ? [
+    const components: any[] = [];
+
+    if (headerImageUrl) {
+      components.push({
+        type: 'header',
+        parameters: [
           {
-            type: 'body',
-            parameters: bodyParameters.map((text) => ({ type: 'text', text })),
+            type: 'image',
+            image: { link: headerImageUrl },
           },
-        ]
-      : [];
+        ],
+      });
+    }
+
+    if (bodyParameters.length) {
+      components.push({
+        type: 'body',
+        parameters: bodyParameters.map((text) => ({ type: 'text', text })),
+      });
+    }
 
     const payload = {
       messaging_product: 'whatsapp',
@@ -94,8 +107,8 @@ export class MetaCloudClient {
 
     let data = (await res.json()) as { messages?: Array<{ id: string }>; error?: { message: string } };
 
-    // Se falhar e tínhamos passado parâmetros, tenta sem componentes (caso o template seja estático)
-    if (!res.ok && components.length > 0) {
+    // Se falhar e tínhamos passado parâmetros, tenta sem componentes (caso o template seja estático e não de mídia)
+    if (!res.ok && components.length > 0 && !headerImageUrl) {
       const fallbackPayload = {
         messaging_product: 'whatsapp',
         recipient_type: 'individual',
@@ -127,6 +140,27 @@ export class MetaCloudClient {
 
     const messageId = data.messages?.[0]?.id || 'unknown';
     return { messageId };
+  }
+
+  async markMessageAsRead(messageId?: string | null): Promise<void> {
+    if (!this.isConfigured() || !messageId) return;
+    const url = `https://graph.facebook.com/${this.version}/${this.phoneNumberId}/messages`;
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          status: 'read',
+          message_id: messageId,
+        }),
+      });
+    } catch {
+      // Ignora falha silenciosa de confirmação de leitura
+    }
   }
 }
 

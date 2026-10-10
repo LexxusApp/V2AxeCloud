@@ -194,9 +194,11 @@
       const setWhatsapp = (casa) => {
         const container = $("whatsapp");
         container.innerHTML = "";
-        const wa = waHref(casa?.whatsapp, casa?.nome);
+        const gerenciada = Boolean(casa?.gerenciada || casa?.verificada);
+        const telefone = String(casa?.telefone || casa?.whatsapp || "").trim();
+        const wa = gerenciada ? waHref(casa?.whatsapp || casa?.telefone, casa?.nome) : "";
         if (!wa) {
-          container.textContent = "WhatsApp não disponível";
+          container.textContent = telefone || "Telefone não informado";
           return;
         }
         const whatsappLink = document.createElement("a");

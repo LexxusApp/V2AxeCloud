@@ -53,14 +53,14 @@ export class FollowUpService {
       };
     }
 
-    // 2. Busca conversas abertas cuja última mensagem ocorreu entre 2h e 24h atrás
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // 2. Busca conversas abertas cuja última mensagem ocorreu entre 18h e 48h atrás (intervalo respeitoso para não incomodar)
+    const minHoursAgo = new Date(Date.now() - 18 * 60 * 60 * 1000).toISOString();
+    const maxHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
     const convsRes = await fetch(
       `${this.supabaseUrl}/rest/v1/admin_whatsapp_conversations?status=eq.open&last_message_at=lte.${encodeURIComponent(
-        twoHoursAgo,
-      )}&last_message_at=gte.${encodeURIComponent(twentyFourHoursAgo)}&order=last_message_at.asc&limit=10`,
+        minHoursAgo,
+      )}&last_message_at=gte.${encodeURIComponent(maxHoursAgo)}&order=last_message_at.asc&limit=10`,
       {
         headers: {
           apikey: this.serviceKey,
@@ -154,8 +154,8 @@ DIRETRIZES:
 - Tom acolhedor e natural de WhatsApp, sem afobação, sem parecer cobrança e sem parecer telemarketing.
 - NÃO use listas com marcadores (proibido usar "•", "-", "*").
 - Se fizer sentido com a conversa anterior, cite de forma sutil o assunto que estavam falando.
-- Forneça o link de cadastro oficial: ${AXECLOUD_KNOWLEDGE_BASE.registrationUrl}
-- Exemplo de estilo: "Oi! Passando só pra ver se ficou alguma dúvida sobre o que conversamos mais cedo. Se você quiser dar uma olhada no sistema com calma, posso liberar os 30 dias de teste gratuito sem compromisso nenhum: ${AXECLOUD_KNOWLEDGE_BASE.registrationUrl}. Qualquer dúvida estou por aqui!"
+- NUNCA envie links de cadastro externos (/register). O fechamento é 100% nativo pelo WhatsApp: diga que ele não precisa preencher formulários externos nem entrar em site, basta responder aqui com o e-mail que você mesmo já ativa o teste de 30 dias na hora.
+- Exemplo de estilo: "Oi! Passando só pra ver se ficou alguma dúvida sobre o que conversamos mais cedo. Se você quiser ver como funciona na prática na sua casa, posso liberar os 30 dias de teste gratuito agora mesmo por aqui. É só me responder com o seu melhor e-mail que eu já gero seu acesso! Qualquer dúvida estou à disposição."
 
 Histórico recente da conversa:
 ${historyFormatted}

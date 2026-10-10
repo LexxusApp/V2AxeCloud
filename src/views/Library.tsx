@@ -456,8 +456,8 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               </button>
             </div>
 
-            {/* PDF Viewer (Iframe) */}
-            <AppDemoCard className="relative aspect-[16/9] w-full min-w-0 max-w-full overflow-hidden p-0">
+            {/* PDF Viewer */}
+            <AppDemoCard className="relative w-full min-w-0 max-w-full h-[75vh] min-h-[520px] sm:h-[82vh] sm:min-h-[660px] max-h-[1050px] overflow-hidden p-0 rounded-2xl border border-[#D8D1C4] bg-[#1A1F26] shadow-md flex flex-col">
               <AuthenticatedPdfFrame
                 title={selectedMaterial.titulo}
                 url={selectedMaterial.arquivo_url}
@@ -465,11 +465,6 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 tenantId={effectiveTenantId}
                 className="h-full w-full border-none"
               />
-              <div className="absolute right-2 top-2 max-w-[calc(100%-1rem)] sm:right-4 sm:top-4">
-                <div className="rounded-lg border border-[#1E242B] bg-[#13171D]/90 px-2 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#94A3B8] backdrop-blur-sm sm:px-3 sm:py-2 sm:text-[10px]">
-                  Modo de estudo
-                </div>
-              </div>
             </AppDemoCard>
 
             {/* Comments Section */}

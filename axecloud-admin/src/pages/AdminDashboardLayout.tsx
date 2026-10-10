@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  AlertTriangle,
   Bell,
   Building2,
   CreditCard,
@@ -30,6 +31,7 @@ import { cn } from "@/lib/cn";
 export type AdminNavTab =
   | "overview"
   | "tenants"
+  | "failures"
   | "logs"
   | "storage"
   | "metrics"
@@ -52,6 +54,7 @@ type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon; tone: IconTon
 const MAIN_NAV: NavItem[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard, tone: "blue" },
   { id: "tenants", label: "Terreiros", icon: Building2, tone: "violet" },
+  { id: "failures", label: "Falhas de Uso", icon: AlertTriangle, tone: "rose" },
   { id: "payments", label: "Pagamentos", icon: WalletCards, tone: "emerald" },
   { id: "plans", label: "Mensalidades", icon: CreditCard, tone: "emerald" },
   { id: "logs", label: "Eventos", icon: ScrollText, tone: "amber" },
@@ -76,6 +79,7 @@ const ALL_NAV = [...MAIN_NAV, ...EXTRA_NAV];
 const SECTION_SUBTITLES: Partial<Record<AdminNavTab, string>> = {
   overview: "Resumo da plataforma e indicadores principais",
   tenants: "Gestão de terreiros e assinaturas",
+  failures: "Monitoramento em tempo real de erros encontrados pelos zeladores",
   payments: "Cobranças, confirmações, pendências e falhas",
   plans: "Catálogo de planos e mensalidades",
   logs: "Registo de eventos e auditoria",

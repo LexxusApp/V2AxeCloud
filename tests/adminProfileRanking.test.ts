@@ -44,6 +44,7 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(profile, /whatsapp-click/);
   assert.match(profile, /Conheci o \$\{texto\(nome/);
   assert.match(reactProfile, /directory-profile-whatsapp/);
-  assert.match(reactProfile, /Conheci o \$\{terreiro\.nome\}/);
+  assert.match(reactProfile, /const whatsappHref = terreiro\.gerenciada[\s\S]{0,140}buildDiretorioWhatsappHref/);
+  assert.match(reactProfile, /Telefone: \{formatTelefoneBr\(terreiro\.telefone\)\}/);
   assert.match(publicClient, /trackDiretorioWhatsappClick/);
 });

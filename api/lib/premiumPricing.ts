@@ -6,17 +6,28 @@ import {
   type BillingCycle,
 } from "./plansCatalog.js";
 
-/** Conta de teste do Lucas — PIX mensal de R$ 15. Demais clientes seguem o catálogo. */
-export const CHECKOUT_TEST_EMAIL = "testeanual@axecloud.com";
-export const CHECKOUT_TEST_MONTHLY_CENTS = 1500;
+/** Contas de teste do Lucas — PIX mensal de R$ 6,00. Demais clientes seguem o catálogo. */
+export const CHECKOUT_TEST_EMAILS = new Set([
+  "testeanual@axecloud.com",
+  "vendasmercadolivrev1@gmail.com",
+]);
+export const CHECKOUT_TEST_TENANT_IDS = new Set([
+  "4b167a21-d208-4f36-8b97-692f9c8e44a3",
+  "a9da71de-3b31-482f-ad60-e0154b17721d",
+]);
+export const CHECKOUT_TEST_MONTHLY_CENTS = 600; // R$ 6,00 exclusivo para teste do Lucas
 
 export function checkoutTestOverrideCents(opts: {
   billingCycle: BillingCycle;
   email?: string | null;
+  tenantId?: string | null;
 }): number | null {
   if (normalizeBillingCycle(opts.billingCycle) !== "monthly") return null;
   const email = String(opts.email || "").trim().toLowerCase();
-  if (email === CHECKOUT_TEST_EMAIL) return CHECKOUT_TEST_MONTHLY_CENTS;
+  const tid = String(opts.tenantId || "").trim();
+  if (CHECKOUT_TEST_EMAILS.has(email) || CHECKOUT_TEST_TENANT_IDS.has(tid)) {
+    return CHECKOUT_TEST_MONTHLY_CENTS;
+  }
   return null;
 }
 
@@ -46,7 +57,7 @@ export async function resolveTenantPremiumAmountCents(
   const tid = String(tenantId || "").trim();
   if (tid && cycle === "monthly") {
     const email = await loadTenantCheckoutEmail(supabaseAdmin, tid);
-    const override = checkoutTestOverrideCents({ billingCycle: cycle, email });
+    const override = checkoutTestOverrideCents({ billingCycle: cycle, email, tenantId: tid });
     if (override != null) return override;
   }
 

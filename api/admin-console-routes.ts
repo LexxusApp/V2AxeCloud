@@ -52,6 +52,7 @@ import { validateStrongPassword } from "../lib/passwordPolicy.js";
 import { rejectCompromisedPassword } from "./lib/pwnedPassword.js";
 import { registerDiretorioClaimAdminRoutes } from "./lib/diretorioClaimAdminRoutes.js";
 import { registerAdminPaymentRoutes } from "./lib/adminPaymentRoutes.js";
+import { registerFeatureFailureRoutes } from "./lib/featureFailureMonitor.js";
 
 type VerifyUser = (token: string) => Promise<{ user: any; error: any }>;
 
@@ -124,6 +125,7 @@ async function requireConsoleAdmin(
 export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRouteDeps) {
   registerDiretorioClaimAdminRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
   registerAdminPaymentRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
+  registerFeatureFailureRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
 
   app.get("/api/admin-console/whatsapp-deliveries/summary", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);

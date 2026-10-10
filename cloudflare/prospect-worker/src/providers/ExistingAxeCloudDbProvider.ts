@@ -15,19 +15,31 @@ export class ExistingAxeCloudDbProvider implements IProspectSourceProvider {
 
     const targetCount = Math.min(query.limit || 50, 200);
 
-    // 1. Busca todos os directory_ids já importados no CRM para garantir zero duplicatas
-    const existingLeadsRes = await fetch(`${supabaseUrl}/rest/v1/prospecting_leads?select=directory_id&directory_id=not.is.null&limit=25000`, {
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-      },
-    });
-    const existingLeads = (await existingLeadsRes.json().catch(() => [])) as Array<{ directory_id: string }>;
-    const importedIds = new Set(existingLeads.map((l) => l.directory_id).filter(Boolean));
+    // 1. Busca todos os directory_ids já importados no CRM para garantir zero duplicatas (paginado via Range)
+    const importedIds = new Set<string>();
+    let dirOffset = 0;
+    const dirBatchSize = 1000;
+    while (true) {
+      const existingLeadsRes = await fetch(`${supabaseUrl}/rest/v1/prospecting_leads?select=directory_id&directory_id=not.is.null`, {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Range: `${dirOffset}-${dirOffset + dirBatchSize - 1}`,
+        },
+      });
+      if (!existingLeadsRes.ok) break;
+      const existingLeads = (await existingLeadsRes.json().catch(() => [])) as Array<{ directory_id: string }>;
+      if (!existingLeads || existingLeads.length === 0) break;
+      for (const l of existingLeads) {
+        if (l.directory_id) importedIds.add(l.directory_id);
+      }
+      if (existingLeads.length < dirBatchSize) break;
+      dirOffset += dirBatchSize;
+    }
 
     // 2. Pagina terreiros_diretorio em lotes até acumular targetCount registros não importados
     const pageSize = 150;
-    const maxPages = 40; // Pode varrer até 6.000 terreiros por ciclo de busca
+    const maxPages = 80; // Pode varrer até 12.000 terreiros por ciclo de busca
     let currentOffset = query.offset || 0;
     const unimportedRows: Array<{
       id: string;

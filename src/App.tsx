@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 
 import AppTopNav from './components/app/AppTopNav';
 import { AppContextPrompts } from './components/app/AppContextPrompts';
@@ -1168,9 +1168,6 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     const requestedTab = tab === 'atendimentos' ? 'consulentes' : tab;
     const nextTab = userRole === 'filho' ? normalizeFilhoTab(requestedTab) : requestedTab;
     if (nextTab === activeTab) return;
-    const transitionDocument = document as Document & { startViewTransition?: (update: () => void) => void };
-    if (typeof transitionDocument.startViewTransition === 'function')
-      return void transitionDocument.startViewTransition(() => setActiveTab(nextTab));
     setActiveTab(nextTab);
   };
   const renderView = () => {
@@ -1387,10 +1384,11 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         onFilhoFotoUpdated={setFilhoFotoUrl}
       />
 
-      <div className="app-v3-scroll app-v5-canvas relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F7F3EA] pb-[env(safe-area-inset-bottom,0px)] transition-[padding] duration-200 min-[880px]:pl-[var(--app-sidebar-width,15rem)]">
+      <div className="app-v3-scroll app-v5-canvas relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F7F3EA] pb-[env(safe-area-inset-bottom,0px)] min-[880px]:pl-[var(--app-sidebar-width,15rem)]">
           <main
             className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
             data-role={userRole ?? undefined}
+            data-tab={activeTab}
           >
             <AppContextPrompts userRole={userRole} session={session} permission={permission} pushLoading={pushLoading} onSubscribe={() => void subscribe()} activeTab={activeTab} tenantData={tenantData} onNavigate={navigateToTab} />
             <div className="flex-1">

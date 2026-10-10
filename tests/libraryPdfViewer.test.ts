@@ -21,3 +21,15 @@ test('política do site permite blob (legado) e viewer pdf.js usa proxy', () => 
   assert.match(appWorker, /frame-src 'self' blob:/);
   assert.match(viewer, /extractLibraryStoragePath/);
 });
+
+test('visualizador de PDF possui controles de zoom, tela cheia e altura responsiva ampla', () => {
+  assert.match(viewer, /ZoomIn/);
+  assert.match(viewer, /ZoomOut/);
+  assert.match(viewer, /Maximize2/);
+  assert.match(viewer, /Minimize2/);
+  assert.match(viewer, /isFullscreen/);
+  assert.match(viewer, /fixed inset-0/);
+  assert.doesNotMatch(library, /aspect-\[16\/9\]/);
+  assert.match(library, /min-h-\[520px\]/);
+});
+

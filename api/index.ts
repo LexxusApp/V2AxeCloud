@@ -131,6 +131,7 @@ import { verifyUserPassword } from "./lib/passwordVerification.js";
 import { normalizePushSubscription } from "./lib/pushSubscription.js";
 import { captureWebhookRawBody } from "./lib/rawBody.js";
 import { registerDevCinematicMarketing } from "./lib/devCinematicMarketing.js";
+import { createFeatureFailureMiddleware, registerFeatureFailureRoutes } from "./lib/featureFailureMonitor.js";
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
@@ -1338,6 +1339,12 @@ async function startServer() {
     if (m === "OPTIONS" || m === "TRACE" || m === "HEAD") return next();
     res.setHeader("Cache-Control", "private, no-store, must-revalidate");
     next();
+  });
+
+  app.use(createFeatureFailureMiddleware(supabaseAdmin));
+  registerFeatureFailureRoutes(app, {
+    supabaseAdmin,
+    verifyUser: (token) => verifyUserLib(supabaseAdmin, token),
   });
 
   app.get("/api/public-config", (_req, res) => {

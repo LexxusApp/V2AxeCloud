@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Building2, Camera, CheckCircle, Loader2, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { TRADICAO_OPTIONS } from '../../lib/tradicaoModules';
+import { reportFeatureFailureClient } from '../../lib/telemetryClient';
 
 const CARGO_OPTIONS = [
   'Zelador de Santo (Pai de Santo)',
@@ -117,6 +118,16 @@ export function SettingsProfilePanel({
       setProfileFoto(String(data.publicUrl || ''));
       notify('Foto carregada! Clique em Salvar para confirmar no perfil.', 'info');
     } catch (err: unknown) {
+      void reportFeatureFailureClient({
+        feature: 'fotos',
+        action: 'upload_foto_perfil',
+        error: err,
+        metadata: {
+          fileSize: file?.size,
+          fileType: file?.type,
+          fileName: file?.name,
+        },
+      });
       notify(err instanceof Error ? err.message : 'Erro ao enviar foto.', 'error');
     } finally {
       setIsUploadingPhoto(false);

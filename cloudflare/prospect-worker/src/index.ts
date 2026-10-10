@@ -256,53 +256,129 @@ export default {
                 return;
               }
 
-              const agent = new AxeCloudSalesAgent(env);
-              const reply = await agent.handleInbound({
-                leadName: lead?.name,
-                leadCity: lead?.city || undefined,
-                contactName: msg.name,
-                currentMessage: msg.body,
-                conversationHistory: history,
-              });
+              // 1. Verificação se o lead clicou ou enviou "Quero conhecer"
+              const isQueroConhecer = /^\s*quero\s+conhecer\b/i.test(msg.body) || /quero\s+conhecer/i.test(msg.body);
 
-              let replyToSend = reply.replyText;
+              // 2. Trava Inteligente: Verifica se o contato já possui terreiro/trial ativo
+              const isAlreadyTrialOrCustomer = Boolean(
+                lead?.status === 'trial' ||
+                lead?.status === 'customer' ||
+                lead?.terreiro_id
+              );
 
-              // Verificação e execução de Onboarding Automático de Teste via Chat
-              const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/;
-              const detectedEmail = (reply.extractedData?.email || msg.body.match(emailRegex)?.[0] || '').toLowerCase().trim();
-
-              const shouldCreateTrial =
-                Boolean(detectedEmail) &&
-                (reply.action === 'create_trial_account' ||
-                  reply.stage === 'teste' ||
-                  reply.stage === 'interessado' ||
-                  /\b(testar|teste|cadastro|cadastrar|acesso|login|senha|experimentar|comecar|começar|iniciar|criar|conta)\b/i.test(msg.body) ||
-                  history.some((h) => /\b(e-mail|email|teste|30 dias|acesso)\b/i.test(h.body)));
-
+              let replyToSend = '';
+              let replyStage: 'conversa' | 'interessado' | 'avaliando' | 'teste' | 'cliente' | 'recusa' = 'conversa';
+              let replyAction: 'none' | 'request_trial_data' | 'create_trial_account' = 'none';
+              let replyConfidence = 1.0;
+              let replyHumanHandoff = false;
               let onboardCreated = false;
-              if (shouldCreateTrial && detectedEmail) {
-                console.log(`[ChatOnboarding] Executando criação de conta de teste para ${detectedEmail} (fone: ${msg.from})`);
-                const onboardingService = new ChatOnboardingService(env);
-                const onboardRes = await onboardingService.createTenantFromChat({
-                  phone: msg.from,
-                  email: detectedEmail,
-                  nomeZelador: reply.extractedData?.nomeZelador || msg.name || undefined,
-                  nomeTerreiro: reply.extractedData?.nomeTerreiro || lead?.name || undefined,
-                  city: lead?.city || undefined,
-                  leadId: lead?.id,
-                });
 
-                if (onboardRes.success) {
-                  replyToSend = onboardingService.formatWelcomeMessage(onboardRes);
-                  reply.stage = 'teste';
-                  onboardCreated = true;
-                } else if (onboardRes.alreadyExists) {
-                  replyToSend = onboardingService.formatAlreadyExistsMessage(onboardRes);
-                  reply.stage = 'teste';
-                } else {
-                  console.error('[ChatOnboarding] Erro ao criar conta:', onboardRes.errorMessage);
-                  replyToSend = onboardingService.formatFailureMessage();
+              // Expressão para extração de e-mail
+              const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/i;
+              const currentEmailMatch = msg.body.match(emailRegex);
+              const currentEmail = currentEmailMatch ? currentEmailMatch[0].toLowerCase().trim() : null;
+
+              // Busca e-mail no histórico recente enviado pelo contato
+              let historyEmail: string | null = null;
+              for (let i = history.length - 1; i >= 0; i--) {
+                if (history[i].direction === 'inbound') {
+                  const m = history[i].body.match(emailRegex);
+                  if (m) {
+                    historyEmail = m[0].toLowerCase().trim();
+                    break;
+                  }
                 }
+              }
+              const resolvedEmail = currentEmail || historyEmail || null;
+
+              // Pergunta funcional ou operacional sobre o sistema
+              const isFunctionalQuestion = /\?|\b(como|quando|onde|qual|quanto|quem|por que|porque|precisa|tem que|consigo|pode|funciona|link|filho|filhos|gira|giras|mensalidade|mensalidades|pix|radar|app|aplicativo|mural|curimba|obrigacao|obrigações|camarinha)\b/i.test(msg.body);
+
+              if (isQueroConhecer) {
+                // RESPOSTA OFICIAL AO "QUERO CONHECER"
+                replyToSend = `Axé! 🙏 O AxéCloud organiza fichas dos filhos, obrigações litúrgicas, mensalidades com Pix no WhatsApp e aviso de giras. Entre muitos outros Módulos.
+
+Liberei 30 dias grátis para você testar sem cartão:
+👉 Crie seu terreiro em 1 minuto: https://axecloud.com.br/register
+
+Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu acesso por aqui mesmo!`;
+                replyStage = 'interessado';
+                replyAction = 'none';
+              } else if (!isAlreadyTrialOrCustomer && !isFunctionalQuestion && !isOptOut) {
+                // FLUXO DE COLETA DE DADOS EM 2 ETAPAS (E-MAIL + NOME DA CASA)
+                let candidateTerreiroName: string | null = null;
+
+                if (currentEmail) {
+                  // O e-mail veio nesta mensagem. O restante da mensagem tem o nome da casa?
+                  const cleanText = msg.body
+                    .replace(emailRegex, '')
+                    .replace(/\b(meu|e-mail|email|é|eh|o|a|nome|do|da|meu terreiro|minha casa|terreiro|casa|de|para|por|favor|aqui)\b/gi, ' ')
+                    .replace(/[,:;\-]/g, ' ')
+                    .trim();
+                  if (cleanText.length >= 3 && !/^(ok|sim|nao|não|valeu|obrigad[oa])$/i.test(cleanText)) {
+                    candidateTerreiroName = cleanText;
+                  }
+                } else if (historyEmail) {
+                  // E-mail já veio em mensagem anterior. Esta mensagem atual é o nome da casa?
+                  const textClean = msg.body.trim();
+                  if (textClean.length >= 3 && !/^(ok|sim|nao|não|valeu|obrigad[oa]|bom dia|boa tarde|boa noite|ola|olá)$/i.test(textClean)) {
+                    candidateTerreiroName = textClean;
+                  }
+                }
+
+                const resolvedTerreiroName = candidateTerreiroName || null;
+
+                if (resolvedEmail && resolvedTerreiroName) {
+                  // TEMOS AS 2 INFORMAÇÕES! Faz o cadastro na hora
+                  console.log(`[ChatOnboarding] 2 etapas concluídas! Criando conta para ${resolvedEmail} | Terreiro: ${resolvedTerreiroName} (fone: ${msg.from})`);
+                  const onboardingService = new ChatOnboardingService(env);
+                  const onboardRes = await onboardingService.createTenantFromChat({
+                    phone: msg.from,
+                    email: resolvedEmail,
+                    nomeZelador: msg.name || undefined,
+                    nomeTerreiro: resolvedTerreiroName,
+                    city: lead?.city || undefined,
+                    leadId: lead?.id,
+                  });
+
+                  if (onboardRes.success) {
+                    replyToSend = onboardingService.formatWelcomeMessage(onboardRes);
+                    replyStage = 'teste';
+                    onboardCreated = true;
+                  } else if (onboardRes.alreadyExists) {
+                    replyToSend = onboardingService.formatAlreadyExistsMessage(onboardRes);
+                    replyStage = 'teste';
+                  } else {
+                    replyToSend = onboardingService.formatFailureMessage();
+                  }
+                } else if (currentEmail && !resolvedTerreiroName) {
+                  // RECEBEU APENAS O E-MAIL: pede o nome da casa
+                  replyToSend = `Recebi seu e-mail! 🙏 Para eu liberar seu acesso certinho, qual é o nome do seu terreiro?`;
+                  replyStage = 'interessado';
+                  replyAction = 'request_trial_data';
+                } else if (!resolvedEmail && msg.body.trim().length >= 3 && /\b(terreiro|tenda|ilê|ile|casa|centro|barracão|barracao|roça|roca|cabana|sear|t\.u|c\.e)\b/i.test(msg.body)) {
+                  // RECEBEU APENAS O NOME DA CASA: pede o e-mail
+                  replyToSend = `Perfeito! E qual o seu melhor e-mail para eu gerar o seu login de acesso ao terreiro?`;
+                  replyStage = 'interessado';
+                  replyAction = 'request_trial_data';
+                }
+              }
+
+              // Se nenhuma regra assumiu a resposta, aciona a IA
+              if (!replyToSend) {
+                const agent = new AxeCloudSalesAgent(env);
+                const reply = await agent.handleInbound({
+                  leadName: lead?.name,
+                  leadCity: lead?.city || undefined,
+                  contactName: msg.name,
+                  currentMessage: msg.body,
+                  conversationHistory: history,
+                });
+                replyToSend = reply.replyText;
+                replyStage = reply.stage;
+                replyAction = reply.action || 'none';
+                replyConfidence = reply.confidence;
+                replyHumanHandoff = reply.humanHandoff;
               }
 
               const meta = new MetaCloudClient(env);
@@ -317,15 +393,16 @@ export default {
               }
 
               if (lead) {
-                const nextStatus = onboardCreated
+                const nextStatus = (onboardCreated || isAlreadyTrialOrCustomer)
                   ? 'trial'
-                  : reply.stage === 'interessado' || reply.stage === 'avaliando' || reply.stage === 'teste'
+                  : replyStage === 'interessado' || replyStage === 'avaliando' || replyStage === 'teste'
                   ? 'interested'
                   : 'replied';
+
                 await crm.updateLead(lead.id, {
                   last_contact_at: new Date().toISOString(),
                   status: nextStatus,
-                  ...(detectedEmail ? { email: detectedEmail } : {}),
+                  ...(resolvedEmail ? { email: resolvedEmail } : {}),
                 });
                 await crm.recordEvent({
                   lead_id: lead.id,
@@ -333,17 +410,18 @@ export default {
                   from_status: lead.status,
                   to_status: nextStatus,
                   description: onboardCreated
-                    ? `Acesso de teste de 30 dias criado via WhatsApp para ${detectedEmail}`
-                    : `Resposta gerada pela IA (estágio: ${reply.stage})`,
+                    ? `Acesso de teste de 30 dias criado via WhatsApp para ${resolvedEmail}`
+                    : `Resposta gerada pela IA (estágio: ${replyStage})`,
                   metadata: {
-                    confidence: reply.confidence,
-                    humanHandoff: reply.humanHandoff,
+                    confidence: replyConfidence,
+                    humanHandoff: replyHumanHandoff,
                     messageId: outMessageId,
-                    action: reply.action,
-                    email: detectedEmail || undefined,
+                    action: replyAction,
+                    email: resolvedEmail || undefined,
                   },
                 });
               }
+
             } catch (e) {
               console.error(`[Webhook] Erro ao processar mensagem de ${msg.from}:`, e);
             }
@@ -527,10 +605,18 @@ export default {
           return jsonResponse({ error: 'Meta Cloud API não configurada (tokens ausentes).' }, 500);
         }
 
-        const templateName = 'axecloud_prospeccao_inicial';
-        const leadName = lead.name.split(' ')[0] || 'Irmão(ã) de Fé';
+        const terreiroNome = String(lead.name || 'sua casa').trim().slice(0, 80);
+        const imageUrl = 'https://axecloud.com.br/og-image.png';
+        let templateName = 'axecloud_prospeccao_imagem_v1';
+        let sendRes: { messageId: string };
 
-        const sendRes = await meta.sendTemplateMessage(lead.phone, templateName, 'pt_BR', [leadName]);
+        try {
+          sendRes = await meta.sendTemplateMessage(lead.phone, templateName, 'pt_BR', [terreiroNome], imageUrl);
+        } catch (imgErr: any) {
+          console.warn(`[Outbound] Falha ao enviar com imagem (${templateName}): ${imgErr?.message}. Usando fallback axecloud_prospeccao_v2.`);
+          templateName = 'axecloud_prospeccao_v2';
+          sendRes = await meta.sendTemplateMessage(lead.phone, templateName, 'pt_BR', [terreiroNome]);
+        }
 
         const updated = await crm.updateLead(leadId, {
           status: 'contacted',
@@ -594,9 +680,18 @@ export default {
             continue;
           }
 
-          const templateName = 'axecloud_prospeccao_inicial';
-          const leadName = lead.name.split(' ')[0] || 'Irmão(ã) de Fé';
-          const sendRes = await meta.sendTemplateMessage(lead.phone!, templateName, 'pt_BR', [leadName]);
+          const terreiroNome = String(lead.name || 'sua casa').trim().slice(0, 80);
+          const imageUrl = 'https://axecloud.com.br/og-image.png';
+          let templateName = 'axecloud_prospeccao_imagem_v1';
+          let sendRes: { messageId: string };
+
+          try {
+            sendRes = await meta.sendTemplateMessage(lead.phone!, templateName, 'pt_BR', [terreiroNome], imageUrl);
+          } catch (imgErr: any) {
+            console.warn(`[BatchSend] Falha ao enviar com imagem (${templateName}): ${imgErr?.message}. Usando fallback axecloud_prospeccao_v2.`);
+            templateName = 'axecloud_prospeccao_v2';
+            sendRes = await meta.sendTemplateMessage(lead.phone!, templateName, 'pt_BR', [terreiroNome]);
+          }
 
           await crm.updateLead(lead.id, {
             status: 'contacted',

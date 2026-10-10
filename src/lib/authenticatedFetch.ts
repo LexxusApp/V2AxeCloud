@@ -4,6 +4,18 @@ import {
   purgeLocalAuthSession,
   supabase,
 } from "./supabase";
+import { reportFeatureFailureClient, type ClientFeatureType } from "./telemetryClient";
+
+function classifyFeatureFromUrl(url: string): ClientFeatureType {
+  const p = url.toLowerCase();
+  if (/upload|foto|photo|gallery|galeria|image/.test(p)) return 'fotos';
+  if (/gira|evento|calendar|calendario|rsvp/.test(p)) return 'agenda';
+  if (/filho|membro|children|corrente/.test(p)) return 'membros';
+  if (/financeiro|mensalidade|transacao|pix|cobranca/.test(p)) return 'financeiro';
+  if (/settings|configuracoes|perfil/.test(p)) return 'configuracoes';
+  if (/auth|login|senha|recuperar/.test(p)) return 'acesso';
+  return 'geral';
+}
 
 async function refreshAccessToken(): Promise<string | null> {
   const { data: refreshed, error } = await supabase.auth.refreshSession();
@@ -58,7 +70,37 @@ export async function authFetch(
   const headers = await authHeaders(init.headers, explicitToken);
   let response = await fetch(input, { ...init, headers });
 
-  if (response.status !== 401) return response;
+  const trackFailureIfNeeded = (res: Response) => {
+    if (res.status >= 400 && res.status !== 401 && res.status !== 404) {
+      const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
+      if (!urlStr.includes("/telemetry/failure")) {
+        const method = (init.method || "GET").toUpperCase();
+        res.clone().json().then((json) => {
+          const errMsg = json?.error || json?.message || `HTTP ${res.status}`;
+          void reportFeatureFailureClient({
+            feature: classifyFeatureFromUrl(urlStr),
+            action: `${method} ${urlStr}`.slice(0, 120),
+            error: errMsg,
+            httpStatus: res.status,
+            metadata: { method, url: urlStr },
+          });
+        }).catch(() => {
+          void reportFeatureFailureClient({
+            feature: classifyFeatureFromUrl(urlStr),
+            action: `${method} ${urlStr}`.slice(0, 120),
+            error: `HTTP ${res.status}`,
+            httpStatus: res.status,
+            metadata: { method, url: urlStr },
+          });
+        });
+      }
+    }
+  };
+
+  if (response.status !== 401) {
+    trackFailureIfNeeded(response);
+    return response;
+  }
 
   const hadAuth = headers.has("Authorization");
   if (!hadAuth && !explicitToken) return response;
@@ -81,6 +123,8 @@ export async function authFetch(
   response = await fetch(input, { ...init, headers: retryHeaders });
   if (response.status === 401) {
     notifySessionExpired("auth_fetch_retry_401");
+  } else {
+    trackFailureIfNeeded(response);
   }
   return response;
 }

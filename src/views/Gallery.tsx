@@ -764,16 +764,16 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             <h6 className="font-display text-sm font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
               {photo.title || photo.file_name}
             </h6>
-            <p className="line-clamp-3 text-[10.5px] font-light leading-relaxed text-gray-400">
+            <p className="line-clamp-3 text-xs font-normal leading-relaxed text-slate-300">
               {photo.caption || 'Memória com boas energias guardadas no mural do terreiro.'}
             </p>
           </div>
           <div className="flex items-center justify-between gap-2.5 border-t border-[#1E242B]/80 pt-3 text-[9.5px]">
-            <div className="max-w-[60%] space-y-0.5 text-gray-500">
-              <span className="block truncate font-black text-[#F1F5F9]/80">
+            <div className="max-w-[60%] space-y-0.5 text-slate-400">
+              <span className="block truncate font-black text-[#F1F5F9]">
                 Por: {photo.author_name || zeladorName}
               </span>
-              <span className="block font-mono text-[8.5px]">{formatMuralDate(photo.created_at)}</span>
+              <span className="block font-mono text-[9px] text-slate-400">{formatMuralDate(photo.created_at)}</span>
             </div>
             <button
               type="button"
@@ -886,16 +886,16 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             <h6 className="font-display text-sm font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
               {album.name}
             </h6>
-            <p className="line-clamp-3 text-[10.5px] font-light leading-relaxed text-gray-400">
+            <p className="line-clamp-3 text-xs font-normal leading-relaxed text-[#5C5549]">
               {album.description ||
                 'Memória com boas energias guardadas no mural do terreiro.'}
             </p>
           </div>
 
           <div className="flex items-center justify-between gap-2.5 border-t border-[#1E242B]/80 pt-3 text-[9.5px]">
-            <div className="max-w-[60%] space-y-0.5 text-gray-500">
-              <span className="block truncate font-black text-[#F1F5F9]/80">Por: {author}</span>
-              <span className="block font-mono text-[8.5px]">{formatMuralDate(album.created_at)}</span>
+            <div className="max-w-[60%] space-y-0.5 text-[#5C5549]">
+              <span className="block truncate font-black text-[#17130D]">Por: {author}</span>
+              <span className="block font-mono text-[9px] text-[#6E6659]">{formatMuralDate(album.created_at)}</span>
             </div>
 
             <div
@@ -969,27 +969,27 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                   <span
                     className={cn(
                       'mb-2 inline-block rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide',
-                      CATEGORY_BADGE[getAlbumCategory(selectedAlbum)],
+                      getAlbumCategory(selectedAlbum) === 'gira' ? 'border-amber-600/35 bg-amber-500/20 text-amber-950 font-black' : getAlbumCategory(selectedAlbum) === 'evento' ? 'border-sky-600/35 bg-sky-500/20 text-sky-950 font-black' : 'border-emerald-600/35 bg-emerald-500/20 text-emerald-950 font-black',
                     )}
                   >
                     {CATEGORY_LABEL[getAlbumCategory(selectedAlbum)]}
                   </span>
                   {selectedAlbum.description && (
-                    <p className="max-w-2xl text-sm font-medium leading-relaxed text-[#CBD5E1]">{selectedAlbum.description}</p>
+                    <p className="max-w-2xl text-base font-bold leading-relaxed text-[#17130D]">{selectedAlbum.description}</p>
                   )}
-                  <p className="mt-2 text-[10px] font-medium text-[#64748B]">
+                  <p className="mt-2 text-xs font-semibold text-[#5C5549]">
                     Publicado em {formatMuralDate(selectedAlbum.created_at)} por{' '}
                     {selectedAlbum.media[0]?.author_name || zeladorName}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:flex">
-                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 px-4 py-3 text-center">
-                    <span className="block text-xl font-black text-cyan-300">{selectedAlbum.media.length}</span>
-                    <span className="text-[9px] font-bold uppercase text-[#64748B]">arquivos</span>
+                  <div className="rounded-xl border border-sky-600/25 bg-sky-500/15 px-4 py-3 text-center min-w-[90px]">
+                    <span className="block text-2xl font-black text-sky-950">{selectedAlbum.media.length}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-sky-900">arquivos</span>
                   </div>
-                  <div className="rounded-xl border border-rose-500/20 bg-rose-950/30 px-4 py-3 text-center">
-                    <span className="block text-xl font-black text-rose-300">{getAlbumAxeTotal(selectedAlbum)}</span>
-                    <span className="text-[9px] font-bold uppercase text-[#64748B]">Axé</span>
+                  <div className="rounded-xl border border-rose-600/25 bg-rose-500/15 px-4 py-3 text-center min-w-[90px]">
+                    <span className="block text-2xl font-black text-rose-950">{getAlbumAxeTotal(selectedAlbum)}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-900">Axé</span>
                   </div>
                 </div>
               </div>
@@ -1053,13 +1053,13 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             <AppDemoCard className="app-command-strip gallery-curator-bar space-y-4 p-4 sm:p-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <h6 className="text-sm font-black text-[#F1F5F9]">Álbuns publicados</h6>
-                  <p className="mt-1 text-xs text-[#64748B]">
+                  <h6 className="text-sm font-black text-[#17130D]">Álbuns publicados</h6>
+                  <p className="mt-1 text-xs font-semibold text-[#5C5549]">
                     {filteredAlbums.length} de {galleryStats.albums} álbum{galleryStats.albums === 1 ? '' : 's'}
                   </p>
                 </div>
                 <label className="relative min-w-0 lg:w-72">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     type="search"
                     value={gallerySearch}
@@ -1070,7 +1070,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                 </label>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-[#252B33] pt-4">
+              <div className="flex flex-wrap items-center gap-2 border-t border-[#D8D1C4] pt-4">
                 {FILTER_CHIPS.map((chip) => (
                   <button
                     key={chip.value}
@@ -1080,7 +1080,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                       'cursor-pointer rounded-xl border px-3 py-2 text-[10px] font-black transition-all',
                       activeFilter === chip.value
                         ? 'border-primary bg-primary text-[#080A0D] shadow-sm'
-                        : 'border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-white',
+                        : 'border-[#D8D1C4] bg-white text-[#4F473C] hover:border-[#17130D] hover:text-[#17130D]',
                     )}
                   >
                     {chip.label}

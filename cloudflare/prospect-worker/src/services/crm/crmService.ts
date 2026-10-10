@@ -110,15 +110,50 @@ export class CrmService {
   async findLeadByPhone(phone: string): Promise<ProspectingLead | null> {
     const norm = normalizePhone(phone);
     if (!norm) return null;
-    const rows = await this.request<ProspectingLead[]>(`prospecting_leads?phone_normalized=eq.${norm}&select=*&limit=1`);
+
+    const variants = new Set<string>([norm]);
+    if (norm.startsWith('55') && norm.length === 12) {
+      variants.add(`55${norm.slice(2, 4)}9${norm.slice(4)}`);
+    } else if (norm.startsWith('55') && norm.length === 13 && norm[4] === '9') {
+      variants.add(`55${norm.slice(2, 4)}${norm.slice(5)}`);
+    }
+
+    const orFilters: string[] = [];
+    for (const v of variants) {
+      orFilters.push(`phone_normalized.eq.${v}`);
+      orFilters.push(`phone.eq.${v}`);
+      orFilters.push(`phone.eq.%2B${v}`);
+    }
+
+    const rows = await this.request<ProspectingLead[]>(
+      `prospecting_leads?or=(${orFilters.join(',')})&select=*&limit=1`,
+    );
     return rows && rows.length ? rows[0] : null;
   }
 
   async listAllCandidatesForDedup(): Promise<Array<Partial<ProspectingLead>>> {
-    const rows = await this.request<Array<Partial<ProspectingLead>>>(
-      'prospecting_leads?select=id,name,city,address,phone,phone_normalized,website,instagram,google_place_id,directory_id&limit=5000',
-    );
-    return rows || [];
+    const leads: Array<Partial<ProspectingLead>> = [];
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const res = await fetch(
+        `${this.supabaseUrl}/rest/v1/prospecting_leads?select=id,name,city,address,phone,phone_normalized,website,instagram,google_place_id,directory_id`,
+        {
+          headers: {
+            apikey: this.serviceKey,
+            Authorization: `Bearer ${this.serviceKey}`,
+            Range: `${from}-${from + batchSize - 1}`,
+          },
+        },
+      );
+      if (!res.ok) break;
+      const batch = (await res.json().catch(() => [])) as Array<Partial<ProspectingLead>>;
+      if (!batch || batch.length === 0) break;
+      leads.push(...batch);
+      if (batch.length < batchSize) break;
+      from += batchSize;
+    }
+    return leads;
   }
 
   async createLead(lead: Partial<ProspectingLead>): Promise<ProspectingLead> {
@@ -342,10 +377,32 @@ export class CrmService {
     funnel: Array<{ stage: string; count: number; label: string }>;
     timeSeries: Array<{ date: string; leads: number; contacted: number; qualified: number }>;
   }> {
-    const rows = await this.request<Array<{ status: ProspectStatus; score: number; created_at: string; last_contact_at: string | null }>>(
-      'prospecting_leads?select=status,score,created_at,last_contact_at&limit=5000',
-    );
-    const leads = Array.isArray(rows) ? rows : [];
+    const leads: Array<{ status: ProspectStatus; score: number; created_at: string; last_contact_at: string | null }> = [];
+    let from = 0;
+    const batchSize = 1000;
+    while (true) {
+      const res = await fetch(
+        `${this.supabaseUrl}/rest/v1/prospecting_leads?select=status,score,created_at,last_contact_at`,
+        {
+          headers: {
+            apikey: this.serviceKey,
+            Authorization: `Bearer ${this.serviceKey}`,
+            Range: `${from}-${from + batchSize - 1}`,
+          },
+        },
+      );
+      if (!res.ok) break;
+      const batch = (await res.json().catch(() => [])) as Array<{
+        status: ProspectStatus;
+        score: number;
+        created_at: string;
+        last_contact_at: string | null;
+      }>;
+      if (!batch || batch.length === 0) break;
+      leads.push(...batch);
+      if (batch.length < batchSize) break;
+      from += batchSize;
+    }
 
     const counts = {
       discovered: 0,
@@ -390,11 +447,11 @@ export class CrmService {
 
     const funnel = [
       { stage: 'discovered', count: counts.total, label: 'Leads Encontrados' },
-      { stage: 'qualified', count: counts.qualified + counts.interested + counts.trial + counts.customer, label: 'Qualificados' },
-      { stage: 'contacted', count: counts.contacted + counts.replied + counts.interested + counts.customer, label: 'Contatados' },
-      { stage: 'replied', count: counts.replied + counts.interested + counts.customer, label: 'Responderam' },
-      { stage: 'interested', count: counts.interested + counts.trial + counts.customer, label: 'Interessados' },
-      { stage: 'trial', count: counts.trial + counts.demo + counts.customer, label: 'Em Teste' },
+      { stage: 'qualified', count: counts.qualified, label: 'Qualificados' },
+      { stage: 'contacted', count: counts.contacted, label: 'Contatados' },
+      { stage: 'replied', count: counts.replied, label: 'Responderam' },
+      { stage: 'interested', count: counts.interested, label: 'Interessados' },
+      { stage: 'trial', count: counts.trial + counts.demo, label: 'Em Teste' },
       { stage: 'customer', count: counts.customer, label: 'Clientes' },
     ];
 

@@ -896,7 +896,7 @@ export function ProspectingDashboard() {
               <MessageSquare className="h-4 w-4 text-emerald-400" /> Disparo de Apresentação (WhatsApp)
             </h3>
             <p className="mt-1 text-xs text-[var(--ac-text-muted)]">
-              Envia o template oficial aprovado pela Meta (<strong className="text-[var(--ac-text)]">axecloud_prospeccao_inicial</strong>) pelo número oficial verificado <strong className="text-emerald-400">+55 11 5295-0746</strong>.
+              Envia o template oficial aprovado pela Meta (<strong className="text-[var(--ac-text)]">axecloud_prospeccao_v2</strong>) pelo número oficial verificado <strong className="text-emerald-400">+55 11 5295-0746</strong>.
             </p>
 
             <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">

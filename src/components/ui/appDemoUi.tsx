@@ -26,7 +26,7 @@ export function AppDemoPanelHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="app-editorial-header mb-6 flex flex-col justify-between gap-4 border-b border-[#D8D0C4] pb-5 lg:flex-row lg:items-end">
+    <div className="app-editorial-header mb-6 flex flex-col justify-between gap-4 border-b border-[#D8D0C4] pb-5 min-[880px]:flex-row min-[880px]:items-end">
       <div className="min-w-0">
         <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Painel da casa</p>
         <h1 className="font-display text-2xl font-black tracking-tight text-[#17130D] sm:text-3xl">{title}</h1>

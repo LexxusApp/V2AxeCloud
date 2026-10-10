@@ -197,8 +197,8 @@ export function WhatsAppInboxPanel() {
             className={cn(
               "rounded-lg border px-3 py-2 text-xs",
               feedback.kind === "ok"
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-950 font-medium shadow-xs"
+                : "border-red-300 bg-red-50 text-red-950 font-medium shadow-xs"
             )}
           >
             {feedback.msg}

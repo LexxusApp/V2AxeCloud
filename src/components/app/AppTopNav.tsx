@@ -1,4 +1,4 @@
-﻿import {
+import {
   Camera,
   ChevronDown,
   CircleHelp,
@@ -139,10 +139,10 @@ function NavTab({
             : layout === 'drawer-sub'
               ? 'text-[#7B8798] hover:bg-white/[0.04] hover:text-[#F1F5F9]'
               : layout === 'drawer'
-                ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
+                ? 'text-[#CBD5E1] hover:bg-white/5 hover:text-[#F1F5F9]'
                 : layout === 'dropdown'
                   ? 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]'
-                  : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+                  : 'text-[#CBD5E1] hover:bg-white/5 hover:text-[#F1F5F9]',
         isLocked && 'opacity-50',
       )}
     >
@@ -222,7 +222,7 @@ function NavGroupMobileSection({
   variant?: 'grid' | 'drawer';
   defaultExpanded?: boolean;
 }) {
-  const isGroupActive = items.some((i) => i.id === activeTab);
+  const isGroupActive = items.some((i) => i.id === activeTab || (i.id === 'financial' && activeTab.startsWith('financial')));
   const [expanded, setExpanded] = useState(defaultExpanded || isGroupActive);
 
   useEffect(() => {
@@ -257,7 +257,7 @@ function NavGroupMobileSection({
             expanded ? 'rounded-t-lg' : 'rounded-lg',
             isGroupActive || expanded
               ? 'bg-primary/15 text-primary'
-              : 'text-[#94A3B8] hover:bg-white/5 hover:text-[#F1F5F9]',
+              : 'text-[#CBD5E1] hover:bg-white/5 hover:text-[#F1F5F9]',
           )}
         >
           <GroupIcon className="h-4 w-4 shrink-0" aria-hidden />
@@ -293,7 +293,7 @@ function NavGroupMobileSection({
                 key={item.id}
                 item={item}
                 layout="drawer-sub"
-                isActive={activeTab === item.id}
+                isActive={activeTab === item.id || (item.id === 'financial' && activeTab === 'financial')}
                 isLocked={isItemLocked(item)}
                 onSelect={() => onSelect(item)}
               />
@@ -373,10 +373,10 @@ export default function AppTopNav({
   const navActiveTab = userRole === 'filho' ? activeTab : managementHubFromTab(activeTab);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopPinned, setDesktopPinned] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('axecloud:sidebar-pinned') === '1' : false,
+    typeof window !== 'undefined' ? localStorage.getItem('axecloud:sidebar-pinned') !== '0' : true,
   );
-  const [desktopHovered, setDesktopHovered] = useState(false);
-  const desktopExpanded = desktopPinned || desktopHovered;
+
+  const desktopExpanded = desktopPinned;
   const desktopCompact = !desktopExpanded;
   const { isInstalled: isStandalonePwa, install } = usePwaInstall();
   const filhoPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -587,7 +587,7 @@ export default function AppTopNav({
         label={entry.label}
         icon={entry.icon}
         items={entry.items}
-        activeTab={navActiveTab}
+        activeTab={activeTab}
         isItemLocked={isItemLocked}
         onSelect={handleSelect}
         menuLabel={entry.type === 'casa' ? 'Módulos da casa' : entry.type === 'financial' ? 'Módulos financeiros' : 'Módulos de gestão avançada'}
@@ -609,24 +609,17 @@ export default function AppTopNav({
       ) : null}
 
       <aside
-        onMouseEnter={() => setDesktopHovered(true)}
-        onMouseLeave={() => setDesktopHovered(false)}
-        onFocusCapture={() => setDesktopHovered(true)}
-        onBlurCapture={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setDesktopHovered(false);
-          }
-        }}
         data-expanded={desktopExpanded ? 'true' : 'false'}
         className={cn(
-          'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden w-60 flex-col border-r border-[#242A32] bg-[#0B0D11] min-[880px]:flex',
+          'app-v5-sidebar fixed inset-y-0 left-0 z-[55] hidden flex-col border-r border-[#242A32] bg-[#0B0D11] min-[880px]:flex',
+          desktopExpanded ? 'w-60' : 'w-[4.75rem]',
         )}
       >
         <button
           type="button"
           onClick={() => setDesktopPinned((value) => !value)}
-          title={desktopPinned ? 'Usar expansão automática' : 'Fixar menu aberto'}
-          aria-label={desktopPinned ? 'Desafixar menu lateral' : 'Fixar menu lateral aberto'}
+          title={desktopPinned ? 'Recolher menu' : 'Expandir menu'}
+          aria-label={desktopPinned ? 'Recolher menu lateral' : 'Expandir menu lateral'}
           aria-pressed={desktopPinned}
           className="app-v5-sidebar-toggle absolute -right-3 top-5 z-10 grid h-8 w-8 place-items-center rounded-full border border-[#343C47] bg-[#151A21] text-[#CBD5E1] shadow-lg transition hover:border-primary/50 hover:bg-primary hover:text-[#17130D]"
         >
@@ -681,7 +674,7 @@ export default function AppTopNav({
         </div>
 
         <div className={cn('pb-1 pt-2', desktopCompact ? 'px-1.5 text-center' : 'px-3')}>
-          <p className={cn('font-black uppercase tracking-[0.16em] text-[#738095]', desktopCompact ? 'text-[8px]' : 'px-1.5 text-[9px]')}>
+          <p className={cn('font-black uppercase tracking-[0.16em] text-[#8E9CAE]', desktopCompact ? 'text-[8px]' : 'px-1.5 text-[10px]')}>
             {desktopCompact ? 'Axé' : 'Gestão da casa'}
           </p>
         </div>

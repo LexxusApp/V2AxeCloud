@@ -1,6 +1,7 @@
 import type { ProspectingEnv } from '../types.js';
 import { AiGatewayClient } from '../services/ai/aiGatewayClient.js';
 import { AXECLOUD_KNOWLEDGE_BASE } from './knowledgeBase.js';
+import { isAutoResponderMessage } from '../whatsapp/autoResponderDetector.js';
 
 export interface MessageHistoryItem {
   direction: 'inbound' | 'outbound';
@@ -37,6 +38,17 @@ export class AxeCloudSalesAgent {
   }
 
   async handleInbound(input: SalesAgentInput): Promise<SalesAgentResponse> {
+    // 0. Verificação de auto-responder de WhatsApp Business (mensagens de ausência/boas-vindas automáticas)
+    if (isAutoResponderMessage(input.currentMessage)) {
+      return {
+        replyText: '',
+        stage: 'conversa',
+        confidence: 1.0,
+        humanHandoff: false,
+        action: 'none',
+      };
+    }
+
     const textLower = input.currentMessage.toLowerCase();
 
     // 1. Verificação imediata de opt-out / recusa
@@ -119,19 +131,38 @@ REGRAS ABSOLUTAS DE ATENDIMENTO:
      * É expressamente proibido terminar toda mensagem perguntando "o que acha de testar na prática?" ou "quer testar?". Isso soa repetitivo e insistente.
      * Na maioria das vezes, apenas explique a dúvida com clareza e finalize naturalmente (ex: "Ficou clara essa parte?", "Qualquer outra dúvida sobre isso, só me falar", ou fazendo uma pergunta simples sobre como eles organizam a casa hoje, ou até mesmo sem nenhuma pergunta final).
      * Só convide para o teste de 30 dias se o contato perguntar preço, perguntar como funciona para começar/testar, ou se demonstrar interesse explícito em ver a ferramenta por dentro.
-   - NÃO mande o link de cadastro em toda resposta! Só envie o link oficial (${kb.registrationUrl}) se o contato pedir o link, perguntar onde acessa ou disser que quer começar.
-   - Se o contato fizer uma pergunta técnica muito complexa, fizer uma reclamação séria ou se você não tiver certeza absoluta, responda gentilmente dizendo que vai chamar o Lucas e marque humanHandoff: true.
+    - Se o contato pedir o link do site ou preferir se cadastrar por conta própria, envie o link oficial de registro: https://axecloud.com.br/register
+    - Se o contato fizer uma pergunta técnica muito complexa, fizer uma reclamação séria ou se você não tiver certeza absoluta, responda gentilmente dizendo que vai chamar o Lucas e marque humanHandoff: true.
+    - PRIORIDADE MÁXIMA PARA DÚVIDAS OPERACIONAIS E FUNCIONALIDADES (NUNCA ATROPELAR):
+      * Se o contato perguntar sobre funções do sistema (como filhos, giras, mensalidades com Pix, radar, aplicativo, fotos, senhas, preceitos):
+        SUA OBRIGAÇÃO PRINCIPAL É RESPONDER A DÚVIDA COM CLAREZA, EDUCAÇÃO E PROFUNDIDADE.
+        NUNCA ignore a dúvida para pedir e-mail ou mandar link de login! A resposta da dúvida SEMPRE vem em primeiro lugar.
+        DÚVIDA SOBRE FILHOS ("Tenho que mandar o link pros filhos da casa?", "Como os filhos entram?"): 
+        Explique com calma que o zelador NÃO precisa mandar link manual nem convite por fora. Quando o zelador cadastra o médium no sistema, o AxéCloud gera o Registro da casa e envia as instruções e dados de acesso direto no WhatsApp do médium com um clique. O médium entra no Portal do Filho pelo celular usando seu Registro + 6 primeiros dígitos do CPF, de forma super simples e 100% gratuita para toda a corrente da casa.
+      * Quando o contato fizer perguntas, marque SEMPRE "action": "none" e "stage": "conversa" ou "interessado".
+      * NUNCA marque "action": "create_trial_account" se o contato estiver apenas tirando dúvidas operacionais ou conceituais.
 
-5. CRIAÇÃO DE CONTA DE TESTE DIRETO NO WHATSAPP (NOVA FUNCIONALIDADE):
-   - Você agora tem a capacidade de liberar o acesso de teste de 30 dias diretamente pelo WhatsApp para o zelador, sem que ele precise preencher formulário no site!
-   - Quando o contato demonstrar que QUER TESTAR, COMEÇAR ou EXPERIMENTAR:
-     * SE ELE AINDA NÃO INFORMOU O E-MAIL:
-       Receba a decisão com entusiasmo e peça o e-mail dele para gerar o acesso:
-       Exemplo de resposta natural: "Que maravilha! Consigo liberar seu acesso de 30 dias grátis agora mesmo por aqui. Só me passa o seu melhor e-mail (e seu nome / nome da casa, caso ainda não tenha dito) que eu já libero seu login!"
-       Marque no JSON: "stage": "teste", "action": "request_trial_data".
-     * SE ELE JÁ INFORMOU O E-MAIL (ou enviou o e-mail na mensagem atual):
-       Marque no JSON: "stage": "teste", "action": "create_trial_account", e preencha "extractedData": { "email": "...", "nomeZelador": "...", "nomeTerreiro": "..." }.
-       No "replyText", dê uma resposta breve e natural dizendo que já está gerando o acesso de teste (o backend gerará a conta no Supabase e enviará a mensagem oficial com o link de login e a senha temporária).
+5. FLUXO DE RESPOSTA AO INTERESSE ("QUERO CONHECER") E COLETA EM 2 ETAPAS:
+    * CASO A — Contato clicou em "Quero conhecer" ou pediu apresentação/informações:
+      Envie a resposta oficial e objetiva:
+      "Axé! 🙏 O AxéCloud organiza fichas dos filhos, obrigações litúrgicas, mensalidades com Pix no WhatsApp e aviso de giras. Entre muitos outros Módulos.
+
+Liberei 30 dias grátis para você testar sem cartão:
+👉 Crie seu terreiro em 1 minuto: https://axecloud.com.br/register
+
+Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu acesso por aqui mesmo!"
+      Marque no JSON: "stage": "interessado", "action": "none".
+
+    * CASO B — Coleta de dados para criação de teste no WhatsApp (2 etapas obrigatórias):
+      - SE O CONTATO ENVIOU APENAS O E-MAIL (falta o nome da casa):
+        Agradeça e peça o nome do terreiro: "Recebi seu e-mail! 🙏 Para eu liberar seu acesso certinho, qual é o nome do seu terreiro?"
+        Marque no JSON: "stage": "interessado", "action": "request_trial_data", "extractedData": { "email": "..." }.
+      - SE O CONTATO ENVIOU APENAS O NOME DA CASA (falta o e-mail):
+        Agradeça e peça o e-mail: "Perfeito! E qual o seu melhor e-mail para eu gerar o seu login de acesso ao terreiro?"
+        Marque no JSON: "stage": "interessado", "action": "request_trial_data", "extractedData": { "nomeTerreiro": "..." }.
+      - SE TEMOS AS 2 INFORMAÇÕES (e-mail E nome da casa):
+        Marque no JSON: "stage": "teste", "action": "create_trial_account", e preencha "extractedData": { "email": "...", "nomeTerreiro": "..." }.
+        No "replyText", avise que já está gerando as credenciais de acesso da casa!
 
 Você DEVE responder ESTRITAMENTE em formato JSON:
 {
@@ -185,15 +216,21 @@ Gere a resposta adequada em JSON.`;
 
       const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/;
       const matchedEmail = input.currentMessage.match(emailRegex)?.[0];
-      const extractedEmail = response.extractedData?.email || matchedEmail;
+      const hasEmailInCurrentMessage = Boolean(matchedEmail);
+      const isQuestion = /\?|\b(como|quando|onde|qual|quanto|quem|por que|porque|precisa|tem que|consigo|pode|funciona|link)\b/i.test(input.currentMessage);
+      let finalAction = response.action || (hasEmailInCurrentMessage ? 'create_trial_account' : 'none');
+      if ((!hasEmailInCurrentMessage || isQuestion) && finalAction === 'create_trial_account') {
+        finalAction = 'none';
+      }
+      const extractedEmail = hasEmailInCurrentMessage ? matchedEmail : (response.extractedData?.email || undefined);
 
       return {
         replyText: response.replyText || 'Olá! Como posso ajudar você a conhecer o AxéCloud hoje?',
-        stage: response.stage || (matchedEmail ? 'teste' : 'conversa'),
+        stage: response.stage || (hasEmailInCurrentMessage ? 'teste' : 'conversa'),
         confidence,
         humanHandoff: needsHandoff,
         handoffReason: needsHandoff ? (response.handoffReason || 'Confiança insuficiente na resposta') : undefined,
-        action: response.action || (matchedEmail ? 'create_trial_account' : 'none'),
+        action: finalAction,
         extractedData: {
           email: extractedEmail ? String(extractedEmail).trim().toLowerCase() : undefined,
           nomeZelador: response.extractedData?.nomeZelador || input.contactName,
@@ -204,7 +241,7 @@ Gere a resposta adequada em JSON.`;
       console.error('[AxeCloudSalesAgent] Erro na geração:', error);
       // Fallback amigável com transferência humana
       return {
-        replyText: `Olá! Obrigado pelo contato com o AxéCloud. Nossa equipe comercial já foi notificada para continuar seu atendimento com total atenção. Se preferir já conhecer o sistema, acesse: ${AXECLOUD_KNOWLEDGE_BASE.registrationUrl}`,
+        replyText: 'Olá! Obrigado pelo contato com o AxéCloud. Nossa equipe comercial já foi notificada para continuar seu atendimento com total atenção por aqui em breve. Se você já quiser liberar seus 30 dias de teste gratuito, é só me responder com o seu melhor e-mail e o nome da sua casa!',
         stage: 'conversa',
         confidence: 0.5,
         humanHandoff: true,

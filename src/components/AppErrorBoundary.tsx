@@ -1,5 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
 import { hardRefreshFromStaleBundle, isRecoverableChunkError } from '../lib/urlHygiene';
+import { reportFeatureFailureClient } from '../lib/telemetryClient';
 
 type Props = { children: React.ReactNode };
 
@@ -18,6 +19,12 @@ export class AppErrorBoundary extends React.Component<Props, State> {
       return;
     }
     console.error('[AppErrorBoundary]', error);
+    void reportFeatureFailureClient({
+      feature: 'geral',
+      action: 'react_screen_crash',
+      error,
+      metadata: { component: 'AppErrorBoundary' },
+    });
   }
 
   render() {

@@ -27,7 +27,8 @@ test('todas as ações do perfil usam a política de contato e números não rei
   const profile = readFileSync(new URL('../src/views/portal/DiretorioTerreiroPage.tsx', import.meta.url), 'utf8');
   const card = readFileSync(new URL('../src/components/portal/DiretorioTerreiroCard.tsx', import.meta.url), 'utf8');
   const api = readFileSync(new URL('../api/lib/diretorioPublicRoutes.ts', import.meta.url), 'utf8');
-  assert.match(profile, /const whatsappHref = buildDiretorioWhatsappHref\(terreiro, servicosData.whatsappAtendimento\)/);
+  const publicProfileTemplate = readFileSync(new URL('../cinematic-site/terreiro.html', import.meta.url), 'utf8');
+  assert.match(profile, /const whatsappHref = terreiro\.gerenciada\s*\?\s*buildDiretorioWhatsappHref\(terreiro, servicosData\.whatsappAtendimento\)/);
   assert.equal(profile.includes('wa.me'), false);
   assert.match(profile, /!terreiro.gerenciada && terreiro.telefone/);
   assert.match(profile, /label="Telefone"/);
@@ -36,6 +37,9 @@ test('todas as ações do perfil usam a política de contato e números não rei
   assert.match(card, /terreiro.gerenciada \? <a/);
   assert.match(card, /<\/a> : <span className="select-text font-semibold">/);
   assert.match(api, /const whatsapp = resolveDiretorioPublicWhatsapp\(row\)/);
+  assert.match(publicProfileTemplate, /const gerenciada = Boolean\(casa\?\.gerenciada \|\| casa\?\.verificada\)/);
+  assert.match(publicProfileTemplate, /const wa = gerenciada \? waHref\(casa\?\.whatsapp \|\| casa\?\.telefone/);
+  assert.match(publicProfileTemplate, /container\.textContent = telefone \|\| "Telefone não informado"/);
 });
 
 test("reconhece celular brasileiro válido na base antiga", () => {

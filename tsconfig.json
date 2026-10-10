@@ -25,5 +25,5 @@
     "noEmit": true
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist", "axecloud-admin", "site-next", "cloudflare"]
+  "exclude": ["node_modules", "dist", "axecloud-admin", "site-next", "cloudflare", "deploy/scripts/**/*.ts", "api/lib/falhaAcessoMembroZeladorWhatsApp.ts"]
 }

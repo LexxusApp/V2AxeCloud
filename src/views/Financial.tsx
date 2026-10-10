@@ -1250,13 +1250,13 @@ export default function Financial({
           <div className="app-finance-workbench grid grid-cols-1 items-start gap-5 xl:grid-cols-5">
             {isAdmin ? (
               <AppDemoCard className="xl:col-span-2">
-                <div className="mb-5 flex items-start gap-3 border-b border-[#252B33] pb-4">
+                <div className="mb-5 flex items-start gap-3 border-b border-[#D8D1C4] pb-4">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-[#080A0D]">
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-[#F1F5F9]">Novo lançamento</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-[#94A3B8]">
+                    <h4 className="text-sm font-black text-[#17130D]">Novo lançamento</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-[#4F473C]">
                       Registre uma entrada ou saída no caixa da casa.
                     </p>
                   </div>
@@ -1356,13 +1356,13 @@ export default function Financial({
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h4 className="text-sm font-black text-[#F1F5F9]">Movimentações financeiras</h4>
-                    <p className="mt-1 text-xs text-[#64748B]">
+                    <p className="mt-1 text-xs font-semibold text-slate-300">
                       {filteredCashTransactions.length} de {cashTransactions.length} lançamento{cashTransactions.length === 1 ? '' : 's'}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <label className="relative min-w-0 sm:w-64">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                       <input
                         type="search"
                         value={financeSearch}
@@ -1394,19 +1394,19 @@ export default function Financial({
                         <p className="line-clamp-3 break-words text-sm font-bold leading-snug text-[#F1F5F9]">
                           {t.descricao}
                         </p>
-                        <p className="mt-1 text-xs font-medium text-[#94A3B8]">{t.categoria || 'Sem categoria'}</p>
+                        <p className="mt-1 text-xs font-semibold text-[#CBD5E1]">{t.categoria || 'Sem categoria'}</p>
                       </div>
                       {renderTransactionActions(t)}
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                       <div className="rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2">
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#64748B]">Data</span>
+                        <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Data</span>
                         <span className="mt-1 block font-bold text-[#CBD5E1]">
                           {new Date(t.data).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                       <div className="rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2">
-                        <span className="block text-[10px] font-bold uppercase tracking-wide text-[#64748B]">Fluxo</span>
+                        <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Fluxo</span>
                         <span
                           className={cn(
                             'mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold',
@@ -1420,7 +1420,7 @@ export default function Financial({
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#64748B]">Valor</span>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Valor</span>
                       <span className={cn('text-base font-black', t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400')}>
                         {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
                       </span>
@@ -1432,8 +1432,8 @@ export default function Financial({
                     <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
                       <DollarSign className="h-6 w-6 text-primary" aria-hidden />
                     </div>
-                    <p className="mt-3 text-sm font-extrabold text-[#E2E8F0]">Seu histórico financeiro começa aqui</p>
-                    <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-relaxed text-[#64748B]">
+                    <p className="mt-3 text-sm font-extrabold text-[#F1F5F9]">Seu histórico financeiro começa aqui</p>
+                    <p className="mx-auto mt-1 max-w-sm text-xs font-semibold leading-relaxed text-[#CBD5E1]">
                       Registre a primeira entrada ou saída para acompanhar o saldo e gerar relatórios da casa.
                     </p>
                   </div>
@@ -1457,7 +1457,7 @@ export default function Financial({
                           <th
                             key={h || 'act'}
                             className={cn(
-                              'px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]',
+                              'px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider text-[#2B241B]',
                               h === 'Valor' && 'text-right',
                               !h && 'text-right',
                             )}
@@ -1471,12 +1471,12 @@ export default function Financial({
                       {filteredCashTransactions.map((t) => (
                         <tr key={t.id} className="hover:bg-[#1E242B]/40">
                           <td className="px-4 py-3.5">
-                            <p className="line-clamp-2 break-words font-medium leading-snug text-[#F1F5F9]">{t.descricao}</p>
+                            <p className="line-clamp-2 break-words font-semibold leading-snug text-[#17130D]">{t.descricao}</p>
                           </td>
-                          <td className="px-4 py-3.5 text-[#94A3B8]">
+                          <td className="px-4 py-3.5 font-semibold text-[#4F473C]">
                             <span className="line-clamp-1 break-words">{t.categoria}</span>
                           </td>
-                          <td className="px-4 py-3.5 text-[#94A3B8]">
+                          <td className="px-4 py-3.5 font-semibold text-[#4F473C]">
                             {new Date(t.data).toLocaleDateString('pt-BR')}
                           </td>
                           <td className="px-4 py-3.5">
@@ -1507,8 +1507,8 @@ export default function Financial({
                             <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
                               <DollarSign className="h-6 w-6 text-primary" aria-hidden />
                             </div>
-                            <p className="mt-3 text-sm font-extrabold text-[#E2E8F0]">Seu histórico financeiro começa aqui</p>
-                            <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-relaxed text-[#64748B]">
+                            <p className="mt-3 text-sm font-extrabold text-[#17130D]">Seu histórico financeiro começa aqui</p>
+                            <p className="mx-auto mt-1 max-w-sm text-xs font-semibold leading-relaxed text-[#4F473C]">
                               Use o formulário ao lado para registrar a primeira movimentação da casa.
                             </p>
                           </td>
@@ -1644,7 +1644,7 @@ export default function Financial({
               {mensalidadeAtiva ? (
                 <div className="mb-5 flex flex-col gap-3 border-y border-[#252B33] py-4 sm:flex-row sm:items-center sm:justify-between">
                   <label className="relative min-w-0 sm:w-80">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input
                       type="search"
                       value={mensalidadeSearch}
@@ -1653,7 +1653,7 @@ export default function Financial({
                       className={cn(appInputClass, 'pl-9')}
                     />
                   </label>
-                  <p className="text-xs font-medium text-[#64748B]">
+                  <p className="text-xs font-semibold text-slate-300">
                     {mensalidadesTab === 'pendentes'
                       ? `${mensalidadesPendentesFiltradas.length} cobrança${mensalidadesPendentesFiltradas.length === 1 ? '' : 's'} em aberto`
                       : `${mensalidadesPagasFiltradas.length} pagamento${mensalidadesPagasFiltradas.length === 1 ? '' : 's'} confirmado${mensalidadesPagasFiltradas.length === 1 ? '' : 's'}`}
@@ -1664,7 +1664,7 @@ export default function Financial({
               {!mensalidadeAtiva ? (
                 <div className="rounded-xl border border-[#1E242B] bg-[#12161A] px-6 py-12 text-center">
                   <p className="text-sm font-bold text-[#F1F5F9]">Mensalidade desativada</p>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-[#94A3B8]">
+                  <p className="mx-auto mt-2 max-w-md text-sm font-medium text-[#CBD5E1]">
                     Ative o interruptor acima quando quiser voltar a gerar cobranças e exibir o módulo aos filhos de santo.
                     Pagamentos antigos continuam no financeiro em Visão geral.
                   </p>
@@ -1672,7 +1672,7 @@ export default function Financial({
               ) : null}
 
               {mensalidadeAtiva && mensalidadesLoading && (
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-[#94A3B8]">
+                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-300">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   Atualizando lista…
                 </div>
@@ -1684,7 +1684,7 @@ export default function Financial({
                     <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-950/30 px-6 py-14 text-center">
                       <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-400" aria-hidden />
                       <p className="text-lg font-bold text-[#F1F5F9]">Tudo em dia!</p>
-                      <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94A3B8]">
+                      <p className="mt-2 max-w-md text-sm font-medium leading-relaxed text-[#CBD5E1]">
                         Nenhuma mensalidade em aberto.
                       </p>
                     </div>
@@ -2048,8 +2048,8 @@ export default function Financial({
                     <Smartphone className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-[#F1F5F9]">Dados de recebimento</h4>
-                    <p className="mt-1 text-xs text-[#94A3B8]">Configure como a casa recebe as mensalidades via Pix.</p>
+                    <h4 className="text-sm font-black text-[#17130D]">Dados de recebimento</h4>
+                    <p className="mt-1 text-xs font-semibold text-[#4F473C]">Configure como a casa recebe as mensalidades via Pix.</p>
                   </div>
                 </div>
                 <form onSubmit={handleSavePixConfig} className="space-y-4">
@@ -2057,7 +2057,7 @@ export default function Financial({
                     <div className="space-y-1.5">
                       <label className={appLabelClass}>Mensalidade padrão</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#94A3B8]">R$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#4F473C]">R$</span>
                         <input
                           type="number"
                           step="0.01"
@@ -2131,11 +2131,11 @@ export default function Financial({
 
               <div className="space-y-4 xl:col-span-2">
                 <AppDemoCard className="financial-pix-preview overflow-hidden p-0">
-                  <div className="border-b border-[#252B33] px-5 py-4">
+                  <div className="border-b border-[#D8D1C4] px-5 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Prévia</span>
-                        <h4 className="mt-1 text-sm font-black text-[#F1F5F9]">Cartão de pagamento</h4>
+                        <h4 className="mt-1 text-sm font-black text-[#17130D]">Cartão de pagamento</h4>
                       </div>
                       <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
                         <ShieldCheck className="h-5 w-5" />
@@ -2190,7 +2190,7 @@ export default function Financial({
                 </AppDemoCard>
 
                 <AppDemoCard className="financial-pix-status">
-                  <h4 className="text-sm font-black text-[#F1F5F9]">Status da configuração</h4>
+                  <h4 className="text-sm font-black text-[#17130D]">Status da configuração</h4>
                   <div className="mt-4 space-y-3">
                     {[
                       ['Chave Pix cadastrada', Boolean(pixConfig.chave_pix)],

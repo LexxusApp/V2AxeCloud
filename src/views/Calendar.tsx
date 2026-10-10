@@ -30,6 +30,7 @@ import {
 import GiraRitualCommand from '../components/gira/GiraRitualCommand';
 import BodyPortal from '../components/BodyPortal';
 import FilhoGirasExperience from '../components/filho/FilhoGirasExperience';
+import { reportFeatureFailureClient } from '../lib/telemetryClient';
 
 const paperLabelClass =
   'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
@@ -1271,6 +1272,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       fetchEvents();
     } catch (error: any) {
       console.error('Error saving event:', error);
+      void reportFeatureFailureClient({
+        feature: 'agenda',
+        action: editingEvent ? 'atualizar_gira' : 'criar_gira',
+        error,
+        metadata: {
+          titulo: formData.titulo,
+          data: formData.data,
+          tipo: formData.tipo,
+        },
+      });
       alert(error.message || (editingEvent ? 'Erro ao atualizar evento.' : 'Erro ao criar evento.'));
     } finally {
       submittingRef.current = false;

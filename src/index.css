@@ -530,6 +530,29 @@
   z-index: 2;
 }
 
+@media (min-width: 880px) {
+  /* Mantém a dashboard 100% normal e ajusta os cabeçalhos e barras de ação para ficarem perfeitamente alinhados no desktop */
+  .app-editorial-header {
+    flex-direction: row !important;
+    align-items: flex-end !important;
+  }
+
+  .app-v5-identity .context-action > button {
+    flex-shrink: 0 !important;
+  }
+
+  .app-v5-identity .context-action__copy {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .app-v5-identity .context-action__copy > span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
 /* Margem lateral consistente nas pÃƒÂ¡ginas autenticadas (mobile-first) */
 .app-page-gutter,
 .page-header-shell {
@@ -2910,12 +2933,12 @@ html[data-landing-scrolling] .matriz-wiggle {
 
 /* App autenticado v3 Ã¢â‚¬â€ alinhado ÃƒÂ  demo interativa da landing */
 html:has(.app-v3) {
-  font-size: 15px;
+  font-size: 13.5px;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 880px) {
   html:has(.app-v3) {
-    font-size: 15px;
+    font-size: 13.5px;
   }
 }
 
@@ -6926,10 +6949,9 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .app-view-transition {
   min-height: 100%;
-  /* fill-mode "backwards" (nÃ£o "both"): manter transform/filter apÃ³s a animaÃ§Ã£o
-     transforma este wrapper em containing block e desancora todos os modais
-     position:fixed renderizados dentro das telas. */
-  animation: app-view-continuity 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: none !important;
+  filter: none !important;
+  transform: none !important;
 }
 
 @keyframes app-view-continuity {
@@ -6945,12 +6967,9 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-::view-transition-old(root) {
-  animation: 150ms ease both app-view-old;
-}
-
+::view-transition-old(root),
 ::view-transition-new(root) {
-  animation: 260ms cubic-bezier(0.22, 1, 0.36, 1) both app-view-new;
+  animation: none !important;
 }
 
 @keyframes app-view-old {
@@ -7054,9 +7073,24 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class~="text-white"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
 .app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#F8FAFC]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#F1F5F9]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
 .app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#E2E8F0]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#CBD5E1]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-slate-200"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-slate-300"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-zinc-200"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-zinc-300"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-gray-200"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-gray-300"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *):not([class*="bg-emerald-950"] *):not([class*="bg-rose-950"] *):not([class*="bg-amber-950"] *):not([class*="bg-cyan-950"] *):not([class*="bg-violet-950"] *),
 .app-v5-identity .app-v5-table-shell [class~="text-white"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
-.app-v5-identity .app-v5-table-shell [class*="text-[#F8FAFC]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *) {
+.app-v5-identity .app-v5-table-shell [class*="text-[#F8FAFC]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-[#F1F5F9]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-[#E2E8F0]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-[#CBD5E1]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-slate-200"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-slate-300"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-zinc-200"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-zinc-300"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *) {
   color: var(--axe-v5-ink) !important;
 }
 
@@ -7064,13 +7098,24 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class~="text-gray-500"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
 .app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#7F8B9C]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
 .app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#64748B]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-[#94A3B8]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-slate-400"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-slate-500"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-zinc-400"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-panel:not(.inventory-pulse-board):not(.library-reading-room):not(.app-metric-rail):not(.gallery-archive-ribbon) [class*="text-zinc-500"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
 .app-v5-identity .app-v5-table-shell [class~="text-gray-400"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
-.app-v5-identity .app-v5-table-shell [class~="text-gray-500"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *) {
-  color: var(--axe-v5-muted) !important;
+.app-v5-identity .app-v5-table-shell [class~="text-gray-500"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-[#7F8B9C]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-[#64748B]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-[#94A3B8]"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-slate-400"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-slate-500"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *),
+.app-v5-identity .app-v5-table-shell [class*="text-zinc-400"]:not([class*="bg-[#1"] *):not([class*="bg-[#0"] *):not([class*="bg-black"] *) {
+  color: #4f473c !important;
 }
 
 .app-v5-identity .app-v5-canvas .app-v5-field {
-  border-color: rgba(107, 94, 76, 0.2) !important;
+  border-color: rgba(107, 94, 76, 0.3) !important;
   background: #f7f1e7 !important;
   color: var(--axe-v5-ink) !important;
   caret-color: var(--axe-v5-forest);
@@ -7078,17 +7123,19 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .app-v5-canvas .app-v5-field::placeholder {
-  color: #9b9184 !important;
+  color: #655d52 !important;
+  opacity: 1 !important;
 }
 
 .app-v5-identity .app-v5-canvas .app-v5-field:focus {
-  border-color: rgba(82, 106, 85, 0.58) !important;
-  box-shadow: 0 0 0 3px rgba(82, 106, 85, 0.1);
+  border-color: rgba(82, 106, 85, 0.75) !important;
+  box-shadow: 0 0 0 3px rgba(82, 106, 85, 0.15) !important;
 }
 
 .app-v5-identity .app-v5-canvas .app-v5-label {
-  color: #6f675c !important;
-  letter-spacing: 0.1em;
+  color: #3d362d !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
 }
 
 .app-v5-identity .app-v5-primary-button {
@@ -7108,7 +7155,15 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .app-v5-table-shell thead {
-  background: rgba(82, 106, 85, 0.07);
+  background: rgba(82, 106, 85, 0.09) !important;
+  border-bottom: 1px solid rgba(107, 94, 76, 0.18) !important;
+}
+
+.app-v5-identity .app-v5-table-shell thead th,
+.app-v5-identity .app-v5-table-shell thead th * {
+  color: #2b241b !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
 }
 
 .app-v5-identity .app-v5-table-shell tr + tr {
@@ -9798,92 +9853,31 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Sidebar expansÃ­vel â€” compacto em repouso e completo ao passar o mouse. */
+/* Sidebar AxéCloud — nítido, sem GPU transform blur, perfeitamente sincronizado */
 @media (min-width: 880px) {
   .app-v5-sidebar {
-    contain: layout style;
-    transform: translate3d(calc(-100% + 4.75rem), 0, 0);
-    backface-visibility: hidden;
-    will-change: transform;
-    transition:
-      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 180ms ease-out;
+    width: var(--app-sidebar-width, 15rem);
+    transform: none !important;
+    backface-visibility: visible;
+    will-change: auto;
+    transition: none !important;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
+    box-shadow: 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .app-v5-sidebar[data-expanded='false'] {
+    width: 4.75rem !important;
   }
 
   .app-v5-sidebar[data-expanded='true'] {
-    transform: translate3d(0, 0, 0);
-  }
-
-  .app-v5-sidebar[data-expanded='true'] {
-    box-shadow:
-      22px 0 50px rgba(5, 7, 10, 0.2),
-      1px 0 0 rgba(255, 255, 255, 0.025);
-  }
-
-  .app-v5-sidebar[data-expanded='false'] .app-v5-brand button,
-  .app-v5-sidebar[data-expanded='false'] > div:nth-of-type(2) > p {
-    width: 3.75rem;
-    margin-left: auto;
-  }
-
-  .app-v5-sidebar[data-expanded='false'] .app-v5-primary-nav {
-    align-items: flex-end;
-  }
-
-  .app-v5-sidebar[data-expanded='false'] .app-v5-sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-  }
-
-  .app-v5-sidebar[data-expanded='false'] .app-v5-sidebar-footer > div,
-  .app-v5-sidebar[data-expanded='false'] .app-v5-sidebar-footer > button {
-    width: 2.5rem;
-  }
-
-  .app-v5-sidebar[data-expanded='false'] .app-v5-brand {
-    background:
-      radial-gradient(circle at 50% 10%, rgba(255, 199, 0, 0.08), transparent 62%),
-      #0b0d11;
-  }
-
-  .app-v5-sidebar[data-expanded='true'] .app-v5-sidebar-copy {
-    animation: axecloud-sidebar-copy-in 220ms 70ms both ease-out;
-  }
-
-  .app-v5-sidebar[data-expanded='true'] .app-v5-primary-nav {
-    animation: axecloud-sidebar-nav-in 240ms 35ms both ease-out;
-  }
-
-  .app-v5-sidebar[data-expanded='false'] .app-v5-primary-nav button {
-    box-shadow: none;
+    width: 15rem !important;
   }
 
   .app-v5-sidebar-toggle[aria-pressed='true'] {
     border-color: rgba(255, 199, 0, 0.5);
     color: #ffc700;
-  }
-}
-
-@keyframes axecloud-sidebar-copy-in {
-  from {
-    opacity: 0;
-    transform: translateX(-0.45rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes axecloud-sidebar-nav-in {
-  from {
-    opacity: 0.72;
-    transform: translateX(-0.25rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 
@@ -15686,4 +15680,41 @@ html:has(.dashboard-reference){--app-sidebar-width:100px!important}
   }
   .app-v5-identity .preceito-brasa__ember { display: none; }
   .app-v5-identity .preceito-brasa .preceito-command-art__content > button { transition: none; }
+}
+
+/* ==========================================================================
+   PERFORMANCE: Elimina travamentos, lag e animações contínuas na aplicação
+   ========================================================================== */
+.app-v5-identity .app-view-transition,
+.app-v5-identity .app-view-continuity {
+  animation: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+.app-v5-identity .dashboard-v5-hero__foliage,
+.app-v5-identity .dashboard-v5-hero__foliage--canopy,
+.app-v5-identity .dashboard-v5-hero__foliage--edge,
+.app-v5-identity .dashboard-v5-hero__light,
+.app-v5-identity .dashboard-v5-hero__embers,
+.app-v5-identity .dashboard-v5-hero__energy-glow,
+.app-v5-identity .dashboard-v5-hero__energy-line,
+.app-v5-identity .dashboard-v5-hero [class*='foliage'],
+.app-v5-identity .dashboard-v5-hero [class*='embers'],
+.app-v5-identity .dashboard-v5-hero [class*='energy'] {
+  animation: none !important;
+  will-change: auto !important;
+}
+
+.app-v5-identity [class*='whatsapp-pulse'],
+.app-v5-identity [class*='whatsapp-card-alive'],
+.app-v5-identity [class*='whatsapp-icon-alive'],
+.app-v5-identity [class*='whatsapp-dot-alive'],
+.app-v5-identity .command-pulse__title svg,
+.app-v5-identity .preceito-brasa__arc,
+.app-v5-identity .preceito-brasa__core,
+.app-v5-identity .preceito-brasa__signal,
+.app-v5-identity .preceito-brasa__ember {
+  animation: none !important;
+  will-change: auto !important;
 }

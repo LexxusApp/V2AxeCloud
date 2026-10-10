@@ -113,6 +113,30 @@ export function buildCobrancaAssinaturaComponents(
   }];
 }
 
+/** Corpo do template com Pix Copia e Cola dinâmico para renovação da assinatura. */
+export function buildCobrancaAssinaturaPixComponents(
+  nome: string,
+  terreiro: string,
+  vencimento: string,
+  valor: string,
+  pixCopiaECola: string,
+): MetaTemplateComponent[] {
+  const text = (value: string, max: number): MetaTemplateTextParam => ({
+    type: "text",
+    text: String(value || "").trim().slice(0, max) || "-",
+  });
+  return [{
+    type: "body",
+    parameters: [
+      text(nome || "Zelador", 60),
+      text(terreiro || "Terreiro", 80),
+      text(vencimento, 80),
+      text(valor, 30),
+      text(pixCopiaECola, 1024),
+    ],
+  }];
+}
+
 /** Nome do template aprovado na Meta para o tipo de notificação. */
 export function resolveMetaTemplateName(tipo: string): string {
   const normalized = String(tipo || "")

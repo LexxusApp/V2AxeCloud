@@ -28,9 +28,9 @@ type QueueInput = {
   scheduledAt?: unknown;
 };
 
-const INITIAL_TEMPLATE = "axecloud_prospeccao_inicial";
-const FOLLOWUP_1_TEMPLATE = "axecloud_prospeccao_retorno_1";
-const FOLLOWUP_2_TEMPLATE = "axecloud_prospeccao_retorno_final";
+const INITIAL_TEMPLATE = "axecloud_prospeccao_v2";
+const FOLLOWUP_1_TEMPLATE = "axecloud_prospeccao_retorno_1_v2";
+const FOLLOWUP_2_TEMPLATE = "axecloud_prospeccao_despedida_v3";
 const DIRECTORY_SELECT = "nome,endereco,telefone,foto_url,owner_photo_url,link_maps,instagram_url,cidade,estado,bairro,tipo,slug,latitude,longitude,claimed_by_tenant_id,verified_at,gira_horarios";
 let directoryCache: { expiresAt: number; items: Record<string, unknown>[] } | null = null;
 
@@ -424,13 +424,13 @@ export async function runGrowthProspectingTick(supabase: SupabaseClient) {
     for (const row of followups || []) {
       if (!remaining || !row.sent_at) break;
       const followupCount = Number(row.followup_count || 0);
-      const dueDays = followupCount === 0 ? 3 : 7;
+      const dueDays = followupCount === 0 ? 3 : 10;
       if (Date.now() < Date.parse(row.sent_at) + dueDays * 86_400_000) continue;
       const prospect = Array.isArray((row as any).growth_prospects) ? (row as any).growth_prospects[0] : (row as any).growth_prospects;
       if (!prospect?.consent_at || prospect?.opt_out_at) continue;
       const templateName = followupCount === 0
-        ? process.env.WA_META_TEMPLATE_GROWTH_FOLLOWUP_1 || FOLLOWUP_1_TEMPLATE
-        : process.env.WA_META_TEMPLATE_GROWTH_FOLLOWUP_2 || FOLLOWUP_2_TEMPLATE;
+        ? (process.env.WA_META_TEMPLATE_GROWTH_FOLLOWUP_1 || FOLLOWUP_1_TEMPLATE)
+        : (process.env.WA_META_TEMPLATE_GROWTH_FOLLOWUP_2 || FOLLOWUP_2_TEMPLATE);
       try {
         const result = await sendMetaCloudTemplate(
           prospect.phone_e164,
