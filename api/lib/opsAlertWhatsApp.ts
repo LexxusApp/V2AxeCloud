@@ -151,3 +151,45 @@ export async function notifyOpsNewTerreiro(opts: {
 
   return { sent, skipped: sent > 0 ? "" : "send-failed" };
 }
+
+/**
+ * Notifica o WhatsApp do operador quando o Self-Healing identifica uma falha persistente real.
+ */
+export async function notifyOpsPersistentFailure(opts: {
+  failureId: string;
+  feature: string;
+  route?: string | null;
+  error_message: string;
+  tenant_nome?: string | null;
+}): Promise<void> {
+  const phones = resolveOpsAlertPhones();
+  const phoneList = phones.length ? phones : ["5511920033501"];
+  const summary = `Falha em ${opts.feature}: ${opts.error_message.slice(0, 60)}`;
+
+  for (const phone of phoneList) {
+    try {
+      const { isMetaCloudDirectConfigured, sendMetaCloudTemplate } = await import("./metaCloudSend.js");
+      if (isMetaCloudDirectConfigured()) {
+        await sendMetaCloudTemplate(
+          phone,
+          "aviso_geral_axecloud",
+          "pt_BR",
+          [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: "Lucas" },
+                { type: "text", text: summary.slice(0, 100) },
+              ],
+            },
+          ],
+          { source: "ops_persistent_failure" }
+        );
+        console.log(`[ops-alert] Alerta de falha persistente enviado via WhatsApp para ${phone}`);
+      }
+    } catch (err: unknown) {
+      console.warn(`[ops-alert] falha ao notificar WhatsApp ${phone}:`, err);
+    }
+  }
+}
+

@@ -316,6 +316,35 @@ export async function runSelfHealingTick(
           reason: diag.reason,
         });
         console.warn(`[SELF-HEALING PERSISTENTE] Falha ${failure.id} (${failure.feature}): ${diag.reason}`);
+
+        // Fase 2: Alerta proativo no WhatsApp de Operações (Lucas) se ainda não tiver alertado
+        if (!failure.metadata?.ops_alerted_at) {
+          const nowIso = new Date().toISOString();
+          try {
+            const { notifyOpsPersistentFailure } = await import("./opsAlertWhatsApp.js");
+            void notifyOpsPersistentFailure({
+              failureId: failure.id,
+              feature: failure.feature,
+              route: failure.route,
+              error_message: failure.error_message,
+              tenant_nome: (failure.metadata as any)?.terreiro_nome || null,
+            });
+
+            await sb
+              .from("tenant_feature_failures")
+              .update({
+                metadata: {
+                  ...(failure.metadata || {}),
+                  ops_alerted_at: nowIso,
+                  self_healing_status: "persistent_requires_code_patch",
+                  last_diagnostic: diag.reason,
+                },
+              })
+              .eq("id", failure.id);
+          } catch (alertErr) {
+            console.warn(`[SELF-HEALING] Erro ao disparar alerta WhatsApp:`, alertErr);
+          }
+        }
       }
     } catch (err: unknown) {
       persistent++;
