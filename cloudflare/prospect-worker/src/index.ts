@@ -26,6 +26,7 @@ import { listAvailableProviders } from './providers/providerRegistry.js';
 import { FollowUpService } from './services/followup/FollowUpService.js';
 import { ChatOnboardingService } from './services/onboarding/ChatOnboardingService.js';
 import { AutonomousProspectingService } from './services/outreach/AutonomousProspectingService.js';
+import { TrialNurturingService } from './services/nurturing/TrialNurturingService.js';
 
 // Exporta as classes de Workflow para o runtime da Cloudflare
 export { ProspectingDiscoveryWorkflow, ProspectingLeadWorkflow };
@@ -804,6 +805,13 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
       return jsonResponse(result);
     }
 
+    // POST /api/prospecting/nurturing/run
+    if (url.pathname === '/api/prospecting/nurturing/run' && request.method === 'POST') {
+      const trialNurturing = new TrialNurturingService(env);
+      const result = await trialNurturing.processTrialNurturing(true); // force true para teste/disparo manual
+      return jsonResponse(result);
+    }
+
       return jsonResponse({ error: 'Endpoint não encontrado.' }, 404);
     } catch (err: any) {
       console.error('[API Error in route handler]', err);
@@ -945,6 +953,20 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
           console.log('[Cron:Outreach] Ciclo de prospecção autônoma concluído:', res);
         } catch (oErr) {
           console.warn('[Cron:Outreach] Falha ao processar ciclo de prospecção autônoma:', oErr);
+        }
+      })(),
+    );
+
+    // 4. Régua de ativação e acompanhamento de terreiros em teste (Trial Nurturing - dias 1, 7, 20, 27, 29, 30)
+    ctx.waitUntil(
+      (async () => {
+        try {
+          console.log('[Cron:TrialNurturing] Processando régua de acompanhamento de terreiros em teste...');
+          const trialNurturing = new TrialNurturingService(env);
+          const res = await trialNurturing.processTrialNurturing(false);
+          console.log('[Cron:TrialNurturing] Régua concluída com sucesso:', res);
+        } catch (tErr) {
+          console.warn('[Cron:TrialNurturing] Falha ao processar régua de acompanhamento de teste:', tErr);
         }
       })(),
     );

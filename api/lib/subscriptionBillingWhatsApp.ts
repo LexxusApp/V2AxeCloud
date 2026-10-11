@@ -158,7 +158,7 @@ export async function runSubscriptionBillingReminders(
       const leaderId = await resolveLeaderId(sb, tenantRef);
       const { data: profile } = await sb
         .from("perfil_lider")
-        .select("id, tenant_id, nome_terreiro, cargo, email")
+        .select("id, tenant_id, nome_terreiro, cargo, email, whatsapp, whatsapp_publico")
         .eq("id", leaderId)
         .maybeSingle();
       if (!profile) {
@@ -166,7 +166,21 @@ export async function runSubscriptionBillingReminders(
         continue;
       }
       const authResult = await sb.auth.admin.getUserById(leaderId);
-      const phone = normalizeBrazilMsisdn(String(authResult.data?.user?.user_metadata?.whatsapp || ""));
+      let phone = normalizeBrazilMsisdn(
+        String(authResult.data?.user?.user_metadata?.whatsapp || profile.whatsapp || profile.whatsapp_publico || "")
+      );
+      if (!phone) {
+        const { data: lastLog } = await sb
+          .from("whatsapp_logs")
+          .select("telefone")
+          .eq("tenant_id", leaderId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lastLog?.telefone) {
+          phone = normalizeBrazilMsisdn(String(lastLog.telefone));
+        }
+      }
       if (!phone) {
         skipped++;
         continue;

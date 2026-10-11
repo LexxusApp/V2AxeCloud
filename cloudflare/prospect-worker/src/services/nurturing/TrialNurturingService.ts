@@ -52,12 +52,13 @@ export class TrialNurturingService {
       'Content-Type': 'application/json',
     };
 
-    // 1. Busca assinaturas em período de teste (sem payment_provider e não expiradas)
+    // 1. Busca assinaturas em período de teste (sem fatura paga confirmada e com validade de até 45 dias)
     const nowIso = new Date().toISOString();
+    const maxTrialIso = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString();
     const subsRes = await fetch(
-      `${this.supabaseUrl}/rest/v1/subscriptions?status=in.(active,trial)&payment_provider=is.null&expires_at=gte.${encodeURIComponent(
+      `${this.supabaseUrl}/rest/v1/subscriptions?status=in.(active,trial)&efi_charge_id=is.null&expires_at=gte.${encodeURIComponent(
         nowIso,
-      )}&order=created_at.desc&limit=50`,
+      )}&expires_at=lte.${encodeURIComponent(maxTrialIso)}&order=created_at.desc&limit=50`,
       { headers },
     );
 
