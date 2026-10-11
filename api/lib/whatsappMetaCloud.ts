@@ -46,8 +46,8 @@ const CONTA_ATIVA_TEMPLATE = "conta_ativa_axecloud";
  * APPROVED Utility — melhor que conta_ativa (portal) e que guia_membro_portal (sem registro).
  */
 const ACESSO_MEMBRO_GUIA_TEMPLATE = "acesso_membro_guia_axecloud";
-/** Boas-vindas zelador (cadastro de terreiro) — botão estático /instrucoes */
-const BOAS_VINDAS_ZELADOR_TEMPLATE = "boas_vindas_zelador_v2_axecloud";
+/** Boas-vindas zelador (cadastro de terreiro) — sem promessa de contato manual */
+const BOAS_VINDAS_ZELADOR_TEMPLATE = "boas_vindas_zelador_conta_axecloud";
 /** Legado: 3 vars (zelador, terreiro, e-mail) */
 const BOAS_VINDAS_ZELADOR_LEGACY_TEMPLATE = "boas_vindas_zelador_axecloud";
 /** Alias histórico `guia_membro` → mesmo template de acesso com registro + guia */
