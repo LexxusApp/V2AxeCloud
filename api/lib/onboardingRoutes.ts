@@ -18,6 +18,10 @@ import { safeErrorMessage } from "./safeError.js";
 import { checkPasswordExposure } from "./pwnedPassword.js";
 import { validateStrongPassword } from "../../lib/passwordPolicy.js";
 import { createAuditLog } from "./createAuditLog.js";
+import { recordPaymentEvent, paymentEventKey } from "./paymentEvents.js";
+import { normalizeBillingCycle } from "./plansCatalog.js";
+import { sendMetaCloudTemplate } from "./metaCloudSend.js";
+import { resolveMetaTemplateLanguage } from "./whatsappMetaCloud.js";
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -235,6 +239,108 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
 
   app.post("/api/webhooks/efi", webhookRateLimit, async (req: Request, res: Response) => {
     try {
+      // 1. Webhook oficial Pix Efí (Banco Central)
+      if (req.body && Array.isArray(req.body.pix)) {
+        const pixList = req.body.pix as Array<Record<string, unknown>>;
+        if (pixList.length === 0) {
+          // Handshake de validação da URL da Efí
+          return res.status(200).send("OK");
+        }
+
+        for (const pixItem of pixList) {
+          const txid = String(pixItem?.txid || "").trim();
+          if (!txid) continue;
+
+          console.log(`[EFI PIX WEBHOOK] Processando Pix txid=${txid}`);
+          const { data: sub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, efi_pix_txid, last_activated_charge_id")
+            .or(`efi_pix_txid.eq.${txid},efi_charge_id.eq.pix:${txid}`)
+            .maybeSingle();
+
+          if (sub && String(sub.last_activated_charge_id || "") !== `pix:${txid}`) {
+            const billingCycle = normalizeBillingCycle(sub.pending_billing_cycle || sub.billing_cycle);
+            const valorNum = Number(pixItem?.valor) || 0;
+            const amountCents = valorNum > 0 ? Math.round(valorNum * 100) : 6990;
+
+            await activateTenantSubscription(supabaseAdmin, sub.id, {
+              chargeId: `pix:${txid}`,
+              provider: "efi_pix",
+              billingCycle,
+            });
+
+            await recordPaymentEvent(supabaseAdmin, {
+              provider: "efi_pix",
+              externalId: paymentEventKey([txid, "status", "paid"]),
+              tenantId: sub.id,
+              eventType: "payment_confirmed",
+              status: "paid",
+              paymentMethod: "pix",
+              amountCents,
+              billingCycle,
+              chargeId: txid,
+              message: "Pagamento PIX confirmado via webhook da Efí.",
+              metadata: { pixItem },
+            });
+
+            // Envia template WhatsApp de confirmação
+            try {
+              const { data: leader } = await supabaseAdmin
+                .from("perfil_lider")
+                .select("cargo, nome_terreiro, whatsapp, whatsapp_publico")
+                .eq("id", sub.id)
+                .maybeSingle();
+
+              let phone = String(leader?.whatsapp || leader?.whatsapp_publico || "").replace(/\D/g, "");
+              if (phone) {
+                if (phone.length === 10) phone = `${phone.slice(0, 2)}9${phone.slice(2)}`;
+                if (!phone.startsWith("55")) phone = `55${phone}`;
+
+                const { data: updatedSub } = await supabaseAdmin
+                  .from("subscriptions")
+                  .select("expires_at")
+                  .eq("id", sub.id)
+                  .single();
+
+                const expDate = new Date(updatedSub?.expires_at || Date.now() + 30 * 86400000);
+                const validadeFormatada = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(expDate);
+
+                const nomeZelador = String(leader?.cargo || "Zelador").trim();
+                const valorLabel = `R$ ${(amountCents / 100).toFixed(2).replace(".", ",")}`;
+
+                await sendMetaCloudTemplate(
+                  phone,
+                  "confirmacao_assinatura_pix_axecloud",
+                  resolveMetaTemplateLanguage(),
+                  [
+                    {
+                      type: "body",
+                      parameters: [
+                        { type: "text", text: nomeZelador },
+                        { type: "text", text: valorLabel },
+                        { type: "text", text: String(leader?.nome_terreiro || "Terreiro") },
+                        { type: "text", text: validadeFormatada },
+                      ],
+                    },
+                  ],
+                  {
+                    tenantId: sub.id,
+                    recipientName: nomeZelador,
+                    source: "billing",
+                    sourceId: sub.id,
+                  }
+                );
+              }
+            } catch (waErr) {
+              console.warn("[EFI PIX WEBHOOK] Notificação WhatsApp falhou:", waErr);
+            }
+          }
+        }
+
+        return res.status(200).send("OK");
+      }
+
+      // 2. Fluxo legado (Boleto/Cartão com token de notificação)
       if (!verifyEfiWebhook(req)) {
         console.warn("[EFI WEBHOOK] secret inválido ou ausente");
         return res.status(401).send("Unauthorized");
