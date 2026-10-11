@@ -11,8 +11,8 @@ const DEFAULT_LANGUAGE = "pt_BR";
 const DEFAULT_TEMPLATE = "aviso_geral_axecloud";
 /** Convidados (RSVP): corpo 5 vars + 2 botões URL dinâmicos */
 const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
-/** Membros / corrente: aviso de gira ou evento no calendário */
-const AVISO_GIRA_TEMPLATE = "aviso_gira_axecloud";
+/** Membros / corrente: aviso humanizado de gira (aprovado na Meta) */
+const AVISO_GIRA_TEMPLATE = "aviso_gira_lembrete_membro_axecloud";
 /** Lembrete humanizado de gira para membros da corrente */
 const AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE = "aviso_gira_lembrete_membro_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
