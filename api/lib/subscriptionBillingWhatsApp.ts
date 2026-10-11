@@ -10,8 +10,82 @@ import {
   resolveMetaTemplateLanguage,
 } from "./whatsappMetaCloud.js";
 
-const TEMPLATE = "cobranca_assinatura_pix_v2_axecloud";
+const TEMPLATE = "cobranca_assinatura_pix_order_img_v1";
 const BR_TZ = "America/Sao_Paulo";
+
+function buildCobrancaAssinaturaOrderDetailsComponents(
+  nome: string,
+  terreiro: string,
+  vencimento: string,
+  amountCents: number,
+  pixCode: string,
+  pixKey: string,
+  mediaIdOrUrl = "1159299646430694",
+): any[] {
+  const headerParam: Record<string, unknown> = mediaIdOrUrl.startsWith("http")
+    ? { type: "image", image: { link: mediaIdOrUrl } }
+    : { type: "image", image: { id: mediaIdOrUrl } };
+
+  return [
+    {
+      type: "header",
+      parameters: [headerParam],
+    },
+    {
+      type: "body",
+      parameters: [
+        { type: "text", text: String(nome || "Zelador").slice(0, 60) },
+        { type: "text", text: String(terreiro || "Terreiro").slice(0, 80) },
+        { type: "text", text: String(vencimento).slice(0, 80) },
+      ],
+    },
+    {
+      type: "button",
+      sub_type: "order_details",
+      index: 0,
+      parameters: [
+        {
+          type: "action",
+          action: {
+            order_details: {
+              reference_id: `OR_${Date.now()}`,
+              type: "digital-goods",
+              payment_type: "br",
+              currency: "BRL",
+              total_amount: {
+                value: amountCents,
+                offset: 100,
+              },
+              payment_settings: [
+                {
+                  type: "pix_dynamic_code",
+                  pix_dynamic_code: {
+                    code: pixCode,
+                    merchant_name: "AxéCloud",
+                    key: pixKey,
+                    key_type: "EVP",
+                  },
+                },
+              ],
+              order: {
+                status: "pending",
+                items: [
+                  {
+                    retailer_id: "axecloud-premium",
+                    name: "Plano Premium AxéCloud",
+                    amount: { value: amountCents, offset: 100 },
+                    quantity: 1,
+                  },
+                ],
+                subtotal: { value: amountCents, offset: 100 },
+              },
+            },
+          },
+        },
+      ],
+    },
+  ];
+}
 
 function saoPauloYmd(date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -118,18 +192,11 @@ export async function runSubscriptionBillingReminders(
         ? `vence amanha, no dia ${formatDateBr(expiryYmd)}`
         : `vence hoje, no dia ${formatDateBr(expiryYmd)}`;
       const templateName = String(process.env.WA_META_TEMPLATE_COBRANCA_ASSINATURA || "").trim() || TEMPLATE;
-      const components = buildCobrancaAssinaturaComponents(
-        firstName(profile.cargo),
-        String(profile.nome_terreiro || "Seu terreiro"),
-        expiryLabel,
-        valueLabel,
-      );
-
-      // Tenta gerar cobrança Pix imediata na Efí para envio do código isolado
+      const pixEnv = resolveEfiPixEnv();
       let pixCopyPaste: string | null = null;
-      try {
-        const pixEnv = resolveEfiPixEnv();
-        if (pixEnv) {
+
+      if (pixEnv) {
+        try {
           const charge = await efiPixCreateImmediateCharge(pixEnv, {
             tenantId: leaderId,
             amountCents: amount,
@@ -140,12 +207,37 @@ export async function runSubscriptionBillingReminders(
           if (charge?.copyPaste) {
             pixCopyPaste = charge.copyPaste;
           }
+        } catch (pixErr) {
+          console.warn("[SUBSCRIPTION WA] Falha ao gerar Pix imediato Efí:", pixErr);
         }
-      } catch (pixErr) {
-        console.warn("[SUBSCRIPTION WA] Falha ao gerar Pix imediato Efí para envio isolado:", pixErr);
       }
 
-      const out = await sendMetaCloudTemplate(phone, templateName, resolveMetaTemplateLanguage(), components, {
+      const isOrderImgTemplate =
+        (templateName === "cobranca_assinatura_pix_order_img_v1" || templateName === TEMPLATE) &&
+        Boolean(pixCopyPaste && pixEnv?.pixKey);
+
+      const resolvedTemplate = isOrderImgTemplate
+        ? "cobranca_assinatura_pix_order_img_v1"
+        : "cobranca_assinatura_pix_v2_axecloud";
+
+      const components = isOrderImgTemplate
+        ? buildCobrancaAssinaturaOrderDetailsComponents(
+            firstName(profile.cargo),
+            String(profile.nome_terreiro || "Seu terreiro"),
+            expiryLabel,
+            amount,
+            pixCopyPaste!,
+            pixEnv!.pixKey,
+            String(process.env.WA_BILLING_BANNER_MEDIA_ID || "1159299646430694").trim(),
+          )
+        : buildCobrancaAssinaturaComponents(
+            firstName(profile.cargo),
+            String(profile.nome_terreiro || "Seu terreiro"),
+            expiryLabel,
+            valueLabel,
+          );
+
+      const out = await sendMetaCloudTemplate(phone, resolvedTemplate, resolveMetaTemplateLanguage(), components, {
         tenantId: leaderId,
         recipientName: String(profile.cargo || "Zelador"),
         source: "billing",
@@ -154,8 +246,8 @@ export async function runSubscriptionBillingReminders(
         metadata: { billingCycle: cycle, expiresAt: expiryYmd, offset },
       });
 
-      // Envia o código Pix Copia e Cola em mensagem separada para facilitar a cópia com 1 clique
-      if (pixCopyPaste) {
+      // No template interativo com foto e botão 'Copiar código Pix', NÃO envia segunda mensagem
+      if (!isOrderImgTemplate && pixCopyPaste) {
         try {
           await new Promise((r) => setTimeout(r, 1200));
           const pixTemplate = String(process.env.WA_META_TEMPLATE_CODIGO_PIX || "codigo_pix_pagamento_v1_axecloud").trim();
