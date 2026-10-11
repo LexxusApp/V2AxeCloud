@@ -10,7 +10,7 @@ import {
   resolveMetaTemplateLanguage,
 } from "./whatsappMetaCloud.js";
 
-const TEMPLATE = "cobranca_assinatura_axecloud";
+const TEMPLATE = "cobranca_assinatura_pix_v2_axecloud";
 const BR_TZ = "America/Sao_Paulo";
 
 function saoPauloYmd(date = new Date()): string {
@@ -157,12 +157,28 @@ export async function runSubscriptionBillingReminders(
       if (pixCopyPaste) {
         try {
           await new Promise((r) => setTimeout(r, 1200));
-          await sendMetaCloudText(phone, pixCopyPaste, {
-            tenantId: leaderId,
-            recipientName: String(profile.cargo || "Zelador"),
-            source: "billing_pix_code",
-            idempotencyKey: `subscription-pix-code:${leaderId}:${expiryYmd}:d${offset}`,
-          });
+          const pixTemplate = String(process.env.WA_META_TEMPLATE_CODIGO_PIX || "codigo_pix_pagamento_v1_axecloud").trim();
+          try {
+            await sendMetaCloudTemplate(
+              phone,
+              pixTemplate,
+              resolveMetaTemplateLanguage(),
+              [{ type: "body", parameters: [{ type: "text", text: pixCopyPaste }] }],
+              {
+                tenantId: leaderId,
+                recipientName: String(profile.cargo || "Zelador"),
+                source: "billing_pix_code",
+                idempotencyKey: `subscription-pix-code:${leaderId}:${expiryYmd}:d${offset}`,
+              }
+            );
+          } catch {
+            await sendMetaCloudText(phone, pixCopyPaste, {
+              tenantId: leaderId,
+              recipientName: String(profile.cargo || "Zelador"),
+              source: "billing_pix_code",
+              idempotencyKey: `subscription-pix-code:${leaderId}:${expiryYmd}:d${offset}`,
+            });
+          }
         } catch (textErr) {
           console.warn("[SUBSCRIPTION WA] Falha ao enviar código Pix em mensagem separada:", textErr);
         }
