@@ -15727,39 +15727,3 @@ html:has(.dashboard-reference){--app-sidebar-width:100px!important}
   .app-v5-identity .preceito-brasa .preceito-command-art__content > button { transition: none; }
 }
 
-/* ==========================================================================
-   PERFORMANCE: Elimina travamentos, lag e animações contínuas na aplicação
-   ========================================================================== */
-.app-v5-identity .app-view-transition,
-.app-v5-identity .app-view-continuity {
-  animation: none !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-.app-v5-identity .dashboard-v5-hero__foliage,
-.app-v5-identity .dashboard-v5-hero__foliage--canopy,
-.app-v5-identity .dashboard-v5-hero__foliage--edge,
-.app-v5-identity .dashboard-v5-hero__light,
-.app-v5-identity .dashboard-v5-hero__embers,
-.app-v5-identity .dashboard-v5-hero__energy-glow,
-.app-v5-identity .dashboard-v5-hero__energy-line,
-.app-v5-identity .dashboard-v5-hero [class*='foliage'],
-.app-v5-identity .dashboard-v5-hero [class*='embers'],
-.app-v5-identity .dashboard-v5-hero [class*='energy'] {
-  animation: none !important;
-  will-change: auto !important;
-}
-
-.app-v5-identity [class*='whatsapp-pulse'],
-.app-v5-identity [class*='whatsapp-card-alive'],
-.app-v5-identity [class*='whatsapp-icon-alive'],
-.app-v5-identity [class*='whatsapp-dot-alive'],
-.app-v5-identity .command-pulse__title svg,
-.app-v5-identity .preceito-brasa__arc,
-.app-v5-identity .preceito-brasa__core,
-.app-v5-identity .preceito-brasa__signal,
-.app-v5-identity .preceito-brasa__ember {
-  animation: none !important;
-  will-change: auto !important;
-}
