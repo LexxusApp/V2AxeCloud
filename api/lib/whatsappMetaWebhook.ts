@@ -189,8 +189,24 @@ export async function processMetaCloudWebhook(
   const statuses = await applyMetaCloudStatusUpdates(sb, body);
   let inbound = 0;
   try {
-    const { storeMetaInboundMessages } = await import("./adminWhatsAppInbox.js");
+    const { extractMetaInboundMessages, storeMetaInboundMessages } = await import(
+      "./adminWhatsAppInbox.js"
+    );
     inbound = await storeMetaInboundMessages(sb, body);
+
+    const inboundList = extractMetaInboundMessages(body);
+    if (inboundList.length > 0) {
+      const { handleGiraAttendanceInbound } = await import(
+        "./whatsappGiraAttendanceHandler.js"
+      );
+      for (const msg of inboundList) {
+        try {
+          await handleGiraAttendanceInbound(sb, msg);
+        } catch (attErr) {
+          console.warn("[GIRA ATTENDANCE] falha ao processar presença via WhatsApp:", attErr);
+        }
+      }
+    }
   } catch (err) {
     console.warn(
       "[WHATSAPP INBOX] store inbound falhou:",

@@ -11,10 +11,10 @@ const DEFAULT_LANGUAGE = "pt_BR";
 const DEFAULT_TEMPLATE = "aviso_geral_axecloud";
 /** Convidados (RSVP): corpo 5 vars + 2 botões URL dinâmicos */
 const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
-/** Membros / corrente: aviso humanizado de gira (aprovado na Meta) */
-const AVISO_GIRA_TEMPLATE = "aviso_gira_lembrete_membro_axecloud";
-/** Lembrete humanizado de gira para membros da corrente */
-const AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE = "aviso_gira_lembrete_membro_axecloud";
+/** Membros / corrente: aviso humanizado de gira com botões rápidos (aprovado na Meta) */
+const AVISO_GIRA_TEMPLATE = "aviso_gira_lembrete_botoes_axecloud";
+/** Lembrete humanizado de gira para membros da corrente (com ou sem botões) */
+const AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE = "aviso_gira_lembrete_botoes_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
 const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
 /** Lembrete automático/manual de mensalidade pendente (cron semanal; fallback Meta) */
@@ -279,7 +279,8 @@ export function isAvisoGiraLembreteMembroTemplate(
   const name = String(templateNameOverride || "").trim() || resolveMetaTemplateName(tipo);
   return (
     name === AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE ||
-    name.includes("lembrete_membro")
+    name.includes("lembrete_membro") ||
+    name.includes("lembrete_botoes")
   );
 }
 

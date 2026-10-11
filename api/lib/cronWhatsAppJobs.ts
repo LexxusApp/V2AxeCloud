@@ -535,12 +535,39 @@ export async function dispatchGiraWhatsApp(
         const nomeMembro = String(child.nome || "Filho");
         const suffix = String(options?.messageSuffix || "").trim();
         const baseMsg = `Gira: ${event.titulo} — ${dataEvento} ${horaEvento} (${quandoGira})`;
+        const eventMarker = event.id ? ` [event_id:${event.id}]` : "";
+        const fullAuditMsg = suffix ? `${baseMsg} [${suffix}]${eventMarker}` : `${baseMsg}${eventMarker}`;
+
+        if (event.id) {
+          try {
+            const { data: existingPart } = await sb
+              .from("evento_participantes")
+              .select("id")
+              .eq("event_id", event.id)
+              .eq("filho_id", child.id)
+              .maybeSingle();
+
+            if (!existingPart) {
+              const { randomBytes } = await import("crypto");
+              await sb.from("evento_participantes").insert({
+                event_id: event.id,
+                filho_id: child.id,
+                tenant_id: tenantId,
+                status: "pendente",
+                checkin_token: randomBytes(24).toString("base64url"),
+              });
+            }
+          } catch (partErr) {
+            console.warn(`[GIRA WA] erro ao registrar participante pendente filho=${child.id}:`, partErr);
+          }
+        }
+
         const out = await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: String(child.id),
           tipo: "aviso_gira",
           phone: digits,
-          message: suffix ? `${baseMsg} [${suffix}]` : baseMsg,
+          message: fullAuditMsg,
           nomeMembro,
           nomeTerreiro: ctx.nomeTerreiro,
           idTerreiro: ctx.idTerreiro,

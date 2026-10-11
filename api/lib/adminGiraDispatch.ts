@@ -33,9 +33,15 @@ export type AdminGiraEventRow = {
 
 const TEMPLATE_OPTIONS: Omit<AdminGiraTemplateOption, "isDefault">[] = [
   {
+    id: "lembrete_botoes",
+    name: "aviso_gira_lembrete_botoes_axecloud",
+    label: "Lembrete com botões interativos (Confirmar / Não poderei ir)",
+    description: "Olá + nome + quando + terreiro + gira + horário + botões de presença rápida",
+  },
+  {
     id: "lembrete_membro",
     name: "aviso_gira_lembrete_membro_axecloud",
-    label: "Lembrete humanizado",
+    label: "Lembrete humanizado padrão",
     description: "Olá + nome + quando + terreiro + gira + horário",
   },
 ];
