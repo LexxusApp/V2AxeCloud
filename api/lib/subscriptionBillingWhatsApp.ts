@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatAmountLabelFromCents, normalizeBillingCycle } from "./plansCatalog.js";
-import { isMetaCloudDirectConfigured, sendMetaCloudTemplate } from "./metaCloudSend.js";
+import { isMetaCloudDirectConfigured, sendMetaCloudTemplate, sendMetaCloudText } from "./metaCloudSend.js";
 import { resolveTenantPremiumAmountCents } from "./premiumPricing.js";
 import { resolveLeaderId } from "./tenantAccess.js";
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
+import { resolveEfiPixEnv, efiPixCreateImmediateCharge } from "./efiPixApi.js";
 import {
   buildCobrancaAssinaturaComponents,
   resolveMetaTemplateLanguage,
@@ -123,6 +124,26 @@ export async function runSubscriptionBillingReminders(
         expiryLabel,
         valueLabel,
       );
+
+      // Tenta gerar cobrança Pix imediata na Efí para envio do código isolado
+      let pixCopyPaste: string | null = null;
+      try {
+        const pixEnv = resolveEfiPixEnv();
+        if (pixEnv) {
+          const charge = await efiPixCreateImmediateCharge(pixEnv, {
+            tenantId: leaderId,
+            amountCents: amount,
+            payerName: String(profile.cargo || profile.nome_terreiro || "Zelador"),
+            description: `AxéCloud Premium — ${profile.nome_terreiro || "Terreiro"}`,
+          });
+          if (charge?.copyPaste) {
+            pixCopyPaste = charge.copyPaste;
+          }
+        }
+      } catch (pixErr) {
+        console.warn("[SUBSCRIPTION WA] Falha ao gerar Pix imediato Efí para envio isolado:", pixErr);
+      }
+
       const out = await sendMetaCloudTemplate(phone, templateName, resolveMetaTemplateLanguage(), components, {
         tenantId: leaderId,
         recipientName: String(profile.cargo || "Zelador"),
@@ -131,6 +152,22 @@ export async function runSubscriptionBillingReminders(
         idempotencyKey: `subscription-billing:${leaderId}:${expiryYmd}:d${offset}`,
         metadata: { billingCycle: cycle, expiresAt: expiryYmd, offset },
       });
+
+      // Envia o código Pix Copia e Cola em mensagem separada para facilitar a cópia com 1 clique
+      if (pixCopyPaste) {
+        try {
+          await new Promise((r) => setTimeout(r, 1200));
+          await sendMetaCloudText(phone, pixCopyPaste, {
+            tenantId: leaderId,
+            recipientName: String(profile.cargo || "Zelador"),
+            source: "billing_pix_code",
+            idempotencyKey: `subscription-pix-code:${leaderId}:${expiryYmd}:d${offset}`,
+          });
+        } catch (textErr) {
+          console.warn("[SUBSCRIPTION WA] Falha ao enviar código Pix em mensagem separada:", textErr);
+        }
+      }
+
       await sb.from("whatsapp_logs").insert({
         tenant_id: leaderId,
         filho_id: null,
