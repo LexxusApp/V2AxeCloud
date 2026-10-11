@@ -93,32 +93,16 @@ async function hasPendingThisMonth(
   monthEnd: string
 ): Promise<boolean> {
   const fid = filhoId.toLowerCase();
-  const { data, error } = await sb
+  const { data } = await sb
     .from("financeiro")
-    .select("id, status, descricao, data, data_vencimento, filho_id")
+    .select("id, status, descricao, data, filho_id")
     .eq("categoria", "Mensalidade")
     .or(`filho_id.eq.${filhoId},descricao.ilike.%ID:${filhoId}%`);
-  if (error) {
-    // fallback sem data_vencimento / filho_id
-    const { data: d2 } = await sb
-      .from("financeiro")
-      .select("id, status, descricao, data, filho_id")
-      .eq("categoria", "Mensalidade")
-      .ilike("descricao", `%ID:${filhoId}%`);
-    for (const row of d2 || []) {
-      if (deriveFilhoIdFromRow(row) !== fid) continue;
-      if (!rowLooksUnpaid(row)) continue;
-      const ymd = String((row as { data?: string }).data || "").slice(0, 10);
-      if (ymd >= monthStart && ymd <= monthEnd) return true;
-    }
-    return false;
-  }
+
   for (const row of data || []) {
     if (deriveFilhoIdFromRow(row) !== fid) continue;
     if (!rowLooksUnpaid(row)) continue;
-    const ymd = String(
-      (row as { data_vencimento?: string }).data_vencimento || (row as { data?: string }).data || ""
-    ).slice(0, 10);
+    const ymd = String((row as { data?: string }).data || "").slice(0, 10);
     if (ymd >= monthStart && ymd <= monthEnd) return true;
   }
   return false;
