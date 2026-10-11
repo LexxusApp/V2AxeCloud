@@ -1409,10 +1409,10 @@ export default function Financial({
                         <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Fluxo</span>
                         <span
                           className={cn(
-                            'mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold',
+                            'mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-black',
                             t.tipo === 'entrada'
-                              ? 'border-emerald-500/30 bg-emerald-950/50 text-emerald-300'
-                              : 'border-rose-500/30 bg-rose-950/50 text-rose-300',
+                              ? 'border-emerald-400 bg-emerald-100 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-300'
+                              : 'border-rose-400 bg-rose-100 text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/50 dark:text-rose-300',
                           )}
                         >
                           {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
@@ -1421,7 +1421,7 @@ export default function Financial({
                     </div>
                     <div className="mt-3 flex items-center justify-between rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5">
                       <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Valor</span>
-                      <span className={cn('text-base font-black', t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400')}>
+                      <span className={cn('text-base font-black', t.tipo === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400')}>
                         {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
                       </span>
                     </div>
@@ -1451,7 +1451,7 @@ export default function Financial({
                       <col className="w-[16%]" />
                       <col className="w-[6%]" />
                     </colgroup>
-                    <thead className="bg-[#12161A]">
+                    <thead className="border-b border-[#D8D0C4] dark:border-[#252B33]">
                       <tr>
                         {['Descrição', 'Categoria', 'Data', 'Fluxo', 'Valor', ''].map((h) => (
                           <th
@@ -1483,8 +1483,8 @@ export default function Financial({
                             <span
                               className={
                                 t.tipo === 'entrada'
-                                  ? 'rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2 py-0.5 text-[9px] font-bold text-emerald-300'
-                                  : 'rounded-full border border-rose-500/30 bg-rose-950/50 px-2 py-0.5 text-[9px] font-bold text-rose-300'
+                                  ? 'rounded-full border border-emerald-400 bg-emerald-100 px-2.5 py-0.5 text-[9px] font-black text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-300'
+                                  : 'rounded-full border border-rose-400 bg-rose-100 px-2.5 py-0.5 text-[9px] font-black text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/50 dark:text-rose-300'
                               }
                             >
                               {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
@@ -1492,8 +1492,8 @@ export default function Financial({
                           </td>
                           <td
                             className={cn(
-                              'px-4 py-3.5 text-right font-bold',
-                              t.tipo === 'entrada' ? 'text-emerald-400' : 'text-rose-400',
+                              'px-4 py-3.5 text-right font-black',
+                              t.tipo === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400',
                             )}
                           >
                             {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
@@ -1702,7 +1702,7 @@ export default function Financial({
                             <div key={row.id} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
                               <div className="mb-3 flex items-start justify-between gap-3">
                                 <h4 className="min-w-0 flex-1 text-base font-bold leading-snug text-[#F1F5F9]">{nome}</h4>
-                                <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-950/50 px-2.5 py-1 text-[10px] font-bold text-amber-300">
+                                <span className="shrink-0 rounded-full border border-amber-400 bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-900 shadow-xs dark:border-amber-500/30 dark:bg-amber-950/50 dark:text-amber-300">
                                   Pendente
                                 </span>
                               </div>
@@ -1732,7 +1732,7 @@ export default function Financial({
                                   onClick={() => void handleMensalidadeLiquidar(row)}
                                   disabled={processingMensalidadeId !== null}
                                   aria-busy={processingMensalidadeId === row.id}
-                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E242B] bg-[#13171D] text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643] disabled:cursor-wait disabled:opacity-55"
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#17251D] bg-[#17251D] text-xs font-black text-white shadow-xs transition hover:bg-[#233B2E] disabled:cursor-wait disabled:opacity-55"
                                 >
                                   {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                   {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
@@ -1746,7 +1746,7 @@ export default function Financial({
                                   }
                                   disabled={!fid || sendingChargeKey !== null}
                                   aria-busy={isSendingCharge}
-                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#25D366]/10 text-xs font-black text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:cursor-wait disabled:opacity-50"
+                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-emerald-50 text-xs font-black text-emerald-900 shadow-xs transition-all hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-300"
                                   title="Gerar Cobrança WhatsApp"
                                 >
                                   {isSendingCharge ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
@@ -1796,7 +1796,7 @@ export default function Financial({
                                     {venc ? new Date(`${venc}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
                                   </td>
                                   <td className="px-4 py-3">
-                                    <span className="rounded-full border border-amber-500/30 bg-amber-950/50 px-3 py-1 text-[10px] font-bold text-amber-300">
+                                    <span className="rounded-full border border-amber-400 bg-amber-100 px-3 py-1 text-[10px] font-black text-amber-900 shadow-xs dark:border-amber-500/30 dark:bg-amber-950/50 dark:text-amber-300">
                                       Pendente
                                     </span>
                                   </td>
@@ -1806,7 +1806,7 @@ export default function Financial({
                                       onClick={() => void handleMensalidadeLiquidar(row)}
                                       disabled={processingMensalidadeId !== null}
                                       aria-busy={processingMensalidadeId === row.id}
-                                      className="inline-flex items-center gap-2 rounded-xl border border-[#2A3441] bg-[#1E252E] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#2A3441] disabled:cursor-wait disabled:opacity-55"
+                                      className="inline-flex items-center gap-2 rounded-xl border border-[#17251D] bg-[#17251D] px-4 py-2 text-xs font-black text-white shadow-xs transition hover:bg-[#233B2E] disabled:cursor-wait disabled:opacity-55"
                                     >
                                       {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                       {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
@@ -1818,7 +1818,7 @@ export default function Financial({
                                       }
                                       disabled={!fid || sendingChargeKey !== null}
                                       aria-busy={isSendingCharge}
-                                      className="inline-flex items-center gap-2 rounded-lg bg-[#25D366]/10 px-4 py-2 text-xs font-bold text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:cursor-wait disabled:opacity-50"
+                                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-900 shadow-xs transition-all hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-300"
                                       title="Gerar Cobrança WhatsApp"
                                     >
                                       {isSendingCharge ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
@@ -2134,7 +2134,7 @@ export default function Financial({
                   <div className="border-b border-[#D8D1C4] px-5 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Prévia</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-800 dark:text-primary">Prévia</span>
                         <h4 className="mt-1 text-sm font-black text-[#17130D]">Cartão de pagamento</h4>
                       </div>
                       <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
@@ -2143,11 +2143,11 @@ export default function Financial({
                     </div>
                   </div>
                   <div className="p-5">
-                    <div className="financial-pix-payment-card rounded-2xl border border-primary/25 bg-gradient-to-br from-[#1A2027] to-[#0D1014] p-5">
+                    <div className="financial-pix-payment-card rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-[#122A1E] to-[#0A1610] p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Mensalidade da casa</p>
-                          <p className="mt-2 text-3xl font-black text-[#F1F5F9]">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200">Mensalidade da casa</p>
+                          <p className="mt-2 text-3xl font-black text-white">
                             {formatBRL(Number(pixConfig.valor_mensalidade) || 0)}
                           </p>
                         </div>
@@ -2155,28 +2155,28 @@ export default function Financial({
                           <DollarSign className="h-5 w-5" />
                         </div>
                       </div>
-                      <div className="mt-6 space-y-3 border-t border-[#2A313A] pt-4">
+                      <div className="mt-6 space-y-3 border-t border-emerald-900/60 pt-4">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-[10px] font-bold uppercase text-[#64748B]">Vencimento</span>
-                          <span className="text-xs font-black text-[#CBD5E1]">Dia {pixConfig.dia_vencimento || '—'}</span>
+                          <span className="text-[10px] font-extrabold uppercase text-emerald-300/90">Vencimento</span>
+                          <span className="text-xs font-black text-white">Dia {pixConfig.dia_vencimento || '—'}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold uppercase text-[#64748B]">Beneficiário</span>
-                          <p className="mt-1 truncate text-xs font-black text-[#CBD5E1]">
+                          <span className="text-[10px] font-extrabold uppercase text-emerald-300/90">Beneficiário</span>
+                          <p className="mt-1 truncate text-xs font-black text-white">
                             {pixConfig.nome_beneficiario || 'Nome ainda não informado'}
                           </p>
                         </div>
                         <div>
-                          <span className="text-[10px] font-bold uppercase text-[#64748B]">Chave Pix</span>
+                          <span className="text-[10px] font-extrabold uppercase text-emerald-300/90">Chave Pix</span>
                           <div className="mt-1 flex items-center gap-2">
-                            <p className="min-w-0 flex-1 truncate text-xs font-black text-primary">
+                            <p className="min-w-0 flex-1 truncate text-xs font-black text-amber-300">
                               {pixConfig.chave_pix || 'Chave ainda não informada'}
                             </p>
                             {pixConfig.chave_pix ? (
                               <button
                                 type="button"
                                 onClick={() => void navigator.clipboard?.writeText(pixConfig.chave_pix)}
-                                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#303844] text-[#94A3B8] transition hover:border-primary/40 hover:text-primary"
+                                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-700/50 text-emerald-300 transition hover:border-primary/40 hover:text-primary"
                                 aria-label="Copiar chave Pix"
                               >
                                 <Copy className="h-3.5 w-3.5" />
@@ -2203,13 +2203,13 @@ export default function Financial({
                           className={cn(
                             'grid h-7 w-7 shrink-0 place-items-center rounded-full border',
                             ready
-                              ? 'border-emerald-500/30 bg-emerald-950/50 text-emerald-400'
-                              : 'border-[#303844] bg-[#171C22] text-[#64748B]',
+                              ? 'border-emerald-600/40 bg-emerald-100 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-400'
+                              : 'border-stone-300 bg-stone-100 text-stone-600 dark:border-[#303844] dark:bg-[#171C22] dark:text-[#64748B]',
                           )}
                         >
                           {ready ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
                         </div>
-                        <span className={cn('text-xs font-bold', ready ? 'text-[#CBD5E1]' : 'text-[#64748B]')}>
+                        <span className={cn('text-xs font-extrabold', ready ? 'text-[#1E1B16]' : 'text-[#655E53]')}>
                           {String(label)}
                         </span>
                       </div>

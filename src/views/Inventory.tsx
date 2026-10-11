@@ -246,9 +246,26 @@ export default function Inventory({
   };
 
   const getStatus = (p: Product) => {
-    if (p.quantidade_atual <= 0) return { label: 'Esgotado', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' };
-    if (p.quantidade_atual <= p.quantidade_minima) return { label: 'Baixo Estoque', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' };
-    return { label: 'Em Dia', color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
+    if (p.quantidade_atual <= 0)
+      return {
+        label: 'Esgotado',
+        color: 'text-rose-800 dark:text-rose-300',
+        bg: 'bg-rose-100 dark:bg-rose-950/50',
+        border: 'border-rose-300 dark:border-rose-800',
+      };
+    if (p.quantidade_atual <= p.quantidade_minima)
+      return {
+        label: 'Baixo Estoque',
+        color: 'text-amber-900 dark:text-amber-300',
+        bg: 'bg-amber-100 dark:bg-amber-950/50',
+        border: 'border-amber-300 dark:border-amber-800',
+      };
+    return {
+      label: 'Em Dia',
+      color: 'text-emerald-900 dark:text-emerald-300',
+      bg: 'bg-emerald-100 dark:bg-emerald-950/50',
+      border: 'border-emerald-300 dark:border-emerald-800',
+    };
   };
 
   const visibleCategories = categories;
@@ -503,13 +520,13 @@ export default function Inventory({
             <div className="hidden md:block">
               <AppDemoTableShell>
                 <table className="w-full min-w-[760px] text-left text-xs">
-                  <thead className="bg-[#12161A]">
-                    <tr className="border-b border-[#252B33]">
+                  <thead>
+                    <tr className="border-b border-[#D8D0C4] dark:border-[#252B33]">
                       {['Item', 'Categoria', 'Quantidade', 'Mínimo', 'Situação', 'Ações'].map((heading) => (
                         <th
                           key={heading}
                           className={cn(
-                            'px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]',
+                            'px-4 py-3 text-[11px] font-black uppercase tracking-wider text-[#17130D] dark:text-[#F1F5F9]',
                             heading === 'Ações' && 'text-right',
                           )}
                         >
@@ -518,18 +535,18 @@ export default function Inventory({
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#252B33]">
+                  <tbody className="divide-y divide-[#E2D9CD] dark:divide-[#252B33]">
                     {filteredProducts.map((product) => {
                       const status = getStatus(product);
                       return (
-                        <tr key={product.id} className="inventory-stock-row transition hover:bg-[#1A2027]">
-                          <td className="px-4 py-3.5 font-black text-[#F1F5F9]">{product.item}</td>
-                          <td className="px-4 py-3.5 text-[#94A3B8]">{product.categoria}</td>
+                        <tr key={product.id} className="inventory-stock-row transition hover:bg-[#F3ECE0] dark:hover:bg-[#1A2027]">
+                          <td className="px-4 py-3.5 font-black text-[#17130D] dark:text-[#F1F5F9]">{product.item}</td>
+                          <td className="px-4 py-3.5 font-bold text-[#332A1F] dark:text-[#CBD5E1]">{product.categoria}</td>
                           <td className="px-4 py-3.5">
-                            <span className="text-base font-black text-white">{product.quantidade_atual}</span>
-                            <span className="ml-1 text-[9px] font-bold text-[#64748B]">UN.</span>
+                            <span className="text-base font-black text-[#17130D] dark:text-white">{product.quantidade_atual}</span>
+                            <span className="ml-1 text-[9px] font-black text-[#524638] dark:text-[#94A3B8]">UN.</span>
                           </td>
-                          <td className="px-4 py-3.5 font-bold text-[#94A3B8]">{product.quantidade_minima}</td>
+                          <td className="px-4 py-3.5 font-black text-[#17130D] dark:text-[#F1F5F9]">{product.quantidade_minima}</td>
                           <td className="px-4 py-3.5">
                             <span className={cn("rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase", status.color, status.bg, status.border)}>
                               {status.label}
@@ -559,24 +576,24 @@ export default function Inventory({
                               </button>
                               {isAdmin ? (
                                 <>
-                                  <button
-                                    type="button"
-                                    onClick={() => openEditItemModal(product)}
-                                    className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/30 text-cyan-300 transition hover:bg-cyan-950/50"
-                                    aria-label={`Editar ${product.item}`}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => void deleteItem(product.id)}
-                                    disabled={deletingId !== null}
-                                    aria-busy={deletingId === product.id}
-                                    className="grid h-9 w-9 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/30 text-rose-300 transition hover:bg-rose-950/50"
-                                    aria-label={`Excluir ${product.item}`}
-                                  >
-                                    {deletingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                                  </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditItemModal(product)}
+                                      className="grid h-9 w-9 place-items-center rounded-xl border border-sky-400 bg-sky-100 text-sky-900 transition hover:bg-sky-200 dark:border-cyan-500/30 dark:bg-cyan-950/40 dark:text-cyan-200"
+                                      aria-label={`Editar ${product.item}`}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void deleteItem(product.id)}
+                                      disabled={deletingId !== null}
+                                      aria-busy={deletingId === product.id}
+                                      className="grid h-9 w-9 place-items-center rounded-xl border border-rose-400 bg-rose-100 text-rose-900 transition hover:bg-rose-200 dark:border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-200"
+                                      aria-label={`Excluir ${product.item}`}
+                                    >
+                                      {deletingId === product.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                                    </button>
                                 </>
                               ) : null}
                             </div>

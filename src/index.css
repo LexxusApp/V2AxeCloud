@@ -5585,10 +5585,11 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .dashboard-v5-hero__description {
   max-width: 38rem;
   margin-top: 0.75rem;
-  color: #d8e0d7;
+  color: #f1f5f2 !important;
   font-size: 0.88rem;
-  font-weight: 650;
+  font-weight: 700 !important;
   line-height: 1.55;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
 }
 
 .app-v5-identity .dashboard-v5-hero__actions {
@@ -5634,9 +5635,12 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .dashboard-v5-hero__secondary {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: #f9f6ed;
+  border: 1px solid rgba(255, 255, 255, 0.38) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
 }
 
 .app-v5-identity .dashboard-v5-metrics {
@@ -5757,9 +5761,9 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .dashboard-v5-metric-card__body small {
   margin-top: 0.55rem;
-  color: #655e54;
+  color: #383228 !important;
   font-size: 0.76rem;
-  font-weight: 650;
+  font-weight: 700 !important;
   line-height: 1.45;
 }
 
@@ -5771,10 +5775,10 @@ html:has(.landing-mockup-nav) {
   gap: 0.75rem;
   margin-top: 1rem;
   padding-top: 0.9rem;
-  border-top: 1px solid #eee8de;
-  color: #938a7d;
+  border-top: 1px solid #ded6c8;
+  color: #4a4235 !important;
   font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 700 !important;
   line-height: 1.35;
 }
 
@@ -5784,35 +5788,35 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .dashboard-v5-metric-card__footer strong {
-  color: var(--metric-accent);
-  font-weight: 850;
+  color: var(--metric-accent) !important;
+  font-weight: 900 !important;
   text-align: right;
 }
 
 .app-v5-identity .dashboard-v5-metric-card[data-tone="current"] {
-  --metric-accent: #087db6;
-  --metric-soft: #eaf7fd;
+  --metric-accent: #026aa2 !important;
+  --metric-soft: #e0f2fe !important;
 }
 
 .app-v5-identity .dashboard-v5-metric-card[data-tone="billing"] {
-  --metric-accent: #c65c00;
-  --metric-soft: #fff3e4;
+  --metric-accent: #9a3412 !important;
+  --metric-soft: #ffedd5 !important;
 }
 
 .app-v5-identity .dashboard-v5-metric-card[data-tone="healthy"],
 .app-v5-identity .dashboard-v5-metric-card[data-tone="whatsapp"] {
-  --metric-accent: #008764;
-  --metric-soft: #e8f9f2;
+  --metric-accent: #065f46 !important;
+  --metric-soft: #d1fae5 !important;
 }
 
 .app-v5-identity .dashboard-v5-metric-card[data-tone="calendar"] {
-  --metric-accent: #9b7108;
-  --metric-soft: #fff7dd;
+  --metric-accent: #854d0e !important;
+  --metric-soft: #fef9c3 !important;
 }
 
 .app-v5-identity .dashboard-v5-metric-card[data-tone="warning"] {
-  --metric-accent: #b43440;
-  --metric-soft: #fff0f1;
+  --metric-accent: #991b1b !important;
+  --metric-soft: #fee2e2 !important;
 }
 
 .app-v5-identity .dashboard-v5-whatsapp-pulse {
@@ -6337,29 +6341,29 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .dashboard-v5-radar-card__header p {
   margin-top: 0.18rem;
-  color: #9caf9f;
+  color: #d1ded4 !important;
   font-size: 0.62rem;
-  font-weight: 650;
+  font-weight: 700 !important;
 }
 
 .app-v5-identity .dashboard-v5-radar-card__status {
   max-width: 8.6rem;
   overflow: hidden;
   padding: 0.35rem 0.55rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #d6ded7;
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
   font-size: 0.58rem;
-  font-weight: 800;
+  font-weight: 800 !important;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .app-v5-identity .dashboard-v5-radar-card__status[data-published="true"] {
-  border-color: rgba(52, 211, 153, 0.22);
-  background: rgba(52, 211, 153, 0.1);
-  color: #7ee0b8;
+  border-color: rgba(52, 211, 153, 0.4) !important;
+  background: rgba(52, 211, 153, 0.2) !important;
+  color: #a7f3d0 !important;
 }
 
 .app-v5-identity .dashboard-v5-radar-card__primary {
@@ -6388,9 +6392,9 @@ html:has(.landing-mockup-nav) {
 
 .app-v5-identity .dashboard-v5-radar-card__primary span {
   max-width: 9.5rem;
-  color: #b4c2b7;
+  color: #e2ebe4 !important;
   font-size: 0.66rem;
-  font-weight: 700;
+  font-weight: 700 !important;
   line-height: 1.35;
 }
 
@@ -6416,8 +6420,8 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .dashboard-v5-radar-card__channels > div:first-child { padding-left: 0; }
 .app-v5-identity .dashboard-v5-radar-card__channels > div + div { border-left: 1px solid rgba(255, 255, 255, 0.1); }
 .app-v5-identity .dashboard-v5-radar-card__channels svg { width: 0.78rem; height: 0.78rem; color: #e8c555; }
-.app-v5-identity .dashboard-v5-radar-card__channels strong { font-size: 0.86rem; font-variant-numeric: tabular-nums; }
-.app-v5-identity .dashboard-v5-radar-card__channels span { grid-column: 1 / -1; color: #93a499; font-size: 0.57rem; font-weight: 700; }
+.app-v5-identity .dashboard-v5-radar-card__channels strong { font-size: 0.86rem; font-variant-numeric: tabular-nums; color: #ffffff !important; font-weight: 900 !important; }
+.app-v5-identity .dashboard-v5-radar-card__channels span { grid-column: 1 / -1; color: #d1ded4 !important; font-size: 0.57rem; font-weight: 800 !important; }
 
 .app-v5-identity .dashboard-v5-radar-card__empty {
   display: grid;
@@ -9237,9 +9241,23 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .inventory-v5-page .inventory-command-deck > div:last-child button:not([class*="bg-primary"]) {
-  border-color: rgba(44, 73, 52, 0.16) !important;
-  background: #edf0e8 !important;
-  color: #506155 !important;
+  border-color: #c9bfaf !important;
+  background: #f3ede3 !important;
+  color: #1e1a14 !important;
+  font-weight: 800 !important;
+}
+
+.app-v5-identity .inventory-v5-page .inventory-command-deck > div:last-child button:not([class*="bg-primary"]):hover {
+  background: #e9e0d2 !important;
+  border-color: #b5a995 !important;
+}
+
+.app-v5-identity .inventory-v5-page .app-v5-table-shell thead th,
+.app-v5-identity .inventory-v5-page table thead th {
+  color: #17130d !important;
+  font-weight: 900 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
 }
 
 .app-v5-identity .inventory-v5-page .inventory-stock-row:hover {
@@ -9247,13 +9265,15 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .inventory-v5-page .inventory-stock-row td:first-child,
-.app-v5-identity .inventory-v5-page .inventory-stock-row td:nth-child(3) [class~="text-white"] {
-  color: #26231e !important;
+.app-v5-identity .inventory-v5-page .inventory-stock-row td:nth-child(3) [class~="text-white"],
+.app-v5-identity .inventory-v5-page .inventory-stock-row td:nth-child(3) span {
+  color: #17130d !important;
 }
 
 .app-v5-identity .inventory-v5-page .inventory-stock-row td:nth-child(2),
 .app-v5-identity .inventory-v5-page .inventory-stock-row td:nth-child(4) {
-  color: #657083 !important;
+  color: #332a1f !important;
+  font-weight: 700 !important;
 }
 
 /* Biblioteca: sala de leitura, catalogo e livros com lombada propria. */
@@ -9510,6 +9530,31 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity [class*="bg-[#11151A]"] [class*="text-slate-300"],
 .app-v5-identity [class*="bg-[#11151A]"] [class*="text-[#94A3B8]"] {
   color: #cbd5e1 !important;
+}
+
+/* Financial: alto contraste no cartão de prévia Pix e tabelas financeiras */
+.app-v5-identity .financial-v5-page .financial-pix-payment-card [class*="text-[#64748B]"],
+.app-v5-identity .financial-v5-page .financial-pix-payment-card [class*="text-slate-400"] {
+  color: #a7f3d0 !important;
+  font-weight: 800 !important;
+}
+
+.app-v5-identity .financial-v5-page .financial-pix-payment-card span[class*="text-amber"] {
+  color: #fde047 !important;
+  font-weight: 800 !important;
+}
+
+.app-v5-identity .financial-v5-page .app-v5-table-shell thead th,
+.app-v5-identity .financial-v5-page table thead th {
+  color: #17130d !important;
+  font-weight: 900 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+}
+
+.app-v5-identity .app-editorial-header p:first-child {
+  color: #92400e !important;
+  font-weight: 900 !important;
 }
 
 @media (max-width: 1199px) {
@@ -15504,27 +15549,27 @@ html:has(.dashboard-reference){--app-sidebar-width:100px!important}
 }
 .app-v5-identity .preceito-brasa__header p {
   margin-top: .18rem;
-  color: #9caf9f;
+  color: #d1ded4 !important;
   font-size: .62rem;
-  font-weight: 650;
+  font-weight: 700 !important;
 }
 .app-v5-identity .preceito-brasa__status {
   max-width: 8.6rem;
   overflow: hidden;
   padding: .35rem .55rem;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
   border-radius: 999px;
-  background: rgba(255,255,255,.06);
-  color: #d6ded7;
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
   font-size: .58rem;
-  font-weight: 800;
+  font-weight: 800 !important;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .app-v5-identity .preceito-brasa__status[data-active='true'] {
-  border-color: rgba(248, 205, 69, .24);
-  background: rgba(248, 205, 69, .1);
-  color: #f5d46a;
+  border-color: rgba(248, 205, 69, .4) !important;
+  background: rgba(248, 205, 69, .2) !important;
+  color: #f7d877 !important;
 }
 
 .app-v5-identity .preceito-brasa__state {
@@ -15559,7 +15604,7 @@ html:has(.dashboard-reference){--app-sidebar-width:100px!important}
 .app-v5-identity .preceito-brasa__copy p {
   max-width: 19rem;
   margin-top: .42rem;
-  color: #aebbb2;
+  color: #e2ebe4 !important;
   font-size: .62rem;
   font-weight: 650;
   line-height: 1.42;

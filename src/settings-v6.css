@@ -134,13 +134,16 @@
 
 /* Segurança */
 .settings-v6-page .settings-security-card {
-  border-color: #ddd4c7 !important;
-  background: #fffdf8 !important;
-  box-shadow: 0 14px 32px -28px rgba(53, 42, 25, 0.62) !important;
+  border-color: #cfc5b4 !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 30px -20px rgba(45, 35, 20, 0.25) !important;
 }
 
 .settings-v6-page .settings-security-card > div:first-child {
-  color: #514a40 !important;
+  color: #17251d !important;
+  font-weight: 900 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
 }
 
 .settings-v6-page .settings-security-card > div:first-child svg {
@@ -148,41 +151,56 @@
 }
 
 .settings-v6-page .settings-security-card label {
-  color: #665f55 !important;
+  color: #1e1a14 !important;
+  font-weight: 800 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
 }
 
 .settings-v6-page .settings-security-card input {
   min-height: 44px;
-  border-color: #d9d0c3 !important;
+  border-color: #c8bead !important;
   background: #ffffff !important;
-  color: #211c16 !important;
+  color: #17130d !important;
+  font-weight: 600 !important;
 }
 
 .settings-v6-page .settings-security-card input[readonly] {
-  background: #f1ecdf !important;
-  color: #756d61 !important;
+  background: #f4ede0 !important;
+  border-color: #cfc5b4 !important;
+  color: #1e1a14 !important;
+  font-weight: 700 !important;
 }
 
 .settings-v6-page .settings-security-card input::placeholder {
-  color: #a0988c !important;
+  color: #766d60 !important;
+}
+
+.settings-v6-page .settings-security-card p {
+  color: #4a4338 !important;
+  font-weight: 600 !important;
 }
 
 .settings-v6-page .settings-security-card .relative > button {
   min-width: 40px;
   min-height: 40px;
-  color: #756d61 !important;
+  color: #4e473d !important;
 }
 
 .settings-v6-page .settings-security-card > button {
   min-height: 44px;
-  border-color: #173323 !important;
-  background: #173323 !important;
+  border: 1px solid #1f3627 !important;
+  background: #17251d !important;
   color: #ffffff !important;
-  box-shadow: none !important;
+  font-weight: 900 !important;
+  box-shadow: 0 6px 18px -4px rgba(23, 37, 29, 0.45) !important;
+  transition: all 180ms ease !important;
 }
 
 .settings-v6-page .settings-security-card > button:hover {
-  background: #22543a !important;
+  background: #233b2e !important;
+  border-color: #2b4937 !important;
+  transform: translateY(-1px) !important;
 }
 
 /* WhatsApp */

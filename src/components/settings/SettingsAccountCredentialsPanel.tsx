@@ -139,26 +139,26 @@ export function SettingsAccountCredentialsPanel({
       </div>
 
       <div className="settings-security-workbench grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
-        <div className="settings-dark-surface settings-security-card flex h-full flex-col gap-4 rounded-[1.25rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
-          <div className="flex items-center gap-2 text-[#94A3B8]">
-            <Mail className="h-4 w-4 text-[#3B82F6]" aria-hidden />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Alterar e-mail</span>
+        <div className="settings-dark-surface settings-security-card flex h-full flex-col gap-4 rounded-[1.25rem] border border-[#CFC5B4] bg-[#FFFFFF] p-5 shadow-[0_12px_30px_-20px_rgba(45,35,20,0.25)]">
+          <div className="flex items-center gap-2 text-[#17251D]">
+            <Mail className="h-4 w-4 text-[#17633B]" aria-hidden />
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#17251D]">Alterar e-mail</span>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-[#1E1A14]">
               E-mail atual
             </label>
             <input
               type="email"
               readOnly
               value={displayEmail}
-              className="w-full cursor-default rounded-lg border border-[#1E242B] bg-[#12161A]/60 p-2.5 text-xs text-gray-400"
+              className="w-full cursor-default rounded-lg border border-[#CFC5B4] bg-[#F4EDE0] p-2.5 text-xs font-bold text-[#1E1A14]"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-[#1E1A14]">
               Novo e-mail
             </label>
             <input
@@ -167,12 +167,12 @@ export function SettingsAccountCredentialsPanel({
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               placeholder="novo@email.com"
-              className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+              className="w-full rounded-lg border border-[#CFC5B4] bg-white p-2.5 text-xs font-semibold text-[#17130D] focus:border-[#17633B] focus:outline-none focus:ring-1 focus:ring-[#17633B]"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-[#1E1A14]">
               Senha atual (confirmação)
             </label>
             <input
@@ -181,7 +181,7 @@ export function SettingsAccountCredentialsPanel({
               value={emailCurrentPassword}
               onChange={(e) => setEmailCurrentPassword(e.target.value)}
               placeholder="Digite sua senha atual"
-              className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+              className="w-full rounded-lg border border-[#CFC5B4] bg-white p-2.5 text-xs font-semibold text-[#17130D] focus:border-[#17633B] focus:outline-none focus:ring-1 focus:ring-[#17633B]"
             />
           </div>
 
@@ -189,21 +189,21 @@ export function SettingsAccountCredentialsPanel({
             type="button"
             onClick={() => void handleChangeEmail()}
             disabled={isChangingEmail}
-            className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-[#3B82F6]/30 bg-blue-950/30 px-4 py-2.5 text-xs font-bold text-blue-300 transition-all hover:border-[#3B82F6]/50 hover:bg-blue-950/50 disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-[#1F3627] bg-[#17251D] px-4 py-2.5 text-xs font-black text-white shadow-md transition-all hover:bg-[#233B2E] disabled:opacity-50"
           >
             {isChangingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             {isChangingEmail ? 'Alterando e-mail…' : 'Salvar novo e-mail'}
           </button>
         </div>
 
-        <div className="settings-dark-surface settings-security-card flex h-full flex-col gap-4 rounded-[1.25rem] border border-[#252C35] bg-[#11151A] p-5 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
-          <div className="flex items-center gap-2 text-[#94A3B8]">
-            <Lock className="h-4 w-4 text-amber-400" aria-hidden />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Alterar senha</span>
+        <div className="settings-dark-surface settings-security-card flex h-full flex-col gap-4 rounded-[1.25rem] border border-[#CFC5B4] bg-[#FFFFFF] p-5 shadow-[0_12px_30px_-20px_rgba(45,35,20,0.25)]">
+          <div className="flex items-center gap-2 text-[#17251D]">
+            <Lock className="h-4 w-4 text-[#17633B]" aria-hidden />
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#17251D]">Alterar senha</span>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-[#1E1A14]">
               Senha atual
             </label>
             <div className="relative">
@@ -213,12 +213,12 @@ export function SettingsAccountCredentialsPanel({
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Senha atual"
-                className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 pr-10 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+                className="w-full rounded-lg border border-[#CFC5B4] bg-white p-2.5 pr-10 text-xs font-semibold text-[#17130D] focus:border-[#17633B] focus:outline-none focus:ring-1 focus:ring-[#17633B]"
               />
               <button
                 type="button"
                 onClick={() => setShowCurrentPassword((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:text-gray-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#4E473D] hover:text-[#17130D]"
                 aria-label={showCurrentPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -227,7 +227,7 @@ export function SettingsAccountCredentialsPanel({
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-[#1E1A14]">
               Nova senha
             </label>
             <div className="relative">
@@ -237,22 +237,22 @@ export function SettingsAccountCredentialsPanel({
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Ex.: Axé@2026"
-                className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 pr-10 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+                className="w-full rounded-lg border border-[#CFC5B4] bg-white p-2.5 pr-10 text-xs font-semibold text-[#17130D] focus:border-[#17633B] focus:outline-none focus:ring-1 focus:ring-[#17633B]"
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:text-gray-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#4E473D] hover:text-[#17130D]"
                 aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p className="text-[10px] leading-relaxed text-gray-500">{PASSWORD_HINT_PT}</p>
+            <p className="text-[11px] font-semibold leading-relaxed text-[#4A4338]">{PASSWORD_HINT_PT}</p>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
+            <label className="block text-[10px] font-black uppercase tracking-wider text-[#1E1A14]">
               Confirmar nova senha
             </label>
             <input
@@ -261,7 +261,7 @@ export function SettingsAccountCredentialsPanel({
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repita a nova senha"
-              className="w-full rounded-lg border border-[#1E242B] bg-[#12161A] p-2.5 text-xs text-[#F1F5F9] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+              className="w-full rounded-lg border border-[#CFC5B4] bg-white p-2.5 text-xs font-semibold text-[#17130D] focus:border-[#17633B] focus:outline-none focus:ring-1 focus:ring-[#17633B]"
             />
           </div>
 
@@ -269,7 +269,7 @@ export function SettingsAccountCredentialsPanel({
             type="button"
             onClick={() => void handleChangePassword()}
             disabled={isChangingPassword}
-            className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600/90 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/10 transition-all hover:bg-amber-500 disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-[#1F3627] bg-[#17251D] px-4 py-2.5 text-xs font-black text-white shadow-md transition-all hover:bg-[#233B2E] disabled:opacity-50"
           >
             {isChangingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
             {isChangingPassword ? 'Alterando senha…' : 'Salvar nova senha'}
