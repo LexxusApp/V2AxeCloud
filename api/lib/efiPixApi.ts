@@ -322,7 +322,7 @@ export async function efiPixCreateImmediateCharge(
 
   const valorOriginal = (input.amountCents / 100).toFixed(2);
   const body: Record<string, unknown> = {
-    calendario: { expiracao: input.expirationSeconds ?? 3600 },
+    calendario: { expiracao: input.expirationSeconds ?? 86400 },
     valor: { original: valorOriginal },
     chave: env.pixKey,
     solicitacaoPagador: input.description || "Assinatura AxéCloud Premium",

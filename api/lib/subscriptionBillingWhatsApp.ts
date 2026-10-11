@@ -135,6 +135,7 @@ export async function runSubscriptionBillingReminders(
             amountCents: amount,
             payerName: String(profile.cargo || profile.nome_terreiro || "Zelador"),
             description: `AxéCloud Premium — ${profile.nome_terreiro || "Terreiro"}`,
+            expirationSeconds: 259200, // 3 dias de validade para cobrança enviada no WhatsApp
           });
           if (charge?.copyPaste) {
             pixCopyPaste = charge.copyPaste;

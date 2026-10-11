@@ -299,7 +299,7 @@ export async function santanderPixCreateDynamicQrCode(
 
   const body: Record<string, unknown> = {
     txid,
-    calendario: { expiracao: input.expirationSeconds ?? 3600 },
+    calendario: { expiracao: input.expirationSeconds ?? 86400 },
     valor: { original: valor },
     chave: env.pixKey,
     solicitacaoPagador: input.description || "Pagamento AxéCloud",

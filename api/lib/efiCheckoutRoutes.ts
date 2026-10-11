@@ -305,6 +305,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         payerName,
         payerCpf: payerCpf || undefined,
         description: `AxéCloud Premium ${billingCycle === "annual" ? "Anual" : "Mensal"} — ${profile?.nome_terreiro || "Terreiro"}`,
+        expirationSeconds: 86400, // 24 horas de validade para checkout na web
       });
 
       const qrCodeDataUrl = await QRCode.toDataURL(charge.copyPaste, {
