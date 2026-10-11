@@ -282,9 +282,9 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
       let financialStatus = "pago";
       const { data: finData } = await supabaseAdmin
         .from("financeiro")
-        .select("id, status, data_vencimento, filho_id")
+        .select("id, status, data, filho_id")
         .eq("filho_id", child.id)
-        .order("data_vencimento", { ascending: false })
+        .order("data", { ascending: false })
         .limit(1);
 
       if (finData?.length) {

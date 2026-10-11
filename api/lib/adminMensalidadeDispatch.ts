@@ -140,7 +140,7 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
       .or(`tenant_id.eq.${tenantId},tenant_id.eq.${leaderId},lider_id.eq.${tenantId},lider_id.eq.${leaderId}`),
     sb
       .from("financeiro")
-      .select("id, status, descricao, data, data_vencimento, filho_id, valor, tenant_id, lider_id")
+      .select("id, status, descricao, data, filho_id, valor, tenant_id, lider_id")
       .eq("categoria", "Mensalidade")
       .or(`tenant_id.eq.${tenantId},tenant_id.eq.${leaderId},lider_id.eq.${tenantId},lider_id.eq.${leaderId}`)
       .gte("data", calendar.monthStart)
