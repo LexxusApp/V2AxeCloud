@@ -12,6 +12,7 @@ import { Loader2, ShieldAlert } from 'lucide-react';
 import { cn } from './lib/utils';
 import { ROUTES } from './lib/routes';
 import { hasPlanAccess, isLifetimePlan } from './constants/plans';
+import { isSubscriptionBlockedAfterDue } from './lib/subscriptionDue';
 import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
 import Paywall from './components/Paywall';
 // Views pesadas viram chunks separados, carregados sob demanda.
@@ -603,9 +604,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           } else if (!data.expires_at) {
             setSubscriptionActive(false);
           } else {
-            const now = new Date();
-            const expiresAt = new Date(data.expires_at);
-            const isActive = data.status === 'active' && expiresAt > now;
+            const status = String(data.status || '').toLowerCase();
+            const isBlockedAfterDue = isSubscriptionBlockedAfterDue(data.expires_at);
+            const isActive = status === 'active' && !isBlockedAfterDue;
             setSubscriptionActive(isActive);
           }
 

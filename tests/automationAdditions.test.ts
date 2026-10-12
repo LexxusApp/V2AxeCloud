@@ -34,11 +34,17 @@ test("Mensalidades: aviso automático só ocorre no dia 1 em São Paulo", () => 
   assert.equal(shouldRunAutomaticMensalidadeNotification(new Date("2026-11-01T15:00:00.000Z")), true);
 });
 
-test("Subscription access: considera assinatura ativa e expirada conforme a validade", () => {
+test("Subscription access: considera assinatura ativa no dia do vencimento e expirada a partir do dia seguinte", () => {
   const active = { status: "active", expires_at: "2099-10-10T12:00:00.000Z" };
   assert.equal(isSubscriptionAccessActive(active), true);
   assert.equal(isSubscriptionExpired(active, new Date("2026-10-10T12:00:00.000Z")), false);
 
-  const expired = { status: "active", expires_at: "2026-10-10T12:00:00.000Z" };
-  assert.equal(isSubscriptionExpired(expired, new Date("2026-10-10T13:00:00.000Z")), true);
+  const sub = { status: "active", expires_at: "2026-10-10T12:00:00.000Z" };
+  // No dia do vencimento (10/10), o acesso permanece liberado
+  assert.equal(isSubscriptionExpired(sub, new Date("2026-10-10T22:00:00.000Z")), false);
+  assert.equal(isSubscriptionAccessActive(sub, new Date("2026-10-10T22:00:00.000Z")), true);
+
+  // Um dia depois do vencimento (11/10), o acesso expira e é bloqueado
+  assert.equal(isSubscriptionExpired(sub, new Date("2026-10-11T12:00:00.000Z")), true);
+  assert.equal(isSubscriptionAccessActive(sub, new Date("2026-10-11T12:00:00.000Z")), false);
 });
