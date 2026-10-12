@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isMetaCloudDirectConfigured, sendMetaCloudText } from "./metaCloudSend.js";
+import { isMetaCloudDirectConfigured, sendMetaCloudText, sendMetaCloudTemplate } from "./metaCloudSend.js";
 import { normalizeInboxPhone } from "./adminWhatsAppInbox.js";
 import { resolveEfiPixEnv, efiPixCreateImmediateCharge } from "./efiPixApi.js";
 
@@ -272,26 +272,114 @@ export async function handleTerreiroWinBackInbound(
     });
 
     if (isMetaCloudDirectConfigured()) {
-      let reply =
-        `Olá, ${nomeZelador}! Axé! 🙏\n\n` +
-        `Aqui está o seu Pix com *50% de desconto* (de R$ 69,90 por *apenas R$ 34,95*) para reativar o *${nomeTerreiro}*:\n\n`;
+      let sentTemplate = false;
 
-      if (pixCopyPaste) {
-        reply +=
-          `Copie o código Pix abaixo e cole no app do seu banco:\n\n` +
-          `\`${pixCopyPaste}\`\n\n` +
-          `Assim que o pagamento for confirmado, seu terreiro é liberado instantaneamente na hora! ⚡\n\n` +
-          `Painel: https://axecloud.com.br/entrar`;
-      } else {
-        reply +=
-          `Acesse seu painel para gerar o Pix com desconto direto na tela:\n` +
-          `👉 https://axecloud.com.br/entrar\n\n` +
-          `Qualquer dúvida, é só me chamar por aqui!`;
+      // 1. Tenta enviar o template oficial com foto e botão nativo Copiar código Pix
+      if (pixCopyPaste && pixEnv?.pixKey) {
+        const bannerMediaId = String(process.env.WA_BILLING_BANNER_MEDIA_ID || "1159299646430694").trim();
+        const components: any[] = [
+          {
+            type: "header",
+            parameters: [{ type: "image", image: { id: bannerMediaId } }],
+          },
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: String(nomeZelador || "Zelador").slice(0, 60) },
+              { type: "text", text: String(nomeTerreiro || "Terreiro").slice(0, 80) },
+              { type: "text", text: "reativação especial com 50% de desconto" },
+            ],
+          },
+          {
+            type: "button",
+            sub_type: "order_details",
+            index: 0,
+            parameters: [
+              {
+                type: "action",
+                action: {
+                  order_details: {
+                    reference_id: `OR_WB_${Date.now()}`,
+                    type: "digital-goods",
+                    payment_type: "br",
+                    currency: "BRL",
+                    total_amount: {
+                      value: discountAmountCents,
+                      offset: 100,
+                    },
+                    payment_settings: [
+                      {
+                        type: "pix_dynamic_code",
+                        pix_dynamic_code: {
+                          code: pixCopyPaste,
+                          merchant_name: "AxéCloud",
+                          key: pixEnv.pixKey,
+                          key_type: "EVP",
+                        },
+                      },
+                    ],
+                    order: {
+                      status: "pending",
+                      items: [
+                        {
+                          retailer_id: "axecloud-premium-50off",
+                          name: "Plano Premium AxéCloud (50% OFF)",
+                          amount: { value: discountAmountCents, offset: 100 },
+                          quantity: 1,
+                        },
+                      ],
+                      subtotal: { value: discountAmountCents, offset: 100 },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ];
+
+        try {
+          await sendMetaCloudTemplate(
+            phone,
+            "cobranca_assinatura_pix_order_img_v1",
+            "pt_BR",
+            components,
+            {
+              tenantId: leaderId,
+              recipientName: String(nomeZelador || "Zelador"),
+              source: "billing",
+              sourceId: leaderId,
+              idempotencyKey: `winback-pix-order:${leaderId}:${Date.now()}`,
+            }
+          );
+          sentTemplate = true;
+        } catch (tmplErr) {
+          console.warn("[WINBACK] Falha ao enviar template order_img_v1, acionando fallback:", tmplErr);
+        }
       }
 
-      await sendMetaCloudText(phone, reply).catch((err) =>
-        console.warn("[WINBACK] Erro ao enviar Pix 50%:", err)
-      );
+      // 2. Fallback de texto caso o template não seja enviado
+      if (!sentTemplate) {
+        let reply =
+          `Olá, ${nomeZelador}! Axé! 🙏\n\n` +
+          `Aqui está o seu Pix com *50% de desconto* (de R$ 69,90 por *apenas R$ 34,95*) para reativar o *${nomeTerreiro}*:\n\n`;
+
+        if (pixCopyPaste) {
+          reply +=
+            `Copie o código Pix abaixo e cole no app do seu banco:\n\n` +
+            `\`${pixCopyPaste}\`\n\n` +
+            `Assim que o pagamento for confirmado, seu terreiro é liberado instantaneamente na hora! ⚡\n\n` +
+            `Painel: https://axecloud.com.br/entrar`;
+        } else {
+          reply +=
+            `Acesse seu painel para gerar o Pix com desconto direto na tela:\n` +
+            `👉 https://axecloud.com.br/entrar\n\n` +
+            `Qualquer dúvida, é só me chamar por aqui!`;
+        }
+
+        await sendMetaCloudText(phone, reply).catch((err) =>
+          console.warn("[WINBACK] Erro ao enviar fallback texto Pix 50%:", err)
+        );
+      }
     }
     return true;
   }
