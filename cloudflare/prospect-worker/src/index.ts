@@ -212,6 +212,17 @@ export default {
               // Carrega histórico para ter memória do diálogo
               const history = await crm.getAdminConversationHistory(msg.from, 8);
 
+              // 1.5 Se for resposta a botão interativo (resgate ou presença), não envia mensagens automáticas de CRM
+              const isInteractiveAction = Boolean(
+                /50%|15\s*dias|\+ 15|confirmar|recusar|presenca|gira|winback/i.test(msg.body) ||
+                msg.body.startsWith('WINBACK_') ||
+                msg.body.startsWith('GIRA_')
+              );
+              if (isInteractiveAction) {
+                console.log(`[Webhook] Mensagem de ação interativa (${msg.body}). Ignora avisos genéricos de CRM.`);
+                return;
+              }
+
               // 2. Trava Inteligente: Verifica se o remetente é um Filho de Santo cadastrado no sistema
               const filho = await crm.findFilhoDeSantoByPhone(msg.from);
               if (filho) {

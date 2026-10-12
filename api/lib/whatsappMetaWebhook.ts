@@ -203,15 +203,33 @@ export async function processMetaCloudWebhook(
         "./whatsappWinBackHandler.js"
       );
       for (const msg of inboundList) {
+        let isHandled = false;
         try {
-          await handleGiraAttendanceInbound(sb, msg);
+          const res = await handleGiraAttendanceInbound(sb, msg);
+          if (res?.handled) isHandled = true;
         } catch (attErr) {
           console.warn("[GIRA ATTENDANCE] falha ao processar presença via WhatsApp:", attErr);
         }
         try {
-          await handleTerreiroWinBackInbound(sb, msg);
+          const res = await handleTerreiroWinBackInbound(sb, msg);
+          if (res) isHandled = true;
         } catch (wbErr) {
           console.warn("[WINBACK] falha ao processar clique de resgate via WhatsApp:", wbErr);
+        }
+
+        // Se não for presença em gira e não for resgate de assinatura, encaminha à IA de prospecção
+        if (!isHandled) {
+          try {
+            fetch("https://axecloud.com.br/api/prospecting/webhook/whatsapp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            }).catch((fwdErr) =>
+              console.warn("[PROSPECTING] falha ao encaminhar inbound para prospect worker:", fwdErr)
+            );
+          } catch {
+            /* ignore network errors */
+          }
         }
       }
     }
