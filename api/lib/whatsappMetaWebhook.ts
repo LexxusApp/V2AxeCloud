@@ -220,9 +220,19 @@ export async function processMetaCloudWebhook(
         // Se não for presença em gira e não for resgate de assinatura, encaminha à IA de prospecção
         if (!isHandled) {
           try {
+            const fwdHeaders: Record<string, string> = {
+              "Content-Type": "application/json",
+              "User-Agent": "AxeCloud-Backend/1.0",
+            };
+            const serviceKey = String(
+              process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+            ).trim();
+            if (serviceKey) {
+              fwdHeaders["Authorization"] = `Bearer ${serviceKey}`;
+            }
             fetch("https://axecloud.com.br/api/prospecting/webhook/whatsapp", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: fwdHeaders,
               body: JSON.stringify(body),
             }).catch((fwdErr) =>
               console.warn("[PROSPECTING] falha ao encaminhar inbound para prospect worker:", fwdErr)

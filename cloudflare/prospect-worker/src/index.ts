@@ -151,9 +151,14 @@ export default {
     if (isMetaWebhook && request.method === 'POST') {
       const rawBody = await request.text();
       const signature = request.headers.get('x-hub-signature-256');
+      const authHeader = request.headers.get('Authorization') || '';
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const isInternalAuthorized = Boolean(
+        env.SUPABASE_SERVICE_ROLE_KEY && token === env.SUPABASE_SERVICE_ROLE_KEY
+      );
       const appSecret = String(env.WA_META_APP_SECRET || '').trim();
 
-      if (appSecret) {
+      if (appSecret && !isInternalAuthorized) {
         const isValid = await verifyMetaHmacSha256(rawBody, signature, appSecret);
         if (!isValid) {
           console.warn('[Webhook] Assinatura X-Hub-Signature-256 inválida');
