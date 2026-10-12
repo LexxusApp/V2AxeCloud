@@ -177,6 +177,9 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .from("terreiros_diretorio")
         .select("id, nome, endereco, telefone, owner_photo_url, cover_photo_url, gallery_photo_urls, link_maps, instagram_url, descricao_publica, orientacoes_visita, tradicao, publicacao_status, cidade, estado, slug, bairro, latitude, longitude, gira_horarios, verified_at, updated_at")
         .eq("claimed_by_tenant_id", user.id)
+        .order("verified_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       if (!data) return res.json({ claimed: false, profile: null });
@@ -228,6 +231,9 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .from("terreiros_diretorio")
         .select("id, nome, endereco, telefone, cidade, estado, bairro, link_maps, instagram_url, latitude, longitude, gira_horarios, owner_photo_url, cover_photo_url, gallery_photo_urls, descricao_publica, orientacoes_visita, tradicao, publicacao_status")
         .eq("claimed_by_tenant_id", user.id)
+        .order("verified_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (currentError) throw currentError;
       if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });
@@ -384,6 +390,9 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .from("terreiros_diretorio")
         .select("id")
         .eq("claimed_by_tenant_id", user.id)
+        .order("verified_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (currentError) throw currentError;
       if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });

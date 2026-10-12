@@ -143,7 +143,37 @@ if __name__ == "__main__":
         ok2, res2 = send_template(target_phone, "resgate_sem_filhos_axecloud", "Lucas", "Terreiro de Teste")
         print("Resultado SEM FILHOS:", ok2, res2)
     elif mode == "send_all":
+        import time
+        sb_url = env.get("VITE_SUPABASE_URL")
+        sb_key = env.get("SUPABASE_SERVICE_ROLE_KEY")
+
         for l in leads:
-            print(f"Enviando para {l['terreiro']} ({l['phone']})...")
+            print(f"\nEnviando para {l['terreiro']} ({l['phone']})...")
             ok, res = send_template(l["phone"], l["template"], l["zelador"], l["terreiro"])
             print("Resultado:", ok, res)
+
+            if ok and sb_url and sb_key:
+                try:
+                    log_payload = {
+                        "tenant_id": l["id"],
+                        "tipo": "campanha_resgate",
+                        "telefone": l["phone"],
+                        "mensagem": f"Template de resgate {l['template']} enviado para {l['zelador']} ({l['terreiro']}).",
+                        "status": "delivered"
+                    }
+                    req_log = urllib.request.Request(
+                        f"{sb_url}/rest/v1/whatsapp_logs",
+                        data=json.dumps(log_payload).encode("utf-8"),
+                        headers={
+                            "apikey": sb_key,
+                            "Authorization": f"Bearer {sb_key}",
+                            "Content-Type": "application/json"
+                        },
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req_log) as l_resp:
+                        print(f"Log gravado para {l['terreiro']}.")
+                except Exception as log_err:
+                    print("Erro ao gravar log:", log_err)
+
+            time.sleep(1)

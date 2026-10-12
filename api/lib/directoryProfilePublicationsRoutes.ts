@@ -39,6 +39,9 @@ async function ownerDirectory(sb: SupabaseClient, userId: string) {
     .from("terreiros_diretorio")
     .select("id, slug")
     .eq("claimed_by_tenant_id", userId)
+    .order("verified_at", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
   return data;

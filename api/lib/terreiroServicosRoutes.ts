@@ -76,6 +76,9 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
           .from("terreiros_diretorio")
           .select("id, whatsapp_atendimento, telefone")
           .eq("claimed_by_tenant_id", user.id)
+          .order("verified_at", { ascending: false, nullsFirst: false })
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         if (tErr) throw tErr;
         if (!terreiro) return res.json({ claimed: false, servicos: [], whatsappAtendimento: null });
@@ -138,6 +141,9 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
           .from("terreiros_diretorio")
           .select("id")
           .eq("claimed_by_tenant_id", user.id)
+          .order("verified_at", { ascending: false, nullsFirst: false })
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         if (tErr) throw tErr;
         if (!terreiro) return res.status(403).json({ error: "Nenhum perfil reivindicado nesta conta." });
@@ -193,6 +199,9 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
           .from("terreiros_diretorio")
           .select("id")
           .eq("claimed_by_tenant_id", user.id)
+          .order("verified_at", { ascending: false, nullsFirst: false })
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         if (tErr) throw tErr;
         if (!terreiro) return res.status(403).json({ error: "Nenhum perfil reivindicado nesta conta." });
@@ -241,6 +250,9 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
           .from("terreiros_diretorio")
           .select("id")
           .eq("claimed_by_tenant_id", user.id)
+          .order("verified_at", { ascending: false, nullsFirst: false })
+          .order("updated_at", { ascending: false })
+          .limit(1)
           .maybeSingle();
         if (tErr) throw tErr;
         if (!terreiro) return res.status(403).json({ error: "Nenhum perfil reivindicado nesta conta." });
