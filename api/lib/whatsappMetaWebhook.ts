@@ -199,11 +199,19 @@ export async function processMetaCloudWebhook(
       const { handleGiraAttendanceInbound } = await import(
         "./whatsappGiraAttendanceHandler.js"
       );
+      const { handleTerreiroWinBackInbound } = await import(
+        "./whatsappWinBackHandler.js"
+      );
       for (const msg of inboundList) {
         try {
           await handleGiraAttendanceInbound(sb, msg);
         } catch (attErr) {
           console.warn("[GIRA ATTENDANCE] falha ao processar presença via WhatsApp:", attErr);
+        }
+        try {
+          await handleTerreiroWinBackInbound(sb, msg);
+        } catch (wbErr) {
+          console.warn("[WINBACK] falha ao processar clique de resgate via WhatsApp:", wbErr);
         }
       }
     }
