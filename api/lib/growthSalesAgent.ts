@@ -38,7 +38,7 @@ export async function handleGrowthInboundAutoReply(
   sb: SupabaseClient,
   input: { phone: string; inboundBody: string; inboundAt: string },
 ): Promise<{ handled: boolean; replied: boolean; reason?: string }> {
-  if (String(process.env.GROWTH_AI_SALES_ENABLED || "false").toLowerCase() !== "true") {
+  if (String(process.env.GROWTH_AI_SALES_ENABLED || "true").toLowerCase() === "false") {
     return { handled: false, replied: false, reason: "disabled" };
   }
 
