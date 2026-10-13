@@ -116,12 +116,12 @@ export function fallbackSalesReply(input: {
     return `Perfeito! Recebi o seu e-mail. Vamos preparar o seu acesso de 30 dias grátis. Você também pode definir sua senha e entrar imediatamente por aqui: ${input.registrationUrl}`;
   }
   if (/preco|valor|plano|mensalidade/.test(value)) {
-    return `O teste é gratuito por 30 dias, sem cartão. Depois, o plano Premium custa ${input.monthlyPriceLabel} por mês. Quer que eu envie o link para começar o teste?`;
+    return `O teste é gratuito por 30 dias, sem cartão. Depois, o plano Premium custa ${input.monthlyPriceLabel} por mês. Se quiser testar sem compromisso, me envie o seu melhor e-mail e o nome do seu terreiro que já libero para você!`;
   }
   if (/financeiro|pix|mensalidade|recebimento/.test(value)) {
-    return "O AxéCloud centraliza mensalidades e recebimentos via Pix para facilitar o acompanhamento do que foi pago e do que está pendente. Quer conhecer o teste gratuito?";
+    return "O AxéCloud centraliza mensalidades e recebimentos via Pix para facilitar o acompanhamento do que foi pago e do que está pendente. Quer conhecer o teste gratuito de 30 dias? É só me mandar seu e-mail e nome da casa!";
   }
-  return "O AxéCloud organiza membros, giras, financeiro, mensalidades, comunicados e outras rotinas da casa em um só lugar. Qual parte você gostaria de conhecer primeiro?";
+  return `O AxéCloud organiza membros, giras, financeiro, mensalidades, comunicados e outras rotinas da casa em um só lugar. Se quiser testar por 30 dias grátis sem compromisso, me manda aqui seu e-mail e o nome do seu terreiro!`;
 }
 
 export async function researchPublicContact(input: {
@@ -166,14 +166,14 @@ export async function generateSalesReply(input: {
   const history = input.history.slice(-16).map((m) => `${m.direction === "inbound" ? "Zelador" : "AxéCloud"}: ${m.body}`).join("\n");
   const prompt = `Você é o assistente comercial oficial do AxéCloud e conversa em português do Brasil com respeito às tradições de matriz africana.
 
-Objetivo: entender a necessidade da casa, explicar o produto e ajudar o zelador a iniciar o teste. Nunca pressione, nunca invente recursos e nunca afirme que o contrato foi fechado sem confirmação explícita.
+Objetivo: entender a necessidade da casa, explicar o produto e ajudar o zelador a iniciar o teste de 30 dias grátis. Nunca pressione, nunca invente recursos e nunca afirme que o contrato foi fechado sem confirmação explícita.
 
 Dados corretos do produto:
 - Sistema de gestão para terreiros de Umbanda, Candomblé e Jurema.
 - Recursos: cadastro de membros, calendário de giras, financeiro/Pix/mensalidades, comunicados por WhatsApp, galeria, obrigações e portal do membro.
 - Teste gratuito de 30 dias, sem cartão.
 - Plano Premium atual: ${input.monthlyPriceLabel} por mês.
-- Cadastro: ${input.registrationUrl}
+- Cadastro pelo site: ${input.registrationUrl}
 
 Regras:
 - Responda somente à última mensagem, em no máximo 500 caracteres.
@@ -182,7 +182,9 @@ Regras:
 - Nunca use o nome recebido automaticamente do perfil do WhatsApp. Só use um nome se a própria pessoa se apresentar no texto da conversa.
 - Se pedirem para parar, não responda com venda.
 - Se houver dúvida religiosa, jurídica, negociação especial, reclamação séria ou algo que não saiba, diga que vai chamar o Lucas.
-- Se houver interesse em testar, envie o link de cadastro.
+- Se a pessoa demonstrar interesse, quiser conhecer ou testar: informe o link de cadastro (${input.registrationUrl}) e SEMPRE dê a opção prática de ela enviar aqui mesmo o seu melhor e-mail e o nome do terreiro para já liberarmos o login na hora sem precisar preencher formulários.
+- Se a pessoa informar o nome do terreiro mas ainda não informou o e-mail: agradeça e pergunte pelo e-mail dela para que possamos gerar a senha e liberar o acesso.
+- Se a pessoa enviar um e-mail: agradeça e confirme que o acesso com 30 dias grátis está sendo preparado.
 - Não use markdown complexo e não diga que é humano.
 
 Terreiro: ${input.terreiroNome}
