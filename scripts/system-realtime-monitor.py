@@ -66,13 +66,19 @@ try:
     req = urllib.request.Request(f"{sb_url}/rest/v1/tenant_feature_failures?select=*&order=created_at.desc&limit=10", headers=headers)
     with urllib.request.urlopen(req, timeout=10) as resp:
         failures = json.loads(resp.read().decode())
-        pending = [f for f in failures if f.get("status") not in ("resolved", "dismissed")]
+        pending = [f for f in failures if not f.get("resolved_at")]
         print(f"  - Total de registros recentes: {len(failures)}")
         print(f"  - Falhas pendentes (não resolvidas): {len(pending)}")
         for f in failures[:5]:
-            print(f"    • ID {f.get('id')} | Status: {f.get('status')} | Rota: {f.get('feature_key')} | Criado: {f.get('created_at')}")
+            is_resolved = bool(f.get("resolved_at"))
+            meta = f.get("metadata") or {}
+            auto_healed = meta.get("auto_healed", False) if isinstance(meta, dict) else False
+            status_label = "AUTO-CURADO" if auto_healed else ("RESOLVIDO" if is_resolved else "PENDENTE")
+            print(f"    • ID {f.get('id')[:8]}... | Status: [{status_label}] | Modulo: {f.get('feature')} ({f.get('route')}) | Criado: {f.get('created_at')}")
             if f.get("error_message"):
                 print(f"      Mensagem: {f.get('error_message')[:120]}")
+            if is_resolved:
+                print(f"      Resolvido em: {f.get('resolved_at')}")
 except Exception as e:
     print(f"  - Erro ao consultar tenant_feature_failures: {e}")
 
@@ -85,7 +91,9 @@ try:
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
         wa_logs = json.loads(resp.read().decode())
+        failed_wa = [w for w in wa_logs if str(w.get('status', '')).lower() in ('failed', 'error')]
         print(f"  - Total obtido: {len(wa_logs)}")
+        print(f"  - Envios com falha recente: {len(failed_wa)}")
         for log in wa_logs:
             msg_snippet = str(log.get('mensagem') or '')[:75]
             print(f"    • [{log.get('created_at')}] Tipo: {log.get('tipo')} | Tel: {log.get('telefone')} | Status: {log.get('status')}")
@@ -104,10 +112,12 @@ try:
         convs = json.loads(resp.read().decode())
         print(f"  - Total de conversas ativas no admin: {len(convs)}")
         for c in convs:
-            last_text = str(c.get('last_message_text') or '')[:80]
+            last_text = str(c.get('last_message_preview') or c.get('last_message_text') or '')[:80]
             unread = c.get('unread_count') or 0
-            print(f"    • {c.get('contact_name')} ({c.get('contact_phone')}) | Status: {c.get('status')} | Não lidas: {unread}")
-            print(f"      Última mensagem ({c.get('last_message_at')}): \"{last_text}\"")
+            phone = c.get('phone_e164') or 'N/A'
+            name = c.get('contact_name') or 'Desconhecido'
+            print(f"    • {name} ({phone}) | Status: {c.get('status')} | Nao lidas: {unread}")
+            print(f"      Ultima mensagem ({c.get('last_message_at')}): \"{last_text}\"")
 except Exception as e:
     print(f"  - Nota admin_whatsapp_conversations: {e}")
 
