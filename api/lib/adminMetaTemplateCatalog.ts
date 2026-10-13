@@ -94,7 +94,7 @@ export const ADMIN_META_ZELADOR_TEMPLATES: AdminMetaTemplateDefinition[] = [
   },
   {
     id: "boas_vindas_zelador",
-    templateName: "boas_vindas_zelador_v2_axecloud",
+    templateName: "boas_vindas_zelador_conta_axecloud",
     label: "Boas-vindas zelador",
     description: "Boas-vindas humanizadas no cadastro (teste + orientação de registro dos membros).",
     category: "UTILITY",

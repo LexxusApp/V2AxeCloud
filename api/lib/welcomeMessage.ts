@@ -239,10 +239,15 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
         };
       }
     } catch (err: unknown) {
-      console.warn(
-        "[welcome] template Meta boas_vindas_zelador falhou, fallback texto:",
+      console.error(
+        "[welcome] template Meta boas_vindas_zelador falhou:",
         err instanceof Error ? err.message : err
       );
+      return {
+        channel: "meta_template",
+        messageId: undefined,
+        logged: false,
+      };
     }
 
   const out = await sendEvolutionTextQueued(

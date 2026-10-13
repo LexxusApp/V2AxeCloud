@@ -174,10 +174,15 @@ export function resolveMetaTemplateName(tipo: string): string {
     );
   }
   if (normalized === "boas_vindas_zelador") {
-    return (
-      String(process.env.WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR || "").trim() ||
-      BOAS_VINDAS_ZELADOR_TEMPLATE
-    );
+    const fromEnv = String(process.env.WA_META_TEMPLATE_BOAS_VINDAS_ZELADOR || "").trim();
+    if (
+      fromEnv &&
+      fromEnv !== "boas_vindas_zelador_v2_axecloud" &&
+      fromEnv !== "boas_vindas_zelador_axecloud"
+    ) {
+      return fromEnv;
+    }
+    return BOAS_VINDAS_ZELADOR_TEMPLATE;
   }
   if (normalized === "guia_membro") {
     return (
@@ -601,7 +606,7 @@ export function buildContaAtivaComponents(
 }
 
 /**
- * boas_vindas_zelador_v2_axecloud — {{1}} zelador (tom humanizado + orientações)
+ * boas_vindas_zelador_conta_axecloud — {{1}} zelador (tom humanizado + orientações)
  * Legado boas_vindas_zelador_axecloud — {{1}} zelador, {{2}} terreiro, {{3}} e-mail
  * Botão estático: https://axecloud.com.br/instrucoes
  */
