@@ -157,6 +157,90 @@ export async function handleGrowthInboundAutoReply(
     .limit(1);
   if (newerOutbound?.length) return { handled: true, replied: false, reason: "already_replied" };
 
+  // Se a mensagem contiver um e-mail, criar a conta e liberar o acesso de 30 dias na hora!
+  const emailMatch = input.inboundBody.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  if (emailMatch) {
+    const rawEmail = emailMatch[1].trim().toLowerCase();
+    const phoneDigits = input.phone.replace(/\D/g, "");
+    const tempPassword = `Axe@${Math.floor(1000 + Math.random() * 9000)}`;
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const terreiroNome = String(prospect.terreiro_nome || "Terreiro").trim();
+    const zeladorNome = String(conversation.contact_name || "Zelador").trim();
+
+    try {
+      const { data: authUser, error: authErr } = await sb.auth.admin.createUser({
+        email: rawEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          nome_terreiro: terreiroNome,
+          nome_zelador: zeladorNome,
+          whatsapp: phoneDigits,
+          onboarding: "chat_auto_onboarding",
+          is_trial: true,
+          billing_cycle: "monthly",
+        },
+      });
+
+      if (!authErr && authUser?.user?.id) {
+        const userId = authUser.user.id;
+        const nowIso = new Date().toISOString();
+
+        await sb.from("perfil_lider").upsert({
+          id: userId,
+          email: rawEmail,
+          nome_terreiro: terreiroNome,
+          cargo: zeladorNome,
+          role: "admin",
+          tenant_id: userId,
+          whatsapp: phoneDigits.slice(0, 15) || null,
+          whatsapp_publico: phoneDigits.slice(0, 15) || null,
+          updated_at: nowIso,
+        });
+
+        await sb.from("subscriptions").upsert({
+          id: userId,
+          plan: "premium",
+          status: "active",
+          expires_at: expiresAt,
+          billing_cycle: "monthly",
+          updated_at: nowIso,
+        });
+
+        const onboardingReply = `Axé! 🙏 Conta criada com sucesso para o seu terreiro!\n\nSeus dados de acesso aos 30 dias de teste gratuito:\n📧 E-mail: ${rawEmail}\n🔑 Senha temporária: ${tempPassword}\n\n👉 Acesse agora o seu painel: https://axecloud.com.br/entrar\n\nQualquer dúvida no primeiro acesso, pode me chamar por aqui!`;
+        await replyAdminInboxMessage(sb, conversation.id, onboardingReply);
+
+        if (sourceTable === "prospecting_leads") {
+          await sb.from("prospecting_leads").update({
+            status: "trial",
+            email: rawEmail,
+            terreiro_id: userId,
+            last_contact_at: nowIso,
+            updated_at: nowIso,
+          }).eq("id", prospect.id);
+
+          await sb.from("prospecting_events").insert({
+            lead_id: prospect.id,
+            event_type: "trial_started",
+            from_status: prospect.status || "interested",
+            to_status: "trial",
+            description: "Conta de teste criada automaticamente pelo chat com senha gerada",
+            metadata: { userId, email: rawEmail },
+            created_at: nowIso,
+          });
+        }
+
+        return { handled: true, replied: true };
+      } else if (authErr && /already|registered|duplicate|exists/i.test(authErr.message || "")) {
+        const existingReply = `Axé! 🙏 O e-mail ${rawEmail} já possui cadastro no AxéCloud.\n\nVocê pode acessar seu painel diretamente em: https://axecloud.com.br/entrar\n(Caso não lembre a senha, é só clicar em 'Esqueci minha senha' na tela de login).`;
+        await replyAdminInboxMessage(sb, conversation.id, existingReply);
+        return { handled: true, replied: true };
+      }
+    } catch (e) {
+      console.warn("[GROWTH AI] erro no auto-onboarding:", e);
+    }
+  }
+
   const { data: history, error: historyError } = await sb
     .from("admin_whatsapp_messages")
     .select("direction,body,created_at")
