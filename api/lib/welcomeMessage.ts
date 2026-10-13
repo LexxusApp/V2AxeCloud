@@ -5,6 +5,7 @@
  * Persistência: tabela `global_settings`, id = `welcome_message`.
  * O catálogo aceita esta linha — não é necessária migração extra.
  */
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type WelcomeMessageConfig = {
   enabled: boolean;
@@ -243,7 +244,6 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
         err instanceof Error ? err.message : err
       );
     }
-  }
 
   const out = await sendEvolutionTextQueued(
     CONSOLE_ADMIN_INSTANCE_NAME,
@@ -256,4 +256,3 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
     logged: await logDelivery("text", out?.messageId),
   };
 }
-import type { SupabaseClient } from "@supabase/supabase-js";
