@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   Phone,
+  RotateCcw,
   User,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -237,9 +238,9 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-2 flex h-[42px] w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-black uppercase tracking-wider text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black uppercase tracking-wider text-black shadow-[0_4px_16px_rgba(212,175,55,0.25)] transition-all hover:bg-[#e09b1f] hover:shadow-[0_6px_20px_rgba(212,175,55,0.35)] active:scale-[0.99] disabled:opacity-50"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin text-black" strokeWidth={2.5} /> : null}
                 {loading ? 'Enviando…' : 'Enviar código no WhatsApp'}
               </button>
             </form>
@@ -308,7 +309,15 @@ export default function ForgotPassword() {
                 />
               </div>
 
-              <div className="flex flex-col gap-2 pt-1 sm:flex-row">
+              <div className="flex flex-col gap-2.5 pt-3 sm:flex-row sm:items-center sm:gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="order-1 flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black uppercase tracking-wider text-black shadow-[0_4px_16px_rgba(212,175,55,0.25)] transition-all hover:bg-[#e09b1f] hover:shadow-[0_6px_20px_rgba(212,175,55,0.35)] active:scale-[0.99] disabled:opacity-50 sm:order-2"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin text-black" strokeWidth={2.5} /> : null}
+                  {loading ? 'Salvando…' : 'Salvar nova senha'}
+                </button>
                 <button
                   type="button"
                   disabled={loading}
@@ -317,17 +326,10 @@ export default function ForgotPassword() {
                     setCode('');
                     setInfo(null);
                   }}
-                  className="flex h-[42px] flex-1 items-center justify-center rounded-lg border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/5 disabled:opacity-50"
+                  className="order-2 flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-gray-300 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white active:scale-[0.99] disabled:opacity-50 sm:order-1"
                 >
+                  <RotateCcw className="h-3.5 w-3.5 text-gray-400" />
                   Reenviar código
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex h-[42px] flex-1 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-black text-black hover:opacity-90 disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {loading ? 'Salvando…' : 'Salvar nova senha'}
                 </button>
               </div>
             </form>
