@@ -134,8 +134,8 @@ export async function handleGrowthInboundAutoReply(
       }).eq("id", prospect.id);
     } else if (sourceTable === "prospecting_leads") {
       await sb.from("prospecting_leads").update({
-        status: "lost",
-        notes: "Contato solicitou opt-out / sair via WhatsApp",
+        status: "do_not_contact",
+        whatsapp_opt_in: false,
         updated_at: new Date().toISOString(),
       }).eq("id", prospect.id);
     }
