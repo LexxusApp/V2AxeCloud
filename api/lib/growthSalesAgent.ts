@@ -41,25 +41,104 @@ export async function handleGrowthInboundAutoReply(
   if (String(process.env.GROWTH_AI_SALES_ENABLED || "false").toLowerCase() !== "true") {
     return { handled: false, replied: false, reason: "disabled" };
   }
-  const { data: prospect, error: prospectError } = await sb
+
+  let prospect: Record<string, any> | null = null;
+  let sourceTable: "growth_prospects" | "prospecting_leads" | "admin_whatsapp_conversations" = "growth_prospects";
+
+  const { data: growthProspect } = await sb
     .from("growth_prospects")
     .select("*")
     .eq("phone_e164", input.phone)
     .maybeSingle();
-  if (prospectError || !prospect || prospect.ai_sales_enabled === false || prospect.status === "cliente") {
+
+  if (growthProspect) {
+    if (growthProspect.ai_sales_enabled === false || growthProspect.status === "cliente") {
+      return { handled: false, replied: false, reason: "disabled_or_client" };
+    }
+    prospect = growthProspect;
+    sourceTable = "growth_prospects";
+  } else {
+    // Não tratar líderes ativos existentes como prospects comerciais
+    const digits = input.phone.replace(/\D/g, "").slice(-8);
+    if (digits.length >= 8) {
+      const { data: leader } = await sb
+        .from("perfil_lider")
+        .select("id, nome_terreiro")
+        .or(`whatsapp.ilike.%${digits}%,telefone.ilike.%${digits}%`)
+        .limit(1)
+        .maybeSingle();
+      if (leader) {
+        return { handled: false, replied: false, reason: "active_leader" };
+      }
+    }
+
+    // Verificar se o contato está na tabela prospecting_leads
+    const { data: lead } = await sb
+      .from("prospecting_leads")
+      .select("id, name, phone, city, state, status")
+      .or(`phone.ilike.%${digits}%,whatsapp.ilike.%${digits}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (lead) {
+      prospect = {
+        id: lead.id,
+        phone_e164: input.phone,
+        terreiro_nome: lead.name || "seu terreiro",
+        status: lead.status || "respondeu",
+        ai_sales_enabled: true,
+        ai_sales_stage: "novo",
+        consent_at: input.inboundAt,
+        consent_source: "mensagem iniciada pelo contato",
+      };
+      sourceTable = "prospecting_leads";
+    } else {
+      // Verificar em admin_whatsapp_conversations
+      const { data: conv } = await sb
+        .from("admin_whatsapp_conversations")
+        .select("id, contact_name, phone_e164")
+        .eq("phone_e164", input.phone)
+        .maybeSingle();
+
+      if (conv) {
+        prospect = {
+          id: conv.id,
+          phone_e164: input.phone,
+          terreiro_nome: conv.contact_name || "seu terreiro",
+          status: "respondeu",
+          ai_sales_enabled: true,
+          ai_sales_stage: "novo",
+          consent_at: input.inboundAt,
+          consent_source: "mensagem iniciada pelo contato",
+        };
+        sourceTable = "admin_whatsapp_conversations";
+      }
+    }
+  }
+
+  if (!prospect) {
     return { handled: false, replied: false, reason: "not_growth_prospect" };
   }
+
   if (optedOut(input.inboundBody)) {
-    await sb.from("growth_prospects").update({
-      opt_out_at: input.inboundAt,
-      consent_at: prospect.consent_at || input.inboundAt,
-      consent_source: prospect.consent_source || "mensagem iniciada pelo contato",
-      outreach_status: "opted_out",
-      status: "bloqueado",
-      ai_sales_enabled: false,
-      ai_sales_stage: "opt_out",
-      updated_at: new Date().toISOString(),
-    }).eq("id", prospect.id);
+    if (sourceTable === "growth_prospects") {
+      await sb.from("growth_prospects").update({
+        opt_out_at: input.inboundAt,
+        consent_at: prospect.consent_at || input.inboundAt,
+        consent_source: prospect.consent_source || "mensagem iniciada pelo contato",
+        outreach_status: "opted_out",
+        status: "bloqueado",
+        ai_sales_enabled: false,
+        ai_sales_stage: "opt_out",
+        updated_at: new Date().toISOString(),
+      }).eq("id", prospect.id);
+    } else if (sourceTable === "prospecting_leads") {
+      await sb.from("prospecting_leads").update({
+        status: "lost",
+        notes: "Contato solicitou opt-out / sair via WhatsApp",
+        updated_at: new Date().toISOString(),
+      }).eq("id", prospect.id);
+    }
     return { handled: true, replied: false, reason: "opt_out" };
   }
 
@@ -86,7 +165,7 @@ export async function handleGrowthInboundAutoReply(
     .limit(16);
   if (historyError) throw historyError;
   const price = await resolvePremiumAmountLabel(sb);
-  const registrationUrl = `${String(process.env.APP_PUBLIC_URL || "https://axecloud.com.br").replace(/\/$/, "")}/cadastro`;
+  const registrationUrl = `${String(process.env.APP_PUBLIC_URL || "https://axecloud.com.br").replace(/\/$/, "")}/register`;
   const reply = await generateSalesReply({
     terreiroNome: String(prospect.terreiro_nome),
     contactName: conversation.contact_name,
@@ -97,19 +176,38 @@ export async function handleGrowthInboundAutoReply(
   await replyAdminInboxMessage(sb, conversation.id, reply);
   const now = new Date().toISOString();
   const stage = mergeSalesStage(prospect.ai_sales_stage, nextStage(input.inboundBody));
-  await sb.from("growth_prospects").update({
-    consent_at: prospect.consent_at || input.inboundAt,
-    consent_source: prospect.consent_source || "mensagem iniciada pelo contato",
-    outreach_status: "replied",
-    status: statusForSalesStage(prospect.status, stage),
-    ai_sales_stage: stage,
-    ai_last_reply_at: now,
-    updated_at: now,
-  }).eq("id", prospect.id);
-  await sb.from("growth_outreach_events").insert({
-    prospect_id: prospect.id,
-    event_type: "ai_sales_reply",
-    payload: { conversationId: conversation.id, stage },
-  });
+
+  if (sourceTable === "growth_prospects") {
+    await sb.from("growth_prospects").update({
+      consent_at: prospect.consent_at || input.inboundAt,
+      consent_source: prospect.consent_source || "mensagem iniciada pelo contato",
+      outreach_status: "replied",
+      status: statusForSalesStage(prospect.status, stage),
+      ai_sales_stage: stage,
+      ai_last_reply_at: now,
+      updated_at: now,
+    }).eq("id", prospect.id);
+    await sb.from("growth_outreach_events").insert({
+      prospect_id: prospect.id,
+      event_type: "ai_sales_reply",
+      payload: { conversationId: conversation.id, stage },
+    });
+  } else if (sourceTable === "prospecting_leads") {
+    await sb.from("prospecting_leads").update({
+      status: "interested",
+      last_contact_at: now,
+      updated_at: now,
+    }).eq("id", prospect.id);
+    await sb.from("prospecting_events").insert({
+      lead_id: prospect.id,
+      event_type: "ai_sales_reply",
+      from_status: prospect.status || "contacted",
+      to_status: "interested",
+      description: "Resposta comercial automatizada enviada ao interessado via WhatsApp",
+      metadata: { conversationId: conversation.id, stage },
+      created_at: now,
+    });
+  }
+
   return { handled: true, replied: true };
 }

@@ -109,8 +109,11 @@ export function fallbackSalesReply(input: {
 }): string {
   const latestInbound = [...input.history].reverse().find((message) => message.direction === "inbound")?.body || "";
   const value = latestInbound.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  if (/teste|testar|cadastro|como faco|comecar|iniciar/.test(value)) {
-    return `Você pode iniciar agora o teste gratuito de 30 dias, sem cartão: ${input.registrationUrl}. Se tiver alguma dificuldade no cadastro, me avise por aqui.`;
+  if (/teste|testar|cadastro|como faco|comecar|iniciar|quero conhecer|conhecer|sim|bora|tenho interesse|interesse/.test(value)) {
+    return `Axé! 🙏 Liberei 30 dias de teste gratuito para você conhecer o AxéCloud na prática, sem cartão: ${input.registrationUrl}. Ou se preferir, pode me enviar aqui o seu melhor e-mail e o nome do seu terreiro que eu já gero o seu login por aqui mesmo!`;
+  }
+  if (/[^\s@]+@[^\s@]+\.[^\s@]+/.test(latestInbound)) {
+    return `Perfeito! Recebi o seu e-mail. Vamos preparar o seu acesso de 30 dias grátis. Você também pode definir sua senha e entrar imediatamente por aqui: ${input.registrationUrl}`;
   }
   if (/preco|valor|plano|mensalidade/.test(value)) {
     return `O teste é gratuito por 30 dias, sem cartão. Depois, o plano Premium custa ${input.monthlyPriceLabel} por mês. Quer que eu envie o link para começar o teste?`;
