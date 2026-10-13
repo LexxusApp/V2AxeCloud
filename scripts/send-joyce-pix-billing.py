@@ -40,7 +40,7 @@ MEDIA_ID = "1159299646430694"
 PIX_KEY = env.get("EFI_PIX_KEY", "c15cbd8d-60f2-49d0-adce-06f3e6d47e82")
 PIX_CODE = "00020101021226830014BR.GOV.BCB.PIX2561qrcodespix.sejaefi.com.br/v2/51103eeb5e7c4f98888740daa0702e125204000053039865802BR5905EFISA6008SAOPAULO62070503***630475D8"
 AMOUNT_CENTS = 6990 # R$ 69,90
-EXPIRY_LABEL = "vence hoje, no dia 12/10/2026"
+EXPIRY_LABEL = "venceu ontem, no dia 12/10/2026"
 
 payload = {
     "messaging_product": "whatsapp",
@@ -143,7 +143,7 @@ try:
                 "tenant_id": TENANT_ID,
                 "tipo": "cobranca_assinatura",
                 "telefone": RECIPIENT,
-                "mensagem": f"Cobrança de assinatura enviada (vencimento hoje 12/10/2026, R$ 69,90) com banner e Pix copia e cola. [ASSINATURA:2026-10-12:D-0]",
+                "mensagem": f"Cobrança de assinatura enviada (venceu ontem 12/10/2026, R$ 69,90) com banner e Pix copia e cola. [ASSINATURA:2026-10-12:D-1]",
                 "status": "delivered"
             }
             req_log = urllib.request.Request(
