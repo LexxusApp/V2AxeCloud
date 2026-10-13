@@ -192,17 +192,16 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
     }
   };
 
-  if (envTemplate) {
-    try {
-      const { isMetaCloudDirectConfigured, sendMetaCloudTemplate, sendMetaCloudText } =
-        await import("./metaCloudSend.js");
-      if (isMetaCloudDirectConfigured()) {
-        const {
-          buildBoasVindasZeladorComponents,
-          resolveMetaTemplateLanguage,
-          resolveMetaTemplateName,
-        } = await import("./whatsappMetaCloud.js");
-        const templateName = resolveMetaTemplateName("boas_vindas_zelador");
+  try {
+    const { isMetaCloudDirectConfigured, sendMetaCloudTemplate, sendMetaCloudText } =
+      await import("./metaCloudSend.js");
+    if (isMetaCloudDirectConfigured()) {
+      const {
+        buildBoasVindasZeladorComponents,
+        resolveMetaTemplateLanguage,
+        resolveMetaTemplateName,
+      } = await import("./whatsappMetaCloud.js");
+      const templateName = resolveMetaTemplateName("boas_vindas_zelador");
         const components = buildBoasVindasZeladorComponents(
           opts.nome_zelador,
           opts.nome_terreiro,
