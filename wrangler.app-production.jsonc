@@ -16,6 +16,7 @@
     { "pattern": "axecloud.com.br/entrar*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/login*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/cadastro*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/cadastrar*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/register*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/dashboard*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/children*", "zone_name": "axecloud.com.br" },

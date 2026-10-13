@@ -93,8 +93,12 @@ export default {
       const suffix = url.pathname.slice('/login'.length);
       return finish(redirect(`/entrar${suffix}${url.search}`, 301), url.pathname, preview);
     }
-    if (url.pathname === '/cadastro' || url.pathname.startsWith('/cadastro/')) {
-      const suffix = url.pathname.slice('/cadastro'.length);
+    if (
+      url.pathname === '/cadastro' || url.pathname.startsWith('/cadastro/') ||
+      url.pathname === '/cadastrar' || url.pathname.startsWith('/cadastrar/')
+    ) {
+      const prefix = url.pathname.startsWith('/cadastrar') ? '/cadastrar' : '/cadastro';
+      const suffix = url.pathname.slice(prefix.length);
       return finish(redirect(`/register${suffix}${url.search}`, 301), url.pathname, preview);
     }
 
