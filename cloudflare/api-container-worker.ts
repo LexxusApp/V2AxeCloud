@@ -158,8 +158,16 @@ export default {
         headers,
       });
     }
-    if (url.pathname === "/_worker/health") {
-      return Response.json({ status: "ok", service: "axecloud-api-container-worker" });
+    if (
+      url.pathname === "/_worker/health" ||
+      url.pathname === "/api/health-check" ||
+      url.pathname === "/api/health" ||
+      url.pathname === "/api/ping"
+    ) {
+      return Response.json(
+        { status: "ok", time: new Date().toISOString(), service: "axecloud-api" },
+        { headers: { "cache-control": "no-store", "x-axecloud-runtime": "cloudflare-edge" } }
+      );
     }
     if (url.pathname.startsWith("/api/prospecting/") && env.PROSPECT_API) {
       return env.PROSPECT_API.fetch(request);

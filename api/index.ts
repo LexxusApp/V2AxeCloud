@@ -1356,7 +1356,7 @@ async function startServer() {
     });
   });
 
-  app.get("/api/health-check", (req, res) => {
+  app.get(["/api/health", "/api/health-check"], (req, res) => {
     res.json({ status: "ok", time: new Date().toISOString() });
   });
 
