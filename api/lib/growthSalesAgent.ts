@@ -210,6 +210,37 @@ export async function handleGrowthInboundAutoReply(
         const onboardingReply = `Axé! 🙏 Conta criada com sucesso para o seu terreiro!\n\nSeus dados de acesso aos 30 dias de teste gratuito:\n📧 E-mail: ${rawEmail}\n🔑 Senha temporária: ${tempPassword}\n\n👉 Acesse agora o seu painel: https://axecloud.com.br/entrar\n\nQualquer dúvida no primeiro acesso, pode me chamar por aqui!`;
         await replyAdminInboxMessage(sb, conversation.id, onboardingReply);
 
+        // Disparar template oficial de boas-vindas da Meta (registrando em whatsapp_logs)
+        try {
+          const { sendWelcomeMessage } = await import("./welcomeMessage.js");
+          await sendWelcomeMessage({
+            nome_zelador: zeladorNome,
+            nome_terreiro: terreiroNome,
+            email: rawEmail,
+            msisdn: input.phone,
+            senha: tempPassword,
+            tenantId: userId,
+            sb,
+          });
+        } catch (welcomeErr) {
+          console.warn("[GROWTH AI] falha ao disparar template de boas-vindas:", welcomeErr);
+        }
+
+        // Notificar operador (WhatsApp) sobre o novo terreiro criado
+        try {
+          const { notifyOpsNewTerreiro } = await import("./opsAlertWhatsApp.js");
+          await notifyOpsNewTerreiro({
+            nome_terreiro: terreiroNome,
+            nome_zelador: zeladorNome,
+            email: rawEmail,
+            whatsapp: input.phone,
+            source: "public-register",
+            tenantId: userId,
+          });
+        } catch (opsErr) {
+          console.warn("[GROWTH AI] falha ao alertar operador:", opsErr);
+        }
+
         if (sourceTable === "prospecting_leads") {
           await sb.from("prospecting_leads").update({
             status: "trial",
