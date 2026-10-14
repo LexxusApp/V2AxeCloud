@@ -75,7 +75,7 @@ export async function handleGrowthInboundAutoReply(
     // Verificar se o contato está na tabela prospecting_leads
     const { data: lead } = await sb
       .from("prospecting_leads")
-      .select("id, name, phone, city, state, status")
+      .select("id, name, phone, city, state, status, directory_id")
       .or(`phone.ilike.%${digits}%,whatsapp.ilike.%${digits}%`)
       .limit(1)
       .maybeSingle();
@@ -90,6 +90,7 @@ export async function handleGrowthInboundAutoReply(
         ai_sales_stage: "novo",
         consent_at: input.inboundAt,
         consent_source: "mensagem iniciada pelo contato",
+        directory_id: lead.directory_id || null,
       };
       sourceTable = "prospecting_leads";
     } else {
@@ -239,6 +240,50 @@ export async function handleGrowthInboundAutoReply(
           });
         } catch (opsErr) {
           console.warn("[GROWTH AI] falha ao alertar operador:", opsErr);
+        }
+
+        // Vincular terreiro no catálogo/mapa de terreiros (claimed_by_tenant_id)
+        try {
+          let directoryIdToLink = prospect?.directory_id;
+          if (!directoryIdToLink) {
+            const digits8 = phoneDigits.slice(-8);
+            if (digits8.length >= 8) {
+              const { data: matchedDir } = await sb
+                .from("terreiros_diretorio")
+                .select("id")
+                .is("claimed_by_tenant_id", null)
+                .or(`telefone.ilike.%${digits8}%,whatsapp_atendimento.ilike.%${digits8}%`)
+                .limit(1)
+                .maybeSingle();
+              if (matchedDir?.id) {
+                directoryIdToLink = matchedDir.id;
+              }
+            }
+          }
+
+          if (!directoryIdToLink && terreiroNome && terreiroNome !== "seu terreiro") {
+            const { data: matchedByName } = await sb
+              .from("terreiros_diretorio")
+              .select("id")
+              .is("claimed_by_tenant_id", null)
+              .ilike("nome", `%${terreiroNome.trim()}%`)
+              .limit(1)
+              .maybeSingle();
+            if (matchedByName?.id) {
+              directoryIdToLink = matchedByName.id;
+            }
+          }
+
+          if (directoryIdToLink) {
+            await sb.from("terreiros_diretorio").update({
+              claimed_by_tenant_id: userId,
+              verified_at: nowIso,
+              updated_at: nowIso,
+            }).eq("id", directoryIdToLink);
+            console.log(`[GROWTH AI] Terreiro no mapa vinculado com sucesso (directory_id: ${directoryIdToLink} -> tenant: ${userId})`);
+          }
+        } catch (dirErr) {
+          console.warn("[GROWTH AI] falha ao vincular terreiros_diretorio:", dirErr);
         }
 
         if (sourceTable === "prospecting_leads") {

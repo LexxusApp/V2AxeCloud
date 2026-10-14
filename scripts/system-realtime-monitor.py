@@ -163,11 +163,13 @@ def check_supabase(url: str, key: str):
     except Exception as e:
         print(f"  - Erro ao verificar subscriptions: {e}")
 
-    # 6. VERIFICAÇÃO ESPECÍFICA: MÃE JOYCE E TATA ROBSON
-    print("\n[6] VERIFICAÇÃO ESPECÍFICA DOS CASOS DE HOJE:")
+    # 6. VERIFICAÇÃO ESPECÍFICA DOS CASOS CRÍTICOS E NOVOS TERREIROS
+    print("\n[6] VERIFICAÇÃO ESPECÍFICA DOS CASOS CRÍTICOS E NOVOS TERREIROS:")
     cases = [
         ("Mãe Joyce", "5de04732-9419-4ef5-8558-7287ed140e79"),
         ("Tata Robson", "968ae2d1-e32d-454d-9b30-05543843d8ab"),
+        ("Associação Oyekundi (Yeye Apesin)", "14fcea29-a121-497a-88dc-7f93b7397ae9"),
+        ("Valdety Garcia Policarpo", "7438e2e0-972f-47d8-afa4-45f33d3c8fab"),
     ]
     for nome, tid in cases:
         try:

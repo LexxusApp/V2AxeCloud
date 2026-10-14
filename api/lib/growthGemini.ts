@@ -109,8 +109,10 @@ export function fallbackSalesReply(input: {
 }): string {
   const latestInbound = [...input.history].reverse().find((message) => message.direction === "inbound")?.body || "";
   const value = latestInbound.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const alreadyReplied = input.history.some((message) => message.direction !== "inbound");
+  const greeting = alreadyReplied ? "" : "Axé! 🙏 ";
   if (/teste|testar|cadastro|como faco|comecar|iniciar|quero conhecer|conhecer|sim|bora|tenho interesse|interesse/.test(value)) {
-    return `Axé! 🙏 Liberei 30 dias de teste gratuito para você conhecer o AxéCloud na prática, sem cartão: ${input.registrationUrl}. Ou se preferir, pode me enviar aqui o seu melhor e-mail e o nome do seu terreiro que eu já gero o seu login por aqui mesmo!`;
+    return `${greeting}Liberei 30 dias de teste gratuito para você conhecer o AxéCloud na prática, sem cartão: ${input.registrationUrl}. Ou se preferir, pode me enviar aqui o seu melhor e-mail e o nome do seu terreiro que eu já gero o seu login por aqui mesmo!`.trim();
   }
   if (/[^\s@]+@[^\s@]+\.[^\s@]+/.test(latestInbound)) {
     return `Perfeito! Recebi o seu e-mail. Vamos preparar o seu acesso de 30 dias grátis. Você também pode definir sua senha e entrar imediatamente por aqui: ${input.registrationUrl}`;
