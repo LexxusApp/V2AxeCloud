@@ -4,6 +4,7 @@ import { checkRemoteBuildVersion } from '../lib/buildVersionPoll';
 import {
   applyPwaUpdate,
   claimPwaBannerMount,
+  getPendingRemoteBuildId,
   isPwaUpdateAvailable,
   releasePwaBannerMount,
   shouldSuppressPwaUpdatePrompt,
@@ -32,8 +33,9 @@ function isDismissedRecently(): boolean {
 }
 
 function shouldShowBanner(): boolean {
+  const remote = getPendingRemoteBuildId();
   return (
-    !shouldSuppressPwaUpdatePrompt() &&
+    !shouldSuppressPwaUpdatePrompt(remote) &&
     isPwaUpdateAvailable() &&
     !isDismissedRecently()
   );

@@ -29,9 +29,9 @@ export async function fetchRemoteBuildId(): Promise<string | null> {
  * Evita segundo aviso após o usuário já ter aceitado o build remoto.
  */
 export async function signalAppUpdateIfNeeded(options?: { swHint?: boolean }): Promise<boolean> {
-  if (shouldSuppressPwaUpdatePrompt()) return false;
-
   const remote = await fetchRemoteBuildId();
+  if (shouldSuppressPwaUpdatePrompt(remote || undefined)) return false;
+
   const running = getRunningBuildId();
 
   if (remote) {
@@ -86,5 +86,5 @@ export function startBuildVersionPolling(): void {
 
   window.setInterval(() => {
     if (document.visibilityState === 'visible') void probe();
-  }, 90_000);
+  }, 25_000);
 }

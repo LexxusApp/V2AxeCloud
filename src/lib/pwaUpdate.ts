@@ -12,7 +12,7 @@ const UPDATE_PROBE_MIN_MS = 30_000;
 const UPDATE_APPLIED_AT_KEY = 'axecloud_pwa_update_applied_at';
 const UPDATE_APPLIED_BUILD_KEY = 'axecloud_pwa_applied_build';
 const REMOTE_BUILD_KEY = 'axecloud_pwa_remote_build';
-const APPLY_GRACE_MS = 120_000;
+const APPLY_GRACE_MS = 15_000;
 
 let lastProbeAt = 0;
 let bannerMountClaimed = false;
@@ -70,8 +70,12 @@ export function acknowledgeAppliedBuild(buildId: string): void {
   updateAvailable = false;
 }
 
-export function shouldSuppressPwaUpdatePrompt(): boolean {
+export function shouldSuppressPwaUpdatePrompt(candidateBuildId?: string): boolean {
   try {
+    const appliedBuild = getAppliedBuildId();
+    if (candidateBuildId && appliedBuild && candidateBuildId !== appliedBuild) {
+      return false; // Build novo detectado: nunca suprimir!
+    }
     const appliedAt = readAppliedAt();
     return appliedAt > 0 && Date.now() - appliedAt < APPLY_GRACE_MS;
   } catch {
@@ -104,7 +108,7 @@ async function clearAxecloudCaches(): Promise<void> {
   }
 }
 
-function getPendingRemoteBuildId(): string | undefined {
+export function getPendingRemoteBuildId(): string | undefined {
   try {
     return sessionStorage.getItem(REMOTE_BUILD_KEY) || getAppliedBuildId() || undefined;
   } catch {
@@ -207,11 +211,12 @@ export function subscribePwaUpdate(listener: Listener): () => void {
 }
 
 export function isPwaUpdateAvailable(): boolean {
-  return updateAvailable && !shouldSuppressPwaUpdatePrompt();
+  const pending = getPendingRemoteBuildId();
+  return updateAvailable && !shouldSuppressPwaUpdatePrompt(pending);
 }
 
 export function markPwaUpdateAvailable(remoteBuildId?: string): void {
-  if (shouldSuppressPwaUpdatePrompt()) return;
+  if (shouldSuppressPwaUpdatePrompt(remoteBuildId)) return;
 
   if (remoteBuildId) {
     if (isBuildAlreadyApplied(remoteBuildId)) return;
