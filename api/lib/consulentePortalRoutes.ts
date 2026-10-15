@@ -188,8 +188,57 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .select("foto_url")
         .eq("id", user.id)
         .maybeSingle();
+
+      const metrics = {
+        viewsTotal: 0,
+        views30: 0,
+        views7: 0,
+        directoryClicks30: 0,
+        googleViews30: 0,
+        whatsappClicks30: 0,
+      };
+
+      try {
+        const { data: logRows } = await sb
+          .from("access_logs")
+          .select("created_at, event_type, metadata")
+          .eq("target_type", "directory_terreiro")
+          .eq("target_id", data.id)
+          .in("event_type", ["directory.profile_click", "directory.profile_google_view", "directory.whatsapp_click"]);
+
+        if (Array.isArray(logRows) && logRows.length > 0) {
+          const now = Date.now();
+          const d30 = now - 30 * 86_400_000;
+          const d7 = now - 7 * 86_400_000;
+
+          for (const row of logRows) {
+            const t = new Date(row.created_at).getTime();
+            metrics.viewsTotal++;
+            const is30 = t >= d30;
+            const is7 = t >= d7;
+
+            if (is7) metrics.views7++;
+            if (is30) {
+              metrics.views30++;
+              const md = row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : {};
+              const fromGoogle =
+                row.event_type === "directory.profile_google_view" ||
+                md.google === true ||
+                String(md.channel || "").startsWith("google_") ||
+                String(md.source || "").toLowerCase().includes("google");
+              if (fromGoogle) metrics.googleViews30++;
+              if (row.event_type === "directory.profile_click") metrics.directoryClicks30++;
+              if (row.event_type === "directory.whatsapp_click") metrics.whatsappClicks30++;
+            }
+          }
+        }
+      } catch (errLog) {
+        console.warn("[settings/directory-profile] warn fetching metrics:", errLog);
+      }
+
       return res.json({
         claimed: true,
+        metrics,
         identityPhotoUrl: identity?.foto_url || null,
         profile: {
           id: data.id,
