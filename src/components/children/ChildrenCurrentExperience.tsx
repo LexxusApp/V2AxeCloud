@@ -139,31 +139,47 @@ export default function ChildrenCurrentExperience({
             </p>
           </div>
           <div className="current-map__hero-actions">
-            <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
-              <button
-                type="button"
-                onClick={onResendAll}
-                disabled={resendingWelcome || childrenData.length === 0}
-                className="current-map__secondary-action"
-              >
-                {resendingWelcome ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                {resendingWelcome ? 'Enviando acessos…' : 'Enviar acessos'}
-              </button>
-              <p className="max-w-[16rem] text-[11px] font-semibold leading-snug text-[#8E9AAA] sm:text-right">
-                {withoutAccessCount > 0
-                  ? `${withoutAccessCount} ainda não entrou · Registro + 6 dígitos do CPF`
-                  : 'Entram com Registro + 6 dígitos do CPF'}
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={onAdd}
+                  disabled={isLimitReached}
+                  className="current-map__primary-action"
+                >
+                  {isLimitReached ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4 stroke-[2.5]" />}
+                  {isLimitReached
+                    ? 'Limite atingido'
+                    : childrenData.length === 0
+                    ? 'Cadastrar primeiro filho'
+                    : 'Cadastrar filho'}
+                </button>
+
+                {childrenData.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={onResendAll}
+                    disabled={resendingWelcome}
+                    className="current-map__secondary-action"
+                  >
+                    {resendingWelcome ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-4 w-4" />
+                    )}
+                    {resendingWelcome ? 'Enviando acessos…' : 'Enviar acessos'}
+                  </button>
+                )}
+              </div>
+
+              <p className="max-w-[22rem] text-[11px] font-medium leading-snug text-[#8E9AAA] sm:text-right">
+                {childrenData.length > 0
+                  ? withoutAccessCount > 0
+                    ? `${withoutAccessCount} ainda não ${withoutAccessCount === 1 ? 'entrou' : 'entraram'} · Registro + 6 dígitos do CPF`
+                    : 'Entram com Registro + 6 dígitos do CPF'
+                  : 'Entram no app com Registro da Casa + 6 dígitos do CPF'}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onAdd}
-              disabled={isLimitReached}
-              className="current-map__primary-action"
-            >
-              {isLimitReached ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {isLimitReached ? 'Limite atingido' : 'Nova pessoa'}
-            </button>
           </div>
         </div>
 
@@ -331,9 +347,9 @@ export default function ChildrenCurrentExperience({
             <div className="current-map__empty">
               <span><Users className="h-7 w-7" /></span>
               <h3>{childrenData.length ? 'Ninguém encontrado neste recorte' : 'A corrente começa aqui'}</h3>
-              <p>{childrenData.length ? 'Mude os filtros ou pesquise por outro nome.' : 'Cadastre a primeira pessoa para formar o mapa vivo da casa.'}</p>
+              <p>{childrenData.length ? 'Mude os filtros ou pesquise por outro nome.' : 'Cadastre o primeiro filho de santo para formar o mapa vivo da casa.'}</p>
               {!childrenData.length && !isLimitReached ? (
-                <button type="button" onClick={onAdd}><Plus className="h-4 w-4" /> Cadastrar primeira pessoa</button>
+                <button type="button" onClick={onAdd}><Plus className="h-4 w-4 stroke-[2.5]" /> Cadastrar primeiro filho</button>
               ) : null}
             </div>
           )}
