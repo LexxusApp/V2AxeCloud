@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock,
@@ -23,6 +23,7 @@ import { ROUTES } from '../lib/routes';
 import { navigateToMarketingDocument } from '../lib/purgeServiceWorker';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
 import { isValidFilhoLoginId, normalizeFilhoLoginIdInput } from '../../lib/filhoMatricula';
+import { validateStrongPassword } from '../../lib/passwordPolicy';
 import {
   clearRememberedLoginEmail,
   readRememberedLoginEmail,
@@ -34,6 +35,18 @@ const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 
 type LoginRole = 'zelador' | 'membro';
 type LoginStep = 'choose' | 'form';
+
+interface RestoredAccountInfo {
+  isRestored: boolean;
+  email: string;
+  nomeZelador: string;
+  nomeTerreiro: string;
+}
+
+function formatZeladorGreeting(name: string): string {
+  if (!name) return 'Zelador(a)';
+  return name.split(',')[0].trim();
+}
 
 async function postAuthAuditLog(
   payload: {
@@ -159,6 +172,13 @@ export default function Login() {
     return new URLSearchParams(window.location.search).get('updated') === 'true';
   });
   const alertHideTimerRef = useRef<number | null>(null);
+  const [restoredAccount, setRestoredAccount] = useState<RestoredAccountInfo | null>(null);
+  const [checkingRestored, setCheckingRestored] = useState(false);
+  const [newRestoredPassword, setNewRestoredPassword] = useState('');
+  const [confirmRestoredPassword, setConfirmRestoredPassword] = useState('');
+  const [showRestoredPassword, setShowRestoredPassword] = useState(false);
+  const [restoredSubmitting, setRestoredSubmitting] = useState(false);
+  const [restoredError, setRestoredError] = useState<string | null>(null);
 
   const isMembro = role === 'membro';
 
@@ -208,12 +228,141 @@ export default function Login() {
     ? `${ROUTES.forgotPassword}?email=${encodeURIComponent(email.trim())}`
     : ROUTES.forgotPassword;
 
+  const checkRestoredAccount = async (targetEmail: string): Promise<RestoredAccountInfo | null> => {
+    const cleanEmail = targetEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return null;
+    }
+    try {
+      setCheckingRestored(true);
+      const res = await fetch('/api/v1/auth/check-restored-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.isRestored) {
+        const info: RestoredAccountInfo = {
+          isRestored: true,
+          email: data.email || cleanEmail,
+          nomeZelador: data.nomeZelador || 'Zelador(a)',
+          nomeTerreiro: data.nomeTerreiro || 'Sua Casa de Santo',
+        };
+        setRestoredAccount(info);
+        return info;
+      }
+    } catch {
+      /* verificação best-effort */
+    } finally {
+      setCheckingRestored(false);
+    }
+    return null;
+  };
+
+  const handleSetupRestoredPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restoredAccount) return;
+    setRestoredError(null);
+
+    if (newRestoredPassword !== confirmRestoredPassword) {
+      setRestoredError('A confirmação da nova senha não confere.');
+      return;
+    }
+
+    const policy = validateStrongPassword(newRestoredPassword);
+    if (policy.ok === false) {
+      setRestoredError(policy.message);
+      return;
+    }
+
+    setRestoredSubmitting(true);
+    try {
+      const res = await fetch('/api/v1/auth/setup-restored-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: restoredAccount.email,
+          newPassword: newRestoredPassword,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Não foi possível definir a nova senha.');
+      }
+
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: restoredAccount.email,
+        password: newRestoredPassword,
+      });
+
+      if (signInErr) throw signInErr;
+
+      if (rememberMe) {
+        writeRememberedLoginEmail(restoredAccount.email);
+      }
+
+      const {
+        data: { session: postSession },
+      } = await supabase.auth.getSession();
+
+      if (postSession?.user) {
+        persistFilhoFlag(false, postSession.user.id);
+        let tenantId = postSession.user.id;
+        try {
+          const r = await authFetch(
+            `/api/tenant-info?userId=${encodeURIComponent(postSession.user.id)}&email=${encodeURIComponent(postSession.user.email || '')}`,
+            {},
+            postSession.access_token
+          );
+          if (r.ok) {
+            const j = await r.json();
+            tenantId = String(j.tenant_id || '').trim() || postSession.user.id;
+            writeCachedTenantIdForUser(postSession.user.id, tenantId);
+          } else {
+            writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
+          }
+        } catch {
+          writeCachedTenantIdForUser(postSession.user.id, postSession.user.id);
+        }
+
+        void postAuthAuditLog(
+          {
+            action: 'auth.login_success',
+            status: 'success',
+            terreiroId: tenantId,
+            details: {
+              surface: 'app',
+              mode: 'zelador',
+              email: postSession.user.email,
+              userId: postSession.user.id,
+              restoredLogin: true,
+            },
+          },
+          postSession.access_token
+        );
+      }
+
+      window.location.href = ROUTES.dashboard;
+    } catch (err: unknown) {
+      setRestoredError(humanizeAuthError(err));
+    } finally {
+      setRestoredSubmitting(false);
+    }
+  };
+
   const pickRole = (next: LoginRole) => {
     if (loading) return;
     setRole(next);
     setStep('form');
     setError(null);
     setInfo(null);
+    setRestoredAccount(null);
+    setRestoredError(null);
+    if (next === 'zelador' && email && email.includes('@') && email.includes('.')) {
+      void checkRestoredAccount(email);
+    }
   };
 
   const backToChoose = () => {
@@ -224,6 +373,10 @@ export default function Login() {
     setInfo(null);
     setPassword('');
     setCpfPrefix('');
+    setRestoredAccount(null);
+    setRestoredError(null);
+    setNewRestoredPassword('');
+    setConfirmRestoredPassword('');
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -394,6 +547,13 @@ export default function Login() {
         }
       }
     } catch (err: unknown) {
+      if (role === 'zelador') {
+        const restored = await checkRestoredAccount(email);
+        if (restored) {
+          setError(null);
+          return;
+        }
+      }
       const msg = humanizeAuthError(err);
       void postAuthAuditLog({
         action: 'auth.login_failed',
@@ -597,11 +757,150 @@ export default function Login() {
                     </p>
                   </div>
 
-                  <form onSubmit={handleAuth} className="space-y-[8px]">
+                  {restoredAccount ? (
+                    <motion.div
+                      key="restored-account-card"
+                      initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="space-y-4 rounded-2xl border border-[#c48a00]/35 bg-gradient-to-b from-[#fffdfa] to-[#faf4e6] p-5 shadow-[0_12px_32px_rgba(196,138,0,0.12)]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                          <Sparkles className="h-3 w-3 text-emerald-600" />
+                          Conta identificada & restaurada
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRestoredAccount(null);
+                            setRestoredError(null);
+                            setNewRestoredPassword('');
+                            setConfirmRestoredPassword('');
+                          }}
+                          className="text-[11px] font-semibold text-[#1b1813]/45 transition-colors hover:text-[#1b1813]"
+                        >
+                          Trocar e-mail
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold tracking-tight text-[#1b1813]">
+                          Axé, {formatZeladorGreeting(restoredAccount.nomeZelador)}!
+                        </h3>
+                        <p className="text-[13px] font-semibold text-[#8a6500] leading-snug">
+                          {restoredAccount.nomeTerreiro}
+                        </p>
+                      </div>
+
+                      <p className="text-[12px] leading-relaxed text-[#1b1813]/75">
+                        Seu acesso foi restaurado com sucesso. Como a sua senha anterior precisou ser redefinida por segurança, crie sua nova senha de acesso abaixo para entrar diretamente no painel:
+                      </p>
+
+                      <form onSubmit={handleSetupRestoredPassword} className="space-y-3 pt-1">
+                        <div className="space-y-[5px]">
+                          <label className={labelClass}>E-mail</label>
+                          <input
+                            type="text"
+                            disabled
+                            value={restoredAccount.email}
+                            className={cn(fieldShell, 'bg-[#1b1813]/5 text-[#1b1813]/70 cursor-not-allowed opacity-90 pl-3')}
+                          />
+                        </div>
+
+                        <div className="space-y-[5px]">
+                          <label className={labelClass}>Nova senha</label>
+                          <div className="relative">
+                            <Lock
+                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
+                              strokeWidth={1.5}
+                            />
+                            <input
+                              type={showRestoredPassword ? 'text' : 'password'}
+                              required
+                              value={newRestoredPassword}
+                              onChange={(e) => {
+                                setNewRestoredPassword(e.target.value);
+                                if (restoredError) setRestoredError(null);
+                              }}
+                              placeholder="Mínimo 8 caracteres (maiúscula, minúscula, número e símbolo)"
+                              autoComplete="new-password"
+                              className={cn(fieldShell, 'bg-white pr-12')}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowRestoredPassword((v) => !v)}
+                              aria-label={showRestoredPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#1b1813]/35 transition-colors hover:text-[#1b1813]"
+                            >
+                              {showRestoredPassword ? (
+                                <EyeOff className="h-5 w-5" strokeWidth={1.65} />
+                              ) : (
+                                <Eye className="h-5 w-5" strokeWidth={1.65} />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-[5px]">
+                          <label className={labelClass}>Confirmar nova senha</label>
+                          <div className="relative">
+                            <KeyRound
+                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#b47d00]"
+                              strokeWidth={1.5}
+                            />
+                            <input
+                              type={showRestoredPassword ? 'text' : 'password'}
+                              required
+                              value={confirmRestoredPassword}
+                              onChange={(e) => {
+                                setConfirmRestoredPassword(e.target.value);
+                                if (restoredError) setRestoredError(null);
+                              }}
+                              placeholder="Digite a nova senha novamente"
+                              autoComplete="new-password"
+                              className={cn(fieldShell, 'bg-white')}
+                            />
+                          </div>
+                        </div>
+
+                        {restoredError && (
+                          <p className="rounded-xl border border-red-600/20 bg-red-50 px-3 py-2 text-center text-[11px] font-semibold text-red-700">
+                            {restoredError}
+                          </p>
+                        )}
+
+                        <motion.button
+                          type="submit"
+                          disabled={restoredSubmitting}
+                          whileTap={{ scale: 0.98 }}
+                          className={cn(
+                            'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5b800] px-5 text-sm font-bold text-[#17130c]',
+                            'shadow-[0_12px_30px_rgba(186,128,0,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#ffc318] disabled:opacity-60'
+                          )}
+                        >
+                          {restoredSubmitting ? (
+                            <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} />
+                          ) : (
+                            'Salvar nova senha e entrar'
+                          )}
+                        </motion.button>
+                      </form>
+                    </motion.div>
+                  ) : (
+                    <form onSubmit={handleAuth} className="space-y-[8px]">
                     {!isMembro ? (
                       <div className="space-y-[8px]">
                         <div className="space-y-[5px]">
-                          <label className={labelClass}>E-mail</label>
+                          <div className="flex items-center justify-between">
+                            <label className={labelClass}>E-mail</label>
+                            {checkingRestored && (
+                              <span className="flex items-center gap-1 text-[10px] text-[#aa7600]">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Verificando conta...
+                              </span>
+                            )}
+                          </div>
                           <div className="relative">
                             <User
                               className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
@@ -613,7 +912,15 @@ export default function Login() {
                               autoComplete="username"
                               required
                               value={email}
-                              onChange={(e) => setEmail(e.target.value)}
+                              onChange={(e) => {
+                                setEmail(e.target.value);
+                                if (error) setError(null);
+                              }}
+                              onBlur={() => {
+                                if (!isMembro && email.includes('@') && email.includes('.')) {
+                                  void checkRestoredAccount(email);
+                                }
+                              }}
                               placeholder="Digite seu e-mail"
                               className={fieldShell}
                             />
@@ -809,6 +1116,7 @@ export default function Login() {
                       )}
                     </motion.button>
                   </form>
+                  )}
 
                   <p className="text-center text-[11px] text-[#1b1813]/40">
                     <a

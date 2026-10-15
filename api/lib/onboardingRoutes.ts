@@ -17,7 +17,7 @@ import { verifyEfiWebhook } from "./secureRoutes.js";
 import { safeErrorMessage } from "./safeError.js";
 import { checkPasswordExposure } from "./pwnedPassword.js";
 import { validateStrongPassword } from "../../lib/passwordPolicy.js";
-import { createAuditLog } from "./createAuditLog.js";
+import { createAuditLog, extractClientIp, extractUserAgent } from "./createAuditLog.js";
 import { recordPaymentEvent, paymentEventKey } from "./paymentEvents.js";
 import { normalizeBillingCycle } from "./plansCatalog.js";
 import { sendMetaCloudTemplate } from "./metaCloudSend.js";
@@ -77,6 +77,158 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
     }
     // Indisponibilidade externa não bloqueia a conta; a política local continua obrigatória.
     return res.json({ safe: true, exposureCheck: exposure });
+  });
+
+  app.post("/api/v1/auth/check-restored-account", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        return res.json({ isRestored: false });
+      }
+
+      let userId = "";
+      let zeladorName = "";
+      let terreiroName = "";
+
+      const { data: perfil } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("id, email, zelador, nome_terreiro")
+        .ilike("email", email)
+        .maybeSingle();
+
+      if (perfil) {
+        userId = perfil.id;
+        zeladorName = perfil.zelador || "";
+        terreiroName = perfil.nome_terreiro || "";
+      } else {
+        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+        const found = usersData?.users?.find((u) => u.email?.toLowerCase() === email);
+        if (found) {
+          userId = found.id;
+          zeladorName = found.user_metadata?.nome_zelador || "";
+          terreiroName = found.user_metadata?.nome_terreiro || "";
+        }
+      }
+
+      if (!userId) {
+        return res.json({ isRestored: false });
+      }
+
+      const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (userErr || !userData?.user) {
+        return res.json({ isRestored: false });
+      }
+
+      const meta = userData.user.user_metadata || {};
+      const isPending = Boolean(meta.restored_pending_password_setup);
+
+      if (!isPending) {
+        return res.json({ isRestored: false });
+      }
+
+      const finalZelador = zeladorName || meta.nome_zelador || "Zelador(a)";
+      const finalTerreiro = terreiroName || meta.nome_terreiro || "Sua Casa de Santo";
+
+      return res.json({
+        isRestored: true,
+        email: userData.user.email,
+        nomeZelador: finalZelador,
+        nomeTerreiro: finalTerreiro,
+      });
+    } catch (err: unknown) {
+      console.error("[CHECK-RESTORED-ACCOUNT] Erro ao verificar conta restaurada:", err);
+      return res.json({ isRestored: false });
+    }
+  });
+
+  app.post("/api/v1/auth/setup-restored-password", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      const newPassword = String(req.body?.newPassword || "");
+
+      if (!email || !email.includes("@")) {
+        return res.status(400).json({ error: "E-mail inválido." });
+      }
+
+      const policy = validateStrongPassword(newPassword);
+      if (policy.ok === false) {
+        return res.status(400).json({ error: policy.message });
+      }
+
+      const exposure = await checkPasswordExposure(newPassword);
+      if (exposure === "compromised") {
+        return res.status(400).json({
+          error: "Esta senha já apareceu em vazamentos conhecidos. Escolha uma senha diferente.",
+        });
+      }
+
+      let userId = "";
+      const { data: perfil } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("id, email")
+        .ilike("email", email)
+        .maybeSingle();
+
+      if (perfil) {
+        userId = perfil.id;
+      } else {
+        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+        const found = usersData?.users?.find((u) => u.email?.toLowerCase() === email);
+        if (found) userId = found.id;
+      }
+
+      if (!userId) {
+        return res.status(404).json({ error: "Conta não encontrada." });
+      }
+
+      const { data: userData, error: userErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (userErr || !userData?.user) {
+        return res.status(404).json({ error: "Usuário não encontrado." });
+      }
+
+      const meta = userData.user.user_metadata || {};
+      if (!meta.restored_pending_password_setup) {
+        return res.status(400).json({ error: "Esta conta não possui redefinição pendente de restauração." });
+      }
+
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: newPassword,
+        user_metadata: {
+          ...meta,
+          restored_pending_password_setup: false,
+          restored_password_setup_at: new Date().toISOString(),
+        },
+      });
+
+      if (updateError) {
+        return res.status(500).json({ error: updateError.message || "Falha ao definir nova senha." });
+      }
+
+      try {
+        await createAuditLog(supabaseAdmin, {
+          tenant_id: userId,
+          user_id: userId,
+          actor_user_id: userId,
+          action: "auth.restored_password_setup",
+          status: "success",
+          surface: "auth",
+          route: "/api/v1/auth/setup-restored-password",
+          ip: extractClientIp(req),
+          user_agent: extractUserAgent(req),
+          details: { email },
+        });
+      } catch {
+        /* auditoria best-effort */
+      }
+
+      return res.json({
+        success: true,
+        message: "Senha atualizada com sucesso!",
+      });
+    } catch (err: unknown) {
+      console.error("[SETUP-RESTORED-PASSWORD] Erro:", err);
+      return res.status(500).json({ error: safeErrorMessage(err, "Erro ao configurar nova senha.") });
+    }
   });
 
   app.post("/api/v1/auth/register", authRateLimit, async (req: Request, res: Response) => {

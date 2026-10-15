@@ -176,8 +176,11 @@ export class TrialNurturingService {
       }
       if (!phone.startsWith('55')) phone = `55${phone}`;
 
-      // 3.1. Proteção de supressão: ignora Flávia e verifica tabela de blacklist
-      if (tenantId === '29baae98-c2eb-4191-99db-1f26e970f285' || phone.includes('995755589')) {
+      // 3.1. Proteção de supressão: ignora Flávia e Yeye e verifica tabela de blacklist
+      if (
+        tenantId === '29baae98-c2eb-4191-99db-1f26e970f285' || phone.includes('995755589') ||
+        tenantId === '14fcea29-a121-497a-88dc-7f93b7397ae9' || phone.includes('961527690')
+      ) {
         output.skipped++;
         output.results.push({ tenantId, step: stageKey, status: 'skipped', reason: 'Suprimido pelo suporte humano' });
         continue;
