@@ -265,8 +265,18 @@ function writeDirectoryRootPage(
   const summary = cidades.map(({ bairros: _bairros, ...cidade }) => cidade);
   const totalTerreiros = summary.reduce((sum, cidade) => sum + cidade.totalTerreiros, 0);
   const totalBairros = summary.reduce((sum, cidade) => sum + cidade.totalBairros, 0);
+
+  // Agrupa cidades por estado para criar malha de rastreamento completa
+  const stateMap = new Map<string, typeof summary>();
+  for (const c of summary) {
+    const uf = (c.estado || 'SP').toUpperCase();
+    const list = stateMap.get(uf) || [];
+    list.push(c);
+    stateMap.set(uf, list);
+  }
+
   const cards = summary
-    .slice(0, 9)
+    .slice(0, 24)
     .map((cidade) => {
       const href = `/terreiros/${String(cidade.estado || 'sp').toLowerCase()}/${cidade.cidadeSlug}`;
       return [
@@ -307,13 +317,42 @@ function writeDirectoryRootPage(
     '    <meta name="robots" content="index, follow" />',
     '    <!-- /SEO_HEAD_INJECT -->',
   ].join('\n');
+
+  const topCitiesList = summary
+    .slice(0, 48)
+    .map((c) => `        <li><a href="/terreiros/${String(c.estado || 'sp').toLowerCase()}/${c.cidadeSlug}">${escapeHtml(c.cidade)} (${escapeHtml(c.estado || 'SP')}) — ${c.totalTerreiros} terreiros</a></li>`)
+    .join('\n');
+
+  const stateSections = Array.from(stateMap.entries())
+    .sort((a, b) => {
+      const totalA = a[1].reduce((sum, c) => sum + c.totalTerreiros, 0);
+      const totalB = b[1].reduce((sum, c) => sum + c.totalTerreiros, 0);
+      return totalB - totalA;
+    })
+    .map(([uf, cities]) => {
+      const stateTotal = cities.reduce((sum, c) => sum + c.totalTerreiros, 0);
+      const cityLinks = cities
+        .slice(0, 10)
+        .map((c) => `<a href="/terreiros/${uf.toLowerCase()}/${c.cidadeSlug}">${escapeHtml(c.cidade)} (${c.totalTerreiros})</a>`)
+        .join(', ');
+      const moreCount = cities.length > 10 ? ` e mais ${cities.length - 10} cidades` : '';
+      return `      <h3>${uf} — ${stateTotal} terreiros em ${cities.length} cidades</h3>\n      <p>Principais cidades: ${cityLinks}${moreCount}.</p>`;
+    })
+    .join('\n\n');
+
   const body = [
     '<!-- SEO_BODY_INJECT -->',
     '    <article id="axecloud-seo-static" aria-label="Diretório de terreiros">',
     '      <h1>Diretório de terreiros por cidade e bairro</h1>',
-    `      <p>${summary.length} cidades, ${totalBairros} bairros e ${totalTerreiros} terreiros mapeados.</p>`,
+    `      <p>${summary.length} cidades, ${totalBairros} bairros e ${totalTerreiros} terreiros mapeados em todo o Brasil.</p>`,
     '      <h2>Casa em destaque</h2>',
     '      <p><a href="/terreiro/e-u-j-a-espaco-universalista-dr-jose-de-arimateia">E.U.J.A. Espaço Universalista Dr. José de Arimateia — terreiro em Sorocaba, SP</a></p>',
+    '      <h2>Principais cidades com terreiros de axé</h2>',
+    '      <ul>',
+    topCitiesList,
+    '      </ul>',
+    '      <h2>Terreiros por Estado</h2>',
+    stateSections,
     '    </article>',
     '    <!-- /SEO_BODY_INJECT -->',
   ].join('\n');
@@ -551,10 +590,30 @@ async function main() {
     cityMap.set(key, list);
   }
 
+  const stateCitiesMap = new Map<string, Array<{ cidade: string; cidadeSlug: string; estado: string; total: number }>>();
+  for (const [, items] of cityMap) {
+    const first = items[0];
+    if (!first?.cidade || !first.cidadeSlug || !first.estado) continue;
+    const uf = first.estado.toLowerCase();
+    const list = stateCitiesMap.get(uf) || [];
+    list.push({
+      cidade: first.cidade,
+      cidadeSlug: first.cidadeSlug,
+      estado: first.estado,
+      total: items.length,
+    });
+    stateCitiesMap.set(uf, list);
+  }
+  for (const [, list] of stateCitiesMap) {
+    list.sort((a, b) => b.total - a.total);
+  }
+
   let cityPages = 0;
   for (const [, items] of cityMap) {
     const first = items[0];
     if (!first?.cidade || !first.cidadeSlug) continue;
+    const uf = (first.estado || "sp").toLowerCase();
+    const siblingCities = stateCitiesMap.get(uf) || [];
     const page = buildCityPrerenderPage(
       {
         cidade: first.cidade,
@@ -563,6 +622,7 @@ async function main() {
         total: items.length,
       },
       items.filter((item) => isDiretorioListingIndexable(item)),
+      { siblingCities },
     );
     writePrerenderPage(template, page);
     cityPages += 1;
@@ -576,9 +636,18 @@ async function main() {
   let terreiroPages = 0;
   for (const row of rows) {
     if (!row.slug) continue;
+    const cityKey = `${String(row.estado || "").toLowerCase()}:${row.cidadeSlug}`;
+    const cityItems = cityMap.get(cityKey) || [];
+    const siblingTerreiros = cityItems
+      .filter((item) => item.slug && item.slug !== row.slug && isDiretorioListingIndexable(item))
+      .slice(0, 6);
+
     writePrerenderPage(
       template,
-      buildTerreiroPrerenderPage(row, { indexable: isDiretorioListingIndexable(row) }),
+      buildTerreiroPrerenderPage(row, {
+        indexable: isDiretorioListingIndexable(row),
+        siblingTerreiros,
+      }),
     );
     terreiroPages += 1;
   }

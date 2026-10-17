@@ -205,7 +205,10 @@ export type DiretorioPrerenderPage = {
   intro: string;
   sections: { heading: string; body: string }[];
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  listHeading?: string;
   listLinks?: { href: string; label: string }[];
+  siblingHeading?: string;
+  siblingLinks?: { href: string; label: string }[];
   /** Default: index, follow */
   robots?: string;
 };
@@ -242,9 +245,24 @@ export function getFeaturedTerreiroCopy(slug: string) {
   return FEATURED_TERREIRO_COPY[slug] || null;
 }
 
+function detectTradicaoAxe(nome: string): string {
+  const norm = String(nome || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (norm.includes("umbanda")) return "Umbanda";
+  if (norm.includes("candomble") || norm.includes("ile") || norm.includes("ase") || norm.includes("axe")) return "Candomblé";
+  if (norm.includes("quimbanda")) return "Quimbanda";
+  if (norm.includes("jurema")) return "Jurema";
+  return "tradições afro-brasileiras";
+}
+
 export function buildTerreiroPrerenderPage(
   terreiro: DiretorioSeoTerreiro,
-  options?: { indexable?: boolean },
+  options?: {
+    indexable?: boolean;
+    siblingTerreiros?: DiretorioSeoTerreiro[];
+  },
 ): DiretorioPrerenderPage {
   const loc = [terreiro.cidade, terreiro.estado].filter(Boolean).join(", ");
   const path = `/terreiro/${terreiro.slug}`;
@@ -254,6 +272,7 @@ export function buildTerreiroPrerenderPage(
       : "/terreiros";
   const indexable = options?.indexable !== false;
   const featured = FEATURED_TERREIRO_COPY[terreiro.slug];
+  const tradicao = detectTradicaoAxe(terreiro.nome);
 
   const sections: { heading: string; body: string }[] = [];
   if (terreiro.endereco) {
@@ -279,7 +298,7 @@ export function buildTerreiroPrerenderPage(
   } else if (loc) {
     sections.push({
       heading: `Terreiro em ${loc}`,
-      body: `${terreiro.nome} aparece no diretório de casas de Umbanda, Candomblé e tradições afro-brasileiras em ${loc}. Confira também outras casas da mesma cidade no hub local.`,
+      body: `${terreiro.nome} aparece no diretório de casas de ${tradicao} e tradições afro-brasileiras em ${loc}. Confira também outras casas da mesma cidade no hub local.`,
     });
   }
   sections.push({
@@ -309,6 +328,14 @@ export function buildTerreiroPrerenderPage(
     "no diretório AxéCloud",
   ].filter(Boolean);
 
+  const siblingLinks = (options?.siblingTerreiros || [])
+    .filter((s) => s.slug && s.slug !== terreiro.slug)
+    .slice(0, 6)
+    .map((s) => ({
+      href: `/terreiro/${s.slug}`,
+      label: s.nome,
+    }));
+
   return {
     path,
     title: featured?.title || `${terreiro.nome}${loc ? ` — ${loc}` : ""} | Diretório AxéCloud`,
@@ -321,11 +348,13 @@ export function buildTerreiroPrerenderPage(
         : `${terreiro.nome} está listado no diretório público ${PORTAL_BRAND}.`),
     sections,
     jsonLd: [buildLocalBusinessJsonLd(terreiro), breadcrumbs],
+    listHeading: loc ? `Navegação e outros terreiros em ${loc}` : "Navegação do diretório",
     listLinks: [
       { href: "/terreiros", label: "Voltar para o mapa de terreiros" },
       ...(cidadePath !== "/terreiros"
         ? [{ href: cidadePath, label: loc ? `Terreiros em ${loc}` : "Terreiros da cidade" }]
         : []),
+      ...siblingLinks,
     ],
     robots: indexable ? "index, follow" : "noindex, follow",
   };
@@ -334,10 +363,43 @@ export function buildTerreiroPrerenderPage(
 export function buildCityPrerenderPage(
   meta: DiretorioSeoCidade,
   terreiros: DiretorioSeoTerreiro[],
+  options?: {
+    siblingCities?: Array<{
+      cidade: string;
+      cidadeSlug: string;
+      estado: string | null;
+      total?: number;
+    }>;
+  },
 ): DiretorioPrerenderPage {
   const uf = meta.estado || "SP";
   const path = `/terreiros/${uf.toLowerCase()}/${meta.cidadeSlug}`;
   const { intro, faq } = getCitySeoContent(meta.cidade, meta.estado, meta.total);
+
+  const sections = faq.map((f) => ({ heading: f.question, body: f.answer }));
+  const siblingLinks = (options?.siblingCities || [])
+    .filter((c) => c.cidadeSlug !== meta.cidadeSlug)
+    .slice(0, 10)
+    .map((c) => {
+      const cUf = (c.estado || uf).toLowerCase();
+      const countLabel = c.total ? ` (${c.total} terreiro${c.total === 1 ? "" : "s"})` : "";
+      return {
+        href: `/terreiros/${cUf}/${c.cidadeSlug}`,
+        label: `${c.cidade} - ${c.estado || uf}${countLabel}`,
+      };
+    });
+
+  if (siblingLinks.length > 0) {
+    const cityNames = (options?.siblingCities || [])
+      .filter((c) => c.cidadeSlug !== meta.cidadeSlug)
+      .slice(0, 6)
+      .map((c) => c.cidade)
+      .join(", ");
+    sections.push({
+      heading: `Terreiros em outras cidades de ${uf}`,
+      body: `Além de ${meta.cidade}, você também encontra casas de axé mapeadas em outras cidades de ${uf}: ${cityNames}. Explore os guias locais para conferir endereços e contatos.`,
+    });
+  }
 
   return {
     path,
@@ -345,11 +407,12 @@ export function buildCityPrerenderPage(
     description: `Encontre ${meta.total} terreiro${meta.total === 1 ? "" : "s"} de Umbanda, Candomblé e tradições afro-brasileiras em ${meta.cidade}, ${uf}. Endereços, telefones e rotas.`,
     h1: `Terreiros em ${meta.cidade}, ${uf}`,
     intro,
-    sections: faq.map((f) => ({ heading: f.question, body: f.answer })),
+    sections,
     jsonLd: buildBreadcrumbJsonLd([
       { name: "Diretório", path: "/terreiros" },
       { name: meta.cidade, path },
     ]),
+    listHeading: `Terreiros em ${meta.cidade}`,
     listLinks: [...terreiros]
       .sort((a, b) => {
         const pa = FEATURED_TERREIRO_COPY[a.slug] ? 0 : 1;
@@ -360,6 +423,8 @@ export function buildCityPrerenderPage(
         href: `/terreiro/${t.slug}`,
         label: t.nome,
       })),
+    siblingHeading: `Outras cidades com terreiros em ${uf}`,
+    siblingLinks,
   };
 }
 
@@ -399,9 +464,19 @@ export function buildDiretorioBodyInject(page: DiretorioPrerenderPage): string {
   const links = (page.listLinks || [])
     .map((l) => `        <li><a href="${escapeHtml(l.href)}">${escapeHtml(l.label)}</a></li>`)
     .join("\n");
+  const listHeading = page.listHeading || "Terreiros nesta página";
   const listBlock = links
-    ? `      <h2>Terreiros nesta página</h2>\n      <ul>\n${links}\n      </ul>`
+    ? `      <h2>${escapeHtml(listHeading)}</h2>\n      <ul>\n${links}\n      </ul>`
     : "";
+
+  const siblingLinks = (page.siblingLinks || [])
+    .map((l) => `        <li><a href="${escapeHtml(l.href)}">${escapeHtml(l.label)}</a></li>`)
+    .join("\n");
+  const siblingHeading = page.siblingHeading || "Outras cidades na região";
+  const siblingBlock = siblingLinks
+    ? `      <h2>${escapeHtml(siblingHeading)}</h2>\n      <ul>\n${siblingLinks}\n      </ul>`
+    : "";
+
   const showManagementCta = !page.robots || page.robots.includes("index");
   const managementBlock = showManagementCta
     ? `      <aside aria-label="Gestão para terreiros">
@@ -418,6 +493,7 @@ export function buildDiretorioBodyInject(page: DiretorioPrerenderPage): string {
     "",
     sections,
     listBlock,
+    siblingBlock,
     managementBlock,
     `      <nav aria-label="Diretório"><a href="/terreiros">Diretório de terreiros</a></nav>`,
     `    </article>`,

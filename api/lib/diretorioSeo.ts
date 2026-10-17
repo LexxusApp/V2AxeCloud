@@ -160,8 +160,26 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
         }
 
         const row = data as Record<string, unknown>;
+        const cidadeSlug = String(row.cidade_slug || slugifyCidadeOnly(String(row.cidade || ""))).trim();
+        const estado = row.estado ? String(row.estado).trim().toUpperCase() : null;
+        let siblingTerreiros: DiretorioSeoTerreiro[] = [];
+        if (cidadeSlug && estado) {
+          const { data: siblings } = await sb
+            .from(TABLE)
+            .select(SELECT)
+            .eq("cidade_slug", cidadeSlug)
+            .eq("estado", estado)
+            .neq("slug", slug)
+            .limit(6);
+          if (siblings) {
+            siblingTerreiros = siblings
+              .filter((r) => isDiretorioListingPublishable(r as Record<string, unknown>))
+              .map((r) => mapSeoRow(r as Record<string, unknown>));
+          }
+        }
         const page = buildTerreiroPrerenderPage(mapSeoRow(row), {
           indexable: isDiretorioListingIndexable(row),
+          siblingTerreiros,
         });
         res.setHeader("Content-Type", "text/html; charset=utf-8");
         res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
