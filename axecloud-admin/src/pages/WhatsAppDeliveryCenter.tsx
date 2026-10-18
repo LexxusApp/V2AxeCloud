@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCheck,
   Clock3,
+  CreditCard,
   Eye,
   Loader2,
   MessageSquareText,
@@ -11,6 +12,8 @@ import {
   Search,
   Send,
   ShieldCheck,
+  Sparkles,
+  TrendingUp,
   XCircle,
 } from "lucide-react";
 import { apiJson } from "@/lib/api";
@@ -51,6 +54,23 @@ type DeliveryEvent = {
   created_at: string;
 };
 
+export type CostSummary = {
+  currentMonthEstimatedBrl: number;
+  projectedMonthEndBrl: number;
+  todayCostBrl: number;
+  dailyAverageBrl: number;
+  marketingCountMonth: number;
+  utilityCountMonth: number;
+  prospectingCountMonth: number;
+  transactionalCountMonth: number;
+  totalMessagesMonth: number;
+  monthName: string;
+  daysElapsed: number;
+  totalDaysInMonth: number;
+  rateMarketingBrl: number;
+  rateUtilityBrl: number;
+};
+
 type Summary = {
   total30d: number;
   today: number;
@@ -63,6 +83,7 @@ type Summary = {
   unknown: number;
   attention: number;
   deliveryRate: number | null;
+  cost?: CostSummary;
 };
 
 const STATUS_LABEL: Record<DeliveryStatus, string> = {
@@ -122,6 +143,23 @@ function StatusBadge({ status }: { status: DeliveryStatus }) {
   );
 }
 
+const DEFAULT_COST_FALLBACK: CostSummary = {
+  currentMonthEstimatedBrl: 0,
+  projectedMonthEndBrl: 0,
+  todayCostBrl: 0,
+  dailyAverageBrl: 0,
+  marketingCountMonth: 0,
+  utilityCountMonth: 0,
+  prospectingCountMonth: 0,
+  transactionalCountMonth: 0,
+  totalMessagesMonth: 0,
+  monthName: "Outubro",
+  daysElapsed: new Date().getDate(),
+  totalDaysInMonth: 31,
+  rateMarketingBrl: 0.38,
+  rateUtilityBrl: 0.20,
+};
+
 export function WhatsAppDeliveryCenter() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [rows, setRows] = useState<DeliveryRow[]>([]);
@@ -131,6 +169,8 @@ export function WhatsAppDeliveryCenter() {
   const [selected, setSelected] = useState<{ row: DeliveryRow; events: DeliveryEvent[] } | null>(null);
   const [busy, setBusy] = useState<"load" | "retry" | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const cost = summary?.cost || DEFAULT_COST_FALLBACK;
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setBusy("load");
@@ -209,6 +249,108 @@ export function WhatsAppDeliveryCenter() {
 
   return (
     <div className="space-y-5">
+      {/* Bloco de Fatura e Custos Mensais Meta (Débito no Cartão de Crédito) */}
+      <section className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/40 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <CreditCard className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
+                  Fatura Meta WhatsApp · {cost.monthName}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
+                  Dia {cost.daysElapsed} de {cost.totalDaysInMonth}
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[var(--ac-text)] sm:text-lg">
+                Previsão de Pagamento no Cartão de Crédito
+              </h3>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 self-start rounded-full border border-indigo-200 bg-white px-3 py-1 text-[11px] font-semibold text-indigo-950 shadow-xs sm:self-auto">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Débito automático Meta Cloud
+          </div>
+        </div>
+
+        {/* Grade de Destaques Financeiros */}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
+              Gasto Acumulado ({cost.monthName})
+            </p>
+            <p className="mt-1 text-2xl font-black text-indigo-950">
+              R$ {cost.currentMonthEstimatedBrl.toFixed(2).replace(".", ",")}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">
+              {cost.totalMessagesMonth} mensagens faturadas
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-purple-200 bg-purple-50/80 p-3.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-purple-900">
+                Projeção Fim do Mês
+              </p>
+              <TrendingUp className="h-4 w-4 text-purple-700" />
+            </div>
+            <p className="mt-1 text-2xl font-black text-purple-900">
+              ~ R$ {cost.projectedMonthEndBrl.toFixed(2).replace(".", ",")}
+            </p>
+            <p className="mt-0.5 text-[11px] text-purple-700/80">
+              Previsão estimada na fatura
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
+              Gasto Hoje
+            </p>
+            <p className="mt-1 text-2xl font-black text-slate-800">
+              R$ {cost.todayCostBrl.toFixed(2).replace(".", ",")}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">
+              Média diária: R$ {cost.dailyAverageBrl.toFixed(2).replace(".", ",")}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
+              Divisão por Tarifa
+            </p>
+            <div className="mt-1.5 space-y-1 text-xs">
+              <div className="flex justify-between font-medium text-slate-700">
+                <span>📢 Marketing (R$ 0,38):</span>
+                <span className="font-bold">{cost.marketingCountMonth}</span>
+              </div>
+              <div className="flex justify-between font-medium text-slate-700">
+                <span>⚡ Utilidade (R$ 0,20):</span>
+                <span className="font-bold">{cost.utilityCountMonth}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rodapé explicativo */}
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-indigo-100/80 pt-3 text-[11px] text-[var(--ac-text-muted)]">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>
+              🤖 <strong>Robô de Prospecção:</strong> {cost.prospectingCountMonth} envios
+            </span>
+            <span>•</span>
+            <span>
+              🏛️ <strong>Transacional do Terreiro:</strong> {cost.transactionalCountMonth} envios
+            </span>
+          </div>
+          <span className="italic text-slate-500">
+            Tarifas oficiais Meta Cloud Brasil convertidas de USD + IOF
+          </span>
+        </div>
+      </section>
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map(({ label, value, icon: Icon, tone }) => (
           <article key={label} className="admin-panel !p-4">
