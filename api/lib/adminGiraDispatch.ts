@@ -87,9 +87,12 @@ export async function listAdminGiraTenants(
       .gte("data", today)
       .limit(2000);
     for (const ev of events || []) {
-      for (const key of [ev.tenant_id, ev.lider_id]) {
-        const id = String(key || "").trim();
-        if (!id) continue;
+      const keys = new Set(
+        [ev.tenant_id, ev.lider_id]
+          .map((k) => String(k || "").trim())
+          .filter(Boolean)
+      );
+      for (const id of keys) {
         upcomingByTenant.set(id, (upcomingByTenant.get(id) || 0) + 1);
       }
     }
