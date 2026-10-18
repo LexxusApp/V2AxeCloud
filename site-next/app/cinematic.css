@@ -172,3 +172,140 @@
 .cx-offer{width:100%;max-width:1120px;min-width:0;scroll-margin-top:92px}
 .cx-offer-body,.cx-offer-price,.cx-offer-included{min-width:0}
 @media(min-width:651px) and (max-width:1180px){.cx-finale{padding-inline:clamp(32px,5vw,58px)}.cx-offer-price,.cx-offer-included{padding-inline:clamp(28px,4vw,42px)}}
+
+/* ==========================================================================
+   ESCALA FLUIDA E RESPONSIVA PARA DESKTOPS E MONITORES GRANDES (15" A 24"+)
+   ========================================================================== */
+@media (min-width: 1025px) {
+  .cx-header {
+    width: min(1480px, calc(100% - clamp(32px, 3.5vw, 64px)));
+    height: clamp(66px, 4.2vw, 78px);
+    padding: 0 clamp(16px, 1.6vw, 28px);
+    gap: clamp(20px, 2vw, 36px);
+    border-radius: clamp(10px, 0.8vw, 14px);
+  }
+  .cx-brand {
+    gap: clamp(8px, 0.8vw, 12px);
+  }
+  .cx-brand-trident {
+    width: clamp(38px, 2.5vw, 46px);
+    height: clamp(48px, 3.2vw, 58px);
+  }
+  .cx-brand strong {
+    font-size: clamp(15px, 1.05vw, 18px);
+  }
+  .cx-header nav {
+    gap: clamp(22px, 2vw, 36px);
+  }
+  .cx-header nav a {
+    font-size: clamp(13px, 0.9vw, 15px);
+    font-weight: 700;
+  }
+  .cx-header-contact {
+    height: clamp(40px, 2.7vw, 46px);
+    padding: 0 clamp(14px, 1.1vw, 20px);
+    font-size: clamp(12px, 0.82vw, 14px);
+    border-radius: 8px;
+  }
+  .cx-header-login {
+    font-size: clamp(13px, 0.88vw, 15px);
+    padding: 10px 8px;
+  }
+  .cx-header-cta {
+    height: clamp(44px, 3vw, 50px);
+    padding: 0 clamp(18px, 1.4vw, 26px);
+    font-size: clamp(13px, 0.9vw, 15px);
+    border-radius: 8px;
+    gap: clamp(8px, 0.7vw, 12px);
+  }
+  .cx-header-cta svg {
+    width: clamp(14px, 1vw, 17px);
+  }
+
+  .cx-conversion-hero {
+    padding: clamp(135px, 12vh, 185px) clamp(24px, 4vw, 64px) clamp(64px, 8vh, 100px);
+    min-height: 100svh;
+  }
+  .cx-conversion-shell {
+    width: min(1500px, 100%);
+  }
+  .cx-conversion-copy {
+    width: min(1280px, 100%);
+    max-width: 100%;
+  }
+  .cx-hero-eyebrow {
+    font-size: clamp(11px, 0.85vw, 14px);
+    letter-spacing: 0.22em;
+    gap: clamp(9px, 0.8vw, 14px);
+  }
+  .cx-hero-eyebrow i {
+    width: clamp(8px, 0.6vw, 10px);
+    height: clamp(8px, 0.6vw, 10px);
+  }
+  .cx-conversion-copy h1 {
+    max-width: min(1280px, 100%);
+    margin: clamp(24px, 2.8vh, 38px) auto 0;
+    font-size: clamp(54px, 5.8vw, 106px);
+    line-height: 0.94;
+    letter-spacing: -0.065em;
+  }
+  .cx-conversion-copy h1 span {
+    margin-top: clamp(8px, 1vh, 16px);
+  }
+  .cx-conversion-copy > .cx-hero-lead,
+  .cx-hero-lead {
+    max-width: min(880px, 100%) !important;
+    margin: clamp(24px, 2.8vh, 38px) auto 0 !important;
+    font-size: clamp(17px, 1.25vw, 22px);
+    line-height: 1.65;
+    color: #cbc8bd;
+  }
+  .cx-hero-actions {
+    margin-top: clamp(30px, 3.5vh, 48px);
+    gap: clamp(12px, 1.2vw, 22px);
+  }
+  .cx-hero-primary {
+    min-height: clamp(56px, 3.8vw, 68px);
+    padding: 0 clamp(24px, 2vw, 40px);
+    font-size: clamp(14px, 1.05vw, 17px) !important;
+    border-radius: clamp(8px, 0.8vw, 12px);
+  }
+  .cx-hero-secondary {
+    min-height: clamp(56px, 3.8vw, 68px);
+    padding: 0 clamp(22px, 1.8vw, 36px);
+    font-size: clamp(14px, 1vw, 16px);
+    border-radius: clamp(8px, 0.8vw, 12px);
+  }
+  .cx-hero-actions svg {
+    width: clamp(16px, 1.1vw, 20px);
+  }
+  .cx-hero-price {
+    margin-top: clamp(22px, 2.5vh, 34px);
+    padding: clamp(14px, 1.6vh, 22px) 0;
+    font-size: clamp(11px, 0.85vw, 15px);
+    gap: clamp(9px, 0.8vw, 15px);
+  }
+  .cx-hero-price strong {
+    font-size: clamp(12px, 0.9vw, 16px);
+  }
+  .cx-hero-price b {
+    font-size: clamp(13px, 1.05vw, 18px);
+  }
+  .cx-hero-assurance {
+    margin-top: clamp(16px, 1.8vh, 26px);
+    gap: clamp(16px, 1.8vw, 32px);
+  }
+  .cx-hero-assurance span {
+    font-size: clamp(11px, 0.85vw, 15px);
+    gap: clamp(7px, 0.6vw, 10px);
+  }
+  .cx-hero-assurance svg {
+    width: clamp(15px, 1.1vw, 19px);
+    height: clamp(15px, 1.1vw, 19px);
+  }
+  .cx-hero-scroll {
+    font-size: clamp(8px, 0.65vw, 11px);
+    bottom: clamp(16px, 2vh, 28px);
+  }
+}
+
