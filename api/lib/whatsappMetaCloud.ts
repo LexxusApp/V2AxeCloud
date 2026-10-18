@@ -46,6 +46,8 @@ const CONTA_ATIVA_TEMPLATE = "conta_ativa_axecloud";
  * APPROVED Utility — melhor que conta_ativa (portal) e que guia_membro_portal (sem registro).
  */
 const ACESSO_MEMBRO_GUIA_TEMPLATE = "acesso_membro_guia_axecloud";
+const CONTA_MEMBRO_CADASTRO_TEMPLATE = "conta_membro_cadastro_axc";
+const CONTA_MEMBRO_PORTAL_TEMPLATE = "conta_membro_portal_axc";
 /** Boas-vindas zelador (cadastro de terreiro) — sem promessa de contato manual */
 const BOAS_VINDAS_ZELADOR_TEMPLATE = "boas_vindas_zelador_conta_axecloud";
 /** Legado: 3 vars (zelador, terreiro, e-mail) */
@@ -170,7 +172,7 @@ export function resolveMetaTemplateName(tipo: string): string {
   if (normalized === "dados_acesso") {
     return (
       String(process.env.WA_META_TEMPLATE_DADOS_ACESSO || "").trim() ||
-      ACESSO_MEMBRO_GUIA_TEMPLATE
+      CONTA_MEMBRO_CADASTRO_TEMPLATE
     );
   }
   if (normalized === "boas_vindas_zelador") {
@@ -593,6 +595,36 @@ export function buildContaAtivaComponents(
 ): MetaTemplateComponent[] {
   const v = variables || {};
   const registro = String(v.filho_login_id || "").trim();
+  const templateName = resolveMetaTemplateName("dados_acesso");
+
+  if (templateName === CONTA_MEMBRO_CADASTRO_TEMPLATE) {
+    const credencialText = `Registro: ${registro || "—"} · Senha: 6 primeiros dígitos do CPF · Link: https://axecloud.com.br/entrar?modo=filho`;
+    return [
+      {
+        type: "body",
+        parameters: [
+          textParam(String(v.nome_filho || nomeMembro || "Membro")),
+          textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+          textParam(credencialText, 512),
+        ],
+      },
+    ];
+  }
+
+  if (templateName === CONTA_MEMBRO_PORTAL_TEMPLATE) {
+    const credencialText = `Seu registro é ${registro || "—"}. A chave de entrada são os 6 primeiros dígitos do seu CPF.`;
+    return [
+      {
+        type: "body",
+        parameters: [
+          textParam(String(v.nome_filho || nomeMembro || "Membro")),
+          textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+          textParam(credencialText, 512),
+        ],
+      },
+    ];
+  }
+
   return [
     {
       type: "body",

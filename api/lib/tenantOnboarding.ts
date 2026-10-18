@@ -250,30 +250,117 @@ export async function registerNewTenant(
     .slice(0, 52) || "casa-de-axe";
   const coordinates = await geocodeRegistrationAddress(enderecoCompleto, cidade, estado);
   const radarPublicado = publicarNoMapa && Boolean(coordinates);
-  const { error: radarError } = await supabaseAdmin.from("terreiros_diretorio").insert({
-    nome: nome_terreiro,
-    cep,
-    endereco: enderecoCompleto,
-    telefone: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
-    link_maps: null,
-    cidade,
-    estado,
-    slug: `${radarSlugBase}-${tenantId.replace(/-/g, "").slice(0, 8)}`,
-    cidade_slug: slugifyCidadeOnly(cidade),
-    bairro,
-    bairro_slug: slugifyBairro(bairro),
-    tipo: "terreiro",
-    claimed_by_tenant_id: tenantId,
-    descricao_publica: descricaoPublica || null,
-    latitude: coordinates?.lat ?? null,
-    longitude: coordinates?.lng ?? null,
-    coordinate_source: coordinates ? "public_register_address" : "public_register_pending",
-    publicacao_status: radarPublicado ? "publicado" : "rascunho",
-    publicado_em: radarPublicado ? now : null,
-  });
-  if (radarError) {
-    // Não desfaz o cadastro: a tela Radar também repara contas sem perfil.
-    console.warn("[onboarding] Radar draft:", radarError.message);
+
+  // Procura se já existe um perfil deste terreiro no mapa (ex: importado do Google Maps não reivindicado)
+  let existingDirId: string | null = null;
+  const phoneDigits = whatsapp.replace(/\D/g, "");
+  const digits8 = phoneDigits.slice(-8);
+
+  if (digits8.length >= 8) {
+    const { data: matchedByPhone } = await supabaseAdmin
+      .from("terreiros_diretorio")
+      .select("id, nome, slug, telefone, whatsapp_atendimento")
+      .is("claimed_by_tenant_id", null)
+      .or(`telefone.ilike.%${digits8}%,whatsapp_atendimento.ilike.%${digits8}%`)
+      .limit(1)
+      .maybeSingle();
+    if (matchedByPhone?.id) {
+      existingDirId = matchedByPhone.id;
+    }
+  }
+
+  if (!existingDirId && nome_terreiro.trim()) {
+    const trimmedNome = nome_terreiro.trim();
+    const { data: matchedByName } = await supabaseAdmin
+      .from("terreiros_diretorio")
+      .select("id, nome, slug")
+      .is("claimed_by_tenant_id", null)
+      .ilike("estado", estado.trim())
+      .ilike("cidade", cidade.trim())
+      .ilike("nome", trimmedNome)
+      .limit(1)
+      .maybeSingle();
+    if (matchedByName?.id) {
+      existingDirId = matchedByName.id;
+    }
+  }
+
+  if (!existingDirId && nome_terreiro.trim()) {
+    const trimmedNome = nome_terreiro.trim();
+    const { data: matchedBySubstr } = await supabaseAdmin
+      .from("terreiros_diretorio")
+      .select("id, nome, slug")
+      .is("claimed_by_tenant_id", null)
+      .ilike("estado", estado.trim())
+      .ilike("cidade", cidade.trim())
+      .ilike("nome", `%${trimmedNome}%`)
+      .limit(1)
+      .maybeSingle();
+    if (matchedBySubstr?.id) {
+      existingDirId = matchedBySubstr.id;
+    }
+  }
+
+  if (existingDirId) {
+    // Vincula o perfil original já existente no mapa ao novo zelador
+    const updatePayload: Record<string, unknown> = {
+      claimed_by_tenant_id: tenantId,
+      verified_at: now,
+      updated_at: now,
+    };
+    if (coordinates) {
+      updatePayload.latitude = coordinates.lat;
+      updatePayload.longitude = coordinates.lng;
+      updatePayload.coordinate_source = "public_register_address";
+    }
+    if (enderecoCompleto) updatePayload.endereco = enderecoCompleto;
+    if (cep) updatePayload.cep = cep;
+    if (bairro) {
+      updatePayload.bairro = bairro;
+      updatePayload.bairro_slug = slugifyBairro(bairro);
+    }
+    if (descricaoPublica) updatePayload.descricao_publica = descricaoPublica;
+    if (phoneDigits) {
+      updatePayload.whatsapp_atendimento = phoneDigits.slice(0, 15);
+    }
+    if (radarPublicado) {
+      updatePayload.publicacao_status = "publicado";
+      updatePayload.publicado_em = now;
+    }
+    const { error: radarUpdateErr } = await supabaseAdmin
+      .from("terreiros_diretorio")
+      .update(updatePayload)
+      .eq("id", existingDirId);
+    if (radarUpdateErr) {
+      console.warn("[onboarding] Falha ao vincular perfil existente no Radar:", radarUpdateErr.message);
+    }
+  } else {
+    // Insere novo perfil caso a casa realmente não estivesse no mapa
+    const { error: radarError } = await supabaseAdmin.from("terreiros_diretorio").insert({
+      nome: nome_terreiro,
+      cep,
+      endereco: enderecoCompleto,
+      telefone: whatsapp.replace(/\D/g, "").slice(0, 15) || null,
+      link_maps: null,
+      cidade,
+      estado,
+      slug: `${radarSlugBase}-${tenantId.replace(/-/g, "").slice(0, 8)}`,
+      cidade_slug: slugifyCidadeOnly(cidade),
+      bairro,
+      bairro_slug: slugifyBairro(bairro),
+      tipo: "terreiro",
+      claimed_by_tenant_id: tenantId,
+      descricao_publica: descricaoPublica || null,
+      latitude: coordinates?.lat ?? null,
+      longitude: coordinates?.lng ?? null,
+      coordinate_source: coordinates ? "public_register_address" : "public_register_pending",
+      publicacao_status: radarPublicado ? "publicado" : "rascunho",
+      publicado_em: radarPublicado ? now : null,
+    });
+    if (radarError) {
+      // Não desfaz o cadastro: a tela Radar também repara contas sem perfil.
+      console.warn("[onboarding] Radar draft:", radarError.message);
+    }
   }
 
   const trialEndsAt = trialExpiresAtFromNow();

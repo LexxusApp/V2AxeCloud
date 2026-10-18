@@ -202,6 +202,9 @@ export async function processMetaCloudWebhook(
       const { handleTerreiroWinBackInbound } = await import(
         "./whatsappWinBackHandler.js"
       );
+      const { handleQueroConhecerInbound } = await import(
+        "./whatsappQueroConhecerHandler.js"
+      );
       for (const msg of inboundList) {
         let isHandled = false;
         try {
@@ -216,8 +219,14 @@ export async function processMetaCloudWebhook(
         } catch (wbErr) {
           console.warn("[WINBACK] falha ao processar clique de resgate via WhatsApp:", wbErr);
         }
+        try {
+          const res = await handleQueroConhecerInbound(sb, msg);
+          if (res?.handled) isHandled = true;
+        } catch (qcErr) {
+          console.warn("[QUERO CONHECER] falha ao processar resposta automática:", qcErr);
+        }
 
-        // Se não for presença em gira e não for resgate de assinatura, encaminha à IA de prospecção
+        // Se não for presença em gira, nem resgate e nem início de interesse, encaminha à IA de prospecção
         if (!isHandled) {
           try {
             const fwdHeaders: Record<string, string> = {
