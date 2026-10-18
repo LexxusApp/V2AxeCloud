@@ -113,23 +113,28 @@ export async function summarizeWhatsAppDeliveries(sb: SupabaseClient) {
   ];
   const monthName = `${monthNames[month - 1]}/${year}`;
 
-  const [deliveriesRes, prospectingRes] = await Promise.all([
-    sb
-      .from(TABLE)
-      .select("status, created_at, template_name")
-      .gte("created_at", since30d)
-      .limit(10000),
-    sb
+  const deliveriesRes = await sb
+    .from(TABLE)
+    .select("status, created_at, template_name")
+    .gte("created_at", since30d)
+    .limit(10000);
+
+  let prospectingEvents: Array<{ created_at: string; metadata?: Record<string, unknown> }> = [];
+  try {
+    const { data: pData } = await sb
       .from("prospecting_events")
       .select("created_at, metadata")
       .eq("event_type", "whatsapp_message_sent")
       .gte("created_at", startOfMonth)
-      .limit(10000)
-      .catch(() => ({ data: [] })),
-  ]);
+      .limit(10000);
+    if (pData) {
+      prospectingEvents = pData as Array<{ created_at: string; metadata?: Record<string, unknown> }>;
+    }
+  } catch (err) {
+    console.warn("[whatsapp-delivery] falha ao buscar eventos de prospecção:", err);
+  }
 
   const data = deliveriesRes.data || [];
-  const prospectingEvents = (prospectingRes?.data || []) as Array<{ created_at: string; metadata?: Record<string, unknown> }>;
 
   const counts: Record<string, number> = {
     total30d: 0, today: 0, queued: 0, accepted: 0, sent: 0,
