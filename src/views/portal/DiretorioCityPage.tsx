@@ -164,7 +164,7 @@ export default function DiretorioCityPage() {
 
   return (
     <MatrizEditorialLayout>
-      <main className="relative z-[1] mx-auto w-full max-w-7xl px-4 pb-24 pt-28 sm:px-6 md:px-8 md:pt-32">
+      <main className="relative z-[1] mx-auto w-full max-w-7xl 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] px-4 pb-24 pt-28 sm:px-6 md:px-8 md:pt-32">
         <a
           href={ROUTES.terreiros}
           className="inline-flex min-h-11 items-center gap-2 rounded-lg px-1 text-sm font-extrabold text-[#243127]/65 transition-colors duration-200 hover:text-[#8d6800] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c99400] focus-visible:ring-offset-4"

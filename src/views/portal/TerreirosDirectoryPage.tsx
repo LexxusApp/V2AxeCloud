@@ -1,4 +1,4 @@
-﻿import { motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { BadgeCheck, MapPin } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
@@ -149,7 +149,7 @@ export default function TerreirosDirectoryPage() {
   return (
     <div className="landing-v3 landing-mockup-theme relative min-h-dvh overflow-x-clip bg-[#fdf8f0] font-display text-[#1b1813]">
       <MatrizPageBackground />
-      <main className="relative z-[1] mx-auto w-full max-w-7xl px-5 pb-24 pt-32 md:px-8 md:pt-36">
+      <main className="relative z-[1] mx-auto w-full max-w-7xl 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] px-5 pb-24 pt-32 md:px-8 md:pt-36">
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-10 lg:items-start">
           <motion.div
             className="contents"

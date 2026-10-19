@@ -43,7 +43,7 @@ export default function FeaturePage({ page }: { page: FeaturePageContent }) {
       <main>
         <section className="relative overflow-hidden bg-[#0a0d09] px-5 pb-20 pt-32 text-[#f4efe3] sm:px-8 md:pb-24 md:pt-36">
           <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(229,174,18,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,#000,transparent_90%)]" />
-          <div className="relative mx-auto grid w-full max-w-[1180px] gap-12 lg:grid-cols-[1fr_410px] lg:items-center">
+          <div className="relative mx-auto grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] gap-12 lg:grid-cols-[1fr_410px] lg:items-center">
             <motion.div initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.68 }}>
               <nav className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[.19em] text-[#8f948a]" aria-label="Breadcrumb">
                 <a href={ROUTES.recursos} className="transition hover:text-[#e5ae12]">Recursos</a><span>/</span><a href={pillar.href} className="transition hover:text-[#e5ae12]">{pillar.label}</a>
@@ -74,7 +74,7 @@ export default function FeaturePage({ page }: { page: FeaturePageContent }) {
         </section>
 
         <section className="bg-[#f6f0e5] px-5 py-20 sm:px-8 md:py-28">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.header {...reveal} className="grid gap-6 border-b border-[#d6cbb9] pb-9 md:grid-cols-[.75fr_1.25fr] md:items-end">
               <div><span className="text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]">Na prática</span><h2 className="mt-5 text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">O que muda na rotina.</h2></div>
               <p className="max-w-2xl text-sm leading-relaxed text-[#696156] md:justify-self-end">Este módulo não funciona como uma ferramenta solta. Ele compartilha a base da casa e reduz o retrabalho entre cadastro, agenda, financeiro e comunicação.</p>
@@ -93,7 +93,7 @@ export default function FeaturePage({ page }: { page: FeaturePageContent }) {
         </section>
 
         <section className="bg-[#eee5d7] px-5 py-20 sm:px-8 md:py-24">
-          <motion.div {...reveal} className="mx-auto grid w-full max-w-[1180px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
+          <motion.div {...reveal} className="mx-auto grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] gap-12 lg:grid-cols-[.7fr_1.3fr]">
             <div><span className="text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]">Perguntas frequentes</span><h2 className="mt-5 text-4xl font-black leading-[.98] tracking-[-.055em]">Antes de experimentar.</h2></div>
             <dl className="divide-y divide-[#d1c5b3] border-y border-[#d1c5b3]">
               {page.faq.map((item, index) => (
@@ -104,7 +104,7 @@ export default function FeaturePage({ page }: { page: FeaturePageContent }) {
         </section>
 
         <section className="bg-[#fcfaf5] px-5 py-20 sm:px-8 md:py-24">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.div {...reveal} className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><span className="text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]">Recursos conectados</span><h2 className="mt-4 text-3xl font-black tracking-[-.05em]">Continue pela rotina da casa.</h2></div><a href={ROUTES.recursos} className="inline-flex items-center gap-2 text-sm font-extrabold text-[#1f6b4d]">Todos os recursos <ArrowRight className="h-4 w-4" /></a></motion.div>
             <div className="mt-8 grid gap-3 md:grid-cols-3">
               {related.map((item) => (
@@ -118,7 +118,7 @@ export default function FeaturePage({ page }: { page: FeaturePageContent }) {
         </section>
 
         <section className="bg-[#0a0d09] px-5 py-20 text-[#f4efe3] sm:px-8 md:py-24">
-          <motion.div {...reveal} className="mx-auto grid w-full max-w-[1180px] gap-8 rounded-[2rem] border border-white/10 bg-[#11150f] p-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <motion.div {...reveal} className="mx-auto grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] gap-8 rounded-[2rem] border border-white/10 bg-[#11150f] p-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="max-w-2xl"><span className="text-[10px] font-black uppercase tracking-[.22em] text-[#e5ae12]">Todos os módulos liberados</span><h2 className="mt-5 text-3xl font-black tracking-[-.05em] sm:text-4xl">Teste este recurso com os dados da sua própria rotina.</h2><p className="mt-4 text-sm leading-relaxed text-[#9da298]">Sem cartão durante o período de teste e sem cobrança separada por funcionalidade.</p></div>
             <RegisterTrialLink className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-[#e5ae12] px-7 text-sm font-extrabold text-[#17150e]">Começar agora <ArrowRight className="h-4 w-4" /></RegisterTrialLink>
           </motion.div>

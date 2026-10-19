@@ -29,31 +29,31 @@ export function MatrizTopNav() {
   return (
     <header className="fixed inset-x-0 top-[18px] z-[80] px-4 font-display">
       <nav
-        className="relative mx-auto flex h-[62px] w-full max-w-[1180px] items-center gap-4 rounded-lg border border-white/15 bg-[#0c0e0b]/95 px-3 pl-4 text-[#f4f0e4] shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-xl"
+        className="relative mx-auto flex h-[62px] 2xl:h-[70px] w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] items-center gap-4 2xl:gap-6 rounded-lg 2xl:rounded-xl border border-white/15 bg-[#0c0e0b]/95 px-3 pl-4 2xl:px-6 2xl:pl-6 text-[#f4f0e4] shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-xl"
         aria-label="Navegação principal"
       >
         <a href="/" className="flex shrink-0 items-center gap-2" aria-label="AxéCloud — página inicial">
-          <img src="/axecloud-trident.png" alt="" className="h-[47px] w-9 object-contain" width="36" height="47" />
-          <strong className="text-[15px] font-extrabold tracking-[-.04em]">
+          <img src="/axecloud-trident.png" alt="" className="h-[47px] 2xl:h-[52px] w-9 2xl:w-10 object-contain" width="36" height="47" />
+          <strong className="text-[15px] 2xl:text-[18px] font-extrabold tracking-[-.04em]">
             Axé<span className="text-[#e5ae12]">Cloud</span>
           </strong>
         </a>
 
-        <div className="mx-auto hidden items-center justify-center gap-7 lg:flex">
+        <div className="mx-auto hidden items-center justify-center gap-7 xl:gap-8 2xl:gap-11 lg:flex">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-[11px] font-bold text-[#aaa99f] transition hover:text-white"
+              className="whitespace-nowrap text-[11px] xl:text-[12px] 2xl:text-[14px] font-bold text-[#aaa99f] transition hover:text-white"
             >
               {link.label}
             </a>
           ))}
         </div>
 
-        <div className="ml-auto hidden shrink-0 items-center gap-4 lg:flex">
-          <LoginLink className="text-[11px] font-extrabold text-[#dedbd2] transition hover:text-white" />
-          <RegisterTrialLink className="inline-flex h-10 items-center gap-2 rounded-md bg-[#e5ae12] px-4 text-[11px] font-extrabold text-[#17150e] transition hover:bg-[#f0bb21]">
+        <div className="ml-auto hidden shrink-0 items-center gap-4 2xl:gap-6 lg:flex">
+          <LoginLink className="text-[11px] xl:text-[12px] 2xl:text-[14px] font-extrabold text-[#dedbd2] transition hover:text-white" />
+          <RegisterTrialLink className="inline-flex h-10 2xl:h-11 items-center gap-2 rounded-md 2xl:rounded-lg bg-[#e5ae12] px-4 2xl:px-5 text-[11px] xl:text-[12px] 2xl:text-[13px] font-extrabold text-[#17150e] transition hover:bg-[#f0bb21]">
             Testar grátis <span aria-hidden>→</span>
           </RegisterTrialLink>
         </div>

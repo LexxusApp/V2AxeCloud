@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ArrowUp, Check, HardDrive, Images, MessageCircle, Video } from 'lucide-react';
 import { MatrizLandingExperience } from '../components/landing/MatrizLandingExperience';
@@ -59,7 +59,7 @@ function PricingSection({
   return (
     <section id="mensalidade" className="relative z-[1] overflow-hidden bg-[#fdf8f0] py-20 font-display text-[#1b1813] md:py-28">
       <div className="pointer-events-none absolute inset-x-0 top-10 mx-auto h-72 max-w-4xl rounded-full bg-[#ffc107]/15 blur-3xl" aria-hidden />
-      <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+      <div className="mx-auto w-full max-w-6xl xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] px-5 md:px-8 2xl:px-12">
         <motion.div
           className="mx-auto max-w-2xl text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -177,7 +177,7 @@ function ClosingSection() {
     <section ref={ref} id="cta" className="relative z-[1] px-5 pb-20 font-display text-[#1b1813] md:pb-28">
       <motion.div
         style={{ scale }}
-        className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-[#e8dfd0] bg-[#0b0906] px-8 py-12 text-center shadow-2xl shadow-black/15 md:px-14 md:py-16"
+        className="relative mx-auto max-w-6xl xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] overflow-hidden rounded-3xl border border-[#e8dfd0] bg-[#0b0906] px-8 py-12 text-center shadow-2xl shadow-black/15 md:px-14 md:py-16"
       >
         <div
           className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#ffc107]/12 blur-3xl"
@@ -256,7 +256,7 @@ function MatrizFooter() {
 
   return (
     <footer className="relative z-[1] border-t border-[#e8dfd0] bg-white py-12 font-display text-[#1b1813]">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8">
+      <div className="mx-auto grid w-full max-w-6xl xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] gap-10 px-5 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8 2xl:px-12">
         <div>
           <a href={ROUTES.home} className="inline-flex items-center gap-2.5" aria-label="AxéCloud — início">
             <img

@@ -202,7 +202,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
         {/* Subtle Ambient Decorative Circles */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#c48a00]/8 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="relative max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           
           {/* Breadcrumb / Back Link */}
           <div className="inline-flex items-center gap-2 mb-6">
@@ -291,7 +291,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       </section>
 
       {/* STEP BY STEP CARDS SECTION */}
-      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
         <div className="text-center max-w-xl mx-auto mb-12">
           <span className="text-xs font-bold uppercase tracking-wider text-[#c48a00]">Passo a Passo</span>
           <h2 className="text-2xl sm:text-3xl font-black text-[#1b1813] tracking-tight mt-1">
@@ -387,7 +387,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
 
       {/* UNLOCKED FEATURES GRID */}
       <section className="py-16 bg-[#f3ede1]/60 border-y border-[#1b1813]/8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
           <div className="text-center max-w-xl mx-auto mb-12">
             <span className="text-xs font-bold uppercase tracking-wider text-[#166534]">
               {isMembro ? 'No Portal do Membro' : 'Recursos da Plataforma'}
@@ -428,7 +428,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       </section>
 
       {/* FAQ & HELP CENTER SECTION */}
-      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
         <div className="rounded-3xl bg-white border border-[#1b1813]/10 p-8 sm:p-10 shadow-sm">
           <div className="flex items-start gap-4 mb-6">
             <span className="p-3 rounded-xl bg-amber-500/10 text-amber-600 shrink-0">

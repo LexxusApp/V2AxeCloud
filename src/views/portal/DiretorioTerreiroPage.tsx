@@ -358,7 +358,7 @@ export default function DiretorioTerreiroPage() {
     <div className="flex flex-col items-center gap-4"><Loader2 className="h-8 w-8 animate-spin text-[#b98500]" /><p className="text-xs font-black uppercase tracking-[0.18em] text-[#1b1813]/45">Abrindo o perfil da casa</p></div>
   </div></MatrizEditorialLayout>;
 
-  if (error || !terreiro) return <MatrizEditorialLayout backgroundVariant="stone"><main className="relative z-[1] mx-auto grid min-h-[72vh] w-full max-w-[1180px] place-items-center px-5 pb-24 pt-36 text-center">
+  if (error || !terreiro) return <MatrizEditorialLayout backgroundVariant="stone"><main className="relative z-[1] mx-auto grid min-h-[72vh] w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] place-items-center px-5 pb-24 pt-36 text-center">
     <div className="max-w-xl rounded-2xl border border-[#d9ccb7] bg-[#fffaf1] p-8 shadow-xl">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9b6a00]">Diretório AxéCloud</p>
       <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#1b1813]">{error || 'Terreiro não encontrado'}</h1>
@@ -392,10 +392,10 @@ export default function DiretorioTerreiroPage() {
   };
 
   return <MatrizEditorialLayout backgroundVariant="stone">
-    <main className="relative z-[1] mx-auto w-full max-w-[1180px] px-2 pb-20 pt-28 sm:px-5 lg:px-0">
+    <main className="relative z-[1] mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] px-2 pb-20 pt-28 sm:px-5 lg:px-0">
       <article className="overflow-hidden rounded-2xl border border-[#d8cdb9] bg-white shadow-[0_22px_65px_rgba(48,39,23,.12)]">
         <header>
-          <div className="relative min-h-[13rem] overflow-hidden bg-[#102118] sm:min-h-[17rem]">
+          <div className="relative min-h-[13rem] overflow-hidden bg-[#102118] sm:min-h-[17rem] 2xl:min-h-[22rem]">
             <div className="absolute inset-0"><ProfilePhoto fotoUrl={terreiro.coverPhotoUrl || terreiro.fotoUrl} nome={terreiro.nome} eager className="opacity-75" /></div>
             <div className="absolute inset-0 bg-gradient-to-t from-[#09130e]/90 via-[#102118]/25 to-black/20" />
             <a href={ROUTES.terreiros} className="absolute left-4 top-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/25 bg-[#0b1510]/65 px-4 py-2 text-xs font-black text-white backdrop-blur sm:left-6 sm:top-6">
@@ -458,7 +458,7 @@ export default function DiretorioTerreiroPage() {
 
       <div className="mt-5 motion-safe:animate-[fadeIn_.35s_ease-out]" id={'panel-' + activeTab}
         role="tabpanel" aria-labelledby={'tab-' + activeTab}>
-        {activeTab === 'visao-geral' ? <div className="grid gap-5 min-[900px]:grid-cols-[minmax(0,1.55fr)_minmax(18rem,.85fr)]">
+        {activeTab === 'visao-geral' ? <div className="grid gap-5 2xl:gap-8 min-[900px]:grid-cols-[minmax(0,1.55fr)_minmax(18rem,.85fr)] 2xl:grid-cols-[minmax(0,1.65fr)_minmax(22rem,.85fr)]">
           <div className="space-y-5">
             <NextGiraCard schedules={terreiro.horariosGira || []} whatsappHref={whatsappHref}
               onWhatsapp={trackWhatsapp} onOpenAgenda={() => activateTab('agenda')} />

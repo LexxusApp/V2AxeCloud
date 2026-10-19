@@ -139,7 +139,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
           <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(229,174,18,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,#000,transparent_92%)]" aria-hidden />
           <div className="pointer-events-none absolute left-[-15rem] top-10 h-[44rem] w-[44rem] rounded-full bg-[radial-gradient(circle,rgba(38,92,68,.24),transparent_68%)]" aria-hidden />
 
-          <div className="relative mx-auto grid w-full max-w-[1180px] items-center gap-14 lg:grid-cols-[minmax(0,1.02fr)_minmax(420px,.98fr)]">
+          <div className="relative mx-auto grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] items-center gap-14 lg:grid-cols-[minmax(0,1.02fr)_minmax(420px,.98fr)]">
             <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}>
               <a href={ROUTES.recursos} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.23em] text-[#e5ae12] transition hover:text-[#f2c33e]">
                 <span className="h-2 w-2 rounded-full bg-[#57d9a4] shadow-[0_0_14px_#57d9a4]" /> {page.kicker}
@@ -164,7 +164,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
             </motion.div>
           </div>
 
-          <div className="relative mx-auto mt-16 grid w-full max-w-[1180px] divide-y divide-white/10 border-y border-white/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="relative mx-auto mt-16 grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] divide-y divide-white/10 border-y border-white/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             {page.proof.map((item) => (
               <div key={item.label} className="px-5 py-5 sm:px-7">
                 <strong className="block text-xl font-black tracking-[-.04em]" style={{ color: accent }}>{item.value}</strong>
@@ -175,7 +175,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
         </section>
 
         <section className="relative bg-[#f5efe3] px-5 py-20 text-[#1b1813] sm:px-8 md:py-28">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.div {...reveal} className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]">Antes e depois da organização</span>
@@ -200,7 +200,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
         </section>
 
         <section id="como-funciona" className="relative bg-[#fcfaf5] px-5 py-20 text-[#1b1813] sm:px-8 md:py-28">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.div {...reveal} className="max-w-3xl">
               <span className="text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]">Como funciona</span>
               <h2 className="mt-5 text-4xl font-black leading-[.98] tracking-[-.055em] sm:text-5xl">{page.workflowTitle}</h2>
@@ -221,7 +221,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
         </section>
 
         <section className="bg-[#10140f] px-5 py-20 sm:px-8 md:py-28">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.div {...reveal} className="flex flex-col justify-between gap-7 md:flex-row md:items-end">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-[.22em] text-[#e5ae12]">O que essa página resolve</span>
@@ -244,7 +244,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
         </section>
 
         <section className="bg-[#f5efe3] px-5 py-20 text-[#1b1813] sm:px-8 md:py-28">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.div {...reveal} className="grid gap-12 lg:grid-cols-[.78fr_1.22fr]">
               <div>
                 <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]"><BadgeCheck className="h-4 w-4" /> Respostas diretas</span>
@@ -272,7 +272,7 @@ export default function CommercialAcquisitionPage({ page }: { page: CommercialPa
 
         <section className="relative overflow-hidden bg-[#0a0d09] px-5 py-20 sm:px-8 md:py-28">
           <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(229,174,18,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.09)_1px,transparent_1px)] [background-size:72px_72px]" aria-hidden />
-          <motion.div {...reveal} className="relative mx-auto flex w-full max-w-[1180px] flex-col items-start justify-between gap-8 rounded-[2rem] border border-white/10 bg-[#11150f]/95 p-8 sm:p-10 lg:flex-row lg:items-center">
+          <motion.div {...reveal} className="relative mx-auto flex w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] flex-col items-start justify-between gap-8 rounded-[2rem] border border-white/10 bg-[#11150f]/95 p-8 sm:p-10 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.22em] text-[#e5ae12]"><Sparkles className="h-4 w-4" /> Conheça com a rotina real</span>
               <h2 className="mt-5 text-3xl font-black leading-tight tracking-[-.05em] text-[#f4efe3] sm:text-4xl">Abra o ambiente da sua casa e teste antes de decidir.</h2>

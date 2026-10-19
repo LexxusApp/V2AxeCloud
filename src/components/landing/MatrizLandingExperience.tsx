@@ -264,7 +264,7 @@ const audience = [
 ] as const;
 
 function Shell({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('mx-auto w-full max-w-6xl px-5 md:px-8', className)}>{children}</div>;
+  return <div className={cn('mx-auto w-full max-w-6xl xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] px-5 md:px-8 2xl:px-12', className)}>{children}</div>;
 }
 
 function AtabaqueIcon({ className }: { className?: string }) {
@@ -951,7 +951,7 @@ function RoutineSection() {
       </Shell>
 
       <motion.div
-        className="mx-auto grid max-w-6xl grid-flow-col auto-cols-[min(85vw,320px)] gap-5 overflow-x-auto px-5 pb-4 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-2 md:overflow-visible md:px-8 lg:grid-cols-4"
+        className="mx-auto grid max-w-6xl xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] grid-flow-col auto-cols-[min(85vw,320px)] gap-5 2xl:gap-7 overflow-x-auto px-5 pb-4 snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid-flow-row md:grid-cols-2 md:overflow-visible md:px-8 2xl:px-12 lg:grid-cols-4"
         initial={{ opacity: 0, x: 40 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.2 }}

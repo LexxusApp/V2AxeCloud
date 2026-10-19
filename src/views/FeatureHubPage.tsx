@@ -50,7 +50,7 @@ export default function FeatureHubPage() {
       <main>
         <section className="relative overflow-hidden bg-[#0a0d09] px-5 pb-20 pt-32 text-[#f4efe3] sm:px-8 md:pb-28 md:pt-36">
           <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(229,174,18,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(229,174,18,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_bottom,#000,transparent_88%)]" />
-          <div className="relative mx-auto grid w-full max-w-[1180px] gap-12 lg:grid-cols-[1fr_380px] lg:items-end">
+          <div className="relative mx-auto grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] gap-12 lg:grid-cols-[1fr_380px] lg:items-end">
             <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
               <a href={ROUTES.systemForTerreiros} className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.23em] text-[#e5ae12]"><i className="h-2 w-2 rounded-full bg-[#57d9a4] shadow-[0_0_14px_#57d9a4]" /> Recursos do sistema</a>
               <h1 className="mt-7 max-w-[14ch] text-balance text-[clamp(3rem,7vw,6.6rem)] font-black leading-[.9] tracking-[-.07em]">24 módulos. Uma casa inteira.</h1>
@@ -71,7 +71,7 @@ export default function FeatureHubPage() {
         </section>
 
         <section className="border-b border-[#d9cfbf] bg-[#f7f1e6] px-5 py-16 sm:px-8">
-          <div className="mx-auto w-full max-w-[1180px]">
+          <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
             <motion.div {...reveal} className="grid gap-5 lg:grid-cols-[.72fr_1.28fr]">
               <div className="py-3">
                 <span className="text-[10px] font-black uppercase tracking-[.22em] text-[#9a6d00]">Comece pela sua necessidade</span>
@@ -94,7 +94,7 @@ export default function FeatureHubPage() {
           const pages = group.slugs.map((slug) => FEATURE_PAGES.find((page) => page.slug === slug)).filter(Boolean);
           return (
             <section key={group.id} id={group.id} className={groupIndex % 2 ? 'bg-[#eee6d8] px-5 py-20 sm:px-8 md:py-24' : 'bg-[#f8f3ea] px-5 py-20 sm:px-8 md:py-24'}>
-              <div className="mx-auto w-full max-w-[1180px]">
+              <div className="mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px]">
                 <motion.header {...reveal} className="grid gap-5 border-b border-[#d2c7b6] pb-8 md:grid-cols-[90px_1fr_1fr] md:items-end">
                   <span className="text-4xl font-black tracking-[-.06em] text-[#b88a20]">{group.number}</span>
                   <h2 className="text-3xl font-black leading-tight tracking-[-.045em] sm:text-4xl">{group.title}</h2>
@@ -118,7 +118,7 @@ export default function FeatureHubPage() {
         })}
 
         <section className="relative overflow-hidden bg-[#0b0e0a] px-5 py-20 text-[#f4efe3] sm:px-8 md:py-28">
-          <div className="mx-auto grid w-full max-w-[1180px] gap-10 rounded-[2rem] border border-white/10 bg-[#11150f] p-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="mx-auto grid w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] gap-10 rounded-[2rem] border border-white/10 bg-[#11150f] p-8 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="max-w-2xl">
               <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.22em] text-[#e5ae12]"><ShieldCheck className="h-4 w-4" /> Tudo incluído</span>
               <h2 className="mt-5 text-3xl font-black tracking-[-.05em] sm:text-4xl">Não escolha um módulo. Escolha organizar a casa.</h2>

@@ -25,11 +25,36 @@
   html {
     @apply bg-neutral-950 transition-[font-size] duration-300;
     overscroll-behavior: none;
+    font-size: 15px;
   }
 
   @media (min-width: 1024px) {
     html {
-      font-size: 13px;
+      font-size: 14px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    html {
+      font-size: 17px;
+    }
+  }
+
+  @media (min-width: 2560px) {
+    html {
+      font-size: 18.5px;
     }
   }
 

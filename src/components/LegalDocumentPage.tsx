@@ -27,7 +27,7 @@ export default function LegalDocumentPage({ title, summary, sections, icon }: Le
 
   return (
     <MatrizEditorialLayout>
-      <main className="relative z-[1] mx-auto w-full max-w-[1180px] px-5 pb-24 pt-32 sm:px-7 md:pt-36 lg:px-8">
+      <main className="relative z-[1] mx-auto w-full max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] px-5 pb-24 pt-32 sm:px-7 md:pt-36 lg:px-8">
         <a
           href={ROUTES.home}
           className="inline-flex items-center gap-2 text-sm font-extrabold text-[#181a16]/60 transition hover:text-[#9b6a00]"
