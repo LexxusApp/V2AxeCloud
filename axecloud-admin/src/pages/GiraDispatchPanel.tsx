@@ -428,22 +428,34 @@ export function GiraDispatchPanel() {
       const jobId = started.job?.id;
       if (!jobId) throw new Error("Job não retornado pelo servidor.");
 
-      // Poll até concluir (envios com ritmo ~20s/membro)
+      // Poll até concluir (envios com ritmo ~20s/membro com tolerância a oscilação de rede)
+      let consecutiveErrors = 0;
       for (;;) {
-        await new Promise((r) => setTimeout(r, 1200));
-        const poll = await apiJson<{
-          job: {
-            id: string;
-            phase: string;
-            sent: number;
-            errors: number;
-            eligible: number;
-            index: number;
-            status: string;
-            error: string | null;
-            templateName: string;
-          };
-        }>(`/api/admin-console/gira-dispatch/jobs/${encodeURIComponent(jobId)}`);
+        await new Promise((r) => setTimeout(r, 1500));
+        let poll;
+        try {
+          poll = await apiJson<{
+            job: {
+              id: string;
+              phase: string;
+              sent: number;
+              errors: number;
+              eligible: number;
+              index: number;
+              status: string;
+              error: string | null;
+              templateName: string;
+            };
+          }>(`/api/admin-console/gira-dispatch/jobs/${encodeURIComponent(jobId)}`);
+          consecutiveErrors = 0;
+        } catch (pollErr) {
+          consecutiveErrors++;
+          if (consecutiveErrors < 8) {
+            // Pequena oscilação de rede do browser; o job continua rodando no servidor normalmente
+            continue;
+          }
+          throw pollErr;
+        }
 
         const job = poll.job;
         setProgress({

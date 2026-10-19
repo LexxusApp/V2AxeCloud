@@ -45,7 +45,10 @@ function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
     nome: String(row.nome || "Terreiro").trim(),
     endereco: row.endereco ? String(row.endereco).trim() : null,
     telefone: row.telefone ? String(row.telefone).trim() : null,
-    fotoUrl: row.foto_url && slug ? `/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}` : null,
+    fotoUrl:
+      row.foto_url && !String(row.foto_url).includes("default-user") && slug
+        ? `/api/v1/public/diretorio/foto/${encodeURIComponent(slug)}`
+        : null,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
     cidade: cidade || null,
     estado,

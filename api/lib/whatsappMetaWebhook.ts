@@ -202,7 +202,7 @@ export async function processMetaCloudWebhook(
       const { handleTerreiroWinBackInbound } = await import(
         "./whatsappWinBackHandler.js"
       );
-      const { handleQueroConhecerInbound } = await import(
+      const { handleQueroConhecerInbound, handleAutoProvisionInbound } = await import(
         "./whatsappQueroConhecerHandler.js"
       );
       for (const msg of inboundList) {
@@ -224,6 +224,12 @@ export async function processMetaCloudWebhook(
           if (res?.handled) isHandled = true;
         } catch (qcErr) {
           console.warn("[QUERO CONHECER] falha ao processar resposta automática:", qcErr);
+        }
+        try {
+          const res = await handleAutoProvisionInbound(sb, msg);
+          if (res?.handled) isHandled = true;
+        } catch (provErr) {
+          console.warn("[AUTO PROVISION] falha ao auto-provisionar conta:", provErr);
         }
 
         // Se não for presença em gira, nem resgate e nem início de interesse, encaminha à IA de prospecção

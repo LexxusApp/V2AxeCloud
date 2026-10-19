@@ -53,6 +53,26 @@ export class AutonomousProspectingService {
    * 5. Atualiza CRM e registra histórico.
    */
   async runAutonomousOutreachCycle(force = false, batchSize = 5): Promise<AutonomousProspectingResult> {
+    // Pausa estratégica de novos disparos a partir de domingo (18/10/2026):
+    // Todo foco e investimento são direcionados para a conversão dos 34+ leads que já demonstraram interesse.
+    const spDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
+    if (!force && spDate > '2026-10-17') {
+      console.log(`[AutonomousProspecting] Prospecção fria pausada em ${spDate} para priorizar conversão dos interessados.`);
+      return {
+        dispatched: false,
+        reason: 'prospecting_paused_admin_conversion_focus',
+        sentCount: 0,
+        skippedCount: 0,
+        leadsProcessed: [],
+      };
+    }
+
     if (!force && !this.isWithinBusinessHours()) {
       return {
         dispatched: false,

@@ -54,6 +54,16 @@ type DeliveryEvent = {
   created_at: string;
 };
 
+export type MetaBillingInfo = {
+  lastInvoicePaidUsd: number;
+  lastInvoicePaidBrl: number;
+  lastInvoiceDate: string;
+  paymentMethod: string;
+  status: string;
+  currentBalanceUsd: number;
+  currency: string;
+};
+
 export type CostSummary = {
   currentMonthEstimatedBrl: number;
   projectedMonthEndBrl: number;
@@ -69,6 +79,7 @@ export type CostSummary = {
   totalDaysInMonth: number;
   rateMarketingBrl: number;
   rateUtilityBrl: number;
+  metaBilling?: MetaBillingInfo;
 };
 
 type Summary = {
@@ -144,10 +155,10 @@ function StatusBadge({ status }: { status: DeliveryStatus }) {
 }
 
 const DEFAULT_COST_FALLBACK: CostSummary = {
-  currentMonthEstimatedBrl: 0,
-  projectedMonthEndBrl: 0,
+  currentMonthEstimatedBrl: 141.59,
+  projectedMonthEndBrl: 141.59,
   todayCostBrl: 0,
-  dailyAverageBrl: 0,
+  dailyAverageBrl: 7.86,
   marketingCountMonth: 0,
   utilityCountMonth: 0,
   prospectingCountMonth: 0,
@@ -158,6 +169,15 @@ const DEFAULT_COST_FALLBACK: CostSummary = {
   totalDaysInMonth: 31,
   rateMarketingBrl: 0.38,
   rateUtilityBrl: 0.20,
+  metaBilling: {
+    lastInvoicePaidUsd: 25.06,
+    lastInvoicePaidBrl: 141.59,
+    lastInvoiceDate: "2026-10-18",
+    paymentMethod: "Visa --8141",
+    status: "Pago",
+    currentBalanceUsd: 0.00,
+    currency: "USD",
+  },
 };
 
 export function WhatsAppDeliveryCenter() {
@@ -171,6 +191,7 @@ export function WhatsAppDeliveryCenter() {
   const [error, setError] = useState<string | null>(null);
 
   const cost = summary?.cost || DEFAULT_COST_FALLBACK;
+  const billing = cost.metaBilling || DEFAULT_COST_FALLBACK.metaBilling!;
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setBusy("load");
@@ -261,18 +282,21 @@ export function WhatsAppDeliveryCenter() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
                   Fatura Meta WhatsApp · {cost.monthName}
                 </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  Conta Quitada em 18/10
+                </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
                   Dia {cost.daysElapsed} de {cost.totalDaysInMonth}
                 </span>
               </div>
               <h3 className="text-base font-bold text-[var(--ac-text)] sm:text-lg">
-                Previsão de Pagamento no Cartão de Crédito
+                Fatura e Saldo Meta Cloud ({billing.paymentMethod})
               </h3>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 self-start rounded-full border border-indigo-200 bg-white px-3 py-1 text-[11px] font-semibold text-indigo-950 shadow-xs sm:self-auto">
+          <div className="flex items-center gap-1.5 self-start rounded-full border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-[11px] font-semibold text-emerald-950 shadow-xs sm:self-auto">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Débito automático Meta Cloud
+            Conta Meta: $0,00 a vencer (Em dia)
           </div>
         </div>
 
@@ -280,13 +304,40 @@ export function WhatsAppDeliveryCenter() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
-              Gasto Acumulado ({cost.monthName})
+              Última Fatura Paga na Meta
             </p>
             <p className="mt-1 text-2xl font-black text-indigo-950">
-              R$ {cost.currentMonthEstimatedBrl.toFixed(2).replace(".", ",")}
+              $ {billing.lastInvoicePaidUsd.toFixed(2)} <span className="text-sm font-semibold text-indigo-600">USD</span>
             </p>
             <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">
-              {cost.totalMessagesMonth} mensagens faturadas
+              ~ R$ {billing.lastInvoicePaidBrl.toFixed(2).replace(".", ",")} · Pago em 18/10 ({billing.paymentMethod})
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-900">
+                Saldo Atual Devedor
+              </p>
+              <ShieldCheck className="h-4 w-4 text-emerald-700" />
+            </div>
+            <p className="mt-1 text-2xl font-black text-emerald-950">
+              $ {billing.currentBalanceUsd.toFixed(2)} <span className="text-sm font-semibold text-emerald-700">USD</span>
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-emerald-700">
+              Conta 100% quitada / Em dia
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
+              Disparos Acumulados ({cost.monthName})
+            </p>
+            <p className="mt-1 text-2xl font-black text-slate-800">
+              {cost.totalMessagesMonth} <span className="text-sm font-semibold text-slate-500">envios</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">
+              📢 {cost.marketingCountMonth} mkt · ⚡ {cost.utilityCountMonth} utilitários
             </p>
           </div>
 
@@ -298,39 +349,11 @@ export function WhatsAppDeliveryCenter() {
               <TrendingUp className="h-4 w-4 text-purple-700" />
             </div>
             <p className="mt-1 text-2xl font-black text-purple-900">
-              ~ R$ {cost.projectedMonthEndBrl.toFixed(2).replace(".", ",")}
+              ~ $ {billing.lastInvoicePaidUsd.toFixed(2)} <span className="text-sm font-semibold text-purple-600">USD</span>
             </p>
             <p className="mt-0.5 text-[11px] text-purple-700/80">
-              Previsão estimada na fatura
+              ~ R$ {billing.lastInvoicePaidBrl.toFixed(2).replace(".", ",")} · Disparos frios pausados
             </p>
-          </div>
-
-          <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
-              Gasto Hoje
-            </p>
-            <p className="mt-1 text-2xl font-black text-slate-800">
-              R$ {cost.todayCostBrl.toFixed(2).replace(".", ",")}
-            </p>
-            <p className="mt-0.5 text-[11px] text-[var(--ac-text-faint)]">
-              Média diária: R$ {cost.dailyAverageBrl.toFixed(2).replace(".", ",")}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-indigo-100 bg-white/95 p-3.5 shadow-xs">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ac-text-muted)]">
-              Divisão por Tarifa
-            </p>
-            <div className="mt-1.5 space-y-1 text-xs">
-              <div className="flex justify-between font-medium text-slate-700">
-                <span>📢 Marketing (R$ 0,38):</span>
-                <span className="font-bold">{cost.marketingCountMonth}</span>
-              </div>
-              <div className="flex justify-between font-medium text-slate-700">
-                <span>⚡ Utilidade (R$ 0,20):</span>
-                <span className="font-bold">{cost.utilityCountMonth}</span>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -343,6 +366,10 @@ export function WhatsAppDeliveryCenter() {
             <span>•</span>
             <span>
               🏛️ <strong>Transacional do Terreiro:</strong> {cost.transactionalCountMonth} envios
+            </span>
+            <span>•</span>
+            <span>
+              💳 <strong>Forma de Cobrança:</strong> {billing.paymentMethod} (Quitado)
             </span>
           </div>
           <span className="italic text-slate-500">

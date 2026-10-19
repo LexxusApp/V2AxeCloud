@@ -154,7 +154,7 @@ function mapRow(row: Record<string, unknown>) {
     hasWhatsapp: Boolean(whatsapp),
     fotoUrl: row.owner_photo_url
       ? String(row.owner_photo_url).trim()
-      : row.foto_url && slug
+      : row.foto_url && !String(row.foto_url).includes("default-user") && slug
         ? `${diretorioFotoProxyPath(slug)}?v=2`
         : null,
     coverPhotoUrl: row.cover_photo_url ? String(row.cover_photo_url).trim() : null,

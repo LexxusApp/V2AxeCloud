@@ -173,7 +173,7 @@ function ServicesPreview({ services, onOpen }: { services: TerreiroServico[]; on
   </section>;
 }
 function publicPhotos(terreiro: DiretorioTerreiro): string[] {
-  return [...new Set([terreiro.fotoUrl, ...(terreiro.galleryPhotoUrls || [])].filter((url): url is string => Boolean(url)))];
+  return [...new Set([terreiro.fotoUrl, ...(terreiro.galleryPhotoUrls || [])].filter((url): url is string => Boolean(url) && !url.includes('default-user')))];
 }
 
 function OverviewSidebar({ terreiro, onOpenInfo, onOpenPhotos }: {
@@ -245,11 +245,13 @@ function AgendaPanel({ schedules, whatsappHref, onWhatsapp }: {
 }
 
 function PhotosPanel({ terreiro }: { terreiro: DiretorioTerreiro }) {
-  const photos = publicPhotos(terreiro);
+  const allPhotos = publicPhotos(terreiro);
+  const [failedUrls, setFailedUrls] = useState<string[]>([]);
+  const photos = allPhotos.filter((url) => !failedUrls.includes(url));
   return <section className="rounded-2xl border border-[#ddd2bf] bg-[#fbf6ec] p-5 sm:p-8" aria-labelledby="photos-title">
     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Galeria pública</p>
     <h2 id="photos-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Fotos da casa</h2>
-    {photos.length ? <div className="mt-6 grid gap-3 sm:grid-cols-2">{photos.map((url, index) => <figure key={url} className={`overflow-hidden rounded-2xl border border-[#d8ccb8] bg-[#13241a] ${index === 0 && photos.length > 2 ? 'sm:col-span-2' : ''}`}><img src={url} alt={`Foto ${index + 1} de ${terreiro.nome}`} className={`w-full object-cover ${index === 0 ? 'h-80' : 'h-64'}`} loading={index === 0 ? 'eager' : 'lazy'} /><figcaption className="bg-white px-4 py-3 text-xs font-semibold text-[#59645c]">Foto {index + 1} de {terreiro.nome}</figcaption></figure>)}</div> : <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-[#cfc2ac] bg-white/70 text-center">
+    {photos.length ? <div className="mt-6 grid gap-3 sm:grid-cols-2">{photos.map((url, index) => <figure key={url} className={`overflow-hidden rounded-2xl border border-[#d8ccb8] bg-[#13241a] ${index === 0 && photos.length > 2 ? 'sm:col-span-2' : ''}`}><img src={url} alt={`Foto ${index + 1} de ${terreiro.nome}`} className={`w-full object-cover ${index === 0 ? 'h-80' : 'h-64'}`} loading={index === 0 ? 'eager' : 'lazy'} onError={() => setFailedUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))} /><figcaption className="bg-white px-4 py-3 text-xs font-semibold text-[#59645c]">Foto {index + 1} de {terreiro.nome}</figcaption></figure>)}</div> : <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-[#cfc2ac] bg-white/70 text-center">
       <span><Camera className="mx-auto h-7 w-7 text-[#a57b00]" /><strong className="mt-3 block text-[#172019]">Nenhuma foto publicada</strong><small className="mt-2 block text-[#647067]">A galeria aparecerá quando a casa adicionar imagens.</small></span>
     </div>}
   </section>;

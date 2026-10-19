@@ -923,8 +923,17 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
     const now = new Date();
     const utcHours = now.getUTCHours();
 
+    // Data atual no fuso de Brasília para controle de pausa programada
+    const spToday = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now);
+    const isProspectingPaused = spToday > '2026-10-17';
+
     // 1. Descoberta de terreiros roda a cada 4 horas (00, 04, 08, 12, 16, 20 UTC)
-    if (utcHours % 4 === 0) {
+    if (!isProspectingPaused && utcHours % 4 === 0) {
       console.log('[Cron] Executando descoberta agendada de novos terreiros...');
       const workflow = new ProspectingDiscoveryWorkflow(ctx, env);
       const runner: any = {
@@ -960,18 +969,22 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
     );
 
     // 3. Disparo autônomo de novos contatos qualificados com template e imagem (dentro do horário comercial)
-    ctx.waitUntil(
-      (async () => {
-        try {
-          console.log('[Cron:Outreach] Verificando leads qualificados para contato autônomo...');
-          const outreach = new AutonomousProspectingService(env);
-          const res = await outreach.runAutonomousOutreachCycle(false, 5);
-          console.log('[Cron:Outreach] Ciclo de prospecção autônoma concluído:', res);
-        } catch (oErr) {
-          console.warn('[Cron:Outreach] Falha ao processar ciclo de prospecção autônoma:', oErr);
-        }
-      })(),
-    );
+    if (!isProspectingPaused) {
+      ctx.waitUntil(
+        (async () => {
+          try {
+            console.log('[Cron:Outreach] Verificando leads qualificados para contato autônomo...');
+            const outreach = new AutonomousProspectingService(env);
+            const res = await outreach.runAutonomousOutreachCycle(false, 5);
+            console.log('[Cron:Outreach] Ciclo de prospecção autônoma concluído:', res);
+          } catch (oErr) {
+            console.warn('[Cron:Outreach] Falha ao processar ciclo de prospecção autônoma:', oErr);
+          }
+        })(),
+      );
+    } else {
+      console.log('[Cron:Outreach] Prospecção fria pausada pela administração. Foco 100% na conversão dos interessados.');
+    }
 
     // 4. Régua de ativação e acompanhamento de terreiros em teste (Trial Nurturing - dias 1, 7, 20, 27, 29, 30)
     ctx.waitUntil(

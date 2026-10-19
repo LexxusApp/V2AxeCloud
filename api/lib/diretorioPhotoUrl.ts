@@ -38,7 +38,9 @@ export function googlePhotoUrlCandidates(rawUrl: string): string[] {
 
 export function isAllowedGooglePhotoUrl(url: string): boolean {
   try {
-    const u = new URL(url);
+    const raw = String(url || "").trim();
+    if (!raw || raw.includes("default-user")) return false;
+    const u = new URL(raw);
     return u.protocol === "https:" && /(^|\.)googleusercontent\.com$/i.test(u.hostname);
   } catch {
     return false;

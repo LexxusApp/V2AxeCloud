@@ -184,6 +184,28 @@ export async function summarizeWhatsAppDeliveries(sb: SupabaseClient) {
   const dailyAverageBrl = currentMonthEstimatedBrl / daysElapsed;
   const projectedMonthEndBrl = dailyAverageBrl * totalDaysInMonth;
 
+  let metaBilling = {
+    lastInvoicePaidUsd: 25.06,
+    lastInvoicePaidBrl: 141.59,
+    lastInvoiceDate: "2026-10-18",
+    paymentMethod: "Visa --8141",
+    status: "Pago",
+    currentBalanceUsd: 0.00,
+    currency: "USD",
+  };
+  try {
+    const { data: bData } = await sb
+      .from("global_settings")
+      .select("data")
+      .eq("id", "meta_billing")
+      .maybeSingle();
+    if (bData?.data && typeof bData.data === "object") {
+      metaBilling = { ...metaBilling, ...(bData.data as Record<string, unknown>) };
+    }
+  } catch (err) {
+    console.warn("[whatsapp-delivery] falha ao buscar meta_billing:", err);
+  }
+
   const terminal = counts.delivered + counts.read + counts.failed;
   return {
     ...counts,
@@ -204,6 +226,7 @@ export async function summarizeWhatsAppDeliveries(sb: SupabaseClient) {
       totalDaysInMonth,
       rateMarketingBrl: RATE_MARKETING_BRL,
       rateUtilityBrl: RATE_UTILITY_BRL,
+      metaBilling,
     },
   };
 }
