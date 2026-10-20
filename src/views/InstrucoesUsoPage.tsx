@@ -198,11 +198,11 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       <MatrizTopNav />
 
       {/* HEADER HERO SECTION */}
-      <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 border-b border-[#1b1813]/8 bg-gradient-to-b from-[#f5f0e4]/80 via-[#faf8f4] to-[#faf8f4]">
+      <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24 2xl:pt-40 2xl:pb-28 border-b border-[#1b1813]/8 bg-gradient-to-b from-[#f5f0e4]/80 via-[#faf8f4] to-[#faf8f4]">
         {/* Subtle Ambient Decorative Circles */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#c48a00]/8 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] 2xl:w-[1300px] h-[400px] 2xl:h-[600px] bg-gradient-to-b from-[#c48a00]/8 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="relative max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
           
           {/* Breadcrumb / Back Link */}
           <div className="inline-flex items-center gap-2 mb-6">
@@ -219,7 +219,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#1b1813] leading-[1.08] max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl 2xl:text-7xl font-black tracking-tight text-[#1b1813] leading-[1.08] max-w-3xl 2xl:max-w-4xl mx-auto">
             {isMembro ? (
               <>
                 Como acessar o portal do <span className="text-[#c48a00]">Filho de Santo</span>.
@@ -231,7 +231,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
             )}
           </h1>
 
-          <p className="mt-4 md:mt-5 text-base sm:text-lg md:text-xl text-[#1b1813]/70 max-w-2xl mx-auto leading-relaxed font-medium">
+          <p className="mt-4 md:mt-5 text-base sm:text-lg md:text-xl 2xl:text-2xl text-[#1b1813]/70 max-w-2xl 2xl:max-w-3xl mx-auto leading-relaxed font-medium">
             {isMembro
               ? 'Três passos simples. Sem precisar de e-mail e sem complicação de senhas difíceis.'
               : 'O guia essencial para dirigentes cadastrarem a corrente, gerenciarem finanças e avisarem a casa pelo WhatsApp oficial.'}
@@ -291,13 +291,13 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       </section>
 
       {/* STEP BY STEP CARDS SECTION */}
-      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
-        <div className="text-center max-w-xl mx-auto mb-12">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#c48a00]">Passo a Passo</span>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#1b1813] tracking-tight mt-1">
+      <section className="py-16 md:py-20 2xl:py-24 px-4 sm:px-6 lg:px-8 max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] mx-auto">
+        <div className="text-center max-w-xl 2xl:max-w-2xl mx-auto mb-12 2xl:mb-16">
+          <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-[#c48a00]">Passo a Passo</span>
+          <h2 className="text-2xl sm:text-3xl 2xl:text-4xl font-black text-[#1b1813] tracking-tight mt-1">
             {isMembro ? '3 Passos para Acessar' : 'Como Iniciar a Casa'}
           </h2>
-          <p className="text-sm text-[#1b1813]/65 mt-2">
+          <p className="text-sm 2xl:text-base text-[#1b1813]/65 mt-2">
             {isMembro
               ? 'Tudo o que você precisa já foi gerado na confirmação do seu cadastro pelo terreiro.'
               : 'Configure os pontos principais em menos de 5 minutos sem complicações técnicas.'}
@@ -305,7 +305,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
         </div>
 
         {/* The 3 Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 2xl:gap-8">
           {(isMembro ? MEMBRO_STEPS : ZELADOR_STEPS).map((step, idx) => {
             const Icon = step.icon;
             return (
@@ -314,29 +314,29 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: idx * 0.1 }}
-                className="relative flex flex-col bg-white rounded-2xl border border-[#1b1813]/10 p-6 shadow-sm hover:shadow-md transition-shadow"
+                className="relative flex flex-col bg-white rounded-2xl 2xl:rounded-3xl border border-[#1b1813]/10 p-6 2xl:p-8 shadow-sm hover:shadow-md transition-shadow"
               >
                 {/* Step Pill & Badge */}
                 <div className="flex items-center justify-between mb-4">
-                  <span className="w-9 h-9 rounded-xl bg-[#1b1813] text-[#faf8f4] flex items-center justify-center font-black text-sm shadow-xs">
+                  <span className="w-9 h-9 2xl:w-11 2xl:h-11 rounded-xl bg-[#1b1813] text-[#faf8f4] flex items-center justify-center font-black text-sm 2xl:text-base shadow-xs">
                     {step.number}
                   </span>
-                  <div className="w-9 h-9 rounded-xl bg-[#c48a00]/10 text-[#c48a00] flex items-center justify-center">
-                    <Icon className="w-5 h-5" />
+                  <div className="w-9 h-9 2xl:w-11 2xl:h-11 rounded-xl bg-[#c48a00]/10 text-[#c48a00] flex items-center justify-center">
+                    <Icon className="w-5 h-5 2xl:w-6 2xl:h-6" />
                   </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-[#1b1813] mb-2 leading-snug">
+                <h3 className="text-lg 2xl:text-xl font-bold text-[#1b1813] mb-2 leading-snug">
                   {step.title}
                 </h3>
 
-                <p className="text-sm text-[#1b1813]/70 leading-relaxed flex-1">
+                <p className="text-sm 2xl:text-base text-[#1b1813]/70 leading-relaxed flex-1">
                   {step.desc}
                 </p>
 
                 {step.badge && (
                   <div className="mt-5 pt-4 border-t border-[#1b1813]/6">
-                    <span className="inline-block px-3 py-1.5 rounded-lg bg-[#f5f0e4] text-[#1b1813] font-mono text-xs font-semibold">
+                    <span className="inline-block px-3 py-1.5 rounded-lg bg-[#f5f0e4] text-[#1b1813] font-mono text-xs 2xl:text-sm font-semibold">
                       {step.badge}
                     </span>
                   </div>
@@ -348,36 +348,36 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
 
         {/* Interactive Example for Membro Password */}
         {isMembro && (
-          <div className="mt-8 rounded-2xl bg-gradient-to-r from-[#164e3b] to-[#0f3427] text-white p-6 sm:p-8 shadow-md">
+          <div className="mt-8 2xl:mt-12 rounded-2xl 2xl:rounded-3xl bg-gradient-to-r from-[#164e3b] to-[#0f3427] text-white p-6 sm:p-8 2xl:p-10 shadow-md">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#fbbf24]">
+                <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-[#fbbf24]">
                   Exemplo Prático de Senha
                 </span>
-                <h4 className="text-xl font-black">
+                <h4 className="text-xl 2xl:text-2xl font-black">
                   Se o seu CPF for <span className="font-mono text-[#fbbf24]">123.456.789-00</span>
                 </h4>
-                <p className="text-sm text-emerald-100/80">
+                <p className="text-sm 2xl:text-base text-emerald-100/80">
                   Sua senha inicial de acesso será simplesmente os 6 primeiros dígitos:
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 bg-black/30 p-3.5 rounded-xl border border-white/10 self-start md:self-auto">
+              <div className="flex items-center gap-3 bg-black/30 p-3.5 2xl:p-5 rounded-xl 2xl:rounded-2xl border border-white/10 self-start md:self-auto">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-300">
+                  <span className="text-[10px] 2xl:text-xs uppercase font-bold tracking-wider text-emerald-300">
                     Sua Senha
                   </span>
-                  <p className="text-2xl font-black font-mono tracking-widest text-[#fbbf24]">
+                  <p className="text-2xl 2xl:text-3xl font-black font-mono tracking-widest text-[#fbbf24]">
                     123456
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => copyExample('123456')}
-                  className="p-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  className="p-2.5 2xl:p-3 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
                   title="Copiar exemplo"
                 >
-                  {copiedKey ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {copiedKey ? <Check className="w-4 h-4 2xl:w-5 2xl:h-5 text-emerald-400" /> : <Copy className="w-4 h-4 2xl:w-5 2xl:h-5" />}
                 </button>
               </div>
             </div>
@@ -386,40 +386,40 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       </section>
 
       {/* UNLOCKED FEATURES GRID */}
-      <section className="py-16 bg-[#f3ede1]/60 border-y border-[#1b1813]/8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#166534]">
+      <section className="py-16 2xl:py-24 bg-[#f3ede1]/60 border-y border-[#1b1813]/8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1180px] xl:max-w-[1340px] 2xl:max-w-[1540px] min-[1920px]:max-w-[1700px] mx-auto">
+          <div className="text-center max-w-xl 2xl:max-w-2xl mx-auto mb-12 2xl:mb-16">
+            <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-[#166534]">
               {isMembro ? 'No Portal do Membro' : 'Recursos da Plataforma'}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#1b1813] tracking-tight mt-1">
+            <h2 className="text-2xl sm:text-3xl 2xl:text-4xl font-black text-[#1b1813] tracking-tight mt-1">
               {isMembro ? 'O que você encontra após entrar' : 'Tudo para o dia a dia do Terreiro'}
             </h2>
-            <p className="text-sm text-[#1b1813]/65 mt-2">
+            <p className="text-sm 2xl:text-base text-[#1b1813]/65 mt-2">
               {isMembro
                 ? 'Informações organizadas, seguras e com respeito às regras e hierarquia da sua casa.'
                 : 'Módulos integrados projetados sob medida para a tradição e rotina das casas de axé.'}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 2xl:gap-7">
             {(isMembro ? MEMBRO_FEATURES : ZELADOR_FEATURES).map((feat, idx) => {
               const Icon = feat.icon;
               return (
                 <div
                   key={feat.title}
-                  className="bg-white rounded-xl p-5 border border-[#1b1813]/8 shadow-2xs hover:shadow-sm transition-all"
+                  className="bg-white rounded-xl 2xl:rounded-2xl p-5 2xl:p-7 border border-[#1b1813]/8 shadow-2xs hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="p-2.5 rounded-lg bg-[#c48a00]/10 text-[#c48a00]">
-                      <Icon className="w-5 h-5" />
+                    <span className="p-2.5 2xl:p-3 rounded-lg bg-[#c48a00]/10 text-[#c48a00]">
+                      <Icon className="w-5 h-5 2xl:w-6 2xl:h-6" />
                     </span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1b1813]/5 text-[#1b1813]/70 font-mono">
+                    <span className="text-[10px] 2xl:text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#1b1813]/5 text-[#1b1813]/70 font-mono">
                       {feat.tag}
                     </span>
                   </div>
-                  <h4 className="text-base font-bold text-[#1b1813] mb-1.5">{feat.title}</h4>
-                  <p className="text-xs text-[#1b1813]/65 leading-relaxed">{feat.desc}</p>
+                  <h4 className="text-base 2xl:text-lg font-bold text-[#1b1813] mb-1.5">{feat.title}</h4>
+                  <p className="text-xs 2xl:text-sm text-[#1b1813]/65 leading-relaxed">{feat.desc}</p>
                 </div>
               );
             })}
@@ -428,8 +428,8 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       </section>
 
       {/* FAQ & HELP CENTER SECTION */}
-      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto">
-        <div className="rounded-3xl bg-white border border-[#1b1813]/10 p-8 sm:p-10 shadow-sm">
+      <section className="py-16 md:py-20 2xl:py-24 px-4 sm:px-6 lg:px-8 max-w-[1080px] xl:max-w-[1240px] 2xl:max-w-[1400px] min-[1920px]:max-w-[1540px] mx-auto">
+        <div className="rounded-3xl bg-white border border-[#1b1813]/10 p-8 sm:p-10 2xl:p-12 shadow-sm">
           <div className="flex items-start gap-4 mb-6">
             <span className="p-3 rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
               <CircleHelp className="w-6 h-6" />
@@ -522,21 +522,21 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
       </section>
 
       {/* FINAL CALL TO ACTION BANNER */}
-      <section className="py-12 bg-[#1b1813] text-[#faf8f4] text-center px-4">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <h3 className="text-2xl sm:text-3xl font-black tracking-tight">
+      <section className="py-14 2xl:py-20 bg-[#1b1813] text-[#faf8f4] text-center px-4">
+        <div className="max-w-2xl 2xl:max-w-4xl mx-auto space-y-4 2xl:space-y-6">
+          <h3 className="text-2xl sm:text-3xl 2xl:text-4xl font-black tracking-tight">
             Tudo pronto para entrar?
           </h3>
-          <p className="text-sm text-[#faf8f4]/70">
+          <p className="text-sm 2xl:text-base text-[#faf8f4]/70">
             Acesse agora com suas credenciais e continue a caminhada na sua casa.
           </p>
           <div className="pt-2">
             <a
               href={loginHref}
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#c48a00] text-white text-sm font-bold shadow-lg shadow-[#c48a00]/30 hover:bg-[#d99b00] transition-all transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-8 py-3.5 2xl:px-10 2xl:py-4 rounded-xl bg-[#c48a00] text-white text-sm 2xl:text-base font-bold shadow-lg shadow-[#c48a00]/30 hover:bg-[#d99b00] transition-all transform hover:-translate-y-0.5"
             >
               <span>Acessar o AxéCloud</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 2xl:w-5 2xl:h-5" />
             </a>
           </div>
         </div>

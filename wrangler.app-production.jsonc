@@ -70,6 +70,8 @@
     { "pattern": "axecloud.com.br/build-info.json*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/pdf.worker.min.mjs*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/login-bg-desktop.png*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/login-bg-trident.png*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/login-preview.html*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/axecloud_*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/axecloud-trident.png*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/pwa-*", "zone_name": "axecloud.com.br" },

@@ -13469,10 +13469,10 @@ html:has(.landing-mockup-nav) {
   }
 }
 
-/* Login institucional â€” mesma linguagem visual da nova home. */
+/* Login institucional — Altar Místico do Tridente Dourado em alta resolução nativa + Border Beam. */
 .axe-login-page{display:grid;grid-template-columns:minmax(390px,.88fr) minmax(540px,1.12fr);font-family:Manrope,"Segoe UI",Arial,sans-serif}
-.axe-login-story{position:relative;min-height:100dvh;overflow:hidden;padding:38px clamp(32px,5vw,78px);display:flex;flex-direction:column;color:#f5f0e3;background:#0d100c}
-.axe-login-story::before{content:"";position:absolute;inset:0;opacity:.18;background-image:linear-gradient(rgba(229,174,18,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(229,174,18,.35) 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(135deg,#000,transparent 78%)}
+.axe-login-story{position:relative;min-height:100dvh;overflow:hidden;padding:38px clamp(32px,5vw,78px);display:flex;flex-direction:column;color:#f5f0e3;background:#070709 url('/login-bg-trident.png') center center / cover no-repeat;image-rendering:high-quality;image-rendering:-webkit-optimize-contrast}
+.axe-login-story::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 85% 75% at 50% 50%,rgba(0,0,0,.15) 0%,rgba(7,7,9,.72) 100%);pointer-events:none;z-index:1}
 .axe-login-story::after{content:"";position:absolute;width:540px;height:540px;right:-240px;bottom:-220px;border:1px solid rgba(229,174,18,.23);border-radius:50%;box-shadow:0 0 0 90px rgba(229,174,18,.035),0 0 0 180px rgba(229,174,18,.025)}
 .axe-login-story-brand{position:relative;z-index:2;width:max-content;display:flex;align-items:center;gap:10px;color:#f5f0e3;text-decoration:none}.axe-login-story-brand img{width:44px;height:54px;object-fit:contain}.axe-login-story-brand strong{font-size:19px;font-weight:850;letter-spacing:-.04em}.axe-login-story-brand strong span{color:#e5ae12}
 .axe-login-story-copy{position:relative;z-index:2;margin:auto 0;max-width:590px}.axe-login-story-copy>p:first-child{color:#e5ae12;font-size:11px;font-weight:850;letter-spacing:.22em}.axe-login-story-copy h2{margin:28px 0 0;font-size:clamp(52px,6vw,94px);font-weight:720;line-height:.88;letter-spacing:-.07em}.axe-login-story-copy h2 span{color:#aaa99f}.axe-login-story-copy>p:nth-of-type(2){max-width:510px;margin:30px 0 0;color:#b7b8af;font-size:16px;line-height:1.7}
@@ -13483,14 +13483,17 @@ html:has(.landing-mockup-nav) {
 @media(max-width:980px){.axe-login-page{grid-template-columns:1fr}.axe-login-story{min-height:680px}.axe-login-panel{min-height:760px;overflow:visible}}
 @media(max-width:620px){.axe-login-story{min-height:640px;padding:26px 20px}.axe-login-story-copy h2{font-size:54px}.axe-login-signals{grid-template-columns:1fr}.axe-login-signals>span{min-height:82px}.axe-login-panel{padding:64px 20px 28px}.axe-login-choice-heading h2{font-size:43px}.axe-login-path{min-height:124px;padding:20px 12px;grid-template-columns:26px 42px 1fr 20px;gap:10px}.axe-login-path-icon{width:40px;height:40px}.axe-login-path-copy strong{font-size:20px}.axe-login-path-copy em{font-size:11px}.axe-login-form-surface{padding:28px 22px}}
 
-/* Portal de acesso â€” identidade AxÃ©Cloud e prioridade absoluta ao login no mobile. */
+/* Portal de acesso — identidade AxéCloud, Tridente Altar e Border Beam */
 .axe-login-page{grid-template-columns:minmax(390px,.78fr) minmax(620px,1.22fr)}
 .axe-login-story{padding-inline:clamp(32px,4vw,68px)}
 .axe-login-panel{padding:70px clamp(28px,5.6vw,92px) 36px;background-color:#e9dfca;background-image:linear-gradient(rgba(70,74,49,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(70,74,49,.055) 1px,transparent 1px),radial-gradient(circle at 78% 12%,rgba(229,174,18,.18),transparent 30%);background-size:64px 64px,64px 64px,auto}
 .axe-login-mobile-top{display:none}
-.axe-login-auth-shell{max-width:760px;margin:auto;padding:42px 46px 34px;overflow:hidden;border:1px solid rgba(32,62,47,.2);border-radius:24px;background:rgba(249,245,235,.97);box-shadow:0 38px 100px rgba(50,40,20,.18)}
+.axe-login-auth-shell{position:relative;max-width:760px;margin:auto;padding:42px 46px 34px;overflow:hidden;border:1px solid rgba(229,174,18,.35);border-radius:24px;background:rgba(249,245,235,.98);box-shadow:0 38px 100px rgba(50,40,20,.18),0 0 35px rgba(229,174,18,.08)}
 .axe-login-auth-shell::before{content:"";position:absolute;z-index:0;inset:0 0 auto;height:5px;background:linear-gradient(90deg,#e5ae12 0 34%,#a54a39 34% 67%,#214f3e 67%)}
 .axe-login-auth-shell::after{content:"";position:absolute;z-index:0;width:280px;height:280px;right:-155px;top:-165px;border:1px solid rgba(159,73,56,.16);border-radius:50%;box-shadow:0 0 0 36px rgba(229,174,18,.035),0 0 0 72px rgba(33,79,62,.025)}
+.axe-border-beam-track{position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:2px;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;z-index:20;display:block}
+.axe-border-beam-runner{position:absolute;width:180px;height:180px;background:radial-gradient(circle,#fbbf24 15%,#d97706 45%,rgba(196,138,0,0) 75%);offset-path:rect(0 auto auto 0 round inherit);animation:axe-beam-run 7s linear infinite;will-change:offset-distance,transform;transform:translateZ(0)}
+@keyframes axe-beam-run{0%{offset-distance:0%}100%{offset-distance:100%}}
 .axe-login-choice{position:relative;z-index:1}
 .axe-login-choice-heading>p:first-child{margin-bottom:16px;color:#956713;font-weight:850}
 .axe-login-choice-heading>p:first-child span{color:#a54a39}
@@ -13517,9 +13520,9 @@ html:has(.landing-mockup-nav) {
 .axe-login-form-surface{max-width:540px;margin:auto;padding:38px 42px;border-top:0;background:rgba(255,253,248,.98);box-shadow:0 28px 90px rgba(73,52,13,.16)}
 
 @media(max-width:980px){
-  .axe-login-page{display:block;background:#153b2f}
+  .axe-login-page{display:block;background:#070709 url('/login-bg-trident.png') center top / cover no-repeat;background-attachment:fixed}
   .axe-login-story{display:none}
-  .axe-login-panel{min-height:100dvh;padding:20px clamp(18px,5vw,48px) 30px;justify-content:flex-start;overflow:visible;background-color:#173f32;background-image:linear-gradient(rgba(229,174,18,.065) 1px,transparent 1px),linear-gradient(90deg,rgba(229,174,18,.065) 1px,transparent 1px),radial-gradient(circle at 110% -5%,rgba(229,174,18,.18),transparent 35%);background-size:56px 56px,56px 56px,auto}
+  .axe-login-panel{min-height:100dvh;padding:20px clamp(18px,5vw,48px) 30px;justify-content:flex-start;overflow:visible;background:rgba(12,14,12,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
   .axe-login-panel>div[aria-hidden]{display:none}
   .axe-login-back{display:none!important}
   .axe-login-mobile-top{position:relative;z-index:10;width:100%;max-width:720px;margin:0 auto 18px;display:flex;align-items:center;justify-content:space-between}
