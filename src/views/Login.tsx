@@ -638,10 +638,6 @@ export default function Login() {
         className="relative z-10 my-auto w-full max-w-[42rem] py-2 sm:py-0"
       >
         <div className={cn(AUTH_MODAL_CARD, 'axe-login-auth-shell', step === 'form' && 'axe-login-form-surface')}>
-          {/* Magic UI / 21st.dev Border Beam Runner */}
-          <div className="axe-border-beam-track" aria-hidden="true">
-            <div className="axe-border-beam-runner" />
-          </div>
           <div className="relative z-10 w-full space-y-5">
             {showAlert && (
               <div className="flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]">
