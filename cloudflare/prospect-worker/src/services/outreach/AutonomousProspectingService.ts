@@ -62,16 +62,7 @@ export class AutonomousProspectingService {
       day: '2-digit',
     }).format(new Date());
 
-    if (!force && spDate > '2026-10-17') {
-      console.log(`[AutonomousProspecting] Prospecção fria pausada em ${spDate} para priorizar conversão dos interessados.`);
-      return {
-        dispatched: false,
-        reason: 'prospecting_paused_admin_conversion_focus',
-        sentCount: 0,
-        skippedCount: 0,
-        leadsProcessed: [],
-      };
-    }
+// Pausa removida: prospecção autônoma reativada
 
     if (!force && !this.isWithinBusinessHours()) {
       return {

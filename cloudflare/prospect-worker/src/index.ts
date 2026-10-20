@@ -930,7 +930,8 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
       month: '2-digit',
       day: '2-digit',
     }).format(now);
-    const isProspectingPaused = spToday > '2026-10-17';
+    // Prospecção autônoma ativa em horário comercial
+    const isProspectingPaused = false;
 
     // 1. Descoberta de terreiros roda a cada 4 horas (00, 04, 08, 12, 16, 20 UTC)
     if (!isProspectingPaused && utcHours % 4 === 0) {
