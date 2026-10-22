@@ -132,7 +132,7 @@ export async function runSubscriptionBillingReminders(
 
   const { data: subscriptions, error } = await sb
     .from("subscriptions")
-    .select("id, tenant_id, status, expires_at, billing_cycle")
+    .select("id, status, expires_at, billing_cycle")
     .eq("status", "active")
     .not("expires_at", "is", null)
     .limit(500);

@@ -44,12 +44,6 @@ function traditionLabel(value: string | null | undefined): string | null {
   const normalized = String(value || '').trim();
   return normalized ? TRADITION_LABELS[normalized.toLowerCase()] || normalized : null;
 }
-function profileSince(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null :
-    new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date);
-}
 function nextGiraDate(daysUntil: number): Date {
   const date = new Date(); date.setDate(date.getDate() + daysUntil); return date;
 }
@@ -180,7 +174,6 @@ function OverviewSidebar({ terreiro, onOpenInfo, onOpenPhotos }: {
   terreiro: DiretorioTerreiro; onOpenInfo: () => void; onOpenPhotos: () => void;
 }) {
   const tradition = traditionLabel(terreiro.tradicao);
-  const since = profileSince(terreiro.criadaEm);
   const about = terreiro.descricao || (terreiro.verificada || terreiro.gerenciada
     ? 'Esta casa ainda não publicou sua apresentação.'
     : 'Informações públicas organizadas para ajudar você a conhecer e visitar esta casa.');
@@ -193,7 +186,6 @@ function OverviewSidebar({ terreiro, onOpenInfo, onOpenPhotos }: {
       <dl className="mt-5 divide-y divide-[#eee6d8] border-y border-[#eee6d8] text-sm">
         {tradition ? <div className="flex justify-between gap-4 py-3"><dt className="text-[#788079]">Tradição</dt><dd className="text-right font-black text-[#263029]">{tradition}</dd></div> : null}
         {terreiro.bairro ? <div className="flex justify-between gap-4 py-3"><dt className="text-[#788079]">Bairro</dt><dd className="text-right font-black text-[#263029]">{terreiro.bairro}</dd></div> : null}
-        {since ? <div className="flex justify-between gap-4 py-3"><dt className="text-[#788079]">No AxéCloud desde</dt><dd className="text-right font-black capitalize text-[#263029]">{since}</dd></div> : null}
       </dl>
       <button type="button" onClick={onOpenInfo} className="mt-4 min-h-11 text-sm font-black text-[#765600] underline decoration-[#b18a1e]/30 underline-offset-4">Ver informações completas</button>
     </section>
