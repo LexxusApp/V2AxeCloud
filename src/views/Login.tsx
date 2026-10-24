@@ -9,10 +9,13 @@ import {
   X,
   Eye,
   EyeOff,
-  ArrowLeft,
   ArrowRight,
-  Sparkles,
-  Users,
+  ShieldCheck,
+  CheckCircle2,
+  Mail,
+  HelpCircle,
+  Phone,
+  FileText,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
@@ -34,7 +37,6 @@ const FILHO_FLAG_KEY = 'axecloud_is_filho';
 const FILHO_FLAG_USER_KEY = 'axecloud_is_filho_user_id';
 
 type LoginRole = 'zelador' | 'membro';
-type LoginStep = 'choose' | 'form';
 
 interface RestoredAccountInfo {
   isRestored: boolean;
@@ -70,25 +72,6 @@ async function postAuthAuditLog(
   }
 }
 
-const fontLogin = "[font-family:'Manrope','Segoe_UI',Arial,sans-serif]";
-
-const AUTH_MODAL_CARD = cn(
-  'relative w-full'
-);
-
-const AUTH_MODAL_RADIUS = 'rounded-[0.9rem]';
-
-const fieldShell = cn(
-  'h-12 w-full pl-[44px] pr-3 text-[0.9rem] font-medium leading-none text-[#1b1813] placeholder:text-[#1b1813]/35',
-  'border border-[#1b1813]/12 bg-[#f8f4eb]',
-  AUTH_MODAL_RADIUS,
-  'outline-none transition-all focus:border-[#c48a00]/65 focus:bg-white focus:shadow-[0_0_0_3px_rgba(196,138,0,.09)]',
-  '[@media(max-height:700px)]:h-10'
-);
-
-const labelClass =
-  'block text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#1b1813]/55';
-
 function humanizeAuthError(err: unknown): string {
   const msg = String((err as { message?: string })?.message || err || '').trim();
   const lower = msg.toLowerCase();
@@ -103,11 +86,14 @@ function humanizeAuthError(err: unknown): string {
   if (lower.includes('invalid login credentials') || lower.includes('invalid email or password')) {
     return 'E-mail ou senha incorretos. Confira os dados e tente de novo.';
   }
+  if (lower.includes('registro ou cpf incorretos') || lower.includes('invalid_credentials')) {
+    return 'Identificação ou 6 dígitos do CPF não encontrados. Confira os dados ou procure a zeladoria.';
+  }
   if (lower.includes('email not confirmed')) {
     return 'Confirme seu e-mail antes de entrar.';
   }
-  if (lower.includes('rate limit') || lower.includes('too many requests')) {
-    return 'Muitas tentativas seguidas. Aguarde um minuto e tente de novo.';
+  if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('muitas tentativas')) {
+    return 'Muitas tentativas seguidas. Aguarde alguns instantes e tente de novo.';
   }
   if (lower.includes('jwt') && lower.includes('expir')) {
     return 'Sua sessão expirou. Faça login novamente.';
@@ -148,16 +134,15 @@ function isZeladorLoginModeParam(raw: string | null): boolean {
 
 export default function Login() {
   const bootMode = (() => {
-    if (typeof window === 'undefined') return null as LoginRole | null;
+    if (typeof window === 'undefined') return 'zelador' as LoginRole;
     const params = new URLSearchParams(window.location.search);
     const modo = params.get('modo') || params.get('mode');
     if (isFilhoLoginModeParam(modo)) return 'membro';
     if (isZeladorLoginModeParam(modo)) return 'zelador';
-    return null;
+    return 'zelador';
   })();
 
-  const [step, setStep] = useState<LoginStep>(() => (bootMode ? 'form' : 'choose'));
-  const [role, setRole] = useState<LoginRole | null>(() => bootMode);
+  const [role, setRole] = useState<LoginRole>(bootMode);
   const [email, setEmail] = useState(() => readRememberedLoginEmail() || '');
   const [password, setPassword] = useState('');
   const [childId, setChildId] = useState('');
@@ -167,6 +152,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAlert, setShowAlert] = useState(() => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('updated') === 'true';
@@ -191,10 +177,8 @@ export default function Login() {
 
     if (modoFilho) {
       setRole('membro');
-      setStep('form');
     } else if (modoZelador) {
       setRole('zelador');
-      setStep('form');
     }
 
     if (!updated && !modoFilho && !modoZelador) return;
@@ -228,6 +212,52 @@ export default function Login() {
     ? `${ROUTES.forgotPassword}?email=${encodeURIComponent(email.trim())}`
     : ROUTES.forgotPassword;
 
+  // Detecção inteligente do tipo de identificação do filho
+  const getFilhoInputDetection = (val: string) => {
+    const raw = val.trim();
+    if (!raw) {
+      return {
+        badgeClass: 'smart-input-badge',
+        badgeText: '✨ Busca inteligente',
+        hint: 'Você pode usar seu e-mail cadastrado, WhatsApp ou o código de registro da casa.',
+        isHighlight: false,
+      };
+    }
+    if (raw.includes('@')) {
+      return {
+        badgeClass: 'smart-input-badge type-email',
+        badgeText: '✉️ E-mail',
+        hint: 'Identificado por e-mail pessoal cadastrado na casa.',
+        isHighlight: true,
+      };
+    }
+    const digits = raw.replace(/\D/g, '');
+    if (raw.toUpperCase().startsWith('AXC') || raw.includes('-')) {
+      return {
+        badgeClass: 'smart-input-badge type-registro',
+        badgeText: '🆔 Registro',
+        hint: 'Identificado por código de matrícula AXC.',
+        isHighlight: true,
+      };
+    }
+    if (digits.length >= 8 && digits.length <= 13) {
+      return {
+        badgeClass: 'smart-input-badge type-whatsapp',
+        badgeText: '💬 WhatsApp',
+        hint: 'Identificado por número de WhatsApp cadastrado na corrente.',
+        isHighlight: true,
+      };
+    }
+    return {
+      badgeClass: 'smart-input-badge',
+      badgeText: '✨ Identificando...',
+      hint: 'Digite seu e-mail, WhatsApp com DDD ou matrícula AXC.',
+      isHighlight: false,
+    };
+  };
+
+  const filhoDetection = getFilhoInputDetection(childId);
+
   const checkRestoredAccount = async (targetEmail: string): Promise<RestoredAccountInfo | null> => {
     const cleanEmail = targetEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
@@ -243,14 +273,14 @@ export default function Login() {
       if (!res.ok) return null;
       const data = await res.json();
       if (data.isRestored) {
-        const info: RestoredAccountInfo = {
+        const accInfo: RestoredAccountInfo = {
           isRestored: true,
           email: data.email || cleanEmail,
           nomeZelador: data.nomeZelador || 'Zelador(a)',
           nomeTerreiro: data.nomeTerreiro || 'Sua Casa de Santo',
         };
-        setRestoredAccount(info);
-        return info;
+        setRestoredAccount(accInfo);
+        return accInfo;
       }
     } catch {
       /* verificação best-effort */
@@ -352,10 +382,9 @@ export default function Login() {
     }
   };
 
-  const pickRole = (next: LoginRole) => {
+  const switchRole = (next: LoginRole) => {
     if (loading) return;
     setRole(next);
-    setStep('form');
     setError(null);
     setInfo(null);
     setRestoredAccount(null);
@@ -365,23 +394,8 @@ export default function Login() {
     }
   };
 
-  const backToChoose = () => {
-    if (loading) return;
-    setStep('choose');
-    setRole(null);
-    setError(null);
-    setInfo(null);
-    setPassword('');
-    setCpfPrefix('');
-    setRestoredAccount(null);
-    setRestoredError(null);
-    setNewRestoredPassword('');
-    setConfirmRestoredPassword('');
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!role) return;
     const filhoSurface = role === 'membro';
     setLoading(true);
     setError(null);
@@ -398,6 +412,7 @@ export default function Login() {
           email: loginEmail,
           password,
         });
+
         if (signErr) throw signErr;
         if (rememberMe) {
           writeRememberedLoginEmail(loginEmail);
@@ -405,18 +420,27 @@ export default function Login() {
           clearRememberedLoginEmail();
         }
       } else {
-        if (!isValidFilhoLoginId(childId)) {
-          throw new Error('Informe o registro (ex.: AXC-2021-B2CA). Pode digitar com ou sem hífen.');
+        const inputTrimmed = childId.trim();
+        const isEmailInput = inputTrimmed.includes('@');
+        const digitsOnly = inputTrimmed.replace(/\D/g, '');
+        const isPhoneInput = digitsOnly.length >= 8 && digitsOnly.length <= 13 && !inputTrimmed.toUpperCase().startsWith('AXC-');
+
+        if (!isEmailInput && !isPhoneInput && !isValidFilhoLoginId(inputTrimmed)) {
+          throw new Error('Informe seu E-mail, WhatsApp ou Registro (ex.: AXC-2021-B2CA).');
         }
         if (cpfPrefix.length < 6) {
-          throw new Error('Digite os 6 primeiros dígitos do CPF.');
+          throw new Error('Digite os 6 primeiros dígitos do seu CPF.');
         }
+
+        const loginPayloadId = isEmailInput || isPhoneInput
+          ? inputTrimmed
+          : (normalizeFilhoLoginIdInput(inputTrimmed) || inputTrimmed);
 
         const response = await fetch('/api/auth/filho-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            childId: normalizeFilhoLoginIdInput(childId) || childId,
+            childId: loginPayloadId,
             cpfPrefix,
           }),
         });
@@ -424,7 +448,7 @@ export default function Login() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Erro ao fazer login.');
+          throw new Error(data.error || 'Identificação ou CPF não encontrados.');
         }
 
         if (data.access_token && data.refresh_token) {
@@ -495,7 +519,6 @@ export default function Login() {
             if (tenantId && tenantId !== postSession.user.id) {
               writeCachedTenantIdForUser(postSession.user.id, tenantId);
             }
-            // Mesmo se a resolução do tenant falhar, registra o login do membro.
             void postAuthAuditLog(
               {
                 action: 'auth.login_success',
@@ -573,566 +596,600 @@ export default function Login() {
   };
 
   return (
-    <div
-      className={cn(
-        'axe-login-page relative isolate min-h-[100dvh] overflow-x-hidden bg-[#faf8f4] antialiased text-[#1b1813]',
-        fontLogin
-      )}
-    >
-      <aside className="axe-login-story" aria-label="Identidade AxéCloud">
-        <a href={ROUTES.home} className="axe-login-story-brand">
-          <img src="/axecloud-trident.png" alt="" width="44" height="54" />
-          <strong>Axé<span>Cloud</span></strong>
-        </a>
-        <div className="axe-login-story-copy">
-          <p>ACESSO À SUA CASA</p>
-          <h2>Entre.<br /><span>A casa continua.</span></h2>
-          <p>Um acesso para quem cuida da gestão. Outro para quem faz parte da corrente. Cada pessoa vê somente o que precisa.</p>
-          <div className="axe-login-signals">
-            <span><Lock aria-hidden /><strong>Ambiente protegido</strong><small>Dados isolados por casa.</small></span>
-            <span><Users aria-hidden /><strong>Dois acessos</strong><small>Zeladoria e membros.</small></span>
-            <span><Sparkles aria-hidden /><strong>Privacidade</strong><small>Permissões bem definidas.</small></span>
-          </div>
-        </div>
-        <small>AxéCloud · Gestão profissional para casas de axé</small>
-      </aside>
+    <div className="axe-login-page-v2">
+      {/* Background Altar Photo in Crystal Clear Quality */}
+      <div className="axe-login-bg-photo" aria-hidden="true">
+        <img src="/login-bg-trident.png" alt="" />
+        <div className="axe-login-bg-overlay" />
+      </div>
 
-      <section className="axe-login-panel">
-        <div className="axe-login-mobile-top">
-          <a href={ROUTES.home} className="axe-login-mobile-brand">
-            <img src="/axecloud-trident.png" alt="" width="34" height="42" />
-            <strong>Axé<span>Cloud</span></strong>
-          </a>
+      {/* Ambient Lighting & Sacred Geometry Grid */}
+      <div className="axe-login-ambient-glow" aria-hidden="true" />
+      <div className="axe-login-bg-grid" aria-hidden="true" />
+
+      {/* Main Login Card with High Performance Border Beam */}
+      <motion.div
+        initial={{ opacity: 0, y: 14, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+        className="axe-login-card"
+      >
+        {/* Magic UI / 21st.dev Golden Border Beam Runner */}
+        <div className="border-beam-track" aria-hidden="true">
+          <div className="border-beam-runner" />
+        </div>
+
+        {/* Card Header */}
+        <header className="axe-login-header">
           <a
             href={ROUTES.home}
             onClick={(event) => {
               event.preventDefault();
               void navigateToMarketingDocument(ROUTES.home);
             }}
+            className="axe-login-brand"
           >
-            Conhecer o site <ArrowRight aria-hidden />
+            <img src="/axecloud-trident.png" alt="AxéCloud" width="38" height="48" />
+            <span className="axe-login-brand-title">
+              Axé<span>Cloud</span>
+            </span>
           </a>
+          <p className="axe-login-subtitle">Acesso à sua Casa</p>
+          <h1 className="axe-login-headline">
+            {isMembro ? 'Entrar como Filho(a) de Santo' : 'Entrar como Zelador(a)'}
+            <small>
+              {isMembro
+                ? 'Acesse seus avisos, presença e obrigações da casa.'
+                : 'Gestão financeira, membros e calendário do terreiro.'}
+            </small>
+          </h1>
+        </header>
+
+        {/* Segmented Dual Role Switcher Tabs */}
+        <div className={cn('role-tabs-container', isMembro && 'membro-active')}>
+          <div className="active-pill" aria-hidden="true" />
+
+          <button
+            type="button"
+            className={cn('role-tab-btn', !isMembro && 'active')}
+            onClick={() => switchRole('zelador')}
+          >
+            <span className="tab-badge">Gestão da Casa</span>
+            <span className="tab-name">Sou Zelador(a)</span>
+          </button>
+
+          <button
+            type="button"
+            className={cn('role-tab-btn', isMembro && 'active')}
+            onClick={() => switchRole('membro')}
+          >
+            <span className="tab-badge">Corrente da Casa</span>
+            <span className="tab-name">Sou Membro(a)</span>
+          </button>
         </div>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -left-36 -top-36 h-[34rem] w-[34rem] rounded-full bg-[#f0b400]/[0.09] blur-3xl" />
-        <div className="absolute -bottom-48 -right-32 h-[38rem] w-[38rem] rounded-full bg-[#e2bc5a]/[0.12] blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.18] [background-image:radial-gradient(rgba(120,82,0,.45)_0.55px,transparent_0.55px)] [background-size:22px_22px]" />
-        <div className="absolute left-1/2 top-1/2 h-[44rem] w-[44rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#c48a00]/10" />
-      </div>
 
-      <a
-        href={ROUTES.home}
-        onClick={(event) => {
-          event.preventDefault();
-          void navigateToMarketingDocument(ROUTES.home);
-        }}
-        className="axe-login-back absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.25rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-2 text-xs font-semibold text-[#1b1813]/60 transition-colors hover:text-[#a87500]"
-      >
-        <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Conhecer o AxéCloud
-      </a>
+        {/* Update alert */}
+        {showAlert && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <p className="flex-1 text-xs font-semibold leading-snug">
+              Sistema atualizado. Faça o login novamente.
+            </p>
+            <button
+              type="button"
+              onClick={closeUpdateAlert}
+              aria-label="Fechar aviso"
+              className="-mr-1 -mt-0.5 rounded-md p-1 text-amber-300 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
-      <motion.div
-        initial={false}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative z-10 my-auto w-full max-w-[42rem] py-2 sm:py-0"
-      >
-        <div className={cn(AUTH_MODAL_CARD, 'axe-login-auth-shell', step === 'form' && 'axe-login-form-surface')}>
-          <div className="relative z-10 w-full space-y-5">
-            {showAlert && (
-              <div className="flex items-start gap-3 rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/40 px-4 py-3 text-[#775400]">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={2} />
-                <p className="flex-1 pr-1 text-[0.8125rem] font-bold leading-snug">
-                  Sistema atualizado. Faça o login novamente.
-                </p>
-                <button
-                  type="button"
-                  onClick={closeUpdateAlert}
-                  aria-label="Fechar aviso de atualização"
-                  className="-mr-1 -mt-0.5 shrink-0 rounded-md p-1 text-primary/85 transition-colors hover:bg-primary/12 hover:text-primary"
-                >
-                  <X className="h-4 w-4" strokeWidth={2} />
-                </button>
+        {/* Restored Account Password Flow */}
+        {restoredAccount ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 space-y-4 rounded-2xl border border-amber-500/40 bg-black/60 p-5 shadow-2xl backdrop-blur-md"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                Conta identificada & restaurada
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setRestoredAccount(null);
+                  setRestoredError(null);
+                  setNewRestoredPassword('');
+                  setConfirmRestoredPassword('');
+                }}
+                className="text-xs text-zinc-400 hover:text-white transition-colors"
+              >
+                Trocar e-mail
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-white">
+                Axé, {formatZeladorGreeting(restoredAccount.nomeZelador)}!
+              </h3>
+              <p className="text-xs font-semibold text-amber-400">
+                {restoredAccount.nomeTerreiro}
+              </p>
+            </div>
+
+            <p className="text-xs leading-relaxed text-zinc-300">
+              Seu acesso foi restaurado com sucesso. Como a sua senha anterior precisou ser redefinida por segurança, crie sua nova senha de acesso abaixo:
+            </p>
+
+            <form onSubmit={handleSetupRestoredPassword} className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">E-mail</label>
+                <div className="axe-login-input-shell">
+                  <Mail className="input-icon h-4 w-4" />
+                  <input
+                    type="text"
+                    disabled
+                    value={restoredAccount.email}
+                    className="opacity-70 cursor-not-allowed"
+                  />
+                </div>
               </div>
-            )}
 
-            <h1 className="sr-only">{SITE_TITLE} para terreiros</h1>
-
-            <AnimatePresence mode="wait">
-              {step === 'choose' ? (
-                <motion.div
-                  key="choose"
-                  initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                  className="axe-login-choice"
-                >
-                  <div className="axe-login-choice-heading">
-                    <p>PORTAL AXÉCLOUD <span>•</span> ACESSO À CASA</p>
-                    <h2>Escolha como<br /><span>entrar.</span></h2>
-                    <p>Dois acessos, cada um com as informações certas para o seu papel na casa.</p>
-                  </div>
-
-                  <div className="axe-login-paths">
-                    <motion.button
-                      type="button"
-                      whileHover={{ x: 6 }}
-                      whileTap={{ scale: 0.99 }}
-                      onClick={() => pickRole('zelador')}
-                      className="axe-login-path axe-login-path-dark"
-                    >
-                      <span className="axe-login-path-number">01</span>
-                      <span className="axe-login-path-icon">
-                        <Sparkles className="h-5 w-5" strokeWidth={1.6} aria-hidden />
-                      </span>
-                      <span className="axe-login-path-copy">
-                        <small>GESTÃO DA CASA</small>
-                        <strong>Sou zelador(a)</strong>
-                        <em>Pai de santo, mãe de santo ou responsável pela administração.</em>
-                      </span>
-                      <ArrowRight className="axe-login-path-arrow" aria-hidden />
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      whileHover={{ x: 6 }}
-                      whileTap={{ scale: 0.99 }}
-                      onClick={() => pickRole('membro')}
-                      className="axe-login-path axe-login-path-light"
-                    >
-                      <span className="axe-login-path-number">02</span>
-                      <span className="axe-login-path-icon">
-                        <Users className="h-5 w-5" strokeWidth={1.6} aria-hidden />
-                      </span>
-                      <span className="axe-login-path-copy">
-                        <small>CORRENTE DA CASA</small>
-                        <strong>Sou membro(a)</strong>
-                        <em>Filho de santo ou filha de santo com registro na casa.</em>
-                      </span>
-                      <ArrowRight className="axe-login-path-arrow" aria-hidden />
-                    </motion.button>
-                  </div>
-
-                  <p className="axe-login-help">
-                    PRIMEIRO ACESSO?{' '}
-                    <a href={ROUTES.instrucoesMembro} className="font-semibold text-[#a87500] hover:underline">
-                      Acesso do membro
-                    </a>
-                    {' · '}
-                    <a href={ROUTES.instrucoes} className="font-semibold text-[#a87500] hover:underline">
-                      Guia do zelador
-                    </a>
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={`form-${role}`}
-                  initial={{ opacity: 0, x: isMembro ? 24 : -24, filter: 'blur(5px)' }}
-                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, x: isMembro ? -18 : 18, filter: 'blur(4px)' }}
-                  transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
-                  className="space-y-4"
-                >
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Nova Senha</label>
+                <div className="axe-login-input-shell">
+                  <Lock className="input-icon h-4 w-4" />
+                  <input
+                    type={showRestoredPassword ? 'text' : 'password'}
+                    required
+                    value={newRestoredPassword}
+                    onChange={(e) => {
+                      setNewRestoredPassword(e.target.value);
+                      if (restoredError) setRestoredError(null);
+                    }}
+                    placeholder="Mínimo 8 caracteres com letras e números"
+                    autoComplete="new-password"
+                    style={{ paddingRight: '44px' }}
+                  />
                   <button
                     type="button"
-                    onClick={backToChoose}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#1b1813]/50 transition-colors hover:text-[#a87500]"
+                    onClick={() => setShowRestoredPassword((v) => !v)}
+                    aria-label={showRestoredPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    className="toggle-pwd"
                   >
-                    <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-                    Trocar perfil
+                    {showRestoredPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
+                </div>
+              </div>
 
-                  <div className="space-y-1">
-                    <p className="text-[0.63rem] font-bold uppercase tracking-[0.28em] text-[#aa7600]">
-                      {isMembro ? 'Portal do membro' : 'Gestão da casa de axé'}
-                    </p>
-                    <h2 className="text-[2rem] font-bold leading-[1.02] tracking-[-0.045em] text-[#1b1813]">
-                      {isMembro ? 'Entre na corrente.' : 'Bem-vindo de volta.'}
-                    </h2>
-                    <p className="max-w-[22rem] text-[13px] leading-snug text-[#1b1813]/55">
-                      {isMembro
-                        ? 'Registro + 6 primeiros dígitos do CPF. Não use senha de e-mail ou WhatsApp.'
-                        : 'E-mail e senha da gestão do terreiro.'}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Confirmar Nova Senha</label>
+                <div className="axe-login-input-shell">
+                  <KeyRound className="input-icon h-4 w-4" />
+                  <input
+                    type={showRestoredPassword ? 'text' : 'password'}
+                    required
+                    value={confirmRestoredPassword}
+                    onChange={(e) => {
+                      setConfirmRestoredPassword(e.target.value);
+                      if (restoredError) setRestoredError(null);
+                    }}
+                    placeholder="Digite a nova senha novamente"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              {restoredError && (
+                <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-2 text-center text-xs font-semibold text-red-300">
+                  {restoredError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={restoredSubmitting}
+                className="btn-submit-zelador"
+              >
+                {restoredSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Salvar nova senha e entrar</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          </motion.div>
+        ) : (
+          /* Main Authentication Forms */
+          <form onSubmit={handleAuth} className="space-y-4">
+            <AnimatePresence mode="wait">
+              {!isMembro ? (
+                /* FORM ZELADOR */
+                <motion.div
+                  key="form-zelador"
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 16 }}
+                  transition={{ duration: 0.24 }}
+                  className="space-y-4"
+                >
+                  {/* Email Field */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                        E-mail do Zelador
+                      </label>
+                      {checkingRestored && (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-400">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Verificando...
+                        </span>
+                      )}
+                    </div>
+                    <div className="axe-login-input-shell">
+                      <Mail className="input-icon h-4 w-4" />
+                      <input
+                        type="email"
+                        required
+                        autoComplete="username"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (error) setError(null);
+                        }}
+                        onBlur={() => {
+                          if (email.includes('@') && email.includes('.')) {
+                            void checkRestoredAccount(email);
+                          }
+                        }}
+                        placeholder="seu-email@exemplo.com"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                        Senha
+                      </label>
+                      <a
+                        href={forgotPasswordHref}
+                        className="text-xs text-amber-400 hover:text-amber-300 transition-colors font-medium"
+                      >
+                        Esqueceu a senha?
+                      </a>
+                    </div>
+                    <div className="axe-login-input-shell">
+                      <Lock className="input-icon h-4 w-4" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (error) setError(null);
+                        }}
+                        placeholder="••••••••••••"
+                        autoComplete="current-password"
+                        style={{ paddingRight: '44px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        className="toggle-pwd"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Remember Me & Session Info */}
+                  <div className="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
+                    <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setRememberMe(checked);
+                          if (!checked) clearRememberedLoginEmail();
+                        }}
+                        className="accent-[#c48a00] h-4 w-4 rounded cursor-pointer"
+                      />
+                      <span>Lembrar meu e-mail</span>
+                    </label>
+                    <span className="text-[11px] text-zinc-500">Sessão segura</span>
+                  </div>
+
+                  {/* Submit Zelador */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-submit-zelador"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <span>Entrar na Zeladoria</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </motion.div>
+              ) : (
+                /* FORM MEMBRO (NOVO MÉTODO INTELIGENTE) */
+                <motion.div
+                  key="form-membro"
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.24 }}
+                  className="space-y-4"
+                >
+                  {/* Smart Identifier Input */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                        E-mail, WhatsApp ou Registro
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowHelpModal(true)}
+                        className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 transition-colors font-medium"
+                      >
+                        <HelpCircle className="h-3.5 w-3.5" />
+                        <span>Como entrar?</span>
+                      </button>
+                    </div>
+                    <div className="axe-login-input-shell">
+                      <User className="input-icon h-4 w-4" />
+                      <input
+                        type="text"
+                        required
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        value={childId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val.includes('@') && val.toUpperCase().startsWith('AXC')) {
+                            setChildId(normalizeFilhoLoginIdInput(val));
+                          } else {
+                            setChildId(val);
+                          }
+                          if (error) setError(null);
+                        }}
+                        placeholder="seuemail@gmail.com, celular ou AXC-..."
+                        style={{ paddingRight: '142px' }}
+                      />
+                      <span className={filhoDetection.badgeClass}>
+                        {filhoDetection.badgeText}
+                      </span>
+                    </div>
+                    <p
+                      className={cn(
+                        'text-[11px] leading-snug transition-colors',
+                        filhoDetection.isHighlight ? 'text-amber-400 font-medium' : 'text-zinc-400'
+                      )}
+                    >
+                      {filhoDetection.hint}
                     </p>
                   </div>
 
-                  {restoredAccount ? (
-                    <motion.div
-                      key="restored-account-card"
-                      initial={{ opacity: 0, y: 14, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                      className="space-y-4 rounded-2xl border border-[#c48a00]/35 bg-gradient-to-b from-[#fffdfa] to-[#faf4e6] p-5 shadow-[0_12px_32px_rgba(196,138,0,0.12)]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
-                          <Sparkles className="h-3 w-3 text-emerald-600" />
-                          Conta identificada & restaurada
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRestoredAccount(null);
-                            setRestoredError(null);
-                            setNewRestoredPassword('');
-                            setConfirmRestoredPassword('');
-                          }}
-                          className="text-[11px] font-semibold text-[#1b1813]/45 transition-colors hover:text-[#1b1813]"
-                        >
-                          Trocar e-mail
-                        </button>
-                      </div>
-
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-bold tracking-tight text-[#1b1813]">
-                          Axé, {formatZeladorGreeting(restoredAccount.nomeZelador)}!
-                        </h3>
-                        <p className="text-[13px] font-semibold text-[#8a6500] leading-snug">
-                          {restoredAccount.nomeTerreiro}
-                        </p>
-                      </div>
-
-                      <p className="text-[12px] leading-relaxed text-[#1b1813]/75">
-                        Seu acesso foi restaurado com sucesso. Como a sua senha anterior precisou ser redefinida por segurança, crie sua nova senha de acesso abaixo para entrar diretamente no painel:
-                      </p>
-
-                      <form onSubmit={handleSetupRestoredPassword} className="space-y-3 pt-1">
-                        <div className="space-y-[5px]">
-                          <label className={labelClass}>E-mail</label>
-                          <input
-                            type="text"
-                            disabled
-                            value={restoredAccount.email}
-                            className={cn(fieldShell, 'bg-[#1b1813]/5 text-[#1b1813]/70 cursor-not-allowed opacity-90 pl-3')}
-                          />
-                        </div>
-
-                        <div className="space-y-[5px]">
-                          <label className={labelClass}>Nova senha</label>
-                          <div className="relative">
-                            <Lock
-                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                              strokeWidth={1.5}
-                            />
-                            <input
-                              type={showRestoredPassword ? 'text' : 'password'}
-                              required
-                              value={newRestoredPassword}
-                              onChange={(e) => {
-                                setNewRestoredPassword(e.target.value);
-                                if (restoredError) setRestoredError(null);
-                              }}
-                              placeholder="Mínimo 8 caracteres (maiúscula, minúscula, número e símbolo)"
-                              autoComplete="new-password"
-                              className={cn(fieldShell, 'bg-white pr-12')}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowRestoredPassword((v) => !v)}
-                              aria-label={showRestoredPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#1b1813]/35 transition-colors hover:text-[#1b1813]"
-                            >
-                              {showRestoredPassword ? (
-                                <EyeOff className="h-5 w-5" strokeWidth={1.65} />
-                              ) : (
-                                <Eye className="h-5 w-5" strokeWidth={1.65} />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="space-y-[5px]">
-                          <label className={labelClass}>Confirmar nova senha</label>
-                          <div className="relative">
-                            <KeyRound
-                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#b47d00]"
-                              strokeWidth={1.5}
-                            />
-                            <input
-                              type={showRestoredPassword ? 'text' : 'password'}
-                              required
-                              value={confirmRestoredPassword}
-                              onChange={(e) => {
-                                setConfirmRestoredPassword(e.target.value);
-                                if (restoredError) setRestoredError(null);
-                              }}
-                              placeholder="Digite a nova senha novamente"
-                              autoComplete="new-password"
-                              className={cn(fieldShell, 'bg-white')}
-                            />
-                          </div>
-                        </div>
-
-                        {restoredError && (
-                          <p className="rounded-xl border border-red-600/20 bg-red-50 px-3 py-2 text-center text-[11px] font-semibold text-red-700">
-                            {restoredError}
-                          </p>
-                        )}
-
-                        <motion.button
-                          type="submit"
-                          disabled={restoredSubmitting}
-                          whileTap={{ scale: 0.98 }}
-                          className={cn(
-                            'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5b800] px-5 text-sm font-bold text-[#17130c]',
-                            'shadow-[0_12px_30px_rgba(186,128,0,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#ffc318] disabled:opacity-60'
-                          )}
-                        >
-                          {restoredSubmitting ? (
-                            <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} />
-                          ) : (
-                            'Salvar nova senha e entrar'
-                          )}
-                        </motion.button>
-                      </form>
-                    </motion.div>
-                  ) : (
-                    <form onSubmit={handleAuth} className="space-y-[8px]">
-                    {!isMembro ? (
-                      <div className="space-y-[8px]">
-                        <div className="space-y-[5px]">
-                          <div className="flex items-center justify-between">
-                            <label className={labelClass}>E-mail</label>
-                            {checkingRestored && (
-                              <span className="flex items-center gap-1 text-[10px] text-[#aa7600]">
-                                <Loader2 className="h-3 w-3 animate-spin" /> Verificando conta...
-                              </span>
-                            )}
-                          </div>
-                          <div className="relative">
-                            <User
-                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                              strokeWidth={1.5}
-                            />
-                            <input
-                              type="text"
-                              inputMode="email"
-                              autoComplete="username"
-                              required
-                              value={email}
-                              onChange={(e) => {
-                                setEmail(e.target.value);
-                                if (error) setError(null);
-                              }}
-                              onBlur={() => {
-                                if (!isMembro && email.includes('@') && email.includes('.')) {
-                                  void checkRestoredAccount(email);
-                                }
-                              }}
-                              placeholder="Digite seu e-mail"
-                              className={fieldShell}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-[5px]">
-                          <div className="flex items-end justify-between gap-4">
-                            <label className={labelClass}>Senha</label>
-                            <a
-                              href={forgotPasswordHref}
-                              className="pb-[1px] text-[11px] font-semibold text-[#a87500] transition-colors hover:text-[#7b5700]"
-                            >
-                              Esqueceu sua senha?
-                            </a>
-                          </div>
-                          <div className="relative">
-                            <Lock
-                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                              strokeWidth={1.5}
-                            />
-                            <input
-                              type={showPassword ? 'text' : 'password'}
-                              required
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              placeholder="Digite sua senha"
-                              autoComplete="current-password"
-                              className={cn(fieldShell, 'pr-12')}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword((v) => !v)}
-                              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                              className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#1b1813]/35 transition-colors hover:text-[#1b1813]"
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-5 w-5" strokeWidth={1.65} />
-                              ) : (
-                                <Eye className="h-5 w-5" strokeWidth={1.65} />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        <label className="flex cursor-pointer select-none items-center gap-[8px] pt-[1px]">
-                          <span
-                            className={cn(
-                              'flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors',
-                              rememberMe ? 'border-primary bg-primary/10' : 'border-primary bg-transparent'
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={rememberMe}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                setRememberMe(checked);
-                                if (!checked) clearRememberedLoginEmail();
-                              }}
-                              className="sr-only"
-                            />
-                            {rememberMe && (
-                              <svg className="h-3.5 w-3.5 text-primary" viewBox="0 0 12 10" fill="none" aria-hidden>
-                                <path
-                                  d="M1 5l3.5 3.5L11 1"
-                                  stroke="currentColor"
-                                  strokeWidth="1.85"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            )}
-                          </span>
-                          <span className="text-[12px] font-medium text-[#1b1813]/65">Lembrar meu e-mail</span>
+                  {/* CPF 6-Digit Password with Visual Dots */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                          Senha de Acesso
                         </label>
+                        <span className="cpf-pill">6 Primeiros dígitos do CPF</span>
                       </div>
+                      <span
+                        className={cn(
+                          'cpf-counter',
+                          cpfPrefix.length === 6 && 'complete'
+                        )}
+                      >
+                        {cpfPrefix.length}/6
+                      </span>
+                    </div>
+                    <div className="axe-login-input-shell">
+                      <Lock className="input-icon h-4 w-4" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        maxLength={6}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={cpfPrefix}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          setCpfPrefix(digits);
+                          if (error) setError(null);
+                        }}
+                        placeholder="Ex: 123456"
+                        style={{ paddingRight: '44px', letterSpacing: '0.15em' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        className="toggle-pwd"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+
+                    {/* Visual 6 Dots Row */}
+                    <div className="cpf-dots-row" aria-hidden="true">
+                      {Array.from({ length: 6 }).map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={cn(
+                            'cpf-dot',
+                            idx < cpfPrefix.length && (cpfPrefix.length === 6 ? 'completed' : 'filled')
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer note */}
+                  <div className="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
+                    <span className="text-[11px] text-zinc-400">
+                      Acesso exclusivo à sua corrente e avisos
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Busca inteligente ativa
+                    </span>
+                  </div>
+
+                  {/* Submit Membro */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-submit-membro"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <div className="space-y-[8px]">
-                        <div className="space-y-[5px]">
-                          <label className={labelClass}>Registro</label>
-                          <div className="relative">
-                            <User
-                              className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                              strokeWidth={1.5}
-                            />
-                            <input
-                              type="text"
-                              required
-                              maxLength={14}
-                              autoCapitalize="characters"
-                              autoCorrect="off"
-                              spellCheck={false}
-                              value={childId}
-                              onChange={(e) => setChildId(normalizeFilhoLoginIdInput(e.target.value))}
-                              onBlur={() => setChildId((v) => normalizeFilhoLoginIdInput(v))}
-                              placeholder="Ex.: AXC-2021-B2CA"
-                              className={fieldShell}
-                            />
-                          </div>
-                          <p className="text-[11px] leading-snug text-[#1b1813]/45">
-                            Vem no WhatsApp da casa. Pode digitar sem hífen — o sistema formata.
-                          </p>
-                        </div>
-
-                        <div className="space-y-[8px] rounded-[0.9rem] border border-[#c48a00]/35 bg-[#f5e5b5]/35 p-3">
-                          <div className="space-y-[5px]">
-                            <div className="flex flex-wrap items-end justify-between gap-2">
-                              <label htmlFor="filho-cpf-prefix" className={cn(labelClass, 'text-[#7b5700]')}>
-                                Senha = 6 primeiros dígitos do CPF
-                              </label>
-                              <span
-                                className={cn(
-                                  'tabular-nums text-[11px] font-bold',
-                                  cpfPrefix.length === 6 ? 'text-emerald-700' : 'text-[#a87500]'
-                                )}
-                                aria-live="polite"
-                              >
-                                {cpfPrefix.length}/6
-                              </span>
-                            </div>
-                            <div className="relative">
-                              <KeyRound
-                                className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-[#b47d00]"
-                                strokeWidth={1.5}
-                              />
-                              <input
-                                id="filho-cpf-prefix"
-                                type="text"
-                                required
-                                maxLength={6}
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                                value={cpfPrefix}
-                                onChange={(e) => setCpfPrefix(e.target.value.replace(/\D/g, ''))}
-                                placeholder="123456"
-                                aria-describedby="filho-cpf-hint"
-                                className={cn(
-                                  fieldShell,
-                                  'border-[#c48a00]/40 bg-white tracking-[0.35em] placeholder:tracking-[0.2em] placeholder:text-[#1b1813]/28'
-                                )}
-                              />
-                            </div>
-                            <div className="flex justify-between gap-1 px-0.5" aria-hidden>
-                              {Array.from({ length: 6 }).map((_, i) => (
-                                <span
-                                  key={i}
-                                  className={cn(
-                                    'h-1 flex-1 rounded-full transition-colors',
-                                    i < cpfPrefix.length ? 'bg-[#b47d00]' : 'bg-[#1b1813]/12'
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p id="filho-cpf-hint" className="text-[12px] font-semibold leading-snug text-[#5c4310]">
-                            Não é a senha do WhatsApp nem do e-mail.
-                            <span className="mt-1 block font-medium text-[#5c4310]/85">
-                              Ex.: CPF <span className="font-mono">123.456.789-00</span> → digite{' '}
-                              <span className="font-mono font-bold text-[#7b5700]">123456</span>
-                            </span>
-                          </p>
-                        </div>
-                      </div>
+                      <>
+                        <span>Acessar Portal do Membro</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </>
                     )}
-
-                    {error && (
-                      <p className="rounded-xl border border-red-600/20 bg-red-50 px-3 py-2 text-center text-[11px] font-semibold text-red-700">
-                        {error}
-                      </p>
-                    )}
-                    {info && (
-                      <p className="rounded-xl border border-[#c48a00]/25 bg-[#f5e5b5]/35 px-3 py-2 text-center text-[11px] font-semibold text-[#775400]">
-                        {info}
-                      </p>
-                    )}
-
-                    <motion.button
-                      type="submit"
-                      disabled={loading}
-                      whileTap={{ scale: 0.98 }}
-                      className={cn(
-                        'flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#f5b800] px-5 text-sm font-bold text-[#17130c]',
-                        'shadow-[0_12px_30px_rgba(186,128,0,0.2)] transition-all hover:-translate-y-0.5 hover:bg-[#ffc318] disabled:opacity-60'
-                      )}
-                    >
-                      {loading ? (
-                        <Loader2 className="h-[18px] w-[18px] animate-spin text-black" strokeWidth={2.5} />
-                      ) : isMembro ? (
-                        'Entrar como membro'
-                      ) : (
-                        'Entrar como zelador'
-                      )}
-                    </motion.button>
-                  </form>
-                  )}
-
-                  <p className="text-center text-[11px] text-[#1b1813]/40">
-                    <a
-                      href={isMembro ? ROUTES.instrucoesMembro : ROUTES.instrucoes}
-                      className="font-semibold text-[#a87500] hover:underline"
-                    >
-                      {isMembro ? 'Instruções de acesso do membro' : 'Instruções de uso do painel'}
-                    </a>
-                  </p>
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Error & Info Feedback */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-center text-xs font-semibold text-red-200"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            {info && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-center text-xs font-semibold text-amber-200"
+              >
+                {info}
+              </motion.div>
+            )}
+          </form>
+        )}
+
+        {/* Card Footer */}
+        <footer className="axe-login-card-footer">
+          <div className="security-badge">
+            <ShieldCheck />
+            <span>Ambiente protegido · Dados isolados por casa</span>
           </div>
-        </div>
+
+          <button
+            type="button"
+            onClick={() => setShowHelpModal(true)}
+            className="first-access-link"
+          >
+            Primeiro acesso à plataforma? <strong>Como funciona</strong>
+          </button>
+        </footer>
       </motion.div>
-      </section>
+
+      {/* Modal de Ajuda / Instruções de Acesso */}
+      {showHelpModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowHelpModal(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#12100e] p-6 shadow-2xl text-left"
+          >
+            <button
+              type="button"
+              onClick={() => setShowHelpModal(false)}
+              className="absolute right-4 top-4 rounded-full bg-white/5 p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <h3 className="text-lg font-bold text-white mb-2">
+              Como funciona o acesso?
+            </h3>
+            <p className="text-xs text-zinc-400 mb-4">
+              Cada perfil possui um formato seguro e simplificado de entrada:
+            </p>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 flex gap-3">
+                <div className="mt-0.5 text-amber-400">
+                  <User className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">Sou Membro (Filho de Santo)</h4>
+                  <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
+                    Você pode digitar seu <strong>E-mail</strong>, seu <strong>WhatsApp com DDD</strong> ou a <strong>Matrícula AXC</strong> entregue pelo terreiro.
+                  </p>
+                  <p className="text-[11px] text-amber-300/90 mt-1">
+                    Sua senha é sempre os <strong>6 primeiros dígitos do seu CPF</strong> (sem pontos nem traço).
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.03] p-3 flex gap-3">
+                <div className="mt-0.5 text-emerald-400">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">Sou Zelador(a) da Casa</h4>
+                  <p className="text-[11px] text-zinc-300 mt-0.5 leading-relaxed">
+                    Utilize o e-mail cadastrado na criação do terreiro e sua senha pessoal definida no cadastro.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+              <a
+                href={ROUTES.instrucoesMembro}
+                className="text-amber-400 hover:underline"
+              >
+                Guia detalhado do membro
+              </a>
+              <a
+                href="https://wa.me/5511999999999"
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-400 hover:text-white"
+              >
+                Suporte no WhatsApp
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
