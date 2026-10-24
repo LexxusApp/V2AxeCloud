@@ -33,7 +33,6 @@
 .axe-berry-mode {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #0f1411;
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -41,22 +40,30 @@
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Tipografia Base Estilo Berry */
-.axe-berry-mode h1, .axe-berry-mode h2, .axe-berry-mode h3, .axe-berry-mode h4, .axe-berry-mode h5, .axe-berry-mode h6 {
+/* Tipografia Base Estilo Berry — ESCOPO EXCLUSIVO DA DASHBOARD BERRY */
+.dashboard-main-content h1, 
+.dashboard-main-content h2, 
+.dashboard-main-content h3, 
+.dashboard-main-content h4, 
+.dashboard-main-content h5, 
+.dashboard-main-content h6 {
   font-family: 'Inter', sans-serif;
   letter-spacing: -0.025em;
-  color: var(--text-main);
   margin-top: 0;
 }
 
-.axe-berry-mode h1 { font-size: 2.125rem; font-weight: 700; line-height: 1.2; }
-.axe-berry-mode h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
-.axe-berry-mode h3 { font-size: 1.25rem; font-weight: 650; line-height: 1.3; }
-.axe-berry-mode h4 { font-size: 1rem; font-weight: 650; line-height: 1.35; }
-.axe-berry-mode h5 { font-size: 0.875rem; font-weight: 600; line-height: 1.4; }
-.axe-berry-mode h6 { font-size: 0.75rem; font-weight: 600; line-height: 1.4; }
+.dashboard-main-content h1 { font-size: 2.125rem; font-weight: 700; line-height: 1.2; }
+.dashboard-main-content h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+.dashboard-main-content h3 { font-size: 1.25rem; font-weight: 650; line-height: 1.3; }
+.dashboard-main-content h4 { font-size: 1rem; font-weight: 650; line-height: 1.35; }
+.dashboard-main-content h5 { font-size: 0.875rem; font-weight: 600; line-height: 1.4; }
+.dashboard-main-content h6 { font-size: 0.75rem; font-weight: 600; line-height: 1.4; }
 
-p, span, small {
+.dashboard-main-content p, 
+.dashboard-main-content span, 
+.dashboard-main-content small,
+.app-topbar p, .app-topbar span, .app-topbar small,
+.app-sidebar p, .app-sidebar span, .app-sidebar small {
   font-family: 'Inter', sans-serif;
 }
 
@@ -65,14 +72,12 @@ p, span, small {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #0f1411;
 }
 
 .app-workspace {
   display: flex;
   flex: 1;
   min-height: calc(100vh - 72px);
-  background: #0f1411;
   position: relative;
 }
 
@@ -445,7 +450,14 @@ p, span, small {
   flex-direction: column;
   min-width: 0;
   overflow-y: auto;
+}
+
+.app-main.is-dashboard {
   background: #0f1411;
+}
+
+.app-main.is-internal-view {
+  background: #F7F3EA;
 }
 
 /* Topbar — Cabeçalho Superior Completo Estilo Berry (100% de largura) */

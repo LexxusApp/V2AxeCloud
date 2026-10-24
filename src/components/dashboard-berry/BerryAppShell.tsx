@@ -569,7 +569,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
         </aside>
 
         {/* 3. MAIN BODY */}
-        <main className="app-main">
+        <main className={`app-main ${activeTab === 'dashboard' ? 'is-dashboard' : 'is-internal-view'}`}>
           {children}
         </main>
       </div>

@@ -1406,8 +1406,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
                   tenantId={effectiveTenantId}
                 />
               ) : (
-                <div key={`${activeTab}:${selectedChildId || ''}`} className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
-                  {renderView()}
+                <div 
+                  key={`${activeTab}:${selectedChildId || ''}`} 
+                  className="app-v3 app-v4-experiment app-v5-identity app-v5-canvas flex-1 min-h-full w-full bg-[#F7F3EA] text-[#211D17]"
+                >
+                  <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
+                    {renderView()}
+                  </div>
                 </div>
               )}
             </Suspense>
