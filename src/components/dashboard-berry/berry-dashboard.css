@@ -3012,3 +3012,15 @@ p, span, small {
   contain: layout style !important;
   transform: translateZ(0) !important;
 }
+
+/* Button reset for popover menu items */
+button.popover-menu-item {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: normal;
+}

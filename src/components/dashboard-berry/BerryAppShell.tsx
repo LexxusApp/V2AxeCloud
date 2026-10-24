@@ -35,6 +35,9 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
   const [casaExpanded, setCasaExpanded] = useState(() => isCasaActive);
   const [financeiroExpanded, setFinanceiroExpanded] = useState(() => isFinanceiroActive);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [popoverSearch, setPopoverSearch] = useState('');
+  const [waAlertsEnabled, setWaAlertsEnabled] = useState(true);
+  const [dndEnabled, setDndEnabled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Se o usuário navegar para uma rota interna do grupo, expande automaticamente
@@ -135,15 +138,37 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
               </svg>
             </div>
 
-            {/* POPOVER DE PERFIL */}
+            {/* POPOVER DE PERFIL ESTILO BERRY PRO */}
             {profileDropdownOpen && (
-              <div className="berry-profile-dropdown" id="profile-dropdown" style={{ display: 'block' }}>
+              <div className="berry-profile-dropdown show" id="profile-dropdown" style={{ display: 'flex' }}>
+                {/* 1. Header do Usuário */}
                 <div className="popover-user-header">
                   <div className="popover-greeting">Olá, <strong>{zeladorNome || terreiroNome}</strong></div>
                   <div className="popover-role">{userRole} · AxéCloud</div>
                 </div>
 
+                {/* 2. Campo de busca interno */}
+                <div className="popover-search-wrap">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Buscar opções da conta..."
+                    className="popover-search-input"
+                    value={popoverSearch}
+                    onChange={(e) => setPopoverSearch(e.target.value)}
+                  />
+                </div>
+
+                {/* 3. Card de Assinatura (Estilo Berry Upgrade Card) */}
                 <div className="popover-plan-card">
+                  <div className="plan-card-floating-badge" title="Status Pro">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                  </div>
                   <div className="plan-card-title">Plano AxéCloud Pro</div>
                   <div className="plan-card-desc">Terreiro verificado no Radar com WhatsApp oficial ativo.</div>
                   <button
@@ -155,28 +180,92 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   </button>
                 </div>
 
+                {/* 4. Controles Rápidos (Toggles Block) */}
+                <div className="popover-toggles-card">
+                  <div className="toggle-row">
+                    <span className="toggle-label">Avisos no WhatsApp</span>
+                    <label className="berry-switch" title="Ativar ou pausar avisos automáticos">
+                      <input
+                        type="checkbox"
+                        checked={waAlertsEnabled}
+                        onChange={(e) => setWaAlertsEnabled(e.target.checked)}
+                      />
+                      <span className="switch-slider" />
+                    </label>
+                  </div>
+                  <div className="toggle-row">
+                    <span className="toggle-label">Modo Silencioso (DND)</span>
+                    <label className="berry-switch" title="Silenciar notificações temporariamente">
+                      <input
+                        type="checkbox"
+                        checked={dndEnabled}
+                        onChange={(e) => setDndEnabled(e.target.checked)}
+                      />
+                      <span className="switch-slider" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* 5. Links de Navegação da Conta */}
                 <div className="popover-menu-list">
-                  <button
-                    className="popover-item"
-                    type="button"
-                    onClick={() => { setProfileDropdownOpen(false); setActiveTab('settings'); }}
-                  >
-                    <span>Configurações da Conta</span>
-                  </button>
-                  <button
-                    className="popover-item"
-                    type="button"
-                    onClick={() => { setProfileDropdownOpen(false); setActiveTab('suporte'); }}
-                  >
-                    <span>Suporte e Ajuda</span>
-                  </button>
-                  <button
-                    className="popover-item danger"
-                    type="button"
-                    onClick={() => { setProfileDropdownOpen(false); onLogout(); }}
-                  >
-                    <span>Sair da conta</span>
-                  </button>
+                  {(!popoverSearch || 'configurações da conta'.includes(popoverSearch.toLowerCase())) && (
+                    <button
+                      className="popover-menu-item"
+                      type="button"
+                      onClick={() => { setProfileDropdownOpen(false); setActiveTab('settings'); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span>Configurações da Conta</span>
+                    </button>
+                  )}
+
+                  {(!popoverSearch || 'perfil público radar'.includes(popoverSearch.toLowerCase())) && (
+                    <button
+                      className="popover-menu-item"
+                      type="button"
+                      onClick={() => { setProfileDropdownOpen(false); setActiveTab('radar'); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 10c0 3.976-7 10-7 10s-7-6.024-7-10a7 7 0 0 1 14 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span>Perfil Público no Radar</span>
+                      <span className="menu-pill-badge">Ativo</span>
+                    </button>
+                  )}
+
+                  {(!popoverSearch || 'suporte e ajuda'.includes(popoverSearch.toLowerCase())) && (
+                    <button
+                      className="popover-menu-item"
+                      type="button"
+                      onClick={() => { setProfileDropdownOpen(false); setActiveTab('suporte'); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <path d="M12 17h.01" />
+                      </svg>
+                      <span>Suporte e Ajuda</span>
+                    </button>
+                  )}
+
+                  {(!popoverSearch || 'sair da conta'.includes(popoverSearch.toLowerCase())) && (
+                    <button
+                      className="popover-menu-item logout"
+                      type="button"
+                      onClick={() => { setProfileDropdownOpen(false); onLogout(); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" x2="9" y1="12" y2="12" />
+                      </svg>
+                      <span>Sair da Conta</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
