@@ -74,6 +74,7 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
             <div className="dashboard-v5-hero__forest" aria-hidden="true" />
             <div className="dashboard-v5-hero__foliage dashboard-v5-hero__foliage--canopy" aria-hidden="true" />
             <div className="hero-sacred-aura" aria-hidden="true" />
+            <div className="hero-light-sheen" aria-hidden="true" />
             
             {/* Fagúlhas Flutuantes de Axé (GPU 60fps) */}
             <div className="hero-embers-container" aria-hidden="true">
@@ -96,6 +97,7 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
               </defs>
               <path className="hero-energy-base" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" />
               <path className="hero-energy-glow-line" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" stroke="url(#dashboard-hero-energy)" strokeWidth="3" fill="none" opacity="0.9" />
+              <path className="hero-energy-stream" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" />
             </svg>
 
             <div className="hero-welcome-inner">
@@ -155,6 +157,8 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
               <span className="c-ember ember-1" />
               <span className="c-ember ember-2" />
               <span className="c-ember ember-3" />
+              <span className="c-ember ember-4" />
+              <span className="c-ember ember-5" />
             </div>
             
 

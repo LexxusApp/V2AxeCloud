@@ -2806,10 +2806,133 @@
 
 
 /* ==========================================================================
-   RISCO DOURADO ESTÁTICO & MOVIMENTO BEM SUAVE DAS FOLHAGENS/FLORES
+   AXÉ PRO DASHBOARD — ALIVE & MAGICAL 60FPS MOTION SUITE (ZERO LAG)
+   Aura radiante, feixe de energia vivo, varreduras de luz, fagúlhas de axé,
+   balanço orgânico da mata, radar vivo e efeitos de hover táteis em todos os cards.
    ========================================================================== */
 
-/* 1. Risco Brilhante Elegante (Visível, Dourado e Estático) */
+/* 1. FLORESTA SAGRADA & BALANÇO DA COPA DE FOLHAS (GPU COMPOSITE) */
+.hero-welcome-card .dashboard-v5-hero__forest {
+  position: absolute;
+  inset: -4%;
+  z-index: 0;
+  background: url("/dashboard/command-forest.webp") var(--hero-forest-position) / cover no-repeat;
+  filter: brightness(var(--hero-forest-brightness)) saturate(var(--hero-forest-saturation));
+  opacity: 1;
+  pointer-events: none;
+  will-change: transform;
+  transform: scale(1.045) translateZ(0);
+  animation: heroForestSlowBreathe60 11s ease-in-out infinite alternate;
+}
+
+@keyframes heroForestSlowBreathe60 {
+  0% { transform: scale(1.045) translate3d(0, 0, 0); }
+  100% { transform: scale(1.075) translate3d(-0.5%, -0.5%, 0); }
+}
+
+.hero-welcome-card .dashboard-v5-hero__foliage--canopy {
+  position: absolute;
+  inset: -4%;
+  z-index: 1;
+  background: url("/dashboard/command-forest.webp") var(--hero-forest-position) / cover no-repeat;
+  filter: brightness(var(--hero-forest-brightness)) saturate(var(--hero-forest-saturation));
+  opacity: 0.95;
+  -webkit-mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
+  mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
+  transform-origin: 92% 10%;
+  pointer-events: none;
+  will-change: transform;
+  transform: scale(1.045) translateZ(0);
+  animation: foliageSwayComposite60 6.5s cubic-bezier(0.77, 0, 0.175, 1) infinite alternate;
+}
+
+@keyframes foliageSwayComposite60 {
+  0% { transform: scale(1.045) rotate(-0.6deg) translate3d(-0.3%, -0.3%, 0); }
+  100% { transform: scale(1.065) rotate(0.9deg) translate3d(0.6%, 0.7%, 0); }
+}
+
+/* 2. AURA SAGRADA RADIANDO NO CARD DE BOAS-VINDAS */
+.hero-sacred-aura {
+  position: absolute;
+  top: -30px;
+  right: 10%;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(246, 201, 76, 0.32) 0%, rgba(229, 174, 18, 0.12) 42%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: heroAuraBreathe60 5.5s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+@keyframes heroAuraBreathe60 {
+  0% { transform: scale(0.88) translateZ(0); opacity: 0.55; }
+  50% { transform: scale(1.15) translateZ(0); opacity: 0.95; }
+  100% { transform: scale(0.94) translateZ(0); opacity: 0.65; }
+}
+
+/* 3. AURA DOURADA VIVA NO TRIDENTE (CARD DA GIRA) */
+.cinematic-gira-aura {
+  position: absolute;
+  top: 12%;
+  right: 20%;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(246, 201, 76, 0.35) 0%, rgba(229, 174, 18, 0.14) 42%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: tridentAuraBreathe60 5s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+@keyframes tridentAuraBreathe60 {
+  0% { transform: scale(0.9) translateZ(0); opacity: 0.55; }
+  50% { transform: scale(1.15) translateZ(0); opacity: 0.95; }
+  100% { transform: scale(0.96) translateZ(0); opacity: 0.62; }
+}
+
+/* 4. VARREDURA PERIÓDICA DE LUZ DOURADA (LIGHT SHEEN NOS 2 CARDS HERO) */
+.hero-light-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(115deg, transparent 35%, rgba(246, 201, 76, 0.16) 50%, transparent 65%);
+  will-change: transform;
+  transform: translateX(-140%) translateZ(0);
+  animation: heroSheenSweep60 7.5s ease-in-out infinite 1.5s;
+  display: block !important;
+}
+
+@keyframes heroSheenSweep60 {
+  0%, 65% { transform: translateX(-140%) translateZ(0); }
+  100% { transform: translateX(140%) translateZ(0); }
+}
+
+.cinematic-light-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(115deg, transparent 35%, rgba(246, 201, 76, 0.15) 50%, transparent 65%);
+  will-change: transform;
+  transform: translateX(-130%) translateZ(0);
+  animation: lightSheenSweep60 8s ease-in-out infinite 2s;
+  display: block !important;
+}
+
+@keyframes lightSheenSweep60 {
+  0%, 70% { transform: translateX(-130%) translateZ(0); }
+  100% { transform: translateX(130%) translateZ(0); }
+}
+
+/* 5. FLUXO DE ENERGIA DOURADA VIAJANDO PELA CURVA (HERO ENERGY STREAM) */
 .hero-welcome-card .dashboard-v5-hero__energy {
   position: absolute;
   inset: 0;
@@ -2823,336 +2946,209 @@
 
 .hero-energy-base {
   fill: none;
-  stroke: rgba(229, 174, 18, 0.28) !important;
-  stroke-width: 1.5 !important;
+  stroke: rgba(229, 174, 18, 0.25);
+  stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
 .hero-energy-glow-line {
   fill: none;
-  stroke: url(#dashboard-hero-energy) !important;
-  stroke-width: 2.2 !important;
-  stroke-linecap: round !important;
+  stroke: url(#dashboard-hero-energy);
+  stroke-width: 2.5;
+  stroke-linecap: round;
   vector-effect: non-scaling-stroke;
-  opacity: 0.9 !important;
+  opacity: 0.9;
 }
 
-/* 2. O feixe de luz que corria pela linha e a varredura (sheen) ficam DESLIGADOS */
-.hero-energy-stream,
-.hero-light-sheen {
-  display: none !important;
+.hero-energy-stream {
+  fill: none;
+  stroke: url(#dashboard-hero-energy);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 220 580;
+  stroke-dashoffset: 800;
+  animation: heroEnergyTravel60 4.2s linear infinite;
+  vector-effect: non-scaling-stroke;
+  will-change: stroke-dashoffset;
+  display: block !important;
 }
 
-/* 3. Movimento Bem Suave e Orgânico das Folhagens/Flores ao Fundo */
-.hero-welcome-card .dashboard-v5-hero__foliage--canopy {
-  position: absolute;
-  inset: -4%;
-  z-index: 1;
-  background: url("/dashboard/command-forest.webp") var(--hero-forest-position) / cover no-repeat;
-  filter: brightness(var(--hero-forest-brightness)) saturate(var(--hero-forest-saturation));
-  opacity: 0.95 !important;
-  -webkit-mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
-  mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
-  transform-origin: 92% 10%;
-  animation: dashboard-v5-foliage-sway-canopy 9s ease-in-out infinite alternate !important;
-  pointer-events: none;
+@keyframes heroEnergyTravel60 {
+  from { stroke-dashoffset: 800; }
+  to { stroke-dashoffset: 0; }
 }
 
-@keyframes dashboard-v5-foliage-sway-canopy {
-  0% {
-    transform: scale(1.045) rotate(-0.5deg) translate3d(-0.2%, -0.2%, 0);
-  }
-  50% {
-    transform: scale(1.055) rotate(0.3deg) translate3d(0.3%, 0.4%, 0);
-  }
-  100% {
-    transform: scale(1.065) rotate(0.8deg) translate3d(0.5%, 0.6%, 0);
-  }
-}
-
-.hero-welcome-card .dashboard-v5-hero__forest {
-  animation: heroForestSlowBreathe 14s ease-in-out infinite alternate !important;
-}
-
-@keyframes heroForestSlowBreathe {
-  0% { transform: scale(1.045) translate3d(0, 0, 0); }
-  100% { transform: scale(1.07) translate3d(-0.4%, -0.4%, 0); }
-}
-
-/* 4. Aura de Respiração Suave no Card */
-.hero-sacred-aura {
-  position: absolute;
-  top: -30px;
-  right: 10%;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(229, 174, 18, 0.2) 0%, rgba(229, 174, 18, 0.05) 45%, transparent 72%) !important;
-  pointer-events: none;
-  z-index: 1;
-  animation: heroAuraBreatheSoft 12s ease-in-out infinite alternate !important;
-  mix-blend-mode: screen;
-}
-
-@keyframes heroAuraBreatheSoft {
-  0% { transform: scale(0.95); opacity: 0.4; }
-  100% { transform: scale(1.06); opacity: 0.68; }
-}
-
-/* 5. Fagúlhas bem calmas */
-.hero-ember {
-  position: absolute;
-  border-radius: 50%;
-  background: #f6c94c !important;
-  box-shadow: 0 0 6px 1px rgba(246, 201, 76, 0.35) !important;
-  opacity: 0.45 !important;
-}
-
-.h-ember-1 {
-  bottom: 25% !important;
-  left: 30% !important;
-  width: 3px !important;
-  height: 3px !important;
-  animation: heroFloatEmberSoft1 12s ease-in-out infinite !important;
-}
-
-.h-ember-2 {
-  bottom: 30% !important;
-  left: 55% !important;
-  width: 2.5px !important;
-  height: 2.5px !important;
-  animation: heroFloatEmberSoft2 15s ease-in-out infinite 2s !important;
-}
-
-.h-ember-3 {
-  bottom: 20% !important;
-  left: 75% !important;
-  width: 3px !important;
-  height: 3px !important;
-  animation: heroFloatEmberSoft1 14s ease-in-out infinite 4s !important;
-}
-
-@keyframes heroFloatEmberSoft1 {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  35% { opacity: 0.6; transform: translateY(-16px) translateX(5px); }
-  75% { opacity: 0.4; transform: translateY(-38px) translateX(-4px); }
-  100% { transform: translateY(-60px) translateX(6px); opacity: 0; }
-}
-
-@keyframes heroFloatEmberSoft2 {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  30% { opacity: 0.65; transform: translateY(-18px) translateX(-6px); }
-  70% { opacity: 0.35; transform: translateY(-42px) translateX(4px); }
-  100% { transform: translateY(-70px) translateX(-5px); opacity: 0; }
-}
-
-
-/* ==========================================================
-   ALIVE & MAGICAL 60FPS MOTION SUITE (ZERO LAG / COMPOSITE-ONLY)
-   Respiração da floresta, balanço da copa, fagúlhas vivas,
-   pulso litúrgico e varredura do radar 100% acelerados por GPU.
-   ========================================================== */
-
-/* 1. Respiração Nobre e Contínua da Floresta Sagrada */
-.hero-welcome-card .dashboard-v5-hero__forest {
-  will-change: transform !important;
-  transform: scale(1.045) translateZ(0) !important;
-  animation: heroForestSlowBreathe60 14s ease-in-out infinite alternate !important;
-  pointer-events: none;
-}
-
-@keyframes heroForestSlowBreathe60 {
-  0% { transform: scale(1.045) translate3d(0, 0, 0); }
-  100% { transform: scale(1.072) translate3d(-0.4%, -0.4%, 0); }
-}
-
-/* 2. Balanço Suave da Copa de Folhas */
-.hero-welcome-card .dashboard-v5-hero__foliage--canopy {
-  will-change: transform !important;
-  transform: scale(1.045) translateZ(0) !important;
-  transform-origin: 92% 10% !important;
-  animation: foliageSwayComposite60 9s ease-in-out infinite alternate !important;
-  pointer-events: none;
-  opacity: 0.95 !important;
-}
-
-@keyframes foliageSwayComposite60 {
-  0% { transform: scale(1.045) rotate(-0.5deg) translate3d(-0.2%, -0.2%, 0); }
-  50% { transform: scale(1.055) rotate(0.3deg) translate3d(0.3%, 0.4%, 0); }
-  100% { transform: scale(1.065) rotate(0.8deg) translate3d(0.5%, 0.6%, 0); }
-}
-
-/* 3. Aura Sagrada Dourada Respirando */
-.hero-sacred-aura {
-  position: absolute !important;
-  top: -30px !important;
-  right: 10% !important;
-  width: 360px !important;
-  height: 360px !important;
-  border-radius: 50% !important;
-  background: radial-gradient(circle, rgba(229, 174, 18, 0.22) 0%, rgba(229, 174, 18, 0.07) 45%, transparent 72%) !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
-  animation: heroAuraBreatheComposite60 9s ease-in-out infinite alternate !important;
-}
-
-@keyframes heroAuraBreatheComposite60 {
-  0% { transform: scale(0.92) translateZ(0); opacity: 0.45; }
-  100% { transform: scale(1.08) translateZ(0); opacity: 0.85; }
-}
-
-/* 4. Aura do Tridente no Card de Gira */
-.cinematic-gira-aura {
-  position: absolute !important;
-  inset: 0 !important;
-  background: radial-gradient(circle at 75% 45%, rgba(229, 174, 18, 0.22) 0%, rgba(229, 174, 18, 0.06) 42%, transparent 68%) !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
-  animation: tridentAuraComposite60 8s ease-in-out infinite alternate !important;
-}
-
-@keyframes tridentAuraComposite60 {
-  0% { transform: scale(0.94) translateZ(0); opacity: 0.5; }
-  100% { transform: scale(1.06) translateZ(0); opacity: 0.85; }
-}
-
-/* 5. Fagúlhas Flutuantes de Axé (Golden Embers Vivas a 60fps) */
+/* 6. FAGÚLHAS FLUTUANTES DE AXÉ (GOLDEN EMBERS VIVAS - 60FPS) */
 .hero-embers-container,
 .cinematic-embers {
-  position: absolute !important;
-  inset: 0 !important;
-  pointer-events: none !important;
-  z-index: 2 !important;
-  overflow: hidden !important;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
   display: block !important;
 }
 
 .hero-ember,
 .c-ember {
-  position: absolute !important;
-  border-radius: 50% !important;
-  background: #ffe066 !important;
-  box-shadow: 0 0 8px 2px rgba(246, 201, 76, 0.75) !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
+  position: absolute;
+  border-radius: 50%;
+  background: #ffe066;
+  box-shadow: 0 0 8px 2px rgba(246, 201, 76, 0.85);
+  will-change: transform, opacity;
+  transform: translateZ(0);
   display: block !important;
 }
 
-.h-ember-1, .ember-1 {
-  bottom: 25% !important;
-  left: 28% !important;
-  width: 3.5px !important;
-  height: 3.5px !important;
-  animation: emberFloatComposite1 11s ease-in-out infinite !important;
+/* Welcome card embers */
+.h-ember-1 {
+  bottom: 22%;
+  left: 28%;
+  width: 3.5px;
+  height: 3.5px;
+  animation: floatEmber60_1 5.2s ease-in-out infinite;
+}
+.h-ember-2 {
+  bottom: 30%;
+  left: 55%;
+  width: 4px;
+  height: 4px;
+  animation: floatEmber60_2 6.5s ease-in-out infinite 1.2s;
+}
+.h-ember-3 {
+  bottom: 18%;
+  left: 78%;
+  width: 3px;
+  height: 3px;
+  animation: floatEmber60_3 4.8s ease-in-out infinite 2.4s;
 }
 
-.h-ember-2, .ember-2 {
-  bottom: 32% !important;
-  left: 54% !important;
-  width: 3px !important;
-  height: 3px !important;
-  animation: emberFloatComposite2 14s ease-in-out infinite 2s !important;
+/* Gira card embers */
+.ember-1 {
+  top: 78%;
+  right: 32%;
+  width: 3.5px;
+  height: 3.5px;
+  animation: floatEmber60_1 5.2s ease-in-out infinite;
+}
+.ember-2 {
+  top: 68%;
+  right: 25%;
+  width: 4px;
+  height: 4px;
+  animation: floatEmber60_2 6.5s ease-in-out infinite 1.4s;
+}
+.ember-3 {
+  top: 84%;
+  right: 39%;
+  width: 2.5px;
+  height: 2.5px;
+  animation: floatEmber60_3 4.6s ease-in-out infinite 2.2s;
+}
+.ember-4 {
+  top: 58%;
+  right: 19%;
+  width: 3px;
+  height: 3px;
+  animation: floatEmber60_1 7s ease-in-out infinite 3.5s;
+}
+.ember-5 {
+  top: 74%;
+  right: 44%;
+  width: 2px;
+  height: 2px;
+  animation: floatEmber60_2 5.2s ease-in-out infinite 0.8s;
 }
 
-.h-ember-3, .ember-3 {
-  bottom: 22% !important;
-  left: 74% !important;
-  width: 3.5px !important;
-  height: 3.5px !important;
-  animation: emberFloatComposite1 13s ease-in-out infinite 4.5s !important;
+@keyframes floatEmber60_1 {
+  0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0; }
+  25% { opacity: 0.95; }
+  75% { opacity: 0.7; }
+  100% { transform: translate3d(-14px, -85px, 0) scale(1.2); opacity: 0; }
 }
 
-@keyframes emberFloatComposite1 {
-  0% { transform: translate3d(0, 0, 0); opacity: 0; }
-  25% { opacity: 0.9; transform: translate3d(6px, -26px, 0); }
-  65% { opacity: 0.65; transform: translate3d(-6px, -60px, 0); }
-  100% { transform: translate3d(8px, -95px, 0); opacity: 0; }
+@keyframes floatEmber60_2 {
+  0% { transform: translate3d(0, 0, 0) scale(0.7); opacity: 0; }
+  20% { opacity: 0.9; }
+  70% { opacity: 0.65; }
+  100% { transform: translate3d(16px, -95px, 0) scale(1.1); opacity: 0; }
 }
 
-@keyframes emberFloatComposite2 {
-  0% { transform: translate3d(0, 0, 0); opacity: 0; }
-  20% { opacity: 0.95; transform: translate3d(-7px, -30px, 0); }
-  60% { opacity: 0.6; transform: translate3d(8px, -68px, 0); }
-  100% { transform: translate3d(-5px, -110px, 0); opacity: 0; }
+@keyframes floatEmber60_3 {
+  0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+  30% { opacity: 1; }
+  80% { opacity: 0.55; }
+  100% { transform: translate3d(-8px, -70px, 0) scale(1); opacity: 0; }
 }
 
-/* 6. Estrela Brilhando na Tag da Gira (✦ Sparkle) */
+/* 7. ESTRELA PISCANDO NA TAG DA GIRA (✦ SPARKLE) */
 .sparkle {
-  display: inline-block !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
-  animation: sparkleTwinkle60 3.2s ease-in-out infinite !important;
-  color: #f6c94c !important;
+  display: inline-block;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: starTwinkle60 3s ease-in-out infinite;
+  color: #f6c94c;
 }
 
-@keyframes sparkleTwinkle60 {
-  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.75; }
+@keyframes starTwinkle60 {
+  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.8; }
   50% { transform: scale(1.35) rotate(18deg) translateZ(0); opacity: 1; }
 }
 
-/* 7. Varredura do Mini Radar com Aceleração de Hardware */
-.mini-radar-sweep {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  border-radius: 50% !important;
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(229, 174, 18, 0.45) 360deg) !important;
-  will-change: transform !important;
-  transform: translateZ(0) !important;
-  animation: miniSweep60 4s linear infinite !important;
+/* 8. ÍCONE ESTELAR GIRATÓRIO NA TAG DO PAINEL */
+.hero-tag-icon {
+  display: inline-block;
+  will-change: transform;
+  transform: translateZ(0);
+  animation: tagSparkleSpin60 4.5s ease-in-out infinite;
 }
 
-@keyframes miniSweep60 {
-  from { transform: rotate(0deg) translateZ(0); }
-  to { transform: rotate(360deg) translateZ(0); }
+@keyframes tagSparkleSpin60 {
+  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.9; }
+  50% { transform: scale(1.3) rotate(180deg) translateZ(0); opacity: 1; }
 }
 
-/* 8. Pulsos Vivos Litúrgicos (Compositor 60fps) */
+/* 9. INDICADORES LITÚRGICOS PULSANTES */
 .pulse-green {
-  position: relative !important;
+  position: relative;
 }
 .pulse-green::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: 50% !important;
-  background: rgba(34, 197, 94, 0.8) !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
-  animation: pulseRingComposite60 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite !important;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.8);
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: pulseRingComposite60 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
 
 .pulse-gold {
-  position: relative !important;
+  position: relative;
 }
 .pulse-gold::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: 50% !important;
-  background: rgba(245, 158, 11, 0.85) !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
-  animation: pulseRingComposite60 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite 0.8s !important;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.85);
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: pulseRingComposite60 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite 0.7s;
 }
 
 .confirmed-pulse-dot {
-  position: relative !important;
+  position: relative;
 }
 .confirmed-pulse-dot::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: 50% !important;
-  background: rgba(34, 197, 94, 0.9) !important;
-  will-change: transform, opacity !important;
-  transform: translateZ(0) !important;
-  animation: pulseRingComposite60 2s cubic-bezier(0.24, 0, 0.38, 1) infinite !important;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.9);
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: pulseRingComposite60 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
 
 @keyframes pulseRingComposite60 {
@@ -3160,41 +3156,122 @@
   100% { transform: scale(2.6) translateZ(0); opacity: 0; }
 }
 
-/* 9. Risco de Energia Dourada Iluminada */
-.hero-energy-glow-line {
-  will-change: opacity !important;
-  transform: translateZ(0) !important;
-  animation: energyGlowBreath60 6.5s ease-in-out infinite alternate !important;
+/* 10. MINI RADAR SWEEP */
+.mini-radar-sweep {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(229, 174, 18, 0.45) 360deg);
+  will-change: transform;
+  transform: translateZ(0);
+  animation: miniSweep60 3.5s linear infinite;
 }
 
-@keyframes energyGlowBreath60 {
-  0% { opacity: 0.72; }
-  100% { opacity: 1; }
+@keyframes miniSweep60 {
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
 }
 
-/* 10. Ícone Estelar na Tag do Painel */
-.hero-tag-icon {
-  will-change: transform !important;
-  transform: translateZ(0) !important;
-  animation: tagSparkleSpin60 6s ease-in-out infinite !important;
-}
+/* ==========================================================================
+   11. HOVER TÁTIL & VIBRANTE EM TODOS OS CARDS E BOTÕES DO SISTEMA (60FPS)
+   Sem travar: transições apenas de transform e box-shadow aceleradas por hardware.
+   ========================================================================== */
 
-@keyframes tagSparkleSpin60 {
-  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.85; }
-  50% { transform: scale(1.22) rotate(180deg) translateZ(0); opacity: 1; }
-}
-
-/* Isolamento de Hardware para Cards */
 .hero-welcome-card,
 .cinematic-gira-card,
 .berry-card,
 .feature-widget-card,
-.section-panel {
-  contain: layout style !important;
-  transform: translateZ(0) !important;
+.action-item,
+.shortcut-btn,
+.btn-hero-primary,
+.btn-hero-secondary,
+.btn-cinematic-notify,
+.btn-cinematic-open,
+.checklist-step {
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1), box-shadow 220ms ease, border-color 220ms ease !important;
+  will-change: transform, box-shadow;
 }
 
-/* Button reset for popover menu items */
+/* Hover no Card de Boas-Vindas */
+.hero-welcome-card:hover {
+  transform: translateY(-3px) translateZ(0) !important;
+  border-color: rgba(229, 174, 18, 0.55) !important;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.65), 0 0 30px rgba(229, 174, 18, 0.18) !important;
+}
+
+/* Hover no Card Cinematográfico da Gira */
+.cinematic-gira-card:hover {
+  transform: translateY(-3px) translateZ(0) !important;
+  border-color: rgba(229, 174, 18, 0.5) !important;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.65), 0 0 26px rgba(229, 174, 18, 0.2) !important;
+}
+
+.cinematic-gira-card:hover .cinematic-gira-badge {
+  border-color: rgba(246, 201, 76, 0.65) !important;
+  background: rgba(229, 174, 18, 0.24) !important;
+}
+
+/* Hover nos 4 Cards de Métricas Estilo Berry */
+.berry-card:hover {
+  transform: translateY(-4px) translateZ(0) !important;
+  box-shadow: 0 14px 28px -4px rgba(32, 40, 45, 0.14) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Hover nos Widgets de Preceito e Radar */
+.feature-widget-card:hover {
+  transform: translateY(-3px) translateZ(0) !important;
+  box-shadow: 0 10px 24px -4px rgba(32, 40, 45, 0.12) !important;
+}
+
+/* Hover nos Itens de Ação / Tarefas */
+.action-item:hover {
+  transform: translateX(5px) translateZ(0) !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Hover nos Botões Hero */
+.btn-hero-primary:hover {
+  transform: translateY(-2px) translateZ(0) !important;
+  box-shadow: 0 6px 16px rgba(229, 174, 18, 0.45) !important;
+}
+
+.btn-hero-secondary:hover {
+  transform: translateY(-2px) translateZ(0) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Hover nos Botões da Gira */
+.btn-cinematic-notify:hover {
+  transform: translateY(-1px) translateZ(0) !important;
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
+}
+
+.btn-cinematic-open:hover {
+  transform: translateY(-1px) translateZ(0) !important;
+  box-shadow: 0 4px 16px rgba(229, 174, 18, 0.5) !important;
+}
+
+/* Hover nos Atalhos Rápidos */
+.shortcut-btn:hover {
+  transform: translateY(-2px) translateZ(0) !important;
+  border-color: #e5ae12 !important;
+  color: #121926 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Hover no Checklist de Onboarding */
+.checklist-step:hover {
+  transform: translateX(4px) translateZ(0) !important;
+  background: #ffffff !important;
+}
+
+/* Reset de Botão para Itens do Popover */
 button.popover-menu-item {
   border: none;
   background: transparent;
