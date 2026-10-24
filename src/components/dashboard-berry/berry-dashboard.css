@@ -2936,74 +2936,243 @@ p, span, small {
 
 
 /* ==========================================================
-   PERFORMANCE 60FPS BOOST FOR BERRY DASHBOARD
-   Elimina recálculos contínuos de GPU, mantendo estética 100% nobre
+   ALIVE & MAGICAL 60FPS MOTION SUITE (ZERO LAG / COMPOSITE-ONLY)
+   Respiração da floresta, balanço da copa, fagúlhas vivas,
+   pulso litúrgico e varredura do radar 100% acelerados por GPU.
    ========================================================== */
+
+/* 1. Respiração Nobre e Contínua da Floresta Sagrada */
 .hero-welcome-card .dashboard-v5-hero__forest {
-  animation: none !important;
-  transform: translateZ(0) !important;
-  will-change: auto !important;
+  will-change: transform !important;
+  transform: scale(1.045) translateZ(0) !important;
+  animation: heroForestSlowBreathe60 14s ease-in-out infinite alternate !important;
+  pointer-events: none;
 }
 
+@keyframes heroForestSlowBreathe60 {
+  0% { transform: scale(1.045) translate3d(0, 0, 0); }
+  100% { transform: scale(1.072) translate3d(-0.4%, -0.4%, 0); }
+}
+
+/* 2. Balanço Suave da Copa de Folhas */
 .hero-welcome-card .dashboard-v5-hero__foliage--canopy {
-  animation: none !important;
-  transform: translateZ(0) !important;
-  will-change: auto !important;
+  will-change: transform !important;
+  transform: scale(1.045) translateZ(0) !important;
+  transform-origin: 92% 10% !important;
+  animation: foliageSwayComposite60 9s ease-in-out infinite alternate !important;
+  pointer-events: none;
+  opacity: 0.95 !important;
 }
 
+@keyframes foliageSwayComposite60 {
+  0% { transform: scale(1.045) rotate(-0.5deg) translate3d(-0.2%, -0.2%, 0); }
+  50% { transform: scale(1.055) rotate(0.3deg) translate3d(0.3%, 0.4%, 0); }
+  100% { transform: scale(1.065) rotate(0.8deg) translate3d(0.5%, 0.6%, 0); }
+}
+
+/* 3. Aura Sagrada Dourada Respirando */
 .hero-sacred-aura {
-  animation: none !important;
+  position: absolute !important;
+  top: -30px !important;
+  right: 10% !important;
+  width: 360px !important;
+  height: 360px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(229, 174, 18, 0.22) 0%, rgba(229, 174, 18, 0.07) 45%, transparent 72%) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  will-change: transform, opacity !important;
   transform: translateZ(0) !important;
-  opacity: 0.65 !important;
-  mix-blend-mode: normal !important;
-  filter: none !important;
+  animation: heroAuraBreatheComposite60 9s ease-in-out infinite alternate !important;
 }
 
+@keyframes heroAuraBreatheComposite60 {
+  0% { transform: scale(0.92) translateZ(0); opacity: 0.45; }
+  100% { transform: scale(1.08) translateZ(0); opacity: 0.85; }
+}
+
+/* 4. Aura do Tridente no Card de Gira */
 .cinematic-gira-aura {
-  animation: none !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(circle at 75% 45%, rgba(229, 174, 18, 0.22) 0%, rgba(229, 174, 18, 0.06) 42%, transparent 68%) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  will-change: transform, opacity !important;
   transform: translateZ(0) !important;
-  opacity: 0.6 !important;
-  mix-blend-mode: normal !important;
-  filter: none !important;
+  animation: tridentAuraComposite60 8s ease-in-out infinite alternate !important;
 }
 
-.hero-light-sheen,
-.cinematic-light-sheen {
-  display: none !important;
+@keyframes tridentAuraComposite60 {
+  0% { transform: scale(0.94) translateZ(0); opacity: 0.5; }
+  100% { transform: scale(1.06) translateZ(0); opacity: 0.85; }
 }
 
+/* 5. Fagúlhas Flutuantes de Axé (Golden Embers Vivas a 60fps) */
 .hero-embers-container,
-.cinematic-embers,
+.cinematic-embers {
+  position: absolute !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  overflow: hidden !important;
+  display: block !important;
+}
+
 .hero-ember,
 .c-ember {
-  display: none !important;
-}
-
-.hero-energy-stream {
-  animation: none !important;
-}
-
-.hero-tag-icon {
-  animation: none !important;
-  filter: none !important;
-}
-
-.sparkle {
-  animation: none !important;
-  filter: none !important;
-}
-
-.pulse-green,
-.pulse-gold {
-  animation: none !important;
-}
-
-.mini-radar-sweep {
+  position: absolute !important;
+  border-radius: 50% !important;
+  background: #ffe066 !important;
+  box-shadow: 0 0 8px 2px rgba(246, 201, 76, 0.75) !important;
+  will-change: transform, opacity !important;
   transform: translateZ(0) !important;
-  will-change: transform !important;
+  display: block !important;
 }
 
-/* Card hardware isolation */
+.h-ember-1, .ember-1 {
+  bottom: 25% !important;
+  left: 28% !important;
+  width: 3.5px !important;
+  height: 3.5px !important;
+  animation: emberFloatComposite1 11s ease-in-out infinite !important;
+}
+
+.h-ember-2, .ember-2 {
+  bottom: 32% !important;
+  left: 54% !important;
+  width: 3px !important;
+  height: 3px !important;
+  animation: emberFloatComposite2 14s ease-in-out infinite 2s !important;
+}
+
+.h-ember-3, .ember-3 {
+  bottom: 22% !important;
+  left: 74% !important;
+  width: 3.5px !important;
+  height: 3.5px !important;
+  animation: emberFloatComposite1 13s ease-in-out infinite 4.5s !important;
+}
+
+@keyframes emberFloatComposite1 {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  25% { opacity: 0.9; transform: translate3d(6px, -26px, 0); }
+  65% { opacity: 0.65; transform: translate3d(-6px, -60px, 0); }
+  100% { transform: translate3d(8px, -95px, 0); opacity: 0; }
+}
+
+@keyframes emberFloatComposite2 {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  20% { opacity: 0.95; transform: translate3d(-7px, -30px, 0); }
+  60% { opacity: 0.6; transform: translate3d(8px, -68px, 0); }
+  100% { transform: translate3d(-5px, -110px, 0); opacity: 0; }
+}
+
+/* 6. Estrela Brilhando na Tag da Gira (✦ Sparkle) */
+.sparkle {
+  display: inline-block !important;
+  will-change: transform, opacity !important;
+  transform: translateZ(0) !important;
+  animation: sparkleTwinkle60 3.2s ease-in-out infinite !important;
+  color: #f6c94c !important;
+}
+
+@keyframes sparkleTwinkle60 {
+  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.75; }
+  50% { transform: scale(1.35) rotate(18deg) translateZ(0); opacity: 1; }
+}
+
+/* 7. Varredura do Mini Radar com Aceleração de Hardware */
+.mini-radar-sweep {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(229, 174, 18, 0.45) 360deg) !important;
+  will-change: transform !important;
+  transform: translateZ(0) !important;
+  animation: miniSweep60 4s linear infinite !important;
+}
+
+@keyframes miniSweep60 {
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
+}
+
+/* 8. Pulsos Vivos Litúrgicos (Compositor 60fps) */
+.pulse-green {
+  position: relative !important;
+}
+.pulse-green::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(34, 197, 94, 0.8) !important;
+  will-change: transform, opacity !important;
+  transform: translateZ(0) !important;
+  animation: pulseRingComposite60 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite !important;
+}
+
+.pulse-gold {
+  position: relative !important;
+}
+.pulse-gold::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(245, 158, 11, 0.85) !important;
+  will-change: transform, opacity !important;
+  transform: translateZ(0) !important;
+  animation: pulseRingComposite60 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite 0.8s !important;
+}
+
+.confirmed-pulse-dot {
+  position: relative !important;
+}
+.confirmed-pulse-dot::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(34, 197, 94, 0.9) !important;
+  will-change: transform, opacity !important;
+  transform: translateZ(0) !important;
+  animation: pulseRingComposite60 2s cubic-bezier(0.24, 0, 0.38, 1) infinite !important;
+}
+
+@keyframes pulseRingComposite60 {
+  0% { transform: scale(1) translateZ(0); opacity: 0.9; }
+  100% { transform: scale(2.6) translateZ(0); opacity: 0; }
+}
+
+/* 9. Risco de Energia Dourada Iluminada */
+.hero-energy-glow-line {
+  will-change: opacity !important;
+  transform: translateZ(0) !important;
+  animation: energyGlowBreath60 6.5s ease-in-out infinite alternate !important;
+}
+
+@keyframes energyGlowBreath60 {
+  0% { opacity: 0.72; }
+  100% { opacity: 1; }
+}
+
+/* 10. Ícone Estelar na Tag do Painel */
+.hero-tag-icon {
+  will-change: transform !important;
+  transform: translateZ(0) !important;
+  animation: tagSparkleSpin60 6s ease-in-out infinite !important;
+}
+
+@keyframes tagSparkleSpin60 {
+  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.85; }
+  50% { transform: scale(1.22) rotate(180deg) translateZ(0); opacity: 1; }
+}
+
+/* Isolamento de Hardware para Cards */
 .hero-welcome-card,
 .cinematic-gira-card,
 .berry-card,

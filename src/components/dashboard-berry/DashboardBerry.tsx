@@ -75,6 +75,13 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
             <div className="dashboard-v5-hero__foliage dashboard-v5-hero__foliage--canopy" aria-hidden="true" />
             <div className="hero-sacred-aura" aria-hidden="true" />
             
+            {/* Fagúlhas Flutuantes de Axé (GPU 60fps) */}
+            <div className="hero-embers-container" aria-hidden="true">
+              <span className="hero-ember h-ember-1" />
+              <span className="hero-ember h-ember-2" />
+              <span className="hero-ember h-ember-3" />
+            </div>
+            
 
             {/* Risco Dourado Iluminado */}
             <svg className="dashboard-v5-hero__energy" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true">
@@ -142,6 +149,13 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
             <div className="cinematic-gira-art" aria-hidden="true" />
             <div className="cinematic-gira-aura" aria-hidden="true" />
             <div className="cinematic-light-sheen" aria-hidden="true" />
+            
+            {/* Fagúlhas do Tridente Sagrado (GPU 60fps) */}
+            <div className="cinematic-embers" aria-hidden="true">
+              <span className="c-ember ember-1" />
+              <span className="c-ember ember-2" />
+              <span className="c-ember ember-3" />
+            </div>
             
 
             <div className="cinematic-gira-content">
