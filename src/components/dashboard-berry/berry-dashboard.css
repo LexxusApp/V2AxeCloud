@@ -1298,7 +1298,11 @@ p, span, small {
   width: fit-content;
 }
 
-.hero-title {
+.hero-title,
+.axe-berry-mode h1.hero-title,
+.axe-berry-mode .hero-title {
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   margin: 0 0 6px 0;
   font-size: 26px;
   font-weight: 750;
@@ -1610,7 +1614,11 @@ p, span, small {
   50% { transform: scale(1.35) rotate(18deg); filter: drop-shadow(0 0 6px #fef08a); }
 }
 
-.cinematic-gira-title {
+.cinematic-gira-title,
+.axe-berry-mode h2.cinematic-gira-title,
+.axe-berry-mode .cinematic-gira-title {
+  color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
   margin: 0 0 6px 0;
   font-size: 26px;
   font-weight: 750;
