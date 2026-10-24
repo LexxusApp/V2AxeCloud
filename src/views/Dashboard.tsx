@@ -896,11 +896,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     let cancelled = false;
     void supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
-      const hasUser = !!data.session?.user;
       setAuthLoading(false);
-      if (!hasUser && !loading) {
-        window.location.href = ROUTES.login;
-      }
     }).catch(() => {
       if (cancelled) return;
       setAuthLoading(false);
@@ -908,7 +904,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
     return () => {
       cancelled = true;
     };
-  }, [loading]);
+  }, []);
 
   if (!user && authLoading) {
     return <div className="h-[70vh] flex items-center justify-center"><LuxuryLoading /></div>;
@@ -1324,7 +1320,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                         withoutAppAccess === 1
                           ? '1 pessoa ainda não entrou no app'
                           : `${withoutAppAccess} pessoas ainda não entraram no app`,
-                      detail: 'Enviar acesso · entram com Registro + 6 dígitos do CPF',
+                      detail: 'Enviar acesso · entram com WhatsApp, E-mail ou Registro + 6 dígitos do CPF',
                       tab: 'children',
                       status: 'Ativar',
                       tone: 'gold',

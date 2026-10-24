@@ -204,11 +204,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       setTenantAnchorId(liveTenant);
       return;
     }
-    if (!session?.user) {
+    // NUNCA limpar âncora de tenant durante boot, recarga de atualização ou hidratação de sessão
+    const hasSavedAuth = typeof window !== 'undefined' && Boolean(localStorage.getItem('axecloud-auth-token'));
+    if (!session?.user && !isInitializing && !loading && !isSessionHydrating && !hasSavedAuth) {
       writeTenantAnchorToStorage(null);
       setTenantAnchorId(null);
     }
-  }, [tenantData?.tenant_id, session?.user?.id]);
+  }, [tenantData?.tenant_id, session?.user?.id, isInitializing, loading, isSessionHydrating]);
 
   useEffect(() => {
     if (userRole) {
@@ -216,11 +218,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       setRoleAnchor(userRole);
       return;
     }
-    if (!session?.user) {
+    // NUNCA limpar âncora de role durante boot, recarga de atualização ou hidratação de sessão
+    const hasSavedAuth = typeof window !== 'undefined' && Boolean(localStorage.getItem('axecloud-auth-token'));
+    if (!session?.user && !isInitializing && !loading && !isSessionHydrating && !hasSavedAuth) {
       writeUserRoleAnchor(null);
       setRoleAnchor(null);
     }
-  }, [userRole, session?.user?.id]);
+  }, [userRole, session?.user?.id, isInitializing, loading, isSessionHydrating]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -719,15 +723,39 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       }
 
       try {
-        setSession(session);
-        if (session) {
-          lastAuthUserIdRef.current = session.user.id;
-          if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        let currentSession = session;
+        const hasStoredAuthToken =
+          typeof window !== 'undefined' &&
+          Boolean(localStorage.getItem('axecloud-auth-token'));
+
+        // Se GoTrue disparou INITIAL_SESSION com session nula, mas há token salvo no storage:
+        // O token pode estar no meio de um refresh assíncrono (ex: access_token expirado após atualização).
+        // Recuperamos explicitamente via getSession() / refreshSession() antes de decidir!
+        if (!currentSession && (event === 'INITIAL_SESSION' || !initializedRef.current) && hasStoredAuthToken) {
+          try {
+            const { data: getRes } = await supabase.auth.getSession();
+            if (getRes?.session?.user) {
+              currentSession = getRes.session;
+            } else {
+              const { data: refRes } = await supabase.auth.refreshSession();
+              if (refRes?.session?.user) {
+                currentSession = refRes.session;
+              }
+            }
+          } catch (e) {
+            console.warn('[AUTH] Erro ao recuperar sessão em INITIAL_SESSION:', e);
+          }
+        }
+
+        setSession(currentSession);
+        if (currentSession) {
+          lastAuthUserIdRef.current = currentSession.user.id;
+          if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || !initializedRef.current) {
             // Garante que qualquer papel residual de sessão anterior não vaze para a UI
             // enquanto os dados do novo usuário ainda estão sendo carregados.
             roleRecoveryOnceForUserRef.current = null;
             setTenantRecoveryFailed(false);
-            const cachedImmediate = peekCachedTenantId(session.user.id);
+            const cachedImmediate = peekCachedTenantId(currentSession.user.id);
             const cachedRoleAnchor = readUserRoleAnchor();
             const hasFullCache = !!cachedImmediate && !!cachedRoleAnchor;
 
@@ -737,7 +765,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             if (hasFullCache) {
               setUserRole(cachedRoleAnchor);
               setTenantData({
-                nome: resolveTerreiroNomeFallback(session.user.id),
+                nome: resolveTerreiroNomeFallback(currentSession.user.id),
                 plan: 'premium',
                 tenant_id: cachedImmediate,
                 role: cachedRoleAnchor,
@@ -752,7 +780,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               setIsSessionHydrating(true);
               if (cachedImmediate) {
                 setTenantData({
-                  nome: resolveTerreiroNomeFallback(session.user.id),
+                  nome: resolveTerreiroNomeFallback(currentSession.user.id),
                   plan: 'premium',
                   tenant_id: cachedImmediate,
                 });
@@ -760,8 +788,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             }
 
             // Preserva o módulo solicitado no primeiro boot da sessão.
-            const isFilhoAuth = readPersistedFilhoFlag(session.user.id) || isFilhoIdentity(session.user);
-            persistFilhoFlag(isFilhoAuth, session.user.id);
+            const isFilhoAuth = readPersistedFilhoFlag(currentSession.user.id) || isFilhoIdentity(currentSession.user);
+            persistFilhoFlag(isFilhoAuth, currentSession.user.id);
             const requestedTab = requestedTabFromLocation();
             const initialTab = isFilhoAuth
               ? normalizeFilhoTab(requestedTab || 'profile')
@@ -773,41 +801,41 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               setSubscriptionActive(true);
             }
             await loadAllTenantData(
-              session.user.id,
-              session.user.email,
-              session.user.user_metadata?.role,
-              session.access_token
+              currentSession.user.id,
+              currentSession.user.email,
+              currentSession.user.user_metadata?.role,
+              currentSession.access_token
             );
-            if (session.access_token) {
+            if (currentSession.access_token) {
               const { trackSessionActivity } = await import('./lib/trackSessionActivity');
-              void trackSessionActivity(session.access_token);
+              void trackSessionActivity(currentSession.access_token);
             }
             initializedRef.current = true;
           }
         } else {
-          if (event === 'INITIAL_SESSION' && localStorage.getItem('axecloud-auth-token')) {
-            void supabase.auth.signOut({ scope: 'local' });
+          // Só limpa o estado se NÃO há token salvo no storage OU se foi um evento explícito SIGNED_OUT
+          if (!hasStoredAuthToken || event === 'SIGNED_OUT') {
+            const uidOut = lastAuthUserIdRef.current;
+            if (uidOut) clearCachedTenantIdForUser(uidOut);
+            lastAuthUserIdRef.current = null;
+            roleRecoveryOnceForUserRef.current = null;
+            setUserRole(null);
+            setLegalTermsAccepted(null);
+            setIsAdminGlobal(false);
+            setSubscriptionActive(true);
+            setTenantData(null);
+            writeTenantAnchorToStorage(null);
+            setTenantAnchorId(null);
+            writeUserRoleAnchor(null);
+            setRoleAnchor(null);
+            setSelectedChildId(null);
+            setFilhoFotoUrl(null);
+            setTenantRecoveryFailed(false);
+            setIsSessionHydrating(false);
+            setActiveTab('dashboard');
+            initializedRef.current = false;
+            persistFilhoFlag(false);
           }
-          const uidOut = lastAuthUserIdRef.current;
-          if (uidOut) clearCachedTenantIdForUser(uidOut);
-          lastAuthUserIdRef.current = null;
-          roleRecoveryOnceForUserRef.current = null;
-          setUserRole(null);
-          setLegalTermsAccepted(null);
-          setIsAdminGlobal(false);
-          setSubscriptionActive(true);
-          setTenantData(null);
-          writeTenantAnchorToStorage(null);
-          setTenantAnchorId(null);
-          writeUserRoleAnchor(null);
-          setRoleAnchor(null);
-          setSelectedChildId(null);
-          setFilhoFotoUrl(null);
-          setTenantRecoveryFailed(false);
-          setIsSessionHydrating(false);
-          setActiveTab('dashboard');
-          initializedRef.current = false;
-          persistFilhoFlag(false);
         }
       } catch (error: any) {
         const errorMessage = String(error?.message || '').toLowerCase();
@@ -836,13 +864,18 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           });
         }
       } finally {
+        const hasStoredAuthToken =
+          typeof window !== 'undefined' &&
+          Boolean(localStorage.getItem('axecloud-auth-token'));
         const canResolveInitialization =
-          event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT';
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          Boolean(session) ||
+          event === 'SIGNED_OUT' ||
+          (event === 'INITIAL_SESSION' && !hasStoredAuthToken);
+        if (canResolveInitialization) {
            setLoading(false);
            setIsSessionHydrating(false);
+           markAuthInitialized();
         }
-        if (canResolveInitialization) markAuthInitialized();
       }
     });
 
@@ -852,6 +885,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   useEffect(() => {
     if (surface !== 'dashboard') return;
     if (loading || isInitializing || isSessionHydrating) return;
+    // Se o storage ainda possui o token do Supabase, não redireciona prematuramente
+    if (typeof window !== 'undefined' && localStorage.getItem('axecloud-auth-token')) return;
     if (!session) goToLogin();
   }, [surface, session, loading, isInitializing, isSessionHydrating]);
 
@@ -900,10 +935,28 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         );
         return;
       }
-      console.warn('[SESSION] tenant_id ausente após 3s — corta-circuito (logout sem redirect).');
+      // Tenta fallback do Supabase antes de acionar corta-circuito
+      const fallback = await resolveTenantFromSupabase(session.user.id, session.user.email);
+      if (fallback) {
+        writeCachedTenantIdForUser(session.user.id, fallback);
+        writeTenantAnchorToStorage(fallback);
+        setTenantAnchorId(fallback);
+        setTenantData((prev) =>
+          prev
+            ? { ...prev, tenant_id: fallback }
+            : {
+                nome: resolveTerreiroNomeFallback(session.user.id),
+                plan: 'premium',
+                tenant_id: fallback,
+                role: userRole ?? undefined,
+              }
+        );
+        return;
+      }
+      console.warn('[SESSION] tenant_id ausente após 8s — corta-circuito (logout sem redirect).');
       persistFilhoFlag(false);
       await emergencyAuthCircuitBreaker();
-    }, 3000);
+    }, 8000);
     return () => window.clearTimeout(timer);
   }, [session?.user?.id, effectiveTenantId, userRole]);
 

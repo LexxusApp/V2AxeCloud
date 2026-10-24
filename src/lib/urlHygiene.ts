@@ -26,6 +26,15 @@ export function buildEmergencyReloadUrl(): string {
   const url = new URL(window.location.href);
   stripInternalParams(url);
   url.searchParams.set('_reload', String(Date.now()));
+  if ((url.pathname === '/' || url.pathname === '') && typeof window !== 'undefined') {
+    try {
+      if (localStorage.getItem('axecloud-auth-token')) {
+        url.pathname = '/dashboard';
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   return url.pathname + url.search + url.hash;
 }
 
