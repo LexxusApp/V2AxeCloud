@@ -1387,6 +1387,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             isAdmin={isAdminGlobal}
             terreiroNome={tenantData?.nome_terreiro || 'Terreiro Teste'}
             zeladorNome={tenantData?.zelador || 'Zelador'}
+            userEmail={session?.user?.email}
+            tenantId={effectiveTenantId}
             onLogout={() => performFastLogout()}
           >
             <Suspense

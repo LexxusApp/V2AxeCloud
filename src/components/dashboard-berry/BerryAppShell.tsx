@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { isCantinaEnabled } from '../../lib/cantinaFeature';
 import './berry-dashboard.css';
 
 interface BerryAppShellProps {
@@ -8,6 +9,8 @@ interface BerryAppShellProps {
   isAdmin?: boolean;
   terreiroNome?: string;
   zeladorNome?: string;
+  userEmail?: string | null;
+  tenantId?: string | null;
   onLogout: () => void;
   children: React.ReactNode;
 }
@@ -19,14 +22,34 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
   isAdmin = false,
   terreiroNome = 'Sede',
   zeladorNome = 'Zeladoria Geral',
+  userEmail,
+  tenantId,
   onLogout,
   children,
 }) => {
+  const isCasaActive = ['children', 'obligations', 'calendar', 'frequencia', 'mural', 'chat'].includes(activeTab);
+  const isFinanceiroActive = ['financial', 'financial-mensalidades', 'financial-cantina', 'financial-configs'].includes(activeTab);
+
+  // Submenus iniciam recolhidos na Dashboard e só abrem se a rota ativa pertencer ao grupo
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [casaExpanded, setCasaExpanded] = useState(true);
-  const [financeiroExpanded, setFinanceiroExpanded] = useState(true);
+  const [casaExpanded, setCasaExpanded] = useState(() => isCasaActive);
+  const [financeiroExpanded, setFinanceiroExpanded] = useState(() => isFinanceiroActive);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Se o usuário navegar para uma rota interna do grupo, expande automaticamente
+  useEffect(() => {
+    if (isCasaActive) setCasaExpanded(true);
+  }, [isCasaActive]);
+
+  useEffect(() => {
+    if (isFinanceiroActive) setFinanceiroExpanded(true);
+  }, [isFinanceiroActive]);
+
+  const cantinaEnabled = isCantinaEnabled(
+    { tenant_id: tenantId, email: userEmail },
+    userEmail
+  );
 
   // Fecha o dropdown de perfil ao clicar fora
   useEffect(() => {
@@ -38,9 +61,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const isCasaActive = ['children', 'obligations', 'calendar', 'frequencia', 'mural', 'chat'].includes(activeTab);
-  const isFinanceiroActive = activeTab === 'financial';
 
   return (
     <div className={`axe-berry-mode app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -209,7 +229,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   href="#children"
                   onClick={(e) => { e.preventDefault(); setActiveTab('children'); }}
                   className={`nav-sub-item ${activeTab === 'children' ? 'active' : ''}`}
-                  title="Filhos de Santo"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
@@ -220,7 +239,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   href="#obligations"
                   onClick={(e) => { e.preventDefault(); setActiveTab('obligations'); }}
                   className={`nav-sub-item ${activeTab === 'obligations' ? 'active' : ''}`}
-                  title="Obrigações"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
@@ -231,7 +249,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   href="#calendar"
                   onClick={(e) => { e.preventDefault(); setActiveTab('calendar'); }}
                   className={`nav-sub-item ${activeTab === 'calendar' ? 'active' : ''}`}
-                  title="Giras"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" />
@@ -242,7 +259,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   href="#frequencia"
                   onClick={(e) => { e.preventDefault(); setActiveTab('frequencia'); }}
                   className={`nav-sub-item ${activeTab === 'frequencia' ? 'active' : ''}`}
-                  title="Frequência"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="m9 14 2 2 4-4" />
@@ -253,7 +269,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   href="#mural"
                   onClick={(e) => { e.preventDefault(); setActiveTab('mural'); }}
                   className={`nav-sub-item ${activeTab === 'mural' ? 'active' : ''}`}
-                  title="Comunicados"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
@@ -264,7 +279,6 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                   href="#chat"
                   onClick={(e) => { e.preventDefault(); setActiveTab('chat'); }}
                   className={`nav-sub-item ${activeTab === 'chat' ? 'active' : ''}`}
-                  title="Mensagens"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
@@ -274,13 +288,13 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
               </div>
             </div>
 
-            {/* GRUPO RECOLHÍVEL: FINANCEIRO */}
+                        {/* GRUPO RECOLHÍVEL: FINANCEIRO */}
             <div className={`nav-group ${financeiroExpanded ? 'is-expanded' : ''}`} id="nav-group-financeiro">
               <button
                 type="button"
                 className={`nav-group-header ${isFinanceiroActive ? 'text-amber-400 font-bold' : ''}`}
-                title="Financeiro"
                 onClick={() => setFinanceiroExpanded(!financeiroExpanded)}
+                aria-expanded={financeiroExpanded}
               >
                 <div className="nav-group-title">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -293,27 +307,58 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 </svg>
               </button>
               <div className="nav-group-subitems">
+                {/* 1. Visão Geral */}
                 <a
                   href="#financial"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('financial', 'dashboard'); }}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('financial'); }}
                   className={`nav-sub-item ${activeTab === 'financial' ? 'active' : ''}`}
-                  title="Visão geral"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" />
                   </svg>
                   <span>Visão geral</span>
                 </a>
+
+                {/* 2. Mensalidades */}
                 <a
-                  href="#mensalidades"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('financial', 'mensalidades'); }}
-                  className="nav-sub-item"
-                  title="Mensalidades"
+                  href="#financial-mensalidades"
+                  onClick={(e) => { e.preventDefault(); setActiveTab('financial-mensalidades'); }}
+                  className={`nav-sub-item ${activeTab === 'financial-mensalidades' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" />
                   </svg>
                   <span>Mensalidades</span>
+                </a>
+
+                {/* 3. Cantina da Casa (se autorizada) */}
+                {cantinaEnabled && (
+                  <a
+                    href="#financial-cantina"
+                    onClick={(e) => { e.preventDefault(); setActiveTab('financial-cantina'); }}
+                    className={`nav-sub-item ${activeTab === 'financial-cantina' ? 'active' : ''}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 2v2" />
+                      <path d="M14 2v2" />
+                      <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h12Z" />
+                      <path d="M6 2v2" />
+                    </svg>
+                    <span>Cantina</span>
+                  </a>
+                )}
+
+                {/* 4. Configurações Pix */}
+                <a
+                  href="#financial-configs"
+                  onClick={(e) => { e.preventDefault(); setActiveTab('financial-configs'); }}
+                  className={`nav-sub-item ${activeTab === 'financial-configs' ? 'active' : ''}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+                    <path d="M12 18h.01" />
+                  </svg>
+                  <span>Configurações Pix</span>
                 </a>
               </div>
             </div>

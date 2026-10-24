@@ -2933,3 +2933,82 @@ p, span, small {
   70% { opacity: 0.35; transform: translateY(-42px) translateX(4px); }
   100% { transform: translateY(-70px) translateX(-5px); opacity: 0; }
 }
+
+
+/* ==========================================================
+   PERFORMANCE 60FPS BOOST FOR BERRY DASHBOARD
+   Elimina recálculos contínuos de GPU, mantendo estética 100% nobre
+   ========================================================== */
+.hero-welcome-card .dashboard-v5-hero__forest {
+  animation: none !important;
+  transform: translateZ(0) !important;
+  will-change: auto !important;
+}
+
+.hero-welcome-card .dashboard-v5-hero__foliage--canopy {
+  animation: none !important;
+  transform: translateZ(0) !important;
+  will-change: auto !important;
+}
+
+.hero-sacred-aura {
+  animation: none !important;
+  transform: translateZ(0) !important;
+  opacity: 0.65 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+}
+
+.cinematic-gira-aura {
+  animation: none !important;
+  transform: translateZ(0) !important;
+  opacity: 0.6 !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+}
+
+.hero-light-sheen,
+.cinematic-light-sheen {
+  display: none !important;
+}
+
+.hero-embers-container,
+.cinematic-embers,
+.hero-ember,
+.c-ember {
+  display: none !important;
+}
+
+.hero-energy-stream {
+  animation: none !important;
+}
+
+.hero-tag-icon {
+  animation: none !important;
+  filter: none !important;
+}
+
+.sparkle {
+  animation: none !important;
+  filter: none !important;
+}
+
+.pulse-green,
+.pulse-gold {
+  animation: none !important;
+}
+
+.mini-radar-sweep {
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
+/* Card hardware isolation */
+.hero-welcome-card,
+.cinematic-gira-card,
+.berry-card,
+.feature-widget-card,
+.section-panel {
+  contain: layout style !important;
+  transform: translateZ(0) !important;
+}

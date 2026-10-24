@@ -75,12 +75,6 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
             <div className="dashboard-v5-hero__foliage dashboard-v5-hero__foliage--canopy" aria-hidden="true" />
             <div className="hero-sacred-aura" aria-hidden="true" />
             
-            {/* Fagúlhas Flutuantes de Axé */}
-            <div className="hero-embers-container" aria-hidden="true">
-              <span className="hero-ember h-ember-1" />
-              <span className="hero-ember h-ember-2" />
-              <span className="hero-ember h-ember-3" />
-            </div>
 
             {/* Risco Dourado Iluminado */}
             <svg className="dashboard-v5-hero__energy" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true">
@@ -92,16 +86,9 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
                   <stop offset="75%" stopColor="#F2CE55" stopOpacity="0.65" />
                   <stop offset="100%" stopColor="#E3B936" stopOpacity="0" />
                 </linearGradient>
-                <filter id="energyGlowFilter" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="3.5" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
               </defs>
               <path className="hero-energy-base" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" />
-              <path className="hero-energy-glow-line" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" filter="url(#energyGlowFilter)" />
+              <path className="hero-energy-glow-line" d="M-40 166 C 170 74 318 206 536 113 S 887 49 1240 154" stroke="url(#dashboard-hero-energy)" strokeWidth="3" fill="none" opacity="0.9" />
             </svg>
 
             <div className="hero-welcome-inner">
@@ -156,13 +143,6 @@ export const DashboardBerry: React.FC<DashboardBerryProps> = ({
             <div className="cinematic-gira-aura" aria-hidden="true" />
             <div className="cinematic-light-sheen" aria-hidden="true" />
             
-            <div className="cinematic-embers" aria-hidden="true">
-              <span className="c-ember ember-1" />
-              <span className="c-ember ember-2" />
-              <span className="c-ember ember-3" />
-              <span className="c-ember ember-4" />
-              <span className="c-ember ember-5" />
-            </div>
 
             <div className="cinematic-gira-content">
               <div>
