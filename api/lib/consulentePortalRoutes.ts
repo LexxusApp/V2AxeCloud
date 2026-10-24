@@ -189,7 +189,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .eq("id", user.id)
         .maybeSingle();
 
-      const metrics = {
+            const metrics = {
         viewsTotal: 0,
         views30: 0,
         views7: 0,
@@ -199,36 +199,84 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       };
 
       try {
-        const { data: logRows } = await sb
+        const now = Date.now();
+        const d30 = now - 30 * 86_400_000;
+        const d7 = now - 7 * 86_400_000;
+
+        // 1. Query access_logs by target_id
+        const { data: logsById } = await sb
           .from("access_logs")
           .select("created_at, event_type, metadata")
           .eq("target_type", "directory_terreiro")
           .eq("target_id", data.id)
           .in("event_type", ["directory.profile_click", "directory.profile_google_view", "directory.whatsapp_click"]);
 
-        if (Array.isArray(logRows) && logRows.length > 0) {
-          const now = Date.now();
-          const d30 = now - 30 * 86_400_000;
-          const d7 = now - 7 * 86_400_000;
+        // 2. Query access_logs by slug if available
+        let logsBySlug: any[] = [];
+        if (data.slug) {
+          const { data: slugLogs } = await sb
+            .from("access_logs")
+            .select("created_at, event_type, metadata")
+            .contains("metadata", { slug: data.slug })
+            .in("event_type", ["directory.profile_click", "directory.profile_google_view", "directory.whatsapp_click"]);
+          logsBySlug = slugLogs || [];
+        }
 
-          for (const row of logRows) {
-            const t = new Date(row.created_at).getTime();
-            metrics.viewsTotal++;
-            const is30 = t >= d30;
-            const is7 = t >= d7;
+        // Deduplicate access_logs rows by created_at + event_type
+        const seen = new Set<string>();
+        const allLogs: any[] = [];
+        for (const row of [...(logsById || []), ...logsBySlug]) {
+          const key = `${row.created_at}_${row.event_type}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allLogs.push(row);
+          }
+        }
 
-            if (is7) metrics.views7++;
-            if (is30) {
-              metrics.views30++;
-              const md = row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : {};
-              const fromGoogle =
-                row.event_type === "directory.profile_google_view" ||
-                md.google === true ||
-                String(md.channel || "").startsWith("google_") ||
-                String(md.source || "").toLowerCase().includes("google");
-              if (fromGoogle) metrics.googleViews30++;
-              if (row.event_type === "directory.profile_click") metrics.directoryClicks30++;
-              if (row.event_type === "directory.whatsapp_click") metrics.whatsappClicks30++;
+        for (const row of allLogs) {
+          const t = new Date(row.created_at).getTime();
+          metrics.viewsTotal++;
+          const is30 = t >= d30;
+          const is7 = t >= d7;
+
+          if (is7) metrics.views7++;
+          if (is30) {
+            metrics.views30++;
+            const md = row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : {};
+            const fromGoogle =
+              row.event_type === "directory.profile_google_view" ||
+              md.google === true ||
+              String(md.channel || "").startsWith("google_") ||
+              String(md.source || "").toLowerCase().includes("google");
+            if (fromGoogle) metrics.googleViews30++;
+            if (row.event_type === "directory.profile_click") metrics.directoryClicks30++;
+            if (row.event_type === "directory.whatsapp_click") metrics.whatsappClicks30++;
+          }
+        }
+
+        // 3. Query public_conversion_events for additional interactions
+        if (data.slug) {
+          const { data: pceRows } = await sb
+            .from("public_conversion_events")
+            .select("created_at, event_name, metadata, path, referrer")
+            .or(`path.eq./terreiro/${data.slug},metadata->>slug.eq.${data.slug}`);
+
+          if (Array.isArray(pceRows)) {
+            for (const p of pceRows) {
+              const t = new Date(p.created_at).getTime();
+              const is30 = t >= d30;
+              const is7 = t >= d7;
+              metrics.viewsTotal++;
+              if (is7) metrics.views7++;
+              if (is30) {
+                metrics.views30++;
+                const isGoogle = String(p.referrer || "").toLowerCase().includes("google");
+                if (isGoogle) metrics.googleViews30++;
+                else metrics.directoryClicks30++;
+
+                const action = String(p.metadata?.action || (p as any).cta_id || "").toLowerCase();
+                if (action.includes("whatsapp")) metrics.whatsappClicks30++;
+              }
             }
           }
         }

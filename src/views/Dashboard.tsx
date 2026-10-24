@@ -1221,8 +1221,16 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                 <>
                   <div className="dashboard-v5-radar-card__primary">
                     <Eye aria-hidden />
-                    <strong>{radarMetrics?.views7 || 0}</strong>
-                    <span>visualizações nos últimos 7 dias</span>
+                    <strong>{(radarMetrics?.views7 || 0) > 0 ? radarMetrics?.views7 : (radarMetrics?.views30 || 0) > 0 ? radarMetrics?.views30 : (radarMetrics?.viewsTotal || 0) > 0 ? radarMetrics?.viewsTotal : 0}</strong>
+                    <span>
+                      {(radarMetrics?.views7 || 0) > 0
+                        ? 'visualizações nos últimos 7 dias'
+                        : (radarMetrics?.views30 || 0) > 0
+                        ? 'visualizações nos últimos 30 dias'
+                        : (radarMetrics?.viewsTotal || 0) > 0
+                        ? 'visitas acumuladas no Radar'
+                        : 'visualizações nos últimos 7 dias'}
+                    </span>
                   </div>
                   <div className="dashboard-v5-radar-card__channels" aria-label="Origem das interações nos últimos 30 dias">
                     <div><MapPinned aria-hidden /><strong>{radarMetrics?.directoryClicks30 || 0}</strong><span>Mapa</span></div>

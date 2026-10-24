@@ -152,12 +152,12 @@
           google,
         };
       };
-      const registrarVisitaGoogle = (profileSlug) => {
+      const registrarVisita = (profileSlug) => {
         const origem = origemGoogle();
-        if (!origem.google) return;
-        const marker = `axecloud_google_profile:${new Date().toISOString().slice(0, 10)}:${profileSlug}`;
+        const marker = `axecloud_profile_view:${new Date().toISOString().slice(0, 10)}:${profileSlug}`;
         if (sessionStorage.getItem(marker)) return;
-        fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(profileSlug)}/google-view`, {
+        const endpoint = origem.google ? "google-view" : "profile-click";
+        fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(profileSlug)}/${endpoint}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           keepalive: true,
@@ -289,7 +289,7 @@
           const diretorio = await loadJson(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(slug)}`);
           if (diretorio.ok) {
             renderDiretorio(diretorio.data);
-            registrarVisitaGoogle(diretorio.data.slug || slug);
+            registrarVisita(diretorio.data.slug || slug);
             return;
           }
           const portal = await loadJson(`/api/v1/public/terreiros/${encodeURIComponent(slug)}`);

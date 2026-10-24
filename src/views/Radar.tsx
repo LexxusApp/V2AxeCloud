@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Eye, MapPinned, Radio, Sparkles, TrendingUp } from 'lucide-react';
+import { Eye, MapPinned, Radio, Sparkles, TrendingUp, Search, MessageCircle } from 'lucide-react';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { ClaimedDirectoryProfileSettings } from '../components/settings/ClaimedDirectoryProfileSettings';
 import { TerreiroServicosSettings } from '../components/settings/TerreiroServicosSettings';
@@ -16,7 +16,14 @@ type RadarSummary = {
     latitude?: number | null;
     longitude?: number | null;
   } | null;
-  metrics?: { viewsTotal?: number; views30?: number; views7?: number };
+  metrics?: {
+    viewsTotal?: number;
+    views30?: number;
+    views7?: number;
+    directoryClicks30?: number;
+    googleViews30?: number;
+    whatsappClicks30?: number;
+  };
 };
 
 function Metric({ icon: Icon, label, value, detail }: { icon: typeof Eye; label: string; value: number | string; detail: string }) {
@@ -71,10 +78,19 @@ export default function Radar() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2.5">
-              <Metric icon={Eye} label="7 dias" value={metrics?.views7 || 0} detail="Aberturas recentes" />
-              <Metric icon={TrendingUp} label="30 dias" value={metrics?.views30 || 0} detail="Interesse no período" />
-              <Metric icon={MapPinned} label="Total" value={metrics?.viewsTotal || 0} detail="Visitas ao perfil" />
+            <div>
+              <div className="grid grid-cols-3 gap-2.5">
+                <Metric icon={Eye} label="7 dias" value={metrics?.views7 || 0} detail="Aberturas recentes" />
+                <Metric icon={TrendingUp} label="30 dias" value={metrics?.views30 || 0} detail="Interesse no período" />
+                <Metric icon={MapPinned} label="Total" value={metrics?.viewsTotal || 0} detail="Visitas ao perfil" />
+              </div>
+              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-[11px] text-white/80">
+                <span className="flex items-center gap-1"><MapPinned className="h-3 w-3 text-[#F2C441]" /> <strong>{metrics?.directoryClicks30 || 0}</strong> Mapa</span>
+                <span className="text-white/20">•</span>
+                <span className="flex items-center gap-1"><Search className="h-3 w-3 text-sky-400" /> <strong>{metrics?.googleViews30 || 0}</strong> Google</span>
+                <span className="text-white/20">•</span>
+                <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-emerald-400" /> <strong>{metrics?.whatsappClicks30 || 0}</strong> WhatsApp</span>
+              </div>
             </div>
           </div>
         </header>
