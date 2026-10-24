@@ -16,6 +16,9 @@ import { isSubscriptionBlockedAfterDue } from './lib/subscriptionDue';
 import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
 import Paywall from './components/Paywall';
 // Views pesadas viram chunks separados, carregados sob demanda.
+import { isBerryDashboardBeta } from './lib/featureFlags';
+const BerryAppShell = lazy(() => import('./components/dashboard-berry/BerryAppShell'));
+const DashboardBerry = lazy(() => import('./components/dashboard-berry/DashboardBerry'));
 const Dashboard = lazy(() => import('./views/Dashboard'));
 const Children = lazy(() => import('./views/Children'));
 const Calendar = lazy(() => import('./views/Calendar'));
@@ -80,7 +83,7 @@ import {
 export { getIsSessionReady } from './lib/appSessionAnchors';
 
 // Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
-const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 77;
+const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 78;
 
 export type AppSurface = 'login' | 'dashboard';
 
@@ -1185,6 +1188,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           return <ObrigacoesFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
         case 'financial':
         case 'financial-mensalidades':
+      case 'financial-cantina':
         case 'financial-configs': return <MensalidadeFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
         case 'calendar': return <Calendar user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} userRole={userRole} />;
         case 'library': return <Library user={session.user} userRole={userRole} tenantData={hijoTenantData} isAdminGlobal={false} setActiveTab={navigateToTab} />;
@@ -1270,6 +1274,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         );
       case 'financial':
       case 'financial-mensalidades':
+      case 'financial-cantina':
       case 'financial-configs':
         return (
           <Financial
@@ -1367,6 +1372,60 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       default: return 'text-gray-400';
     }
   };
+
+  const isBerryBetaUser = isBerryDashboardBeta(session?.user?.email, effectiveTenantId);
+
+  if (isBerryBetaUser) {
+    return (
+      <>
+        <HouseToastHost />
+        <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0f1411]"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>}>
+          <BerryAppShell
+            activeTab={activeTab}
+            setActiveTab={navigateToTab}
+            userRole={userRole || 'Zelador'}
+            isAdmin={isAdminGlobal}
+            terreiroNome={tenantData?.nome_terreiro || 'Terreiro Teste'}
+            zeladorNome={tenantData?.zelador || 'Zelador'}
+            onLogout={() => performFastLogout()}
+          >
+            <Suspense
+              fallback={
+                <div className="flex min-h-[60vh] items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+                </div>
+              }
+            >
+              {activeTab === 'dashboard' ? (
+                <DashboardBerry
+                  onNavigate={navigateToTab}
+                  terreiroNome={tenantData?.nome_terreiro || 'Terreiro Teste'}
+                  zeladorNome={tenantData?.zelador || 'Zelador'}
+                  tenantId={effectiveTenantId}
+                />
+              ) : (
+                <div key={`${activeTab}:${selectedChildId || ''}`} className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
+                  {renderView()}
+                </div>
+              )}
+            </Suspense>
+          </BerryAppShell>
+        </Suspense>
+        <AppRuntimeOverlays
+          showLegalTermsModal={showLegalTermsModal}
+          onAcceptLegalTerms={handleAcceptLegalTerms}
+          legalTermsAccepting={legalTermsAccepting}
+          userRole={userRole}
+          session={session}
+          activeTab={activeTab}
+          onNavigate={navigateToTab}
+          effectiveTenantId={effectiveTenantId}
+          blockingSpinnerActive={blockingSpinnerActive}
+          tenantData={tenantData}
+        />
+      </>
+    );
+  }
 
   return (
     <>
