@@ -13,7 +13,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { useObrigacoesUnread } from '../../hooks/useObrigacoesUnread';
 import { cn } from '../../lib/utils';
@@ -597,15 +597,21 @@ export default function AppTopNav({
   const renderMobileDrawerEntry = (entry: ZeladorNavEntry, key: string, defaultExpanded = false) => {
     if (entry.type === 'item') {
       return (
-        <NavTab
-          key={key}
-          item={entry.item}
-          layout="drawer"
-          isActive={navActiveTab === entry.item.id}
-          isLocked={isItemLocked(entry.item)}
-          badgeCount={badgeForItem(entry.item.id)}
-          onSelect={() => handleSelect(entry.item)}
-        />
+        <Fragment key={key}>
+          {entry.item.id === 'subscription' ? (
+            <p role="presentation" className="mb-1 mt-4 shrink-0 border-t border-white/10 px-2 pt-4 text-[10px] font-black uppercase tracking-[0.16em] text-[#8E9CAE]">
+              Conta e suporte
+            </p>
+          ) : null}
+          <NavTab
+            item={entry.item}
+            layout="drawer"
+            isActive={navActiveTab === entry.item.id}
+            isLocked={isItemLocked(entry.item)}
+            badgeCount={badgeForItem(entry.item.id)}
+            onSelect={() => handleSelect(entry.item)}
+          />
+        </Fragment>
       );
     }
 
@@ -859,6 +865,11 @@ export default function AppTopNav({
           role="tablist"
           aria-label="Módulos do AxéCloud"
         >
+          {userRole !== 'filho' ? (
+            <p role="presentation" className="mb-1 shrink-0 px-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#8E9CAE]">
+              Gestão da casa
+            </p>
+          ) : null}
           {userRole === 'filho'
             ? navItems.map((item) => (
                 <NavTab
