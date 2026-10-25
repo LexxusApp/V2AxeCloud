@@ -31,6 +31,8 @@ import {
   clearRememberedLoginEmail,
   readRememberedLoginEmail,
   writeRememberedLoginEmail,
+  readRememberLoginPreference,
+  writeRememberLoginPreference,
 } from '../lib/loginRemember';
 
 const FILHO_FLAG_KEY = 'axecloud_is_filho';
@@ -147,7 +149,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [childId, setChildId] = useState('');
   const [cpfPrefix, setCpfPrefix] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(readRememberLoginPreference);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -167,6 +169,13 @@ export default function Login() {
   const [restoredError, setRestoredError] = useState<string | null>(null);
 
   const isMembro = role === 'membro';
+
+  useEffect(() => {
+    if (isMembro) return;
+    writeRememberLoginPreference(rememberMe);
+    if (rememberMe) writeRememberedLoginEmail(email);
+    else clearRememberedLoginEmail();
+  }, [email, rememberMe, isMembro]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -823,7 +832,7 @@ export default function Login() {
                   {/* Email Field */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                      <label htmlFor="zelador-login-email" className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
                         E-mail do Zelador
                       </label>
                       {checkingRestored && (
@@ -835,6 +844,8 @@ export default function Login() {
                     <div className="axe-login-input-shell">
                       <Mail className="input-icon h-4 w-4" />
                       <input
+                        id="zelador-login-email"
+                        name="username"
                         type="email"
                         required
                         autoComplete="username"
@@ -856,7 +867,7 @@ export default function Login() {
                   {/* Password Field */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                      <label htmlFor="zelador-login-password" className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
                         Senha
                       </label>
                       <a
@@ -869,6 +880,8 @@ export default function Login() {
                     <div className="axe-login-input-shell">
                       <Lock className="input-icon h-4 w-4" />
                       <input
+                        id="zelador-login-password"
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
                         required
                         value={password}

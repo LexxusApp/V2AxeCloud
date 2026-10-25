@@ -1,4 +1,24 @@
-const REMEMBER_EMAIL_KEY = 'axecloud_remember_login_email';
+export const REMEMBER_EMAIL_KEY = 'axecloud_remember_login_email';
+export const REMEMBER_EMAIL_ENABLED_KEY = 'axecloud_remember_login_email_enabled';
+
+export function readRememberLoginPreference(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    return localStorage.getItem(REMEMBER_EMAIL_ENABLED_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+export function writeRememberLoginPreference(enabled: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(REMEMBER_EMAIL_ENABLED_KEY, String(enabled));
+    if (!enabled) clearRememberedLoginEmail();
+  } catch {
+    /* armazenamento indisponível */
+  }
+}
 
 export function readRememberedLoginEmail(): string | null {
   if (typeof window === 'undefined') return null;
