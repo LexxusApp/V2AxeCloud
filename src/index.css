@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/dashboard-desktop.css";
 /* Garante utilitÃƒÂ¡rios Tailwind no build da landing (vite root = marketing/). */
 @source "./**/*.{tsx,ts,jsx,js}";
 

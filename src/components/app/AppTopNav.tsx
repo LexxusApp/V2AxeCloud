@@ -446,7 +446,7 @@ export default function AppTopNav({
     localStorage.setItem('axecloud:sidebar-pinned', desktopPinned ? '1' : '0');
     document.documentElement.style.setProperty(
       '--app-sidebar-width',
-      desktopPinned ? '15rem' : '4.75rem',
+      desktopPinned ? 'var(--app-sidebar-expanded-width, 15rem)' : '4.75rem',
     );
     return () => {
       document.documentElement.style.removeProperty('--app-sidebar-width');
