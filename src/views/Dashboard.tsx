@@ -1262,8 +1262,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         }
       />
 
-      <div className="dashboard-v5-home grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.55fr)]">
-        <div className="flex flex-col gap-5">
+      <div className="dashboard-v5-home grid gap-5">
+        <div className="dashboard-v5-home-main flex min-w-0 flex-col gap-5">
           <section className="dashboard-v5-module-launcher order-2" aria-labelledby="quick-access-v5">
             <div className="dashboard-v5-section-heading">
               <div>
@@ -1429,8 +1429,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </section>
         </div>
 
+        {!setupComplete ? (
         <aside className="space-y-5">
-          {!setupComplete ? (
           <section className="dashboard-v5-progress" aria-labelledby="progress-v5">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1489,9 +1489,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               </button>
             ) : null}
           </section>
-          ) : null}
-
         </aside>
+        ) : null}
       </div>
 
       <HouseTimeline

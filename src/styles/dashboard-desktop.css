@@ -217,3 +217,32 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Atenção e atalhos compartilham a largura disponível em monitores amplos. */
+@media (min-width: 1440px) {
+  .app-v5-identity .dashboard-v5 .dashboard-v5-home-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  .app-v5-identity .dashboard-v5 .dashboard-v5-home-main > section {
+    min-width: 0;
+  }
+
+  .app-v5-identity .dashboard-v5 .dashboard-v5-home-main .dashboard-v5-section-heading {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 1440px) and (max-width: 1799px) {
+  .app-v5-identity .dashboard-v5 .dashboard-v5-home-main .dashboard-v5-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-v5-identity .dashboard-v5 .dashboard-v5-home-main .dashboard-v5-module {
+    min-height: 6rem;
+  }
+}
