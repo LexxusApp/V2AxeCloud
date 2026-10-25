@@ -22,9 +22,28 @@ jobs:
         run: docker run --rm -v /tmp/api-context:/scan ghcr.io/gitleaks/gitleaks:v8.30.1 dir /scan --redact --no-banner
       - name: Build production API image
         run: docker build --platform linux/amd64 -f /tmp/api-context/Dockerfile.cloudflare-api -t axecloud-api:${{ github.sha }} /tmp/api-context
+      - name: Publish to Cloudflare Registry when temporarily authorized
+        id: registry
+        env:
+          REGISTRY_ACCOUNT: ${{ secrets.AXECLOUD_REGISTRY_TEMP_ACCOUNT }}
+          REGISTRY_USERNAME: ${{ secrets.AXECLOUD_REGISTRY_TEMP_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.AXECLOUD_REGISTRY_TEMP_PASSWORD }}
+        run: |
+          if [ -z "$REGISTRY_PASSWORD" ]; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s' "$REGISTRY_PASSWORD" | docker login registry.cloudflare.com --username "$REGISTRY_USERNAME" --password-stdin
+          IMAGE="registry.cloudflare.com/$REGISTRY_ACCOUNT/axecloud-api-staging:cantina-${{ github.sha }}"
+          docker tag axecloud-api:${{ github.sha }} "$IMAGE"
+          docker push "$IMAGE"
+          docker logout registry.cloudflare.com
+          echo "published=true" >> "$GITHUB_OUTPUT"
       - name: Export image for Cloudflare Registry
+        if: steps.registry.outputs.published != 'true'
         run: docker save axecloud-api:${{ github.sha }} | gzip > api-container.tar.gz
       - uses: actions/upload-artifact@v4
+        if: steps.registry.outputs.published != 'true'
         with:
           name: api-container-${{ github.sha }}
           path: api-container.tar.gz
