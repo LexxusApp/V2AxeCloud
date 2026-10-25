@@ -16409,3 +16409,15 @@ html:has(.dashboard-reference){--app-sidebar-width:100px!important}
   transform: translateX(-50%) translateY(0);
 }
 
+/* Separa os indicadores do cabeçalho na Biblioteca e no Almoxarifado. */
+.inventory-v5-page > header + .space-y-5,
+.library-v5-page > div > header + div {
+  margin-block-start: 20px;
+}
+
+@media (min-width: 640px) {
+  .inventory-v5-page > header + .space-y-5,
+  .library-v5-page > div > header + div {
+    margin-block-start: 24px;
+  }
+}
