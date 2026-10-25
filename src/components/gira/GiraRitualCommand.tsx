@@ -93,7 +93,7 @@ export default function GiraRitualCommand(props: Props) {
             </div>
             <div className="ritual-mission__actions">
               <button type="button" onClick={() => onOpen(nextEvent)} className="is-main">Abrir missão <ArrowUpRight className="h-4 w-4" /></button>
-              <button type="button" onClick={() => onNotify(nextEvent)} disabled={isNotifying === nextEvent.id}>
+              <button type="button" style={{ backgroundColor: '#F2F8F4', color: '#174C37', borderColor: '#A6C8B5' }} onClick={() => onNotify(nextEvent)} disabled={isNotifying === nextEvent.id}>
                 {isNotifying === nextEvent.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />} Avisar
               </button>
               <button type="button" onClick={() => onOperations(nextEvent)} disabled={!hasAccess}><Ticket className="h-4 w-4" /> Operação</button>
