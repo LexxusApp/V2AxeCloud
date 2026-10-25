@@ -1,3 +1,4 @@
+import DataLoadError from '../components/DataLoadError';
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -57,6 +58,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   const isAdmin = userRole !== 'filho';
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -196,22 +198,30 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
   const fetchProducts = async (opts?: { silent?: boolean; tenantPk?: string | null }) => {
     if (!opts?.silent) setLoading(true);
-    const tenantPk = opts?.tenantPk != null && String(opts.tenantPk).trim() !== '' ? String(opts.tenantPk).trim() : await resolveStoreTenantPk(storeTenantParams());
-    if (!tenantPk) {
+    setLoadError(null);
+    try {
+      const tenantPk = opts?.tenantPk != null && String(opts.tenantPk).trim() !== '' ? String(opts.tenantPk).trim() : await resolveStoreTenantPk(storeTenantParams());
+      if (!tenantPk) {
+        setProducts([]);
+        return;
+      }
+      const res = await authFetch(`/api/v1/store/products?tenantId=${encodeURIComponent(tenantPk)}`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error || 'Falha ao carregar produtos');
+      } else {
+        if (!Array.isArray(json.data)) throw new Error('Resposta de produtos inválida');
+        const rows = json.data;
+        const loaded = rows.map((r) => rowToProduct(r as Record<string, unknown>));
+        setProducts(loaded);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
       setProducts([]);
+      setLoadError('Não foi possível carregar os produtos da loja. Tente novamente.');
+    } finally {
       if (!opts?.silent) setLoading(false);
-      return;
     }
-    const res = await authFetch(`/api/v1/store/products?tenantId=${encodeURIComponent(tenantPk)}`);
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      console.error('Error fetching products:', json);
-      setProducts([]);
-    } else {
-      const rows = Array.isArray(json.data) ? json.data : [];
-      setProducts(rows.map((r) => rowToProduct(r as Record<string, unknown>)));
-    }
-    if (!opts?.silent) setLoading(false);
   };
 
   const uploadStoreProductImage = async (tenantPk: string, file: File): Promise<string> => {
@@ -481,6 +491,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   return (
     <Toast.Provider swipeDirection="right">
       <AppPageShell>
+        <DataLoadError message={loadError} onRetry={() => void fetchProducts()} />
         {!isAdmin ? (
           <FilhoStoreExperience
             products={products}

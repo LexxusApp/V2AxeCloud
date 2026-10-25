@@ -1,3 +1,4 @@
+import DataLoadError from '../components/DataLoadError';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   BookOpen, 
@@ -28,7 +29,7 @@ import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass } from
 import BodyPortal from '../components/BodyPortal';
 import { confirmAction } from '../lib/confirmAction';
 import { LibraryCardSkeleton } from '../components/Skeleton';
-import { readStaleCache, writeStaleCache } from '../lib/staleCache';
+import { clearStaleCacheKey, readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { showHouseToast } from '../lib/houseToast';
 import { FundamentosAcervo } from '../components/library/FundamentosAcervo';
@@ -179,6 +180,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   const isAdmin = userRole !== 'filho';
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingMaterialId, setDeletingMaterialId] = useState<string | null>(null);
@@ -198,12 +200,16 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
     (userRole !== 'filho' ? tenantData?.tenant_id || user.id : '');
 
   const fetchMaterials = async () => {
+    setLoadError(null);
     if (!effectiveTenantId) {
+      setMaterials([]);
       setLoading(false);
       return;
     }
 
-    const cacheKey = `library_mats_${effectiveTenantId}`;
+    // A versão anterior armazenava PDFs de demonstração neste cache.
+    clearStaleCacheKey(`library_mats_${effectiveTenantId}`);
+    const cacheKey = `library_mats_real_${effectiveTenantId}`;
     const cached = readStaleCache<Material[]>(cacheKey);
     if (cached != null) {
       setMaterials(cached);
@@ -216,11 +222,13 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       const res = await authFetch(`/api/v1/library/materials?tenantId=${encodeURIComponent(effectiveTenantId)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { data } = await res.json();
-      const list = data || [];
-      setMaterials(list);
-      writeStaleCache(cacheKey, list);
+      if (!Array.isArray(data)) throw new Error('Resposta de materiais inválida');
+      setMaterials(data);
+      writeStaleCache(cacheKey, data);
     } catch (error) {
-      console.error('Error fetching materials:', error);
+      console.warn('Error fetching materials:', error);
+      setMaterials([]);
+      setLoadError('Não foi possível carregar a biblioteca da casa. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -390,6 +398,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   if (!embedded && libraryMode === 'fundamentos') {
     return (
       <AppPageShell>
+        <DataLoadError message={loadError} onRetry={() => void fetchMaterials()} />
         <FundamentosAcervo
           tenantId={effectiveTenantId}
           isAdmin={isAdmin}
@@ -402,6 +411,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   if (!embedded && !isAdmin) {
     return (
       <AppPageShell fullWidth>
+        <DataLoadError message={loadError} onRetry={() => void fetchMaterials()} />
         <FilhoLibraryExperience
           materials={materials}
           loading={loading}
@@ -422,6 +432,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
   const body = (
     <div className={cn('library-v5-page flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden', embedded && 'min-h-0')}>
+      <DataLoadError message={loadError} onRetry={() => void fetchMaterials()} />
       <AnimatePresence mode="wait">
         {selectedMaterial && !embedded ? (
           <motion.div 

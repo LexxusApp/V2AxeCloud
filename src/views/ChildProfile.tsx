@@ -805,16 +805,11 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     );
   }
 
-  // Mocked data for fields that don't exist in DB yet
   const cpf = editData.cpf || child.cpf || '';
   const endereco = editData.endereco || child.endereco || '';
   const contato = resolveChildWhatsAppPhone(editData) || resolveChildWhatsAppPhone(child);
   const adjunto = editData.adjunto || child.adjunto || '';
   const data_feitura = editData.data_feitura || child.data_feitura || '';
-  const historico = child.historico_obrigacoes || [
-    { data: '2023-05-10', titulo: 'Amaci', descricao: 'Lavagem de cabeça' },
-    { data: '2024-01-20', titulo: 'Feitura', descricao: 'Obrigação de 1 ano' }
-  ];
 
   // Calculate years in house
   const calculateYears = (dateString: string) => {

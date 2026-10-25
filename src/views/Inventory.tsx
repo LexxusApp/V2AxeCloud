@@ -1,3 +1,4 @@
+import DataLoadError from '../components/DataLoadError';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -76,6 +77,7 @@ export default function Inventory({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
 
@@ -85,17 +87,27 @@ export default function Inventory({
 
   async function fetchInventory() {
     setLoading(true);
+    setLoadError(null);
+    if (!tenantId) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
     try {
       const response = await authFetch(`/api/inventory?tenantId=${tenantId || ''}`);
       if (!response.ok) throw new Error('Failed to fetch inventory');
       const { data } = await response.json();
-      setProducts((data || []).map((p: any) => ({
+      if (!Array.isArray(data)) throw new Error('Resposta de estoque inválida');
+      const loaded = data.map((p: any) => ({
         ...p,
         quantidade_atual: Number(p.quantidade_atual) || 0,
         quantidade_minima: Number(p.quantidade_minima) || 0
-      })));
+      }));
+      setProducts(loaded);
     } catch (error) {
-      console.error('Error fetching inventory:', error);
+      console.warn('Error fetching inventory, inventory request failed:', error);
+      setProducts([]);
+      setLoadError('Não foi possível carregar o almoxarifado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -306,6 +318,7 @@ export default function Inventory({
   if (loading && products.length === 0) {
     return (
       <AppPageShell>
+        <DataLoadError message={loadError} onRetry={() => void fetchInventory()} />
         <AppPanelLoading />
       </AppPageShell>
     );
@@ -313,6 +326,7 @@ export default function Inventory({
 
   return (
     <AppPageShell>
+        <DataLoadError message={loadError} onRetry={() => void fetchInventory()} />
       <div className="inventory-v5-page">
       <AppDemoPanelHeader
         title="Almoxarifado"

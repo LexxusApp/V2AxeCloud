@@ -1,3 +1,4 @@
+import DataLoadError from '../components/DataLoadError';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -359,6 +360,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   const [albums, setAlbums] = useState<AlbumItem[]>([]);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [activeFilter, setActiveFilter] = useState<GalleryFilter>('tudo');
@@ -405,15 +407,30 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
   }, [lightboxItem]);
 
   const fetchGallery = async () => {
-    if (!tenantId) return;
+    setLoadError(null);
+    if (!tenantId) {
+      setAlbums([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const response = await authFetch(`/api/v1/gallery/albums?tenantId=${tenantId}`);
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Erro ao carregar galeria');
-      setAlbums((payload.albums || []).filter((album: AlbumItem) => album.media?.length > 0));
+      const cType = response.headers.get('content-type') || '';
+      if (!cType.includes('application/json')) {
+        throw new Error('Resposta de galeria inválida');
+      }
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Falha ao carregar álbuns');
+      }
+      if (!Array.isArray(payload.albums)) throw new Error('Resposta de álbuns inválida');
+      const loaded = payload.albums.filter((album: AlbumItem) => album.media?.length > 0);
+      setAlbums(loaded);
     } catch (error: any) {
-      showToast(setToast, error.message || 'Erro ao carregar galeria', 'error');
+      console.warn('[Gallery] Carregamento inicial de álbuns:', error);
+      setAlbums([]);
+      setLoadError('Não foi possível carregar os álbuns da casa. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -914,6 +931,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
   return (
     <AppPageShell>
+        <DataLoadError message={loadError} onRetry={() => void fetchGallery()} />
       <div className="gallery-v5-page">
       <div className="space-y-6 animate-fadeIn text-[#F1F5F9]">
         {toast && (
