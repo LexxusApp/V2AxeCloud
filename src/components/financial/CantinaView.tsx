@@ -1,5 +1,5 @@
 import DataLoadError from '../DataLoadError';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Coffee,
   Plus,
@@ -52,6 +52,8 @@ export interface CantinaFilho {
   saldo_disponivel: number;
   total_pago_mes: number;
   bloqueado: boolean;
+  historico?: CantinaTransaction[];
+  historico_total?: number;
   pedidos_pendentes: Array<{
     id: string;
     data: string;
@@ -79,6 +81,7 @@ export interface CantinaTransaction {
   tipo: string;
   filho_id: string | null;
   created_at?: string;
+  cantina_itens?: Array<{ nome: string; quantidade: number; preco: number }> | null;
 }
 
 interface CantinaViewProps {
@@ -291,6 +294,7 @@ export default function CantinaView({
 
   // Modal Extrato do Filho
   const [viewingFilhoExtrato, setViewingFilhoExtrato] = useState<CantinaFilho | null>(null);
+  const comandaAttempt = useRef<{ signature: string; id: string } | null>(null);
 
   const fetchCantinaData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -423,6 +427,10 @@ export default function CantinaView({
     setIsSubmittingConsumo(true);
     try {
       const descricao = cartItems.map((i) => `${i.quantidade}x ${i.nome}`).join(', ');
+      const signature = JSON.stringify({ tenantId, selectedFilhoId, tipo, cartItems });
+      if (comandaAttempt.current?.signature !== signature) {
+        comandaAttempt.current = { signature, id: crypto.randomUUID() };
+      }
 
       const res = await authFetch('/api/v1/cantina/consumo', {
         method: 'POST',
@@ -434,11 +442,15 @@ export default function CantinaView({
           valor: totalNovoConsumo,
           formaPagamento: tipo,
           itens: cartItems,
+          comandaId: comandaAttempt.current.id,
         }),
       });
 
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Não foi possível registrar a venda.');
+      if (!result.success || !result.transaction?.id) {
+        throw new Error('O registro da comanda não foi confirmado. Sua comanda foi mantida.');
+      }
       showHouseToast(
         tipo === 'fiado'
           ? `Lançado na caderneta de ${selectedFilho?.nome || 'Médium'} com sucesso!`
@@ -447,6 +459,7 @@ export default function CantinaView({
       );
 
       setCartItems([]);
+      comandaAttempt.current = null;
       setSelectedFilhoId('avulso');
       await fetchCantinaData(true);
     } catch (e: any) {
@@ -1014,6 +1027,14 @@ export default function CantinaView({
                       ))}
                     </div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setViewingFilhoExtrato(filho)}
+                    className="mb-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] px-3 py-2 text-xs font-bold text-[#1C4031] hover:bg-[#FAF8F5]"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    Ver extrato de consumo
+                  </button>
                 </div>
 
                 {/* Ações: Quitar e Cobrar WhatsApp */}
@@ -1022,6 +1043,7 @@ export default function CantinaView({
                     type="button"
                     onClick={() => handleLiquidarFilho(filho)}
                     disabled={filho.saldo_pendente <= 0}
+                    title={filho.saldo_pendente <= 0 ? 'Sem débitos pendentes para dar baixa' : 'Registrar o recebimento da caderneta'}
                     className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-40"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -1033,7 +1055,7 @@ export default function CantinaView({
                     onClick={() => handleOpenWhatsApp(filho)}
                     disabled={filho.saldo_pendente <= 0}
                     className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] text-white px-3 py-2 text-xs font-black hover:bg-[#20bd5a] active:scale-95 transition-all disabled:opacity-40"
-                    title="Cobrar via WhatsApp"
+                    title={filho.saldo_pendente <= 0 ? 'Sem débitos pendentes para avisar' : 'Preparar aviso no WhatsApp'}
                   >
                     <Send className="h-3.5 w-3.5" />
                     <span>Avisar</span>
@@ -1058,7 +1080,49 @@ export default function CantinaView({
         </div>
       )}
 
-            {/* Modal Cadastrar / Editar Item Fixo da Cantina */}
+      <BodyPortal>
+        {viewingFilhoExtrato && (() => {
+          const member = filhos.find(f => f.id === viewingFilhoExtrato.id) || viewingFilhoExtrato;
+          const history = member.historico || [];
+          return (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setViewingFilhoExtrato(null)} />
+              <section role="dialog" aria-modal="true" aria-labelledby="cantina-extrato-title" className="relative max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#E5DECF] bg-white p-5 shadow-2xl sm:p-6">
+                <header className="mb-5 flex items-start justify-between gap-3 border-b border-[#F0EAE0] pb-4">
+                  <div className="min-w-0">
+                    <h3 id="cantina-extrato-title" className="text-lg font-black text-[#171A16]">Extrato de consumo</h3>
+                    <p className="break-words text-sm text-[#6B6355]">{member.nome}</p>
+                    <p className="mt-2 text-sm font-bold text-amber-800">Em aberto: {formatBRL(member.saldo_pendente)}</p>
+                  </div>
+                  <button type="button" aria-label="Fechar extrato" onClick={() => setViewingFilhoExtrato(null)} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl hover:bg-[#FAF8F5]"><X className="h-5 w-5" /></button>
+                </header>
+                {history.length === 0 ? <p className="py-8 text-center text-sm text-[#6B6355]">Nenhum consumo registrado para este membro.</p> : (
+                  <div className="space-y-4">
+                    {history.map(tx => (
+                      <article key={tx.id} className="rounded-xl border border-[#E5DECF] p-4">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#6B6355]">
+                          <time>{new Date(tx.created_at || `${tx.data}T12:00:00`).toLocaleString('pt-BR')}</time>
+                          <span className={cn('rounded-full px-2 py-1 font-bold', tx.status === 'pago' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800')}>{tx.status === 'pago' ? 'Pago' : 'Em aberto'}</span>
+                        </div>
+                        {tx.cantina_itens?.length ? <ul className="space-y-3">
+                          {tx.cantina_itens.map((item, index) => <li key={index} className="flex items-start justify-between gap-3 text-sm">
+                            <div className="min-w-0"><p className="break-words font-bold text-[#171A16]">{item.quantidade}× {item.nome}</p><p className="text-xs text-[#6B6355]">{formatBRL(item.preco)} por unidade</p></div>
+                            <strong className="shrink-0 text-[#1C4031]">{formatBRL(item.quantidade * item.preco)}</strong>
+                          </li>)}
+                        </ul> : <p className="break-words text-sm text-[#4A4235]">{tx.descricao}</p>}
+                        <div className="mt-3 flex justify-between gap-3 border-t border-[#F0EAE0] pt-3 text-sm font-black"><span>Total da comanda</span><span>{formatBRL(tx.valor)}</span></div>
+                      </article>
+                    ))}
+                    {(member.historico_total || 0) > history.length && <p className="text-xs text-[#6B6355]">Exibindo os {history.length} consumos mais recentes.</p>}
+                  </div>
+                )}
+              </section>
+            </div>
+          );
+        })()}
+      </BodyPortal>
+
+      {/* Modal Cadastrar / Editar Item Fixo da Cantina */}
       <BodyPortal>
         <AnimatePresence>
           {isItemModalOpen && (

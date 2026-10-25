@@ -18,7 +18,6 @@ RUN npm ci --omit=dev \
 COPY --chown=node:node api ./api
 COPY --chown=node:node src ./src
 COPY --chown=node:node lib ./lib
-COPY --chown=node:node scripts ./scripts
 COPY --chown=node:node assets ./assets
 
 USER node

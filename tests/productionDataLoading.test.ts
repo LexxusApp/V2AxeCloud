@@ -125,6 +125,7 @@ for (const fn of ['handleFinalizarComanda', 'handleLiquidarFilho', 'handleSalvar
         selectedFilhoId: 'avulso', selectedFilho: null, totalNovoConsumo: 5,
         editingFilho: filho, novoLimite: 100, bloquearFiado: false, tenantId: 'tenant-real',
         setIsSubmittingConsumo() {}, setIsSavingLimite() {},
+        comandaAttempt: { current: null },
         setCartItems() { changed = true; }, setSelectedFilhoId() { changed = true; },
         setEditingFilho() { changed = true; }, setFilhos() { changed = true; },
         fetchCantinaData() { changed = true; },
@@ -138,3 +139,34 @@ for (const fn of ['handleFinalizarComanda', 'handleLiquidarFilho', 'handleSalvar
     });
   }
 }
+
+test('Cantina só limpa uma comanda confirmada e reutiliza a identificação após falha de rede', async () => {
+  const attempt = { current: null as any };
+  const bodies: any[] = [];
+  const notifications: string[] = [];
+  let cleared = 0;
+  let reloaded = 0;
+  const run = screenFunction(cantinaFile, 'handleFinalizarComanda', {
+    tenantId: 'tenant-real', selectedFilhoId: 'avulso', selectedFilho: null,
+    cartItems: [{ nome: 'Produto da casa', quantidade: 2, preco: 5 }], totalNovoConsumo: 10,
+    comandaAttempt: attempt, setIsSubmittingConsumo() {},
+    setCartItems() { cleared++; }, setSelectedFilhoId() {},
+    fetchCantinaData() { reloaded++; }, formatBRL: (value: number) => String(value),
+    showHouseToast: (_message: string, tone: string) => notifications.push(tone),
+    authFetch: async (_url: string, options: any) => {
+      bodies.push(JSON.parse(options.body));
+      if (bodies.length === 1) throw new Error('Conexão interrompida');
+      if (bodies.length === 2) return Response.json({ success: true });
+      return Response.json({ success: true, transaction: { id: 'registro-confirmado' } });
+    },
+  });
+  await run('pago');
+  await run('pago');
+  assert.equal(cleared, 0, 'Nem rede interrompida nem resposta sem lançamento limpam a comanda');
+  await run('pago');
+  assert.equal(cleared, 1);
+  assert.equal(reloaded, 1);
+  assert.deepEqual(notifications, ['error', 'error', 'success']);
+  assert.equal(new Set(bodies.map(body => body.comandaId)).size, 1);
+  assert.deepEqual(bodies[0].itens, [{ nome: 'Produto da casa', quantidade: 2, preco: 5 }]);
+});
