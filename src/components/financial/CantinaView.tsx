@@ -135,7 +135,6 @@ export default function CantinaView({
   const [transactions, setTransactions] = useState<CantinaTransaction[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState<'todos' | 'pendentes' | 'bloqueados'>('todos');
-  const [selectedCategory, setSelectedCategory] = useState<string>('todos');
 
   // Gerenciamento dinâmico de itens fixos do cardápio
   const storageKey = `axecloud_cantina_menu_${tenantId || 'default'}`;
@@ -541,11 +540,6 @@ export default function CantinaView({
     window.open(link, '_blank');
   };
 
-  const filteredMenuItems = useMemo(() => {
-    if (selectedCategory === 'todos') return menuItems;
-    return menuItems.filter((i) => i.cat === selectedCategory);
-  }, [selectedCategory, menuItems]);
-
   return (
     <div className="cantina-view space-y-6">
       <DataLoadError message={loadError} onRetry={() => void fetchCantinaData()} />
@@ -663,61 +657,35 @@ export default function CantinaView({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Lado Esquerdo: Catálogo de Itens Touch (7 Colunas) */}
           <div className="lg:col-span-7 space-y-4">
-            {/* Categorias do Cardápio e Ação de Adicionar Item */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar flex-1 min-w-0">
-                {[
-                  { id: 'todos', label: 'Tudo', icon: null },
-                  { id: 'bebidas', label: 'Bebidas & Café', icon: '☕' },
-                  { id: 'comidas', label: 'Salgados & Doces', icon: '🥟' },
-                  { id: 'liturgia', label: 'Itens Litúrgicos', icon: '🌿' },
-                ].map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(c.id)}
-                    className={cn(
-                      "flex items-center gap-1.5 shrink-0 rounded-xl px-3.5 py-2 text-xs font-black transition-all cursor-pointer",
-                      selectedCategory === c.id
-                        ? "bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] text-[#0A160F] shadow-sm"
-                        : "bg-white border border-[#E5DECF] text-[#4A4235] hover:bg-[#FAF8F5]"
-                    )}
-                  >
-                    {c.icon && <span>{c.icon}</span>}
-                    <span>{c.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={handleOpenCreateItem}
-                  className="flex items-center gap-1.5 rounded-xl bg-[#0f1411] px-3.5 py-2 text-xs font-black text-[#f6c94c] hover:bg-[#1a261c] border border-amber-500/40 transition-all shadow-xs cursor-pointer active:scale-95"
-                  title="Cadastrar novo item fixo no cardápio"
-                >
-                  <Plus className="h-3.5 w-3.5 text-[#f6c94c]" />
-                  <span>+ Novo Item Fixo</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClearMenu}
-                  className="text-[10px] text-[#7A7265] hover:text-[#171A16] underline decoration-dotted px-1 cursor-pointer"
-                  title="Limpar cardápio local"
-                >
-                  Limpar cardápio
-                </button>
-              </div>
+            {/* Ações do cardápio */}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleOpenCreateItem}
+                className="flex items-center gap-1.5 rounded-xl bg-[#0f1411] px-3.5 py-2 text-xs font-black text-[#f6c94c] hover:bg-[#1a261c] border border-amber-500/40 transition-all shadow-xs cursor-pointer active:scale-95"
+                title="Cadastrar novo item fixo no cardápio"
+              >
+                <Plus className="h-3.5 w-3.5 text-[#f6c94c]" />
+                <span>+ Novo Item Fixo</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleClearMenu}
+                className="text-[10px] text-[#7A7265] hover:text-[#171A16] underline decoration-dotted px-1 cursor-pointer"
+                title="Limpar cardápio local"
+              >
+                Limpar cardápio
+              </button>
             </div>
 
             {/* Grid dos Produtos da Cantina */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {filteredMenuItems.length === 0 && (
+              {menuItems.length === 0 && (
                 <p className="col-span-full rounded-lg border border-dashed border-[#E5DECF] p-6 text-center text-sm text-[#6B6355]">
                   Nenhum item neste cardápio. Cadastre os produtos e preços da sua casa.
                 </p>
               )}
-              {filteredMenuItems.map((item) => (
+              {menuItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
