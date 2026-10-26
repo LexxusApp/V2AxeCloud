@@ -71,6 +71,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   const [orderBusy, setOrderBusy] = useState<string | null>(null);
   const [pixOrder, setPixOrder] = useState<{ order: {id:string;total:number}; pix: PixConfig & { payload:string;txid:string } } | null>(null);
   const checkoutAttempt = useRef<{signature:string;id:string} | null>(null);
+  const checkoutLock = useRef(false);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
@@ -306,10 +307,13 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   };
 
   const handleCheckout = async (method: 'mensalidade' | 'pix' | 'reserva' | 'dinheiro') => {
-    if (!cart.length || isCheckoutLoading) return;
+    if (!cart.length || checkoutLock.current) return;
     if (userRole === 'filho' && !filhoId) { showToast('Erro','Perfil de filho não encontrado.','error'); return; }
+    checkoutLock.current=true;
+    setIsCheckoutLoading(true);
+    try {
     const tenantPk = await resolveStoreTenantPk(storeTenantParams());
-    if (!tenantPk) { showToast('Erro','Terreiro não carregado. Tente novamente.','error'); return; }
+    if (!tenantPk) throw new Error('Terreiro não carregado. Tente novamente.');
     const requestItems = cart.map(item=>({produto_id:item.id,quantidade:item.quantidade})).sort((a,b)=>a.produto_id.localeCompare(b.produto_id));
     const signature = JSON.stringify({tenantPk,filhoId: userRole === 'filho' ? filhoId : null,method,items:requestItems});
     const attemptKey = 'axecloud_store_checkout_' + tenantPk + '_' + userId;
@@ -319,8 +323,6 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       checkoutAttempt.current = saved?.signature === signature ? saved : {signature,id:crypto.randomUUID()};
       try { sessionStorage.setItem(attemptKey,JSON.stringify(checkoutAttempt.current)); } catch {}
     }
-    setIsCheckoutLoading(true);
-    try {
       const res = await authFetch('/api/v1/store/checkout',{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({tenantId:tenantPk,filhoId:userRole === 'filho' ? filhoId : null,method,items:requestItems,checkoutId:checkoutAttempt.current!.id}),
@@ -339,7 +341,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       await Promise.all([fetchProducts({silent:true,tenantPk}),fetchLojaPedidos(tenantPk)]);
     } catch(error: any) {
       showToast('Não foi possível concluir',error.message || 'Sua comanda foi mantida. Tente novamente.','error');
-    } finally { setIsCheckoutLoading(false); }
+    } finally { checkoutLock.current=false; setIsCheckoutLoading(false); }
   };
 
   const showOrderPix = async (id:string) => {

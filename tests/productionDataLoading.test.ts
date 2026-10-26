@@ -182,3 +182,21 @@ for(const offline of [false,true]) test(`Cardápio não fecha formulário nem al
  });
  await run({preventDefault(){}});assert.equal(changed,false);assert.deepEqual(notifications,['error']);
 });
+
+test('Loja bloqueia clique simultâneo antes de aguardar a resolução do terreiro',async()=>{
+ let release!: (value:string)=>void;const tenantGate=new Promise<string>(r=>{release=r;});
+ let tenantCalls=0,checkoutCalls=0,clears=0;
+ const lock={current:false};
+ const run=screenFunction('src/views/Store.tsx','handleCheckout',{
+  cart:[{id:'produto',quantidade:1}],userRole:'admin',filhoId:null,userId:'gestor',isCheckoutLoading:false,
+  checkoutLock:lock,checkoutAttempt:{current:null},setIsCheckoutLoading(){},
+  resolveStoreTenantPk:()=>{tenantCalls++;return tenantGate;},storeTenantParams:()=>({}),
+  sessionStorage:{getItem(){return null;},setItem(){},removeItem(){}},
+  authFetch:async()=>{checkoutCalls++;return Response.json({success:true,order:{id:'pedido',status:'reservado'}});},
+  setCart(){clears++;},setIntencaoLojaFilho(){},setIsCartOpen(){},showToast(){},
+  window:{dispatchEvent(){}},fetchProducts:async()=>{},fetchLojaPedidos:async()=>{},
+ });
+ const first=run('reserva'),second=run('reserva');
+ assert.equal(tenantCalls,1,'Segundo clique deve parar antes da primeira operação assíncrona');
+ release('casa');await Promise.all([first,second]);assert.equal(checkoutCalls,1);assert.equal(clears,1);assert.equal(lock.current,false);
+});
