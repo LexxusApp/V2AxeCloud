@@ -10,6 +10,7 @@ import {
   Flame,
   HandHeart,
   Info,
+  RefreshCw,
   ShoppingBag,
   Sparkles,
   Trash2,
@@ -24,14 +25,8 @@ import { fetchMinhasParticipacoes } from '../lib/giraOperations';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
-import {
-  NOTIF_DISMISS_KEY,
-  NOTIF_READ_KEY,
-  loadNotifIdSetForUser,
-  notifDismissStorageKey,
-  notifReadStorageKey,
-  saveNotifIdSet,
-} from '../lib/notificationPrefs';
+import { useNotificationInbox } from '../hooks/useNotificationInbox';
+import { canonicalNotificationId, notificationDay, notificationDisplayDate, notificationInstant, formatNotificationDate, sortNotificationDates } from '../lib/notificationInbox';
 import {
   GIRA_REMINDER_FEATURE_NOTIF_ID,
   GiraReminderFeatureModal,
@@ -48,6 +43,7 @@ export interface AppNotification {
   body: string;
   read: boolean;
   created_at: string;
+  dateLabel?: string;
 }
 
 interface NotificationPanelProps {
@@ -136,24 +132,6 @@ const TYPE_META: Record<
 };
 
 const LIST_CAP = 30;
-/** Avisos de nova função: não somem só de “ver o painel” — pedem clique ou “Ler todas”. */
-const FEATURE_ANNOUNCEMENT_IDS = new Set([
-  GIRA_REMINDER_FEATURE_NOTIF_ID,
-  COMPLETE_WHATSAPP_NOTIF_ID,
-]);
-
-function timeAgo(dateStr: string): string {
-  const timestamp = new Date(dateStr).getTime();
-  if (!Number.isFinite(timestamp)) return '';
-  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
-  if (minutes < 1) return 'Agora';
-  if (minutes < 60) return `Há ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Há ${hours}h`;
-  const days = Math.floor(hours / 24);
-  return days === 1 ? 'Ontem' : `Há ${days} dias`;
-}
-
 function formatBRL(value: unknown): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
     Number(value) || 0,
@@ -170,36 +148,11 @@ function isoDaysAgo(days: number): string {
 }
 
 function dateStrPlusDays(days: number): string {
-  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+  return notificationDay(days);
 }
 
-function isNotifRead(id: string, readIds: Set<string>): boolean {
-  if (readIds.has(id)) return true;
-  // Novo formato gira_<uuid>: também cobre IDs legados gira_<uuid>_<data>
-  if (id.startsWith('gira_') && !id.slice(5).includes('_')) {
-    for (const old of readIds) {
-      if (old.startsWith(`${id}_`)) return true;
-    }
-  }
-  // Legado gira_<uuid>_<data>: cobre se o estável gira_<uuid> já foi lido
-  const legacy = id.match(/^gira_([0-9a-f-]{36})_/i);
-  if (legacy && readIds.has(`gira_${legacy[1]}`)) return true;
-  return false;
-}
-
-function stableDateKey(raw: unknown): string {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
-  return m ? m[1] : s.slice(0, 10);
-}
-
-function eventTimestamp(event: { data?: unknown; hora?: unknown; created_at?: unknown }): string {
-  const created = String(event.created_at || '').trim();
-  if (created) return created;
-  const day = stableDateKey(event.data);
-  const time = String(event.hora || '12:00:00').trim().slice(0, 8);
-  return day ? `${day}T${time.length === 5 ? `${time}:00` : time}` : new Date().toISOString();
+function eventTimestamp(event: { created_at?: unknown }): string {
+  return notificationInstant(event.created_at) || '';
 }
 
 function notificationTarget(type: AppNotification['type'], isFilho: boolean): string {
@@ -234,7 +187,7 @@ function buildTrialFollowup(tenantData: NotificationPanelProps['tenantData']): R
   const expiresAt = new Date(tenantData.expires_at).getTime();
   if (!Number.isFinite(expiresAt)) return null;
   const daysRemaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 86_400_000));
-  const createdAt = new Date().toISOString();
+  const createdAt = ''; // Discovery time is persisted once in the account inbox.
 
   if (daysRemaining <= 3) {
     return {
@@ -272,13 +225,20 @@ function buildTrialFollowup(tenantData: NotificationPanelProps['tenantData']): R
   };
 }
 
+function sourcesPartial(results: PromiseSettledResult<any>[]) {
+  const failed = results.filter(result => result.status === 'rejected' || result.value?.error).length;
+  if (failed === results.length) throw new Error('Não foi possível atualizar as notificações.');
+  return failed > 0;
+}
+type LoadedNotifications = { items: RawNotification[]; partial: boolean };
+
 /** Fontes do sino do zelador: mensalidades pagas, pedidos de reza, lembretes de
  *  gira e obrigação, pedidos da loja e falhas de envio de WhatsApp. */
 async function loadZeladorNotifications(
   tenantId: string,
   userId: string | null,
-): Promise<RawNotification[]> {
-  const today = new Date().toISOString().slice(0, 10);
+): Promise<LoadedNotifications> {
+  const today = notificationDay();
 
   const [pagamentos, rezas, giras, obrigacoes, pedidosLoja, falhasEnvio] = await Promise.allSettled([
     supabase
@@ -306,7 +266,7 @@ async function loadZeladorNotifications(
     }),
     supabase
       .from('calendario_axe')
-      .select('id, titulo, data')
+      .select('id, titulo, data, hora, created_at')
       .eq('tenant_id', tenantId)
       .eq('tipo', 'Obrigação')
       .gte('data', today)
@@ -329,14 +289,15 @@ async function loadZeladorNotifications(
     supabase
       .from('whatsapp_logs')
       .select('id, tipo, telefone, created_at')
+      .eq('tenant_id', tenantId)
       .eq('status', 'failed')
       .gte('created_at', isoDaysAgo(7))
       .order('created_at', { ascending: false })
       .limit(5),
   ]);
 
+  const partial = sourcesPartial([pagamentos, rezas, giras, obrigacoes, pedidosLoja, falhasEnvio]);
   const items: RawNotification[] = [];
-  const nowIso = new Date().toISOString();
 
   if (pagamentos.status === 'fulfilled') {
     (pagamentos.value.data || [])
@@ -356,7 +317,7 @@ async function loadZeladorNotifications(
           type: 'payment',
           title: 'Mensalidade paga',
           body: `${String(row.descricao || 'Mensalidade')} · ${formatBRL(row.valor)}`,
-          created_at: String(row.created_at || nowIso),
+          created_at: String(row.created_at || ''),
         });
       });
   }
@@ -371,7 +332,7 @@ async function loadZeladorNotifications(
           type: 'reza',
           title: 'Novo pedido de reza',
           body: `${String(pedido.nome || 'Consulente')} · ${String(pedido.mensagem || '').slice(0, 120)}`,
-          created_at: String(pedido.created_at || nowIso),
+          created_at: String(pedido.created_at || ''),
         });
       });
   }
@@ -416,7 +377,7 @@ async function loadZeladorNotifications(
         type: 'store',
         title: pedido.tipo === 'reserva' ? 'Nova reserva na loja' : 'Novo pedido na loja',
         body: `${String(pedido.filho_nome || 'Membro da casa')} · ${formatBRL(pedido.valor_total)}`,
-        created_at: String(pedido.created_at || nowIso),
+        created_at: String(pedido.created_at || ''),
       });
     });
   }
@@ -428,31 +389,29 @@ async function loadZeladorNotifications(
         type: 'wafail',
         title: 'Falha no envio de WhatsApp',
         body: `A mensagem${log.tipo ? ` (${String(log.tipo)})` : ''} para ${String(log.telefone || 'o destinatário')} não foi entregue.`,
-        created_at: String(log.created_at || nowIso),
+        created_at: String(log.created_at || ''),
       });
     });
   }
 
-  // Aviso de nova função (zelador): clique abre modal explicativo.
-  // created_at = agora só para ordenação; o rótulo na UI é “Novidade”.
+  // Stable release date: routine refreshes must never promote an old announcement.
   items.push({
     id: GIRA_REMINDER_FEATURE_NOTIF_ID,
     type: 'system',
     title: 'Nova função: lembrete automático de gira',
     body: 'Configure o intervalo no WhatsApp (1–7 dias) e o aviso no dia da gira.',
-    created_at: nowIso,
+    created_at: '2026-08-13T11:55:12.000Z',
   });
 
-  return items;
+  return { items, partial };
 }
 
 /** Fontes do sino do filho de santo: obrigação lançada no perfil, mensalidade,
  *  evento novo no calendário e PDF novo na biblioteca. */
-async function loadFilhoNotifications(tenantId: string): Promise<RawNotification[]> {
+async function loadFilhoNotifications(tenantId: string): Promise<LoadedNotifications> {
   const today = new Date();
-  const start = today.toISOString().slice(0, 10);
+  const start = notificationDay();
   const end = dateStrPlusDays(120);
-  const nowIso = today.toISOString();
 
   const [homeResult, participationResult, eventsResult, materialsResult] = await Promise.allSettled([
     authFetch(`/api/v1/filho/home?tenantId=${encodeURIComponent(tenantId)}`).then(async (response) => {
@@ -477,6 +436,7 @@ async function loadFilhoNotifications(tenantId: string): Promise<RawNotification
     ),
   ]);
 
+  let partial = sourcesPartial([homeResult, participationResult, eventsResult, materialsResult]);
   const items: RawNotification[] = [];
 
   const home = homeResult.status === 'fulfilled' ? homeResult.value : null;
@@ -487,7 +447,7 @@ async function loadFilhoNotifications(tenantId: string): Promise<RawNotification
       type: 'payment',
       title: financialStatus === 'vencido' ? 'Mensalidade vencida' : 'Mensalidade em aberto',
       body: 'Confira os detalhes e a chave Pix disponibilizada pela casa.',
-      created_at: nowIso,
+      created_at: '',
     });
   }
 
@@ -521,21 +481,22 @@ async function loadFilhoNotifications(tenantId: string): Promise<RawNotification
           type: 'library',
           title: 'Novo material na biblioteca',
           body: `${String(material.titulo || 'Material de estudo')}${material.categoria ? ` · ${String(material.categoria)}` : ''}`,
-          created_at: String(material.created_at || nowIso),
+          created_at: String(material.created_at || ''),
         });
       });
   }
 
   const childId = String(home?.child?.id || '');
   if (childId) {
-    const { data: obligations } = await supabase
+    const { data: obligations, error: obligationError } = await supabase
       .from('calendario_axe')
-      .select('id, titulo, data')
+      .select('id, titulo, data, hora, created_at')
       .eq('tipo', 'Obrigação')
       .eq('tenant_id', tenantId)
       .like('descricao', `%FILHO_ID:${childId}%`)
       .order('data', { ascending: false })
       .limit(10);
+    partial ||= Boolean(obligationError);
     const seen = loadObrigacoesSeen(childId);
     (obligations || [])
       .filter((item) => !seen.has(String(item.id)))
@@ -546,12 +507,12 @@ async function loadFilhoNotifications(tenantId: string): Promise<RawNotification
           type: 'obligation',
           title: String(item.titulo || 'Nova obrigação registrada'),
           body: `Orientação registrada para ${formatDay(String(item.data))}.`,
-          created_at: String(item.data || nowIso),
+          created_at: eventTimestamp(item),
         });
       });
   }
 
-  return items;
+  return { items, partial };
 }
 
 export default function NotificationPanel({
@@ -568,31 +529,24 @@ export default function NotificationPanel({
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
   const [whatsappResolved, setWhatsappResolved] = useState(false);
   const [rawItems, setRawItems] = useState<RawNotification[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(
-    () => loadNotifIdSetForUser(NOTIF_READ_KEY, userId),
-  );
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(
-    () => loadNotifIdSetForUser(NOTIF_DISMISS_KEY, userId),
-  );
+  const [loading, setLoading] = useState(true);
+  const [feedError, setFeedError] = useState(false);
+  const [feedScope, setFeedScope] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLElement | null>(null);
   const isFilho = userRole === 'filho';
   const tenantId = tenantData?.tenant_id ? String(tenantData.tenant_id) : null;
-  const readKey = notifReadStorageKey(userId);
-  const dismissKey = notifDismissStorageKey(userId);
-  const rawItemsRef = useRef(rawItems);
-  rawItemsRef.current = rawItems;
-  const readKeyRef = useRef(readKey);
-  readKeyRef.current = readKey;
-  const dismissKeyRef = useRef(dismissKey);
-  dismissKeyRef.current = dismissKey;
+  const scope = `${userId || ''}:${tenantId || ''}`;
+  const { store: inbox, snapshot: inboxState } = useNotificationInbox(userId, tenantId);
+  const reloadRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    setReadIds(loadNotifIdSetForUser(NOTIF_READ_KEY, userId));
-    setDismissedIds(loadNotifIdSetForUser(NOTIF_DISMISS_KEY, userId));
+    setRawItems([]);
+    setFeedScope('');
+    setOpen(false);
     setWhatsappResolved(false);
     setWhatsappModalOpen(false);
-  }, [userId]);
+  }, [userId, tenantId]);
 
   useEffect(() => {
     const closeOnOutsideClick = (event: MouseEvent) => {
@@ -613,16 +567,21 @@ export default function NotificationPanel({
   }, []);
 
   useEffect(() => {
-    if (!tenantId) {
-      setRawItems([]);
+    if (!tenantId || !userId) {
+      setLoading(false);
       return;
     }
     let cancelled = false;
+    let inFlight = false;
     const load = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      setLoading(true);
       try {
-        const items = isFilho
+        const result = isFilho
           ? await loadFilhoNotifications(tenantId)
           : await loadZeladorNotifications(tenantId, userId ?? null);
+        const items = result.items;
         if (!isFilho) {
           const trialFollowup = buildTrialFollowup(tenantData);
           if (trialFollowup) items.unshift(trialFollowup);
@@ -632,104 +591,58 @@ export default function NotificationPanel({
               type: 'system',
               title: 'Complete seu WhatsApp',
               body: 'Precisamos do seu número para acompanhar a configuração da sua casa.',
-              created_at: new Date().toISOString(),
+              created_at: '',
             });
           }
         }
-        if (!cancelled) setRawItems(items);
+        if (!cancelled) {
+          setRawItems(previous => result.partial
+            ? [...new Map([...previous, ...items].map(item => [item.id, item])).values()] : items);
+          setFeedScope(scope);
+          setFeedError(result.partial);
+          inbox.setItems(items.map(item => item.id));
+          void inbox.sync();
+        }
       } catch (error) {
+        if (!cancelled) setFeedError(true);
         console.warn('[notifications] load:', error);
+      } finally {
+        inFlight = false;
+        if (!cancelled) setLoading(false);
       }
     };
+    reloadRef.current = () => { void load(); void inbox.sync(); };
     void load();
     const interval = window.setInterval(() => void load(), 120_000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, tenantData?.whatsapp_missing, userId, whatsappResolved]);
+  }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, tenantData?.whatsapp_missing, userId, whatsappResolved, inbox, scope]);
 
-  const allNotifications = useMemo<AppNotification[]>(
-    () =>
-      rawItems
-        .filter((item) => !dismissedIds.has(item.id))
-        .map((item) => ({ ...item, read: isNotifRead(item.id, readIds) }))
-        .sort((a, b) => {
-          // Atualizações de função não lidas ficam no topo (acima de lembretes rotineiros).
-          const aPin = FEATURE_ANNOUNCEMENT_IDS.has(a.id) && !a.read ? 1 : 0;
-          const bPin = FEATURE_ANNOUNCEMENT_IDS.has(b.id) && !b.read ? 1 : 0;
-          if (aPin !== bPin) return bPin - aPin;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        })
-        .slice(0, LIST_CAP),
-    [rawItems, readIds, dismissedIds],
-  );
-  const unread = allNotifications.filter((notification) => !notification.read).length;
-  const visibleNotifications = useMemo(
-    () =>
-      filter === 'unread'
-        ? allNotifications.filter((notification) => !notification.read)
-        : allNotifications,
-    [allNotifications, filter],
-  );
+  const allNotifications = useMemo<AppNotification[]>(() => {
+    if (feedScope !== scope || !inboxState.ready) return [];
+    const unique = new Map<string, AppNotification>();
+    for (const item of rawItems) {
+      const id = canonicalNotificationId(item.id);
+      const state = inboxState.records[id];
+      if (!state || state.dismissed_at) continue;
+      const date = notificationDisplayDate(item.created_at, state.first_seen_at);
+      unique.set(id, { ...item, id, created_at: date, read: Boolean(state.read_at),
+        dateLabel: date === notificationInstant(item.created_at) ? 'Registrada em' : 'Vista pela primeira vez em' });
+    }
+    return sortNotificationDates([...unique.values()]).slice(0, LIST_CAP);
+  }, [rawItems, inboxState.records, inboxState.ready, scope, feedScope]);
+  const unread = allNotifications.filter(notification => !notification.read).length;
+  const visibleNotifications = filter === 'unread'
+    ? allNotifications.filter(notification => !notification.read) : allNotifications;
+  const markAllRead = () => inbox.markRead(allNotifications.map(item => item.id));
+  const markRead = (id: string) => inbox.markRead([id]);
+  const dismiss = (id: string) => inbox.dismiss(id);
 
-  const persistReadIds = (updated: Set<string>) => {
-    const scoped = readKeyRef.current;
-    saveNotifIdSet(scoped, updated);
-    // Espelho na chave legada — evita “desler” se o userId hidratar depois.
-    if (scoped !== NOTIF_READ_KEY) saveNotifIdSet(NOTIF_READ_KEY, updated);
-  };
-
-  const markAllRead = (opts?: { includeFeatureAnnouncements?: boolean }) => {
-    const includeFeatures = opts?.includeFeatureAnnouncements !== false;
-    setReadIds((current) => {
-      const updated = new Set(current);
-      for (const item of rawItemsRef.current) {
-        if (item.id === COMPLETE_WHATSAPP_NOTIF_ID) continue;
-        if (!includeFeatures && FEATURE_ANNOUNCEMENT_IDS.has(item.id)) continue;
-        updated.add(item.id);
-      }
-      // Compat: IDs antigos `gira_<uuid>_<data>` → marca também `gira_<uuid>`.
-      for (const item of rawItemsRef.current) {
-        if (item.id.startsWith('gira_')) {
-          const legacyPrefix = `${item.id}_`;
-          for (const oldId of current) {
-            if (oldId.startsWith(legacyPrefix) || oldId === item.id) updated.add(oldId);
-          }
-        }
-      }
-      persistReadIds(updated);
-      return updated;
-    });
-  };
-
-  const markRead = (id: string) => {
-    setReadIds((current) => {
-      const updated = new Set([...current, id]);
-      if (id.startsWith('gira_') && id.includes('_', 5)) {
-        // legado gira_uuid_data → também marca gira_uuid
-        const parts = id.split('_');
-        if (parts.length >= 2) updated.add(`gira_${parts[1]}`);
-      } else if (id.startsWith('gira_')) {
-        for (const oldId of current) {
-          if (oldId.startsWith(`${id}_`)) updated.add(oldId);
-        }
-      }
-      persistReadIds(updated);
-      return updated;
-    });
-  };
-
-  const dismiss = (id: string) => {
-    markRead(id);
-    setDismissedIds((current) => {
-      const updated = new Set([...current, id]);
-      const scoped = dismissKeyRef.current;
-      saveNotifIdSet(scoped, updated);
-      if (scoped !== NOTIF_DISMISS_KEY) saveNotifIdSet(NOTIF_DISMISS_KEY, updated);
-      return updated;
-    });
-  };
+  useEffect(() => {
+    if (open) reloadRef.current();
+  }, [open]);
 
   const openNotification = (notification: AppNotification) => {
     if (notification.id === COMPLETE_WHATSAPP_NOTIF_ID) {
@@ -749,20 +662,6 @@ export default function NotificationPanel({
     }
     onNavigate?.(notificationTarget(notification.type, isFilho));
   };
-
-  // Ver é ler: ao abrir (e quando a lista carrega com o painel aberto), persiste lidas.
-  // Avisos de nova função ficam até clique ou “Ler todas”.
-  const markPanelSeenRef = useRef(() => markAllRead({ includeFeatureAnnouncements: false }));
-  markPanelSeenRef.current = () => markAllRead({ includeFeatureAnnouncements: false });
-  useEffect(() => {
-    if (!open) return;
-    if (!rawItems.length) return;
-    const timer = window.setTimeout(() => markPanelSeenRef.current(), 900);
-    return () => {
-      window.clearTimeout(timer);
-      markPanelSeenRef.current();
-    };
-  }, [open, rawItems]);
 
   const popover = open ? (
     <motion.section
@@ -788,7 +687,7 @@ export default function NotificationPanel({
           <p className="mt-1 text-[11px] text-[#8B96A8]">
             {unread
               ? `${unread} ${unread === 1 ? 'novidade precisa' : 'novidades precisam'} da sua atenção`
-              : 'Você está em dia com tudo'}
+              : 'Nenhuma notificação não lida'}
           </p>
         </div>
         <button
@@ -827,7 +726,7 @@ export default function NotificationPanel({
         {unread > 0 ? (
           <button
             type="button"
-            onClick={() => markAllRead({ includeFeatureAnnouncements: true })}
+            onClick={markAllRead}
             className="axecloud-notification-read-all"
           >
             <CheckCheck className="h-3.5 w-3.5" aria-hidden />
@@ -836,7 +735,14 @@ export default function NotificationPanel({
         ) : null}
       </div>
 
-      <div className="axecloud-notification-list">
+      {(feedError || inboxState.error) ? (
+        <div className="axecloud-notification-status" role="status">
+          <span>{inboxState.error ? 'Sem sincronização. Suas alterações serão reenviadas.' : 'Alguns avisos não puderam ser atualizados.'}</span>
+          <button type="button" onClick={() => reloadRef.current()}>Tentar novamente</button>
+        </div>
+      ) : null}
+      <div className="axecloud-notification-list" aria-busy={loading}>
+        {loading && !visibleNotifications.length ? <p className="axecloud-notification-status" role="status">Carregando notificações…</p> : null}
         <AnimatePresence initial={false} mode="popLayout">
           {visibleNotifications.length ? (
             visibleNotifications.map((notification) => {
@@ -878,22 +784,27 @@ export default function NotificationPanel({
                       </span>
                       <span
                         className={cn(
-                          'mt-1 block text-[13px] font-bold leading-snug',
+                          'axecloud-notification-title mt-1 block text-[13px] font-bold leading-snug',
                           notification.read ? 'text-[#B5BECC]' : 'text-white',
                         )}
                       >
                         {notification.title}
                       </span>
-                      <span className="mt-1 line-clamp-2 block text-[11px] leading-relaxed text-[#7E899A]">
+                      <span className="axecloud-notification-body mt-1 line-clamp-2 block text-[11px] leading-relaxed text-[#7E899A]">
                         {notification.body}
                       </span>
-                      <span className="mt-2 block text-[10px] font-semibold text-[#596578]">
-                        {FEATURE_ANNOUNCEMENT_IDS.has(notification.id)
-                          ? 'Novidade'
-                          : timeAgo(notification.created_at)}
+                      <span className="axecloud-notification-date">
+                        <span>{notification.dateLabel}</span>
+                        <time dateTime={notification.created_at}>{formatNotificationDate(notification.created_at)} · Brasília</time>
                       </span>
                     </span>
                   </button>
+                  <div className="axecloud-notification-actions">
+                  {!notification.read ? (
+                    <button type="button" className="axecloud-notification-dismiss" onClick={() => markRead(notification.id)} aria-label={`Marcar como lida: ${notification.title}`} title="Marcar como lida">
+                      <Check className="h-4 w-4" aria-hidden />
+                    </button>
+                  ) : null}
                   {notification.id !== COMPLETE_WHATSAPP_NOTIF_ID ? (
                     <button
                       type="button"
@@ -904,10 +815,11 @@ export default function NotificationPanel({
                       <Trash2 className="h-3.5 w-3.5" aria-hidden />
                     </button>
                   ) : null}
+                  </div>
                 </motion.article>
               );
             })
-          ) : (
+          ) : !loading && !feedError ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
@@ -926,13 +838,15 @@ export default function NotificationPanel({
                   : 'As novidades importantes da gestão aparecerão aqui.'}
               </p>
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
 
       <div className="axecloud-notification-footer">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        Atualizações em tempo real
+        <span>{loading || inboxState.syncing ? 'Atualizando…' : inboxState.error ? 'Alterações salvas neste aparelho' : inboxState.lastSynced ? 'Sincronizado com sua conta' : 'Aguardando sincronização'}</span>
+        <button type="button" aria-label="Atualizar notificações" onClick={() => reloadRef.current()} disabled={loading || inboxState.syncing}>
+          <RefreshCw className={cn('h-4 w-4', (loading || inboxState.syncing) && 'animate-spin')} aria-hidden />
+        </button>
       </div>
     </motion.section>
   ) : null;
