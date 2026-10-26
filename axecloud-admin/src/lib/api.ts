@@ -1,3 +1,5 @@
+import { supabase } from "./supabase";
+
 const TOKEN_KEY = "axecloud_admin_access_token";
 
 export const API_UNAVAILABLE = "API_UNAVAILABLE";
@@ -87,6 +89,23 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
     data = { raw: text };
   }
   if (!res.ok) {
+    if (res.status === 401 && !headers.has("X-Retry-Auth")) {
+      try {
+        if (supabase) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && refreshData.session?.access_token) {
+            setAccessToken(refreshData.session.access_token);
+            const retryHeaders = new Headers(headers);
+            retryHeaders.set("Authorization", `Bearer ${refreshData.session.access_token}`);
+            retryHeaders.set("X-Retry-Auth", "1");
+            return apiJson<T>(path, { ...init, headers: retryHeaders });
+          }
+        }
+      } catch {
+        /* fallback to standard error handling */
+      }
+    }
+
     const body = data as { error?: string; debug?: { hint?: string } } | null;
     const rawLower = text.toLowerCase();
     const proxyDown =

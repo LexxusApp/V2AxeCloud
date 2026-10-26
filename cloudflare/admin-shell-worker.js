@@ -32,6 +32,19 @@ function secure(response, pathname) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+function getMonthRange() {
+  const now = new Date();
+  const spNow = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const year = spNow.getUTCFullYear();
+  const month = spNow.getUTCMonth() + 1;
+  const monthStr = String(month).padStart(2, '0');
+  const lastDay = new Date(year, month, 0).getDate();
+  return {
+    monthStart: `${year}-${monthStr}-01`,
+    monthEnd: `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -40,6 +53,78 @@ export default {
       const target = new URL(url.pathname + url.search, 'https://axecloud.com.br');
       const headers = new Headers(request.headers);
       const upstream = await env.API.fetch(new Request(target, { method: request.method, headers, body: request.body, redirect: 'manual' }));
+
+      if (url.pathname === '/api/admin-console/mensalidades/tenants' && request.method === 'GET' && upstream.ok) {
+        try {
+          const upstreamData = await upstream.clone().json().catch(() => ({}));
+          const metaConfigured = Boolean(upstreamData.metaConfigured);
+
+          if (env.SUPABASE_SERVICE_ROLE_KEY) {
+            const { monthStart, monthEnd } = getMonthRange();
+            const sbUrl = String(env.SUPABASE_URL || 'https://vlaojhfwhqmwudqsumpi.supabase.co').replace(/\/$/, '');
+            const authHeaders = {
+              apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            };
+
+            const [perfRes, finRes] = await Promise.all([
+              fetch(`${sbUrl}/rest/v1/perfil_lider?select=id,tenant_id,nome_terreiro,email,deleted_at&deleted_at=is.null&order=nome_terreiro.asc&limit=500`, {
+                headers: authHeaders,
+              }),
+              fetch(`${sbUrl}/rest/v1/financeiro?select=tenant_id,filho_id,status,categoria,data,lider_id&categoria=eq.Mensalidade&data=gte.${monthStart}&data=lte.${monthEnd}&limit=2000`, {
+                headers: authHeaders,
+              }),
+            ]);
+
+            if (perfRes.ok && finRes.ok) {
+              const [profiles, finRows] = await Promise.all([perfRes.json(), finRes.json()]);
+
+              const pendingByTenant = new Map();
+              for (const row of finRows) {
+                const st = String(row.status || '').toLowerCase();
+                if (st === 'pago' || st === 'paid' || st === 'concluido' || st === 'concluida' || st === 'cancelado' || st === 'cancelada') continue;
+                const tid = String(row.tenant_id || row.lider_id || '');
+                const fid = String(row.filho_id || row.id || '');
+                if (!tid) continue;
+                if (!pendingByTenant.has(tid)) pendingByTenant.set(tid, new Set());
+                pendingByTenant.get(tid).add(fid);
+              }
+
+              const tenants = (profiles || [])
+                .map((p) => {
+                  const tid = String(p.tenant_id || p.id || '');
+                  const pendingCount =
+                    (pendingByTenant.get(tid)?.size || 0) ||
+                    (p.id ? (pendingByTenant.get(String(p.id))?.size || 0) : 0);
+                  return {
+                    id: tid,
+                    nomeTerreiro: String(p.nome_terreiro || 'Terreiro'),
+                    email: p.email ? String(p.email) : null,
+                    pendingCount,
+                  };
+                })
+                .filter((t) => t.id)
+                .sort((a, b) => {
+                  const countA = a.pendingCount || 0;
+                  const countB = b.pendingCount || 0;
+                  if (countB !== countA) return countB - countA;
+                  return a.nomeTerreiro.localeCompare(b.nomeTerreiro, 'pt-BR');
+                });
+
+              return secure(
+                new Response(JSON.stringify({ tenants, metaConfigured }), {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' },
+                }),
+                url.pathname
+              );
+            }
+          }
+        } catch (enrichErr) {
+          console.error('[admin-shell] failed to list mensalidades tenants:', enrichErr);
+        }
+      }
+
       return secure(upstream, url.pathname);
     }
 

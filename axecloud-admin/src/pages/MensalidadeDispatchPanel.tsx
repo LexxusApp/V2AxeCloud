@@ -15,6 +15,7 @@ type TenantOption = {
   id: string;
   nomeTerreiro: string;
   email: string | null;
+  pendingCount?: number;
 };
 
 type Recipient = {
@@ -23,6 +24,7 @@ type Recipient = {
   phoneMasked: string;
   valorFmt: string;
   vencimentoBr: string;
+  isOverdue?: boolean;
   sentToday: boolean;
 };
 
@@ -33,6 +35,7 @@ type Preview = {
   mesExtenso: string;
   pending: number;
   eligible: number;
+  overdueCount?: number;
   withoutPhone: number;
   alreadySentToday: number;
   sendable: number;
@@ -196,11 +199,16 @@ export function MensalidadeDispatchPanel() {
               className="admin-input mt-1 w-full disabled:cursor-wait disabled:opacity-60"
             >
               <option value="">Selecione uma casa</option>
-              {tenants.map((tenant) => (
-                <option key={tenant.id} value={tenant.id}>
-                  {tenant.nomeTerreiro}
-                </option>
-              ))}
+              {tenants.map((tenant) => {
+                const count = tenant.pendingCount ?? 0;
+                return (
+                  <option key={tenant.id} value={tenant.id}>
+                    {tenant.nomeTerreiro}
+                    {` · ${count} pendente${count === 1 ? "" : "s"}`}
+                    {tenant.email ? ` · ${tenant.email}` : ""}
+                  </option>
+                );
+              })}
             </select>
             {selectedTenant?.email && (
               <p className="mt-1 text-xs text-[var(--ac-text-faint)]">{selectedTenant.email}</p>
@@ -216,6 +224,12 @@ export function MensalidadeDispatchPanel() {
               <div>
                 <dt className="text-[11px] font-semibold text-[var(--ac-text-muted)]">Prontos para envio</dt>
                 <dd className="admin-mono mt-1 text-sm font-bold text-[var(--ac-text)]">{preview.sendable}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold text-[var(--ac-text-muted)]">Vencidas</dt>
+                <dd className="admin-mono mt-1 text-sm font-bold text-[var(--ac-danger)]">
+                  {preview.overdueCount ?? 0}
+                </dd>
               </div>
               <div>
                 <dt className="text-[11px] font-semibold text-[var(--ac-text-muted)]">Já cobrados hoje</dt>
@@ -280,7 +294,17 @@ export function MensalidadeDispatchPanel() {
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="admin-mono font-bold text-[var(--ac-text)]">R$ {recipient.valorFmt}</p>
-                        {recipient.sentToday && <span className="text-[10px] font-semibold text-[var(--ac-success)]">enviado hoje</span>}
+                        {recipient.sentToday ? (
+                          <span className="text-[10px] font-semibold text-[var(--ac-success)]">enviado hoje</span>
+                        ) : recipient.isOverdue ? (
+                          <span className="inline-block rounded bg-[var(--ac-danger-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--ac-danger)]">
+                            vencida
+                          </span>
+                        ) : (
+                          <span className="inline-block rounded bg-[var(--ac-paper-elevated)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ac-text-muted)]">
+                            a vencer
+                          </span>
+                        )}
                       </div>
                     </li>
                   ))}

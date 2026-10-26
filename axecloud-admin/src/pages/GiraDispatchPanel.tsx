@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, RefreshCw, RotateCcw, Send } from "lucide-react";
+import { CalendarDays, RefreshCw, RotateCcw, Send, XCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { apiJson } from "@/lib/api";
@@ -217,7 +217,8 @@ export function GiraDispatchPanel() {
   const [eventId, setEventId] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [membroPreview, setMembroPreview] = useState("Maria");
-  const [busy, setBusy] = useState<"idle" | "load" | "events" | "send" | "retry">("idle");
+  const [busy, setBusy] = useState<"idle" | "load" | "events" | "send" | "retry" | "cancel">("idle");
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err" | "info"; msg: string } | null>(null);
   const [progress, setProgress] = useState<{
     sent: number;
@@ -323,7 +324,8 @@ export function GiraDispatchPanel() {
 
   useEffect(() => {
     void loadLog(tenantId || undefined);
-  }, [tenantId, loadLog]);
+    void checkActiveJob(tenantId || undefined);
+  }, [tenantId, loadLog, checkActiveJob]);
 
   async function retryFailed(row: DispatchLogRow) {
     if (!row.filhoId) {
@@ -388,6 +390,177 @@ export function GiraDispatchPanel() {
     }
   }
 
+  async function cancelDispatch() {
+    const jid = activeJobId;
+    if (!jid) {
+      setFeedback({ kind: "info", msg: "Nenhum disparo em andamento para cancelar." });
+      return;
+    }
+    if (
+      !confirm(
+        "Deseja realmente cancelar o disparo em andamento?\n\nOs envios para os membros restantes da lista serão interrompidos imediatamente."
+      )
+    ) {
+      return;
+    }
+    setBusy("cancel");
+    setFeedback({ kind: "info", msg: "Cancelando disparo… interrompendo envio para próximos membros." });
+    try {
+      const res = await apiJson<{
+        success: boolean;
+        job?: {
+          id: string;
+          phase: string;
+          sent: number;
+          eligible: number;
+          errors: number;
+        };
+      }>(`/api/admin-console/gira-dispatch/jobs/${encodeURIComponent(jid)}/cancel`, {
+        method: "POST",
+      });
+      if (res.job) {
+        setProgress((prev) =>
+          prev
+            ? { ...prev, phase: "cancelled" }
+            : {
+                sent: res.job!.sent,
+                errors: res.job!.errors,
+                eligible: res.job!.eligible,
+                index: res.job!.sent + res.job!.errors,
+                phase: "cancelled",
+              }
+        );
+      }
+      setFeedback({
+        kind: "info",
+        msg: `Disparo cancelado pelo operador (${res.job?.sent ?? 0}/${res.job?.eligible ?? 0} enviados · falhas ${res.job?.errors ?? 0}).`,
+      });
+      setActiveJobId(null);
+      await loadLog(tenantId);
+    } catch (e) {
+      setFeedback({
+        kind: "err",
+        msg: e instanceof Error ? e.message : "Falha ao solicitar cancelamento do disparo.",
+      });
+    } finally {
+      setBusy("idle");
+    }
+  }
+
+  const pollExistingJob = useCallback(
+    async (jobId: string, tid?: string) => {
+      let consecutiveErrors = 0;
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 1500));
+        let poll;
+        try {
+          poll = await apiJson<{
+            job: {
+              id: string;
+              phase: string;
+              sent: number;
+              errors: number;
+              eligible: number;
+              index: number;
+              status: string;
+              error: string | null;
+              templateName: string;
+            };
+          }>(`/api/admin-console/gira-dispatch/jobs/${encodeURIComponent(jobId)}`);
+          consecutiveErrors = 0;
+        } catch (pollErr) {
+          consecutiveErrors++;
+          if (consecutiveErrors < 8) continue;
+          throw pollErr;
+        }
+
+        const job = poll.job;
+        setProgress({
+          sent: job.sent,
+          errors: job.errors,
+          eligible: job.eligible,
+          index: job.index,
+          phase: job.phase,
+        });
+
+        if (job.eligible > 0 && (job.phase === "running" || job.phase === "queued")) {
+          setFeedback({
+            kind: "info",
+            msg: `Enviando ${Math.min(job.index || job.sent + job.errors, job.eligible)}/${job.eligible}… · ok ${job.sent} · falhas ${job.errors}`,
+          });
+        }
+
+        if (job.phase === "done") {
+          setFeedback({
+            kind: job.sent > 0 ? "ok" : "err",
+            msg: `Concluído: ${job.sent}/${job.eligible} enviados · falhas ${job.errors} · ${job.templateName}`,
+          });
+          setActiveJobId(null);
+          setBusy("idle");
+          await loadLog(tid);
+          break;
+        }
+        if (job.phase === "failed") {
+          setFeedback({
+            kind: "err",
+            msg: job.error || "Disparo falhou.",
+          });
+          setActiveJobId(null);
+          setBusy("idle");
+          await loadLog(tid);
+          break;
+        }
+        if (job.phase === "cancelled") {
+          setFeedback({
+            kind: "info",
+            msg: `Disparo cancelado pelo operador: ${job.sent}/${job.eligible} enviados · falhas ${job.errors}.`,
+          });
+          setActiveJobId(null);
+          setBusy("idle");
+          await loadLog(tid);
+          break;
+        }
+      }
+    },
+    [loadLog]
+  );
+
+  const checkActiveJob = useCallback(
+    async (tid?: string) => {
+      try {
+        const qs = tid ? `?tenantId=${encodeURIComponent(tid)}` : "";
+        const r = await apiJson<{
+          job: {
+            id: string;
+            phase: string;
+            sent: number;
+            errors: number;
+            eligible: number;
+            index: number;
+            status: string;
+            error: string | null;
+            templateName: string;
+          } | null;
+        }>(`/api/admin-console/gira-dispatch/active-job${qs}`);
+        if (r.job && (r.job.phase === "running" || r.job.phase === "queued")) {
+          setActiveJobId(r.job.id);
+          setProgress({
+            sent: r.job.sent,
+            errors: r.job.errors,
+            eligible: r.job.eligible,
+            index: r.job.index,
+            phase: r.job.phase,
+          });
+          setBusy("send");
+          void pollExistingJob(r.job.id, tid);
+        }
+      } catch {
+        /* silencioso */
+      }
+    },
+    [pollExistingJob]
+  );
+
   async function send() {
     if (!tenantId || !eventId || !templateName) {
       setFeedback({ kind: "err", msg: "Selecione terreiro, gira e template." });
@@ -427,6 +600,7 @@ export function GiraDispatchPanel() {
 
       const jobId = started.job?.id;
       if (!jobId) throw new Error("Job não retornado pelo servidor.");
+      setActiveJobId(jobId);
 
       // Poll até concluir (envios com ritmo ~20s/membro com tolerância a oscilação de rede)
       let consecutiveErrors = 0;
@@ -478,6 +652,7 @@ export function GiraDispatchPanel() {
             kind: job.sent > 0 ? "ok" : "err",
             msg: `Concluído: ${job.sent}/${job.eligible} enviados · falhas ${job.errors} · ${job.templateName}`,
           });
+          setActiveJobId(null);
           await loadLog(tenantId);
           break;
         }
@@ -486,6 +661,16 @@ export function GiraDispatchPanel() {
             kind: "err",
             msg: job.error || "Disparo falhou.",
           });
+          setActiveJobId(null);
+          await loadLog(tenantId);
+          break;
+        }
+        if (job.phase === "cancelled") {
+          setFeedback({
+            kind: "info",
+            msg: `Disparo cancelado pelo operador: ${job.sent}/${job.eligible} enviados · falhas ${job.errors}.`,
+          });
+          setActiveJobId(null);
           await loadLog(tenantId);
           break;
         }
@@ -649,15 +834,35 @@ export function GiraDispatchPanel() {
               </div>
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2.5 pt-2">
               <button
                 type="button"
                 className="admin-btn-primary disabled:cursor-not-allowed disabled:opacity-45"
-                disabled={busy === "send" || !tenantId || !eventId || !templateName}
+                disabled={busy === "send" || busy === "cancel" || !tenantId || !eventId || !templateName}
                 onClick={() => void send()}
               >
                 <Send className="h-4 w-4" />
                 {busy === "send" ? "Disparando…" : "Disparar para a corrente"}
+              </button>
+
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center justify-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all shadow-sm",
+                  busy === "send" || activeJobId
+                    ? "border-red-500/60 bg-red-500/10 text-red-600 hover:bg-red-500/20 hover:border-red-600 active:scale-95 cursor-pointer animate-pulse"
+                    : "border-[var(--ac-border)] bg-[var(--ac-surface-2)] text-[var(--ac-text-faint)] opacity-50 cursor-not-allowed"
+                )}
+                disabled={(!activeJobId && busy !== "send") || busy === "cancel"}
+                onClick={() => void cancelDispatch()}
+                title={
+                  activeJobId || busy === "send"
+                    ? "Interromper envio de mensagens para os próximos membros"
+                    : "Nenhum disparo em andamento no momento"
+                }
+              >
+                <XCircle className={cn("h-4 w-4", (busy === "send" || activeJobId) && "text-red-500")} />
+                {busy === "cancel" ? "Cancelando…" : "Cancelar disparo"}
               </button>
             </div>
 
