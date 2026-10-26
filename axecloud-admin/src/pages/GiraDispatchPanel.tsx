@@ -322,11 +322,6 @@ export function GiraDispatchPanel() {
     void loadEvents(tenantId);
   }, [tenantId, loadEvents]);
 
-  useEffect(() => {
-    void loadLog(tenantId || undefined);
-    void checkActiveJob(tenantId || undefined);
-  }, [tenantId, loadLog, checkActiveJob]);
-
   async function retryFailed(row: DispatchLogRow) {
     if (!row.filhoId) {
       setFeedback({ kind: "err", msg: "Este log não tem membro vinculado para reenviar." });
@@ -560,6 +555,11 @@ export function GiraDispatchPanel() {
     },
     [pollExistingJob]
   );
+
+  useEffect(() => {
+    void loadLog(tenantId || undefined);
+    void checkActiveJob(tenantId || undefined);
+  }, [tenantId, loadLog, checkActiveJob]);
 
   async function send() {
     if (!tenantId || !eventId || !templateName) {
