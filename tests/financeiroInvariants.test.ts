@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { countsTowardSaldo } from "../src/lib/financeiroSaldo.ts";
+import { countsTowardSaldo, isLancamentoNoMesRef } from "../src/lib/financeiroSaldo.ts";
+
+test('recebimento de venda antiga compõe o mês da baixa; pendência e cancelamento não são caixa', () => {
+  const tx={tipo:'entrada',categoria:'Cantina',status:'pago',data:'2026-09-20',data_pagamento:'2026-10-26'};
+  assert.equal(countsTowardSaldo(tx),true);
+  assert.equal(isLancamentoNoMesRef(tx,new Date(2026,9,1)),true);
+  assert.equal(isLancamentoNoMesRef(tx,new Date(2026,8,1)),false);
+  for(const status of ['pendente','cancelado']) assert.equal(countsTowardSaldo({...tx,status}),false);
+});
 import {
   comprovanteBeneficiarioMatches,
   isComprovanteDateCompatible,

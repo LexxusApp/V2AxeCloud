@@ -1,151 +1,120 @@
-import type { Express, Request, Response } from "express";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireAuthOrRespond } from "./requireAuth.js";
-import {
-  assertUserCanAccessTenant,
-  assertZeladorTenantAccess,
-  normalizeQueryTenantId,
-  resolveLeaderId,
-} from "./tenantAccess.js";
-import { safeErrorMessage } from "./safeError.js";
+import type { Express, Request, Response } from 'express';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { requireAuthOrRespond } from './requireAuth.js';
+import { assertUserCanAccessTenant, assertZeladorTenantAccess, isValidUuid, normalizeFilhoRequestTenantId, normalizeQueryTenantId, resolveAuthenticatedFilho } from './tenantAccess.js';
+import { safeErrorMessage } from './safeError.js';
+import { buildPixPayload } from './pixPayload.js';
 
-type Deps = {
-  supabaseAdmin: SupabaseClient;
-  resolveLeaderId: (id: string) => Promise<string>;
-};
-
-function todayYmd(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+type Deps = { supabaseAdmin: SupabaseClient; resolveLeaderId: (id: string) => Promise<string> };
 
 export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
-  const { supabaseAdmin, resolveLeaderId: resolveLeader } = deps;
-
-  app.post("/api/v1/store/checkout", async (req: Request, res: Response) => {
-    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!user) return;
-
-    const { tenantId, filhoId, method, items } = req.body || {};
-    const tid = normalizeQueryTenantId(tenantId);
-    if (!tid || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "tenantId e itens são obrigatórios" });
+  const sb = deps.supabaseAdmin;
+  async function access(req: Request, res: Response) {
+    const user = await requireAuthOrRespond(sb, req, res);
+    if (!user) return null;
+    const raw = normalizeQueryTenantId(req.body?.tenantId || req.query.tenantId);
+    if (!isValidUuid(raw)) { res.status(400).json({ error: 'Terreiro inválido.' }); return null; }
+    if (!await assertUserCanAccessTenant(sb, user, raw)) { res.status(403).json({ error: 'Acesso negado.' }); return null; }
+    const tenant = await deps.resolveLeaderId(await normalizeFilhoRequestTenantId(sb, user, raw));
+    let child = await resolveAuthenticatedFilho(sb, user.id);
+    if (!child && user.email) {
+      const {data,error}=await sb.from('filhos_de_santo').select('id,user_id,tenant_id,lider_id').eq('email',user.email.trim().toLowerCase()).maybeSingle();
+      if(error) throw error;
+      if(data) child=data;
     }
-
-    const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tid);
-    if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-    const role = String(user.user_metadata?.role || "").toLowerCase();
-    const isFilho = role === "filho";
-
-    let effectiveFilhoId: string | null = isFilho ? String(filhoId || "").trim() : null;
-    if (isFilho) {
-      const { data: filhoRow } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id, nome, lider_id, tenant_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!filhoRow?.id) return res.status(403).json({ error: "Filho não vinculado" });
-      if (effectiveFilhoId && effectiveFilhoId !== filhoRow.id) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-      effectiveFilhoId = filhoRow.id;
-    } else {
-      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, user.id, tid);
-      if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
+    const manager = !child && await assertZeladorTenantAccess(sb, user.id, tenant);
+    if (!child && !manager) { res.status(403).json({ error: 'Perfil não autorizado.' }); return null; }
+    return { user, tenant, child, manager };
+  }
+  function fail(res: Response, error: any) {
+    const status = ['P0001','22P02','22023'].includes(String(error?.code || '')) ? 400 : 500;
+    return res.status(status).json({ error: safeErrorMessage(error, 'Não foi possível concluir o pedido. Tente novamente com o mesmo carrinho.') });
+  }
+  async function pixFor(order: any) {
+    if (order.metodo_pagamento !== 'pix' || order.status !== 'pendente') return null;
+    const { data, error } = await sb.from('configuracoes_pix').select('chave_pix,tipo_chave,nome_beneficiario').eq('terreiro_id', order.tenant_id).maybeSingle();
+    if (error) throw error;
+    if (!data?.chave_pix) return null;
+    const keyType=String(data.tipo_chave || '').toLowerCase();
+    let key=String(data.chave_pix).trim();
+    if(['cpf','cnpj'].includes(keyType)) key=key.replace(/\D/g,'');
+    if(['telefone','celular','phone'].includes(keyType)) {
+      const digits=key.replace(/\D/g,'');key='+'+([10,11].includes(digits.length)?'55'+digits:digits);
     }
-
-    const tenantPk = await resolveLeader(tid);
-    const payMethod = method === "reserva" ? "mensalidade" : String(method || "mensalidade");
-    const cartItems = items.map((item: { produto_id?: string; id?: string; quantidade?: number }) => ({
-      produto_id: String(item.produto_id || item.id || ""),
-      quantidade: Number(item.quantidade) || 1,
-    }));
-
+    if(keyType==='email')key=key.toLowerCase();
+    if(!key || key.length>77)throw new Error('Revise a chave Pix da casa.');
+    const config={...data,chave_pix:key};
+    const txid = String(order.id).replace(/-/g, '').slice(0, 25);
+    return { ...config, cidade: 'BRASIL', txid, payload: buildPixPayload(config, Number(order.total), txid, ''), confirmacao: 'responsavel' };
+  }
+  app.get('/api/v1/store/me', async (req,res) => {
     try {
-      const { data, error } = await supabaseAdmin.rpc("processar_checkout", {
-        p_tenant_id: tenantPk,
-        p_filho_id: isFilho ? effectiveFilhoId : null,
-        p_metodo_pagamento: payMethod,
-        p_itens: cartItems,
+      const ctx=await access(req,res); if(!ctx)return;
+      let name='';
+      if(ctx.child){const {data,error}=await sb.from('filhos_de_santo').select('nome').eq('id',ctx.child.id).maybeSingle();if(error)throw error;name=data?.nome || '';}
+      res.setHeader('Cache-Control','private, no-store');res.json({memberId:ctx.child?.id || null,memberName:name,manager:ctx.manager});
+    }catch(error){return fail(res,error);}
+  });
+  app.post('/api/v1/store/checkout', async (req, res) => {
+    try {
+      const ctx = await access(req, res); if (!ctx) return;
+      const { items, method, checkoutId, filhoId } = req.body || {};
+      if (!isValidUuid(checkoutId) || !['mensalidade','pix','reserva','dinheiro'].includes(method)
+        || !Array.isArray(items) || !items.length || items.length > 100
+        || items.some((item: any) => !item || !isValidUuid(item.produto_id || item.id) || !Number.isInteger(item.quantidade) || item.quantidade < 1 || item.quantidade > 10000)) {
+        return res.status(400).json({ error: 'Carrinho inválido. Recarregue a página e confira os produtos e quantidades.' });
+      }
+      if (!ctx.manager && method === 'dinheiro') return res.status(403).json({ error: 'Somente o responsável pode registrar recebimento em dinheiro.' });
+      if (ctx.child && filhoId && filhoId !== ctx.child.id) return res.status(403).json({ error: 'Não é possível comprar em nome de outro membro.' });
+      const member = ctx.child?.id || (ctx.manager && filhoId ? String(filhoId) : null);
+      if (member && !isValidUuid(member)) return res.status(400).json({ error: 'Membro inválido.' });
+      if (method === 'mensalidade' && !member) return res.status(400).json({ error: 'Selecione um membro para comprar na caderneta.' });
+      const { data: order, error } = await sb.rpc('checkout_loja_seguro', {
+        p_tenant_id: ctx.tenant, p_filho_id: member, p_metodo_pagamento: method,
+        p_itens: items.map((i: any) => ({ produto_id: i.produto_id || i.id, quantidade: i.quantidade })),
+        p_checkout_id: checkoutId,
       });
       if (error) throw error;
-
-      if (isFilho && effectiveFilhoId) {
-        const tipoPedido = method === "reserva" ? "reserva" : "compra";
-        const metodoGravar = method === "reserva" ? "reserva" : String(method || "mensalidade");
-        const resumo = items
-          .map((i: { quantidade?: number; nome?: string }) => `${i.quantidade || 1}× ${i.nome || "item"}`)
-          .join(", ");
-        const valorTotal = items.reduce(
-          (acc: number, i: { quantidade?: number; preco?: number }) =>
-            acc + (Number(i.quantidade) || 1) * (Number(i.preco) || 0),
-          0
-        );
-        const { data: filhoNomeRow } = await supabaseAdmin
-          .from("filhos_de_santo")
-          .select("nome")
-          .eq("id", effectiveFilhoId)
-          .maybeSingle();
-
-        await supabaseAdmin.from("loja_pedidos").insert({
-          tenant_id: tenantPk,
-          filho_id: effectiveFilhoId,
-          filho_nome: filhoNomeRow?.nome || "Filho de santo",
-          tipo: tipoPedido,
-          metodo_pagamento: metodoGravar,
-          resumo_itens: resumo,
-          valor_total: valorTotal,
-        });
-
-        if (metodoGravar === "mensalidade" && valorTotal > 0) {
-          let dueDate = todayYmd();
-          const { data: mensalidadeBase, error: mensalidadeLookupErr } = await supabaseAdmin
-            .from("financeiro")
-            .select("data")
-            .eq("tenant_id", tenantPk)
-            .eq("filho_id", effectiveFilhoId)
-            .eq("categoria", "Mensalidade")
-            .eq("status", "pendente")
-            .order("data", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (!mensalidadeLookupErr && mensalidadeBase?.data) {
-            dueDate = String(mensalidadeBase.data).slice(0, 10);
-          }
-
-          const financeRow: Record<string, unknown> = {
-            tipo: "entrada",
-            valor: Number(valorTotal.toFixed(2)),
-            categoria: "Loja",
-            data: dueDate,
-            descricao: `Loja - ${filhoNomeRow?.nome || "Filho de santo"} - ${resumo} (ID:${effectiveFilhoId})`,
-            tenant_id: tenantPk,
-            lider_id: tenantPk,
-            filho_id: effectiveFilhoId,
-            status: "pendente",
-          };
-
-          let { error: financeiroError } = await supabaseAdmin.from("financeiro").insert([financeRow]);
-          if (financeiroError && String(financeiroError.message || "").toLowerCase().includes("status")) {
-            delete financeRow.status;
-            const retry = await supabaseAdmin.from("financeiro").insert([financeRow]);
-            financeiroError = retry.error;
-          }
-          if (financeiroError && String(financeiroError.message || "").includes("filho_id")) {
-            delete financeRow.filho_id;
-            const retry = await supabaseAdmin.from("financeiro").insert([financeRow]);
-            financeiroError = retry.error;
-          }
-          if (financeiroError) {
-            console.error("[store checkout] financeiro insert:", financeiroError);
-          }
-        }
-      }
-
-      res.json({ success: true, data });
-    } catch (e: unknown) {
-      console.error("[store checkout]", e);
-      res.status(500).json({ error: safeErrorMessage(e, "Erro ao processar checkout.") });
-    }
+      if (!order?.id) throw new Error('O banco não confirmou o pedido.');
+      const pix = await pixFor(order).catch(() => null);
+      res.json({ success: true, data: order.id, order, pix });
+    } catch (error) { return fail(res, error); }
+  });
+  app.get('/api/v1/store/orders', async (req, res) => {
+    try {
+      const ctx = await access(req, res); if (!ctx) return;
+      let query = sb.from('loja_pedidos').select('id,pedido_id,created_at,filho_nome,tipo,metodo_pagamento,resumo_itens,valor_total,pedido:pedidos!pedido_id(id,status,metodo_pagamento,total,checkout_id,financeiro_id)').eq('tenant_id', ctx.tenant);
+      if (ctx.child) query = query.eq('filho_id', ctx.child.id);
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      res.setHeader('Cache-Control','private, no-store');
+      res.json({ orders: data || [] });
+    } catch (error) { return fail(res, error); }
+  });
+  app.get('/api/v1/store/orders/:id/pix', async (req, res) => {
+    try {
+      const ctx = await access(req, res); if (!ctx) return;
+      if (!isValidUuid(req.params.id)) return res.status(400).json({ error: 'Pedido inválido.' });
+      let query = sb.from('pedidos').select('*').eq('id', req.params.id).eq('tenant_id', ctx.tenant);
+      if (ctx.child) query = query.eq('filho_id', ctx.child.id);
+      const { data: order, error } = await query.maybeSingle();
+      if (error) throw error;
+      if (!order) return res.status(404).json({ error: 'Pedido não encontrado.' });
+      const pix = await pixFor(order);
+      if (!pix) return res.status(409).json({ error: 'Este pedido não aguarda Pix ou a chave não está configurada.' });
+      res.setHeader('Cache-Control','private, no-store');
+      res.json({ order, pix });
+    } catch (error) { return fail(res, error); }
+  });
+  app.post('/api/v1/store/orders/:id/action', async (req, res) => {
+    try {
+      const ctx = await access(req, res); if (!ctx) return;
+      if (!ctx.manager) return res.status(403).json({ error: 'Somente o responsável pode confirmar, cancelar ou estornar pedidos.' });
+      const action = req.body?.action;
+      if (!isValidUuid(req.params.id) || !['confirmar','cancelar','estornar','converter_pix','converter_mensalidade','converter_dinheiro'].includes(action)) return res.status(400).json({ error: 'Ação inválida.' });
+      const { data: order, error } = await sb.rpc('acao_pedido_loja', { p_tenant_id: ctx.tenant, p_actor_id: ctx.user.id, p_pedido_id: req.params.id, p_acao: action });
+      if (error) throw error;
+      res.json({ success: true, order });
+    } catch (error) { return fail(res, error); }
   });
 }

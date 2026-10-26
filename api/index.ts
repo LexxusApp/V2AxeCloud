@@ -1817,6 +1817,11 @@ async function startServer() {
       if (!tenantId || typeof tenantId !== "string") {
         return res.status(400).json({ error: "tenantId é obrigatório." });
       }
+      if (typeof preco !== 'number' || !Number.isFinite(preco) || preco < 0 || preco > 1000000 || Math.abs(preco*100-Math.round(preco*100))>0.000001 ||
+          !Number.isInteger(estoque_atual) || estoque_atual < 0 || estoque_atual > 1000000000 ||
+          !Number.isInteger(estoque_minimo) || estoque_minimo < 0 || estoque_minimo > 1000000000) {
+        return res.status(400).json({ error: 'Informe preço válido com até duas casas decimais e estoques inteiros não negativos.' });
+      }
 
       const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId);
       if (!zeladorOk) {
@@ -1854,6 +1859,13 @@ async function startServer() {
       if (!id || !tenantId) return res.status(400).json({ error: "id e tenantId são obrigatórios" });
       if (!(await assertZeladorOrGlobalAdmin(supabaseAdmin, user, tenantId))) return res.status(403).json({ error: "Acesso negado" });
       const allowed: Record<string, unknown> = {};
+      for (const field of ['preco','estoque_atual','estoque_minimo']) {
+        const value=req.body[field];
+        if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0 ||
+          (field === 'preco' ? value > 1000000 || Math.abs(value*100-Math.round(value*100))>0.000001 : !Number.isInteger(value) || value > 1000000000))) {
+          return res.status(400).json({ error: 'Preço ou estoque inválidos. Confira os valores antes de salvar.' });
+        }
+      }
       if (req.body.nome !== undefined) allowed.nome = String(req.body.nome).trim();
       if (req.body.descricao !== undefined) allowed.descricao = String(req.body.descricao || "").trim();
       if (req.body.preco !== undefined) allowed.preco = Math.max(0, Number(req.body.preco) || 0);
@@ -4863,6 +4875,12 @@ async function startServer() {
       if (!row) return res.status(404).json({ error: "Lançamento não encontrado" });
       const allowed = await userMayDeleteFinanceiroRow(user, row);
       if (!allowed) return res.status(403).json({ error: "Sem permissão para excluir este lançamento" });
+
+      const { data: linkedOrder, error: linkError } = await supabaseAdmin.from('pedidos').select('id').eq('financeiro_id', id).maybeSingle();
+      if (linkError) throw linkError;
+      if (linkedOrder || row.cantina_comanda_id) {
+        return res.status(409).json({ error: 'Use as ações da Loja ou da Cantina para cancelar ou estornar este lançamento com seu histórico.' });
+      }
 
       const { error: delErr } = await supabaseAdmin.from("financeiro").delete().eq("id", id);
       if (!delErr) {

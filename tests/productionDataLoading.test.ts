@@ -147,6 +147,7 @@ test('Cantina só limpa uma comanda confirmada e reutiliza a identificação ap�
   let cleared = 0;
   let reloaded = 0;
   const run = screenFunction(cantinaFile, 'handleFinalizarComanda', {
+    window: { dispatchEvent() {} },
     tenantId: 'tenant-real', selectedFilhoId: 'avulso', selectedFilho: null,
     cartItems: [{ nome: 'Produto da casa', quantidade: 2, preco: 5 }], totalNovoConsumo: 10,
     comandaAttempt: attempt, setIsSubmittingConsumo() {},
@@ -169,4 +170,15 @@ test('Cantina só limpa uma comanda confirmada e reutiliza a identificação ap�
   assert.deepEqual(notifications, ['error', 'error', 'success']);
   assert.equal(new Set(bodies.map(body => body.comandaId)).size, 1);
   assert.deepEqual(bodies[0].itens, [{ nome: 'Produto da casa', quantidade: 2, preco: 5 }]);
+});
+
+for(const offline of [false,true]) test(`Cardápio não fecha formulário nem altera catálogo quando a gravação falha: offline=${offline}`,async()=>{
+ let changed=false;const notifications:string[]=[];
+ const run=screenFunction(cantinaFile,'handleSaveMenuItem',{
+  tenantId:'tenant-real',itemForm:{nome:'Café',preco:'4,50',icon:'☕',cat:'bebidas',badge:''},editingItem:null,savingMenu:false,
+  setSavingMenu(){},setMenuItems(){changed=true;},setIsItemModalOpen(){changed=true;},
+  authFetch:async()=>{if(offline)throw new Error('Sem conexão');return Response.json({error:'Falha ao salvar'},{status:500});},
+  showHouseToast:(_message:string,tone:string)=>notifications.push(tone),
+ });
+ await run({preventDefault(){}});assert.equal(changed,false);assert.deepEqual(notifications,['error']);
 });

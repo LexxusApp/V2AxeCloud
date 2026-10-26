@@ -22,6 +22,8 @@ interface PixPaymentModalProps {
   descricao: string;
   txid: string;
   vencimento?: string; // ex: "10/05/2026"
+  payload?: string;
+  notice?: string;
 }
 
 /** Gera o payload EMV Pix (BR Code) com CRC-16 correto */
@@ -72,15 +74,19 @@ export default function PixPaymentModal({
   valor,
   descricao,
   txid,
-  vencimento
+  vencimento,
+  payload: providedPayload,
+  notice
 }: PixPaymentModalProps) {
   const [copied, setCopied] = React.useState(false);
   const [pixPayload, setPixPayload] = React.useState('');
+  const [pixError, setPixError] = React.useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!open || !pixConfig?.chave_pix) return;
-    const payload = buildPixPayload(pixConfig, valor, txid, descricao);
+    setCopied(false);setPixError('');
+    const payload = providedPayload || buildPixPayload(pixConfig, valor, txid, descricao);
     setPixPayload(payload);
 
     if (canvasRef.current) {
@@ -89,15 +95,17 @@ export default function PixPaymentModal({
         margin: 2,
         color: { dark: '#000000', light: '#ffffff' },
         errorCorrectionLevel: 'M',
-      });
+      }).catch(() => setPixError('Não foi possível gerar a imagem. Use o código Pix Copia e Cola.'));
     }
-  }, [open, pixConfig, valor, txid, descricao]);
+  }, [open, loading, pixConfig, valor, txid, descricao, providedPayload]);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!pixPayload) return;
-    navigator.clipboard.writeText(pixPayload);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    try {
+      await navigator.clipboard.writeText(pixPayload);
+      setCopied(true);setPixError('');
+      setTimeout(() => setCopied(false), 2500);
+    } catch { setPixError('Não foi possível copiar. Confira a permissão de área de transferência do navegador.'); }
   };
 
   return (
@@ -134,6 +142,8 @@ export default function PixPaymentModal({
               </div>
             ) : pixConfig ? (
               <div className="flex-1 space-y-5 overflow-y-auto">
+                {notice ? <p role="status" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{notice}</p> : null}
+                {pixError ? <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{pixError}</p> : null}
                 {/* QR Code */}
                 <div className="flex justify-center">
                   <div className="bg-white p-3 rounded-2xl shadow-lg">

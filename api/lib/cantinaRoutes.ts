@@ -1,9 +1,10 @@
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuthOrRespond } from "./requireAuth.js";
-import { assertZeladorTenantAccess, normalizeQueryTenantId } from "./tenantAccess.js";
+import { assertZeladorTenantAccess, normalizeQueryTenantId, isValidUuid } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
 import { randomUUID } from "node:crypto";
+import { registerCantinaMenuRoutes } from './cantinaMenuRoutes.js';
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -21,6 +22,7 @@ export function isCantinaTenantAllowed(_tenantId: string, _email?: string | null
 
 export function registerCantinaRoutes(app: Express, deps: Deps) {
   const { supabaseAdmin, resolveLeaderId: resolveLeader } = deps;
+  registerCantinaMenuRoutes(app, deps);
 
   // GET /api/v1/cantina/data
   app.get("/api/v1/cantina/data", async (req: Request, res: Response) => {
@@ -28,7 +30,7 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
     if (!user) return;
 
     const tenantIdRaw = normalizeQueryTenantId(req.query.tenantId);
-    if (!tenantIdRaw) {
+    if (!isValidUuid(tenantIdRaw)) {
       return res.status(400).json({ error: "tenantId é obrigatório" });
     }
 
@@ -42,21 +44,26 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
 
     try {
       // 1. Carrega filhos de santo
-      const { data: filhos, error: fErr } = await supabaseAdmin
-        .from("filhos_de_santo")
-        .select("id, nome, foto_url, cargo, whatsapp_phone, limite_lojinha, bloquear_fiado_loja, status")
-        .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`)
-        .order("nome", { ascending: true });
-      if (fErr) throw fErr;
+      const filhos:any[]=[];
+      for(let from=0;;from+=1000){
+        const {data,error}=await supabaseAdmin.from('filhos_de_santo').select('id,nome,foto_url,cargo,whatsapp_phone,limite_lojinha,bloquear_fiado_loja,status')
+          .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`).order('id').range(from,from+999);
+        if(error)throw error;filhos.push(...(data || []));if((data || []).length<1000)break;
+      }
+      filhos.sort((a,b)=>String(a.nome || '').localeCompare(String(b.nome || ''),'pt-BR'));
 
       // 2. Carrega lançamentos da cantina/loja
-      const { data: transacoes, error: tErr } = await supabaseAdmin
-        .from("financeiro")
-        .select("id, data, descricao, valor, status, categoria, tipo, filho_id, created_at, cantina_itens")
-        .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`)
-        .in("categoria", ["Cantina", "Loja"])
-        .order("data", { ascending: false });
-      if (tErr) throw tErr;
+      const transacoes: any[] = [];
+      for (let from=0;;from+=1000) {
+        const {data,error}=await supabaseAdmin.from('financeiro')
+          .select('id,data,data_venda,data_pagamento,descricao,valor,status,categoria,tipo,filho_id,created_at,cantina_itens')
+          .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`).in('categoria',['Cantina','Loja'])
+          .order('id',{ascending:true}).range(from,from+999);
+        if(error) throw error;
+        transacoes.push(...(data || []));
+        if((data || []).length<1000) break;
+      }
+      transacoes.sort((a,b)=>String(b.created_at || b.data).localeCompare(String(a.created_at || a.data)));
 
       // 3. Carrega produtos da cantina / loja para catálogo
       const { data: produtos } = await supabaseAdmin
@@ -67,12 +74,13 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
 
       const currentMonthPrefix = todayYmd().slice(0, 7); // YYYY-MM
       const validTx = (transacoes || []).filter(
-        (r: any) => String(r.status || "").toLowerCase() !== "excluido"
+        (r: any) => ['pendente','pago'].includes(String(r.status || '').toLowerCase())
       );
 
       // Agregação por filho
+      const historyTx = transacoes.filter((r: any) => String(r.status || '').toLowerCase() !== 'excluido');
       const txByFilho = new Map<string, any[]>();
-      for (const tx of validTx) {
+      for (const tx of historyTx) {
         if (!tx.filho_id) continue;
         const fid = String(tx.filho_id);
         const list = txByFilho.get(fid) || [];
@@ -91,7 +99,7 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
         const pagosMes = fTx.filter(
           (t: any) =>
             String(t.status || "").toLowerCase() === "pago" &&
-            String(t.data || "").startsWith(currentMonthPrefix)
+            String(t.data_pagamento || t.data || "").startsWith(currentMonthPrefix)
         );
 
         const saldoPendente = pendentes.reduce((sum: number, t: any) => sum + (Number(t.valor) || 0), 0);
@@ -130,9 +138,9 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
       });
 
       // Vendas do mês: soma de transações da cantina deste mês (pendentes ou pagas)
-      const txMes = validTx.filter((t: any) => String(t.data || "").startsWith(currentMonthPrefix));
+      const txMes = validTx.filter((t: any) => t.categoria === 'Cantina' && String(t.data_venda || t.created_at || t.data || "").startsWith(currentMonthPrefix));
       totalVendasMesGeral = txMes.reduce((sum: number, t: any) => sum + (Number(t.valor) || 0), 0);
-      totalRecebidoMesGeral = txMes.filter((t: any) => t.status === "pago")
+      totalRecebidoMesGeral = validTx.filter((t: any) => t.categoria === 'Cantina' && t.status === 'pago' && String(t.data_pagamento || t.data || '').startsWith(currentMonthPrefix))
         .reduce((sum: number, t: any) => sum + (Number(t.valor) || 0), 0);
 
       res.json({
@@ -144,7 +152,7 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
           filhos_com_pendencia: filhosComPendenciaCount,
           total_filhos: (filhos || []).length,
         },
-        transactions: validTx.slice(0, 30),
+        transactions: historyTx.slice(0, 30),
         produtos: produtos || [],
       });
     } catch (e: unknown) {
@@ -159,7 +167,7 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
     if (!user) return;
     const { tenantId, filhoId, formaPagamento, itens, comandaId } = req.body || {};
     const tid = normalizeQueryTenantId(tenantId);
-    if (!tid) return res.status(400).json({ error: "tenantId é obrigatório" });
+    if (!isValidUuid(tid)) return res.status(400).json({ error: "tenantId inválido" });
     if (!["pago", "fiado"].includes(formaPagamento)) {
       return res.status(400).json({ error: "Forma de pagamento inválida" });
     }
@@ -204,95 +212,28 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
       res.status(500).json({ error: safeErrorMessage(e, "Erro ao registrar consumo na cantina.") });
     }
   });
-  // POST /api/v1/cantina/liquidar
-  app.post("/api/v1/cantina/liquidar", async (req: Request, res: Response) => {
-    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!user) return;
-
-    const { tenantId, filhoId, transactionId } = req.body || {};
-    const tid = normalizeQueryTenantId(tenantId);
-    if (!tid) return res.status(400).json({ error: "tenantId é obrigatório" });
-
-    const tenantPk = await resolveLeader(tid);
-    if (!isCantinaTenantAllowed(tenantPk, (user as { email?: string }).email)) {
-      return res.status(403).json({ error: "Módulo Cantina disponível apenas no ambiente de testes autorizado." });
-    }
-
-    const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, user.id, tenantPk);
-    if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
-
-    try {
-      const paymentDate = todayYmd();
-
-      if (transactionId) {
-        // Baixa de uma transação específica
-        const { data: updated, error } = await supabaseAdmin
-          .from("financeiro")
-          .update({ status: "pago", data: paymentDate })
-          .eq("id", transactionId)
-          .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`)
-          .in("categoria", ["Cantina", "Loja"])
-          .eq("status", "pendente")
-          .select("id");
-        if (error) throw error;
-        return res.json({ success: true, count: (updated || []).length });
+  for (const [path, action] of [['liquidar','liquidar'],['estornar','estornar'],['cancelar','cancelar']] as const) {
+    app.post('/api/v1/cantina/' + path, async (req: Request,res: Response) => {
+      const user=await requireAuthOrRespond(supabaseAdmin,req,res); if(!user) return;
+      const {tenantId,filhoId,transactionId}=req.body || {};
+      const tid=normalizeQueryTenantId(tenantId);
+      const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if(!uuid.test(tid) || (!filhoId && !transactionId) || (transactionId && !uuid.test(transactionId)) || (filhoId && !uuid.test(filhoId)) || (action !== 'liquidar' && !transactionId)) {
+        return res.status(400).json({error:'Informe uma comanda ou um membro válido.'});
       }
-
-      if (filhoId) {
-        // Baixa de todas as pendências da cantina daquele filho
-        const { data: updated, error } = await supabaseAdmin
-          .from("financeiro")
-          .update({ status: "pago", data: paymentDate })
-          .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`)
-          .eq("filho_id", filhoId)
-          .in("categoria", ["Cantina", "Loja"])
-          .eq("status", "pendente")
-          .select("id");
-        if (error) throw error;
-        return res.json({ success: true, count: (updated || []).length });
+      try {
+        const tenant=await resolveLeader(tid);
+        if(!await assertZeladorTenantAccess(supabaseAdmin,user.id,tenant)) return res.status(403).json({error:'Acesso negado.'});
+        const {data,error}=await supabaseAdmin.rpc('pagamento_caderneta',{
+          p_tenant_id:tenant,p_actor_id:user.id,p_filho_id:filhoId || null,p_transacao_id:transactionId || null,p_acao:action,
+        });
+        if(error) throw error;
+        res.json({success:true,count:Number(data) || 0});
+      } catch(e: any) {
+        res.status(e?.code === 'P0001' ? 400 : 500).json({error:safeErrorMessage(e,'Não foi possível atualizar o pagamento.')});
       }
-
-      return res.status(400).json({ error: "filhoId ou transactionId é obrigatório" });
-    } catch (e: unknown) {
-      console.error("[cantina liquidar]", e);
-      res.status(500).json({ error: safeErrorMessage(e, "Erro ao quitar consumo na cantina.") });
-    }
-  });
-
-  // POST /api/v1/cantina/estornar
-  app.post("/api/v1/cantina/estornar", async (req: Request, res: Response) => {
-    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!user) return;
-
-    const { tenantId, transactionId } = req.body || {};
-    const tid = normalizeQueryTenantId(tenantId);
-    if (!tid || !transactionId) return res.status(400).json({ error: "tenantId e transactionId são obrigatórios" });
-
-    const tenantPk = await resolveLeader(tid);
-    if (!isCantinaTenantAllowed(tenantPk, (user as { email?: string }).email)) {
-      return res.status(403).json({ error: "Módulo Cantina disponível apenas no ambiente de testes autorizado." });
-    }
-
-    const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, user.id, tenantPk);
-    if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
-
-    try {
-      const { data: updated, error } = await supabaseAdmin
-        .from("financeiro")
-        .update({ status: "pendente" })
-        .eq("id", transactionId)
-        .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`)
-        .in("categoria", ["Cantina", "Loja"])
-        .eq("status", "pago")
-        .select("id");
-      if (error) throw error;
-      if (!updated?.length) return res.status(404).json({ error: "Consumo pago não encontrado" });
-      return res.json({ success: true });
-    } catch (e: unknown) {
-      console.error("[cantina estornar]", e);
-      res.status(500).json({ error: safeErrorMessage(e, "Erro ao estornar pagamento.") });
-    }
-  });
+    });
+  }
 
   // PATCH /api/v1/cantina/limite
   app.patch("/api/v1/cantina/limite", async (req: Request, res: Response) => {
@@ -301,7 +242,11 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
 
     const { tenantId, filhoId, limite_lojinha, bloquear_fiado_loja } = req.body || {};
     const tid = normalizeQueryTenantId(tenantId);
-    if (!tid || !filhoId) return res.status(400).json({ error: "tenantId e filhoId são obrigatórios" });
+    if (!isValidUuid(tid) || !isValidUuid(filhoId)) return res.status(400).json({ error: "tenantId e filhoId válidos são obrigatórios" });
+    if ((limite_lojinha !== undefined && (typeof limite_lojinha !== 'number' || !Number.isFinite(limite_lojinha) || limite_lojinha < 0 || limite_lojinha > 1000000000)) ||
+        (bloquear_fiado_loja !== undefined && typeof bloquear_fiado_loja !== 'boolean')) {
+      return res.status(400).json({ error: 'Informe um limite válido e uma opção de bloqueio válida.' });
+    }
 
     const tenantPk = await resolveLeader(tid);
     if (!isCantinaTenantAllowed(tenantPk, (user as { email?: string }).email)) {

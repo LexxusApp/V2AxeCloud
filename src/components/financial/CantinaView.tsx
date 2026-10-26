@@ -81,6 +81,8 @@ export interface CantinaTransaction {
   tipo: string;
   filho_id: string | null;
   created_at?: string;
+  data_venda?: string;
+  data_pagamento?: string | null;
   cantina_itens?: Array<{ nome: string; quantidade: number; preco: number }> | null;
 }
 
@@ -93,6 +95,7 @@ interface CantinaViewProps {
 
 export interface CantinaMenuItem {
   id: string;
+  updated_at?: string;
   nome: string;
   preco: number;
   icon: string;
@@ -151,9 +154,42 @@ export default function CantinaView({
       return [];
     }
   };
-  const [menuItems, setMenuItems] = useState<CantinaMenuItem[]>(readMenuItems);
+  const [menuItems, setMenuItems] = useState<CantinaMenuItem[]>([]);
+  const [menuError, setMenuError] = useState<string | null>(null);
+  const [savingMenu, setSavingMenu] = useState(false);
+  const fetchSharedMenu = async () => {
+    if (!tenantId) { setMenuItems([]); return; }
+    setMenuError(null);
+    try {
+      const migrationKey = `${storageKey}_synced`;
+      let wasSynced = false;
+      try { wasSynced = localStorage.getItem(migrationKey) === '1'; } catch {}
+      if (!wasSynced) {
+        const localItems = readMenuItems();
+        if (localItems.length) {
+          const imported = await authFetch('/api/v1/cantina/cardapio/importar', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tenantId, items: localItems }),
+          });
+          const result = await imported.json();
+          if (!imported.ok) throw new Error(result.error || 'Não foi possível importar o cardápio antigo.');
+        }
+        try { localStorage.setItem(migrationKey, '1'); } catch {}
+      }
+      const response = await authFetch(`/api/v1/cantina/cardapio?tenantId=${encodeURIComponent(tenantId)}`);
+      const result = await response.json();
+      if (!response.ok || !Array.isArray(result.items)) throw new Error(result.error || 'Resposta de cardápio inválida.');
+      setMenuItems(result.items);
+    } catch (error) {
+      setMenuError(error instanceof Error ? error.message : 'Não foi possível carregar o cardápio compartilhado.');
+    }
+  };
   useEffect(() => {
-    setMenuItems(readMenuItems());
+    setMenuItems([]);
+    void fetchSharedMenu();
+    const refresh = () => { void fetchSharedMenu(); };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
   }, [tenantId]);
 
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
@@ -196,51 +232,33 @@ export default function CantinaView({
     setIsItemModalOpen(true);
   };
 
-  const handleSaveMenuItem = (e: React.FormEvent) => {
+  const handleSaveMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemForm.nome.trim()) {
       showHouseToast('Nome obrigatório. Digite o nome do produto.', 'error');
       return;
     }
     const cleanPrice = parseFloat(itemForm.preco.replace(',', '.'));
-    if (isNaN(cleanPrice) || cleanPrice < 0) {
+    if (!Number.isFinite(cleanPrice) || cleanPrice <= 0) {
       showHouseToast('Preço inválido. Digite um valor numérico válido (ex: 7,50).', 'error');
       return;
     }
 
-    let updated: CantinaMenuItem[];
-    if (editingItem) {
-      updated = menuItems.map((m) =>
-        m.id === editingItem.id
-          ? {
-              ...m,
-              nome: itemForm.nome.trim(),
-              preco: cleanPrice,
-              icon: itemForm.icon || '☕',
-              cat: itemForm.cat,
-              badge: itemForm.badge.trim() || null,
-            }
-          : m
-      );
-      showHouseToast(`Item atualizado! "${itemForm.nome}" foi atualizado no cardápio fixo.`, 'success');
-    } else {
-      const newItem: CantinaMenuItem = {
-        id: `item-${Date.now()}`,
-        nome: itemForm.nome.trim(),
-        preco: cleanPrice,
-        icon: itemForm.icon || '☕',
-        cat: itemForm.cat,
-        badge: itemForm.badge.trim() || null,
-      };
-      updated = [...menuItems, newItem];
-      showHouseToast(`Item adicionado! "${itemForm.nome}" foi cadastrado com sucesso.`, 'success');
-    }
-
-    setMenuItems(updated);
+    if (savingMenu) return;
+    setSavingMenu(true);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-    } catch {}
-    setIsItemModalOpen(false);
+      const response = await authFetch(`/api/v1/cantina/cardapio${editingItem ? `/${editingItem.id}` : ''}`, {
+        method: editingItem ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...itemForm, nome: itemForm.nome.trim(), preco: cleanPrice, tenantId, expectedUpdatedAt: editingItem?.updated_at }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.item?.id) throw new Error(result.error || 'Não foi possível salvar o item.');
+      setMenuItems(previous => [...previous.filter(item => item.id !== result.item.id), result.item]);
+      setIsItemModalOpen(false);
+      showHouseToast('Item salvo no cardápio da casa.', 'success');
+    } catch (error) {
+      showHouseToast(error instanceof Error ? error.message : 'Falha ao salvar. Seu formulário foi mantido.', 'error');
+    } finally { setSavingMenu(false); }
   };
 
   const handleDeleteMenuItem = async (id: string) => {
@@ -252,29 +270,38 @@ export default function CantinaView({
       tone: 'danger',
     });
     if (!confirmed) return;
-    const updated = menuItems.filter((m) => m.id !== id);
-    setMenuItems(updated);
+    if (savingMenu) return;
+    setSavingMenu(true);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-    } catch {}
-    showHouseToast('Item removido do cardápio fixo.', 'info');
-    setIsItemModalOpen(false);
+      const response = await authFetch(`/api/v1/cantina/cardapio/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Falha ao remover item.');
+      setMenuItems(previous => previous.filter(item => item.id !== id));
+      showHouseToast('Item removido do cardápio da casa.', 'info');
+      setIsItemModalOpen(false);
+    } catch (error) { showHouseToast(error instanceof Error ? error.message : 'Falha ao remover item.', 'error'); }
+    finally { setSavingMenu(false); }
   };
 
   const handleClearMenu = async () => {
     const confirmed = await confirmAction({
       title: 'Limpar cardápio?',
-      description: 'Deseja remover os itens deste cardápio local?',
+      description: 'Deseja remover os itens do cardápio compartilhado da casa?',
       confirmLabel: 'Limpar cardápio',
       cancelLabel: 'Cancelar',
       tone: 'warning',
     });
     if (!confirmed) return;
-    setMenuItems([]);
+    if (savingMenu) return;
+    setSavingMenu(true);
     try {
-      localStorage.setItem(storageKey, '[]');
-    } catch {}
-    showHouseToast('Cardápio limpo. Cadastre os produtos e preços da sua casa.', 'success');
+      for (const item of menuItems) {
+        const response = await authFetch(`/api/v1/cantina/cardapio/${item.id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId }) });
+        if (!response.ok) throw new Error('Não foi possível remover todos os itens. Atualize e tente novamente.');
+      }
+      showHouseToast('Cardápio limpo.', 'success');
+    } catch (error) { showHouseToast(error instanceof Error ? error.message : 'Falha ao limpar cardápio.', 'error'); }
+    finally { setSavingMenu(false); await fetchSharedMenu(); }
   };
 
   // Comanda do Balcão (PDV em tempo real)
@@ -293,6 +320,7 @@ export default function CantinaView({
 
   // Modal Extrato do Filho
   const [viewingFilhoExtrato, setViewingFilhoExtrato] = useState<CantinaFilho | null>(null);
+  const [changingTransaction, setChangingTransaction] = useState<string | null>(null);
   const comandaAttempt = useRef<{ signature: string; id: string } | null>(null);
 
   const fetchCantinaData = async (silent = false) => {
@@ -460,6 +488,7 @@ export default function CantinaView({
       setCartItems([]);
       comandaAttempt.current = null;
       setSelectedFilhoId('avulso');
+      window.dispatchEvent(new Event('axecloud:finance-updated'));
       await fetchCantinaData(true);
     } catch (e: any) {
       showHouseToast(e.message || 'Não foi possível registrar a venda. Sua comanda foi mantida.', 'error');
@@ -476,7 +505,7 @@ export default function CantinaView({
 
     const confirmed = await confirmAction({
       title: `Quitar caderneta de ${filho.nome}?`,
-      description: `Será dado baixa no valor total de ${formatBRL(filho.saldo_pendente)}. O médium ficará com saldo zerado.`,
+      description: `Confirme que recebeu ${formatBRL(filho.saldo_pendente)}. Esta baixa inclui as dívidas de Loja e Cantina e não movimenta dinheiro no banco.`,
       confirmLabel: 'Confirmar Quitação',
       tone: 'primary',
     });
@@ -491,14 +520,40 @@ export default function CantinaView({
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Não foi possível quitar a caderneta.');
       showHouseToast(`Conta de ${filho.nome} quitada com sucesso!`, 'success');
-      setFilhos((prev) =>
-        prev.map((f) => (f.id === filho.id ? { ...f, saldo_pendente: 0, saldo_disponivel: f.limite_lojinha } : f))
-      );
+      window.dispatchEvent(new Event('axecloud:finance-updated'));
       await fetchCantinaData(true);
     } catch (e: any) {
       showHouseToast(e.message || 'Não foi possível quitar a caderneta.', 'error');
     }
   };
+
+  const handleTransactionAction = async (tx: CantinaTransaction, action: 'liquidar' | 'cancelar' | 'estornar') => {
+    if (changingTransaction || tx.categoria !== 'Cantina') return;
+    if (!await confirmAction({
+      title: action === 'liquidar' ? 'Confirmar recebimento?' : action === 'cancelar' ? 'Cancelar esta comanda?' : 'Estornar a baixa?',
+      description: action === 'liquidar' ? `Confirme que recebeu ${formatBRL(tx.valor)}.` : action === 'cancelar' ? 'A comanda sairá dos valores a receber e continuará no histórico.' : 'O débito será reaberto. Esta ação não faz devolução bancária.',
+      confirmLabel: 'Confirmar', tone: action === 'cancelar' ? 'danger' : 'primary',
+    })) return;
+    setChangingTransaction(tx.id);
+    try {
+      const response = await authFetch(`/api/v1/cantina/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenantId, transactionId: tx.id }) });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Alteração não confirmada.');
+      showHouseToast(result.count ? 'Comanda atualizada.' : 'A comanda já estava atualizada. Os dados serão recarregados.', 'success');
+      window.dispatchEvent(new Event('axecloud:finance-updated'));
+      await fetchCantinaData(true);
+    } catch (error) { showHouseToast(error instanceof Error ? error.message : 'Falha ao alterar comanda.', 'error'); }
+    finally { setChangingTransaction(null); }
+  };
+
+  const transactionActions = (tx: CantinaTransaction) => tx.categoria === 'Cantina' && ['pendente','pago'].includes(tx.status) ? (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {tx.status === 'pendente' ? <>
+        <button disabled={Boolean(changingTransaction)} onClick={() => void handleTransactionAction(tx, 'liquidar')} className="min-h-11 rounded-lg border px-3 text-xs font-bold">Confirmar recebimento</button>
+        <button disabled={Boolean(changingTransaction)} onClick={() => void handleTransactionAction(tx, 'cancelar')} className="min-h-11 rounded-lg border px-3 text-xs text-red-700">Cancelar comanda</button>
+      </> : <button disabled={Boolean(changingTransaction)} onClick={() => void handleTransactionAction(tx, 'estornar')} className="min-h-11 rounded-lg border px-3 text-xs">Estornar baixa</button>}
+    </div>
+  ) : null;
 
   const handleSalvarLimite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -543,6 +598,7 @@ export default function CantinaView({
   return (
     <div className="cantina-view space-y-6">
       <DataLoadError message={loadError} onRetry={() => void fetchCantinaData()} />
+      <DataLoadError message={menuError} onRetry={() => void fetchSharedMenu()} />
       {/* 1. Indicadores Litúrgicos da Cantina */}
       <AxeMetricRail>
         <AxeMetricCard
@@ -612,6 +668,7 @@ export default function CantinaView({
               {filhos.length}
             </span>
           </button>
+          <button type="button" onClick={() => setActiveTab('extrato')} className={cn('flex min-h-11 items-center gap-2 rounded-lg px-4 text-xs font-black', activeTab === 'extrato' ? 'bg-[#142A20] text-amber-300' : 'text-[#6B6355]')}><Receipt className="h-4 w-4" />Histórico de vendas</button>
         </div>
 
         {activeTab === 'caderneta' && (
@@ -652,6 +709,17 @@ export default function CantinaView({
         )}
       </div>
 
+      {activeTab === 'extrato' && <section className="space-y-4 rounded-xl border border-[#E5DECF] bg-white p-5">
+        <h3 className="font-bold">Histórico recente da casa</h3>
+        <p className="text-sm text-[#6B6355]">Últimos 30 lançamentos de Loja e Cantina. As ações da Loja ficam na aba Loja.</p>
+        {!transactions.length ? <p>Nenhuma venda registrada.</p> : transactions.map(tx => <article key={tx.id} className="rounded-lg border p-4">
+          <div className="flex flex-wrap justify-between gap-2"><strong>{tx.categoria} · {formatBRL(tx.valor)}</strong><span>{tx.status === 'pago' ? 'Pago' : tx.status === 'cancelado' ? 'Cancelado' : 'Em aberto'}</span></div>
+          <p className="my-2 break-words text-sm">{tx.descricao}</p>
+          <p className="text-xs text-[#6B6355]">Venda: {(tx.data_venda || tx.data).split('-').reverse().join('/')} {tx.data_pagamento ? `· Recebimento: ${tx.data_pagamento.split('-').reverse().join('/')}` : ''}</p>
+          {transactionActions(tx)}
+        </article>)}
+      </section>}
+
       {/* 3. CONTEÚDO PRINCIPAL: ABA 1 - BALCÃO RÁPIDO & PDV */}
       {activeTab === 'pdv' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -672,7 +740,7 @@ export default function CantinaView({
                 type="button"
                 onClick={handleClearMenu}
                 className="text-[10px] text-[#7A7265] hover:text-[#171A16] underline decoration-dotted px-1 cursor-pointer"
-                title="Limpar cardápio local"
+                title="Limpar cardápio compartilhado"
               >
                 Limpar cardápio
               </button>
@@ -686,10 +754,8 @@ export default function CantinaView({
                 </p>
               )}
               {menuItems.map((item) => (
-                <button
+                <div
                   key={item.id}
-                  type="button"
-                  onClick={() => handleAddQuickItem(item)}
                   className="group relative flex flex-col justify-between rounded-lg border border-[#E5DECF] bg-white p-4 text-left transition-all hover:border-[#D4AF37] hover:shadow-md active:scale-95 cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -715,19 +781,19 @@ export default function CantinaView({
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3">
+                  <button type="button" onClick={() => handleAddQuickItem(item)} className="mt-3 text-left" aria-label={`Adicionar ${item.nome} à comanda`}>
                     <h4 className="text-xs font-bold text-[#171A16] line-clamp-1 group-hover:text-amber-800 transition-colors">
                       {item.nome}
                     </h4>
                     <p className="mt-1 text-sm font-black text-emerald-800">
                       {formatBRL(item.preco)}
                     </p>
-                  </div>
-                  <div className="mt-2.5 flex items-center justify-between border-t border-[#F2ECE1] pt-2 text-[10px] font-bold text-[#7A7265] group-hover:text-[#171A16]">
+                  <span className="mt-2.5 flex items-center justify-between border-t border-[#F2ECE1] pt-2 text-[10px] font-bold text-[#7A7265] group-hover:text-[#171A16]">
                     <span>Toque p/ somar</span>
                     <Plus className="h-3.5 w-3.5 text-amber-600 group-hover:scale-125 transition-transform" />
-                  </div>
-                </button>
+                  </span>
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -1070,7 +1136,8 @@ export default function CantinaView({
                       <article key={tx.id} className="rounded-xl border border-[#E5DECF] p-4">
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#6B6355]">
                           <time>{new Date(tx.created_at || `${tx.data}T12:00:00`).toLocaleString('pt-BR')}</time>
-                          <span className={cn('rounded-full px-2 py-1 font-bold', tx.status === 'pago' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800')}>{tx.status === 'pago' ? 'Pago' : 'Em aberto'}</span>
+                          <span className={cn('rounded-full px-2 py-1 font-bold', tx.status === 'pago' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800')}>{tx.status === 'pago' ? 'Pago' : tx.status === 'cancelado' ? 'Cancelado' : 'Em aberto'}</span>
+                          {tx.data_pagamento && <span className="text-xs text-slate-500">Recebido em {tx.data_pagamento.split('-').reverse().join('/')}</span>}
                         </div>
                         {tx.cantina_itens?.length ? <ul className="space-y-3">
                           {tx.cantina_itens.map((item, index) => <li key={index} className="flex items-start justify-between gap-3 text-sm">
@@ -1079,6 +1146,7 @@ export default function CantinaView({
                           </li>)}
                         </ul> : <p className="break-words text-sm text-[#4A4235]">{tx.descricao}</p>}
                         <div className="mt-3 flex justify-between gap-3 border-t border-[#F0EAE0] pt-3 text-sm font-black"><span>Total da comanda</span><span>{formatBRL(tx.valor)}</span></div>
+                        {transactionActions(tx)}
                       </article>
                     ))}
                     {(member.historico_total || 0) > history.length && <p className="text-xs text-[#6B6355]">Exibindo os {history.length} consumos mais recentes.</p>}
@@ -1262,9 +1330,10 @@ export default function CantinaView({
                         </button>
                         <button
                           type="submit"
+                          disabled={savingMenu}
                           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] text-[#0A160F] text-xs font-black hover:brightness-105 shadow-sm cursor-pointer active:scale-95"
                         >
-                          {editingItem ? 'Salvar Alterações' : 'Adicionar ao Cardápio'}
+                          {savingMenu ? 'Salvando…' : editingItem ? 'Salvar Alterações' : 'Adicionar ao Cardápio'}
                         </button>
                       </div>
                     </div>

@@ -13,13 +13,19 @@ function database() {
   const tables: Record<string, any[]> = {
     perfil_lider: [{ id: owner, tenant_id: owner }],
     filhos_de_santo: [{ id: member, tenant_id: owner, lider_id: owner, nome: 'Membro de teste', limite_lojinha: 100 }],
-    financeiro: [], produtos: [],
+    financeiro: [], produtos: [], cantina_cardapio: [],
   };
   let rpcCalls = 0;
   const client: any = {
     auth: { getUser: async () => ({ data: { user: { id: owner } }, error: null }) },
     rpc: async (_name: string, args: any) => {
       rpcCalls++;
+      if (_name === 'pagamento_caderneta') {
+        const rows = tables.financeiro.filter(tx => (tx.tenant_id === args.p_tenant_id || tx.lider_id === args.p_tenant_id) && ['Loja','Cantina'].includes(tx.categoria) &&
+          (!args.p_filho_id || tx.filho_id === args.p_filho_id) && (!args.p_transacao_id || tx.id === args.p_transacao_id) && tx.status === (args.p_acao === 'estornar' ? 'pago' : 'pendente'));
+        rows.forEach(tx => { tx.status = args.p_acao === 'liquidar' ? 'pago' : args.p_acao === 'cancelar' ? 'cancelado' : 'pendente'; });
+        return { data: rows.length, error: null };
+      }
       const existing = tables.financeiro.find(t => t.cantina_comanda_id === args.p_comanda_id);
       if (existing) return { data: existing, error: null };
       const tx = {
@@ -38,6 +44,7 @@ function database() {
       let update: any;
       const query: any = {
         select: () => query, order: () => query,
+        range: (from: number, to: number) => { rows = rows.slice(from, to+1); return query; },
         eq: (key: string, val: any) => { rows = rows.filter(r => r[key] === val); return query; },
         in: (key: string, vals: any[]) => { rows = rows.filter(r => vals.includes(r[key])); return query; },
         or: (filter: string) => {
@@ -46,7 +53,9 @@ function database() {
           })); return query;
         },
         update: (value: any) => { update = value; return query; },
-        maybeSingle: async () => ({ data: rows[0] || null, error: null }),
+        insert: (value: any) => { const item={id:randomUUID(),ativo:true,updated_at:new Date().toISOString(),...value}; tables[name].push(item); rows=[item]; return query; },
+        single: async () => ({data:rows[0] || null,error:null}),
+        maybeSingle: async () => { if(update) rows.forEach(r=>Object.assign(r,update)); return { data: rows[0] || null, error: null }; },
         then: (resolve: any, reject: any) => {
           if (update) rows.forEach(r => Object.assign(r, update));
           return Promise.resolve({ data: structuredClone(rows), error: null }).then(resolve, reject);
@@ -67,8 +76,8 @@ async function fixture(t: any) {
   await new Promise<void>(resolve => server.once('listening', resolve));
   t.after(() => new Promise<void>(resolve => server.close(() => resolve())));
   const address = server.address() as { port: number };
-  const request = (path: string, body?: unknown, auth = true) => fetch(`http://127.0.0.1:${address.port}/api/v1/cantina/${path}`, {
-    method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(auth ? { authorization: `Bearer fixture-${randomUUID()}` } : {}) },
+  const request = (path: string, body?: unknown, auth = true, method?:string) => fetch(`http://127.0.0.1:${address.port}/api/v1/cantina/${path}`, {
+    method: method || (body ? 'POST' : 'GET'), headers: { 'content-type': 'application/json', ...(auth ? { authorization: `Bearer fixture-${randomUUID()}` } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   return { ...db, request };
@@ -117,10 +126,32 @@ test('rejeita sem autenticação, outra casa, quantidade inválida e fiado avuls
 
 test('baixa específica não altera mensalidade, outra casa nem inventa um pagamento', async t => {
   const { request, tables } = await fixture(t);
-  tables.financeiro.push({ id: 'mensalidade', tenant_id: owner, categoria: 'Mensalidade', status: 'pendente' });
-  tables.financeiro.push({ id: 'outra-casa', tenant_id: outsider, categoria: 'Cantina', status: 'pendente' });
-  for (const id of ['mensalidade', 'outra-casa', 'inexistente']) {
+  const monthly = randomUUID(), other = randomUUID();
+  tables.financeiro.push({ id: monthly, tenant_id: owner, categoria: 'Mensalidade', status: 'pendente' });
+  tables.financeiro.push({ id: other, tenant_id: outsider, categoria: 'Cantina', status: 'pendente' });
+  for (const id of [monthly, other, randomUUID()]) {
     assert.equal((await (await request('liquidar', { tenantId: owner, transactionId: id })).json()).count, 0);
   }
   assert.ok(tables.financeiro.every(tx => tx.status === 'pendente'));
+});
+
+test('cardápio compartilhado persiste cadastro e impede edição desatualizada ou de outra casa',async t=>{
+ const {request}=await fixture(t);
+ const item={tenantId:owner,nome:'Café',preco:4,icon:'☕',cat:'bebidas'};
+ const created=await request('cardapio',item);assert.equal(created.status,200);const saved=(await created.json()).item;
+ const reload=await(await request(`cardapio?tenantId=${owner}`)).json();assert.equal(reload.items[0].id,saved.id);assert.equal(reload.items[0].preco,4);
+ assert.equal((await request(`cardapio/${saved.id}`,{...item,preco:5,expectedUpdatedAt:'2020-01-01T00:00:00.000Z'},true,'PATCH')).status,409);
+ assert.equal((await request(`cardapio/${saved.id}`,{...item,tenantId:outsider,expectedUpdatedAt:saved.updated_at},true,'PATCH')).status,403);
+ assert.equal((await request(`cardapio/${saved.id}`,{...item,preco:5,expectedUpdatedAt:saved.updated_at},true,'PATCH')).status,200);
+ assert.equal((await request('cardapio',{...item,preco:0})).status,400);
+ assert.equal((await request(`cardapio/${saved.id}`,{tenantId:owner},true,'DELETE')).status,200);
+ assert.equal((await(await request(`cardapio?tenantId=${owner}`)).json()).items.length,0);
+});
+
+test('cancelamento sai dos totais e permanece no histórico; Loja não infla vendas da Cantina',async t=>{
+ const {request,tables}=await fixture(t);const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date());
+ tables.financeiro.push({id:randomUUID(),tenant_id:owner,filho_id:member,categoria:'Cantina',status:'cancelado',valor:50,data:today});
+ tables.financeiro.push({id:randomUUID(),tenant_id:owner,filho_id:member,categoria:'Loja',status:'pago',valor:100,data:today});
+ const result=await(await request(`data?tenantId=${owner}`)).json();assert.equal(result.stats.total_pendente,0);assert.equal(result.stats.total_recebido_mes,0);assert.equal(result.stats.total_vendas_mes,0);
+ assert.equal(result.filhos[0].historico.length,2);assert.equal(result.transactions.length,2);
 });

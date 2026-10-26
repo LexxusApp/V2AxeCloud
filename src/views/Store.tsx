@@ -1,17 +1,20 @@
 import DataLoadError from '../components/DataLoadError';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
-import { ShoppingBag, Plus, Minus, Trash2, X, AlertCircle, CheckCircle2, Image as ImageIcon, ClipboardList } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, Trash2, X, AlertCircle, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Toast from '@radix-ui/react-toast';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AppDemoPanelHeader, AppDemoCard, AppDemoTableShell, AppPrimaryButton } from '../components/ui/appDemoUi';
+import { AppDemoPanelHeader, AppDemoCard, AppPrimaryButton } from '../components/ui/appDemoUi';
+import { AxePageHeader, AxeMetricRail, AxeMetricCard, AxeButton, AxeCard } from '../components/shared/AxePageScaffold';
 import FilhoStoreExperience from '../components/filho/FilhoStoreExperience';
 import { confirmAction } from '../lib/confirmAction';
+import PixPaymentModal, { type PixConfig } from '../components/PixPaymentModal';
+import { StoreOrdersPanel, type StoreOrderRow } from '../components/store/StoreOrdersPanel';
 
 // Campos dos modais (portais fora do escopo .app-v5-identity): tokens de papel explícitos.
 const paperModalInputClass =
@@ -33,16 +36,6 @@ export interface Product {
 
 interface CartItem extends Product {
   quantidade: number;
-}
-
-interface LojaPedidoRow {
-  id: string;
-  created_at: string;
-  filho_nome: string | null;
-  tipo: string;
-  metodo_pagamento: string;
-  resumo_itens: string;
-  valor_total: number;
 }
 
 interface StoreProps {
@@ -73,7 +66,11 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   const [filhoNome, setFilhoNome] = useState('');
   /** Compra (mensalidade/PIX) vs reserva — só para filho de santo no fluxo do carrinho. */
   const [intencaoLojaFilho, setIntencaoLojaFilho] = useState<'compra' | 'reserva'>('compra');
-  const [lojaPedidos, setLojaPedidos] = useState<LojaPedidoRow[]>([]);
+  const [lojaPedidos, setLojaPedidos] = useState<StoreOrderRow[]>([]);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [orderBusy, setOrderBusy] = useState<string | null>(null);
+  const [pixOrder, setPixOrder] = useState<{ order: {id:string;total:number}; pix: PixConfig & { payload:string;txid:string } } | null>(null);
+  const checkoutAttempt = useRef<{signature:string;id:string} | null>(null);
   const [loadingPedidos, setLoadingPedidos] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [productImageFile, setProductImageFile] = useState<File | null>(null);
@@ -118,8 +115,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   }, [userRole, userId, tenantData.tenant_id]);
 
   const fetchLojaPedidos = async (tenantPk?: string | null) => {
-    if (!isAdmin) return;
     setLoadingPedidos(true);
+    setOrdersError(null);
     try {
       const pk =
         tenantPk != null && String(tenantPk).trim() !== '' ? String(tenantPk).trim() : await resolveStoreTenantPk(storeTenantParams());
@@ -127,23 +124,18 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
         setLojaPedidos([]);
         return;
       }
-      const { data, error } = await supabase
-        .from('loja_pedidos')
-        .select('id, created_at, filho_nome, tipo, metodo_pagamento, resumo_itens, valor_total')
-        .eq('tenant_id', pk)
-        .order('created_at', { ascending: false })
-        .limit(40);
-      if (error) throw error;
-      setLojaPedidos((data || []) as LojaPedidoRow[]);
+      const response = await authFetch('/api/v1/store/orders?tenantId=' + encodeURIComponent(pk));
+      const body = await response.json();
+      if (!response.ok || !Array.isArray(body.orders)) throw new Error('Não foi possível carregar os pedidos.');
+      setLojaPedidos(body.orders);
     } catch {
-      setLojaPedidos([]);
+      setOrdersError('Não foi possível carregar os pedidos. Use Atualizar pedidos para tentar novamente.');
     } finally {
       setLoadingPedidos(false);
     }
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
     let cancelled = false;
     let pedidosChannel: ReturnType<typeof supabase.channel> | null = null;
     (async () => {
@@ -169,15 +161,14 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
   }, [isAdmin, tenantData?.tenant_id, userId]);
 
   const fetchFilhoId = async () => {
-    const { data } = await supabase
-      .from('filhos_de_santo')
-      .select('id, nome')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (data) {
-      setFilhoId(data.id);
-      setFilhoNome(typeof data.nome === 'string' ? data.nome : '');
-    }
+    try {
+      const pk=await resolveStoreTenantPk(storeTenantParams());
+      if(!pk) return;
+      const response=await authFetch('/api/v1/store/me?tenantId='+encodeURIComponent(pk));
+      const data=await response.json();
+      if(!response.ok || !data.memberId) throw new Error('Vínculo do membro não encontrado.');
+      setFilhoId(data.memberId);setFilhoNome(data.memberName || '');
+    }catch { setFilhoId(null); showToast('Perfil não carregado','Não foi possível identificar seu vínculo. Recarregue a página para comprar.','error'); }
   };
 
   const storeTenantParams = () => ({
@@ -267,7 +258,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           showToast('Estoque insuficiente', 'Não há mais unidades disponíveis.', 'error');
           return prev;
         }
-        return prev.map(item => 
+        return prev.map(item =>
           item.id === product.id ? { ...item, quantidade: item.quantidade + 1 } : item
         );
       }
@@ -314,58 +305,85 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
     setProductImagePreview('');
   };
 
-  const handleCheckout = async (method: 'mensalidade' | 'pix' | 'reserva') => {
-    if (cart.length === 0) return;
-    if (userRole === 'filho' && !filhoId) {
-      showToast('Erro', 'Perfil de filho não encontrado.', 'error');
-      return;
-    }
-
+  const handleCheckout = async (method: 'mensalidade' | 'pix' | 'reserva' | 'dinheiro') => {
+    if (!cart.length || isCheckoutLoading) return;
+    if (userRole === 'filho' && !filhoId) { showToast('Erro','Perfil de filho não encontrado.','error'); return; }
     const tenantPk = await resolveStoreTenantPk(storeTenantParams());
-    if (!tenantPk) {
-      showToast('Erro', 'Informações do terreiro não carregadas. Tente recarregar a página.', 'error');
-      return;
+    if (!tenantPk) { showToast('Erro','Terreiro não carregado. Tente novamente.','error'); return; }
+    const requestItems = cart.map(item=>({produto_id:item.id,quantidade:item.quantidade})).sort((a,b)=>a.produto_id.localeCompare(b.produto_id));
+    const signature = JSON.stringify({tenantPk,filhoId: userRole === 'filho' ? filhoId : null,method,items:requestItems});
+    const attemptKey = 'axecloud_store_checkout_' + tenantPk + '_' + userId;
+    if (checkoutAttempt.current?.signature !== signature) {
+      let saved: {signature:string;id:string} | null = null;
+      try { saved = JSON.parse(sessionStorage.getItem(attemptKey) || 'null'); } catch {}
+      checkoutAttempt.current = saved?.signature === signature ? saved : {signature,id:crypto.randomUUID()};
+      try { sessionStorage.setItem(attemptKey,JSON.stringify(checkoutAttempt.current)); } catch {}
     }
-
     setIsCheckoutLoading(true);
     try {
-      const res = await authFetch('/api/v1/store/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId: tenantPk,
-          filhoId: userRole === 'filho' ? filhoId : null,
-          method,
-          items: cart.map((item) => ({
-            produto_id: item.id,
-            id: item.id,
-            quantidade: item.quantidade,
-            nome: item.nome,
-            preco: item.preco,
-          })),
-        }),
+      const res = await authFetch('/api/v1/store/checkout',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({tenantId:tenantPk,filhoId:userRole === 'filho' ? filhoId : null,method,items:requestItems,checkoutId:checkoutAttempt.current!.id}),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Erro no checkout');
+      const result=await res.json();
+      if (!res.ok || !result.success || !result.order?.id) throw new Error(result.error || 'O pedido não foi confirmado. Seu carrinho foi mantido.');
+      checkoutAttempt.current=null;
+      try { sessionStorage.removeItem(attemptKey); } catch {}
+      setCart([]); setIntencaoLojaFilho('compra'); setIsCartOpen(false);
+      if(result.order.status === 'cancelado') showToast('Pedido cancelado','Esta tentativa corresponde a um pedido cancelado. Confira seus pedidos antes de comprar novamente.','warning');
+      else if(method === 'pix' && result.order.status === 'pendente') {
+        if(result.pix) setPixOrder({order:result.order,pix:result.pix});
+        showToast('Pedido aguardando Pix',result.pix ? 'Pague pelo QR Code. A baixa será confirmada pelo responsável.' : 'Abra seus pedidos para consultar o Pix após a chave ser configurada.','success');
+      } else showToast('Pedido confirmado',method === 'reserva' ? 'Reserva registrada sem gerar débito.' : method === 'mensalidade' ? 'Compra anotada uma única vez na caderneta.' : 'Venda recebida e registrada no financeiro.','success');
+      window.dispatchEvent(new Event('axecloud:finance-updated'));
+      await Promise.all([fetchProducts({silent:true,tenantPk}),fetchLojaPedidos(tenantPk)]);
+    } catch(error: any) {
+      showToast('Não foi possível concluir',error.message || 'Sua comanda foi mantida. Tente novamente.','error');
+    } finally { setIsCheckoutLoading(false); }
+  };
 
-      showToast('Sucesso!', 'Pedido realizado com sucesso.', 'success');
-      setCart([]);
-      setIntencaoLojaFilho('compra');
-      setIsCartOpen(false);
-      await fetchProducts({ silent: true, tenantPk });
-      if (isAdmin) await fetchLojaPedidos(tenantPk);
-    } catch (error: any) {
-      console.error('Checkout error:', error);
-      showToast('Erro no Checkout', error.message || 'Ocorreu um erro ao processar o pedido.', 'error');
-    } finally {
-      setIsCheckoutLoading(false);
-    }
+  const showOrderPix = async (id:string) => {
+    setOrderBusy(id);
+    try {
+      const tenant=await resolveStoreTenantPk(storeTenantParams());
+      const response=await authFetch('/api/v1/store/orders/' + id + '/pix?tenantId=' + encodeURIComponent(tenant || ''));
+      const body=await response.json();
+      if(!response.ok || !body.pix) throw new Error(body.error || 'Pix indisponível.');
+      setPixOrder(body);
+    } catch(error:any) { showToast('Pix indisponível',error.message,'error'); }
+    finally { setOrderBusy(null); }
+  };
+
+  const actOnOrder = async (id:string,action:string,total:number) => {
+    const texts: Record<string,{title:string;description:string}> = {
+      confirmar:{title:'Confirmar recebimento?',description:'Confirme somente após conferir o crédito na conta ou receber o dinheiro. Valor: R$ ' + total.toFixed(2).replace('.',',') + '.'},
+      cancelar:{title:'Cancelar pedido?',description:'O estoque reservado será liberado e o débito ainda em aberto será cancelado.'},
+      estornar:{title:'Estornar a baixa?',description:'O débito será reaberto na caderneta. Esta ação não devolve dinheiro pelo banco; confira a devolução antes de estornar.'},
+      converter_pix:{title:'Vender a reserva por Pix?',description:'A reserva vira uma compra pendente. O responsável confirma a baixa após receber o Pix.'},
+      converter_mensalidade:{title:'Anotar a reserva na caderneta?',description:'A compra ficará pendente para o membro, respeitando seu limite compartilhado com a Cantina.'},
+      converter_dinheiro:{title:'Receber a reserva em dinheiro?',description:'Confirme apenas após receber o dinheiro. A compra entrará no caixa como paga.'},
+    };
+    if(!texts[action] || !await confirmAction({...texts[action],confirmLabel:'Confirmar',tone:action === 'cancelar' ? 'danger' : 'primary'})) return;
+    setOrderBusy(id);
+    try {
+      const tenant=await resolveStoreTenantPk(storeTenantParams());
+      const response=await authFetch('/api/v1/store/orders/' + id + '/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tenantId:tenant,action})});
+      const body=await response.json();
+      if(!response.ok || !body.success) throw new Error(body.error || 'A alteração não foi confirmada.');
+      showToast('Pedido atualizado','O estoque e o financeiro foram atualizados juntos.','success');
+      window.dispatchEvent(new Event('axecloud:finance-updated'));
+      await Promise.all([fetchProducts({silent:true,tenantPk:tenant}),fetchLojaPedidos(tenant)]);
+      if(action === 'converter_pix') await showOrderPix(id);
+    } catch(error:any) { showToast('Pedido não alterado',error.message,'error'); }
+    finally { setOrderBusy(null); }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingProduct) return;
     setIsSavingProduct(true);
     setIsUploadingProductImage(false);
+    try {
 
     const nomeDoEstado = (newProduct.nome || '').trim();
     const descricaoDoEstado = String(newProduct.descricao ?? '').trim();
@@ -373,6 +391,9 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
     const categoriaDoEstado = newProduct.categoria || 'Velas';
     const estoqueAtual = Number(newProduct.estoque_atual) || 0;
     const estoqueMinimo = Number(newProduct.estoque_minimo) || 0;
+    if (!Number.isFinite(precoDoEstado) || precoDoEstado < 0 || Math.abs(precoDoEstado*100-Math.round(precoDoEstado*100))>0.000001 || !Number.isInteger(estoqueAtual) || estoqueAtual<0 || !Number.isInteger(estoqueMinimo) || estoqueMinimo<0) {
+      showToast('Dados inválidos','Confira o preço e informe quantidades inteiras não negativas.','error'); return;
+    }
 
     if (!nomeDoEstado) {
       showToast('Erro', 'Nome do produto é obrigatório.', 'error');
@@ -435,6 +456,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
     }
 
     const inserted = saveJson.data as Record<string, unknown> | undefined;
+    if (!inserted?.id) throw new Error('O servidor não confirmou o cadastro. Confira os produtos antes de tentar novamente.');
     const novoProduto = inserted ? rowToProduct(inserted) : null;
 
     showToast('Sucesso', 'Produto salvo com sucesso!', 'success');
@@ -452,6 +474,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
 
     await fetchProducts({ silent: true, tenantPk: idDoTerreiroLogado });
     setIsSavingProduct(false);
+    } catch (error: any) { showToast('Produto não salvo',error.message || 'Não foi possível salvar. Seu formulário foi mantido.','error'); }
+    finally { setIsSavingProduct(false); setIsUploadingProductImage(false); }
   };
 
   const handleDeleteProduct = async (product: Product) => {
@@ -512,34 +536,35 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           />
         ) : (
         <div className="store-v5-page">
-        <AppDemoPanelHeader
-          title="Loja do Axé"
+        <AxePageHeader
+          theme="gold"
+          kicker="ARTIGOS RELIGIOSOS & PRODUTOS DO TERREIRO"
+          title="Loja da Casa"
           description={
             userRole === 'filho'
-              ? 'Compre com pagamento na mensalidade ou via PIX, ou reserve itens com o zelador.'
-              : 'Artigos religiosos com baixa automática no estoque e pedidos dos filhos de santo.'
+              ? 'Compre artigos religiosos com pagamento na mensalidade ou via Pix, ou reserve itens com o zelador.'
+              : 'Artigos religiosos e insumos sagrados com baixa automática no estoque e controle de pedidos.'
           }
-          action={
+          actions={
             <div className="flex flex-wrap items-center gap-2">
               {isAdmin ? (
-                <button
-                  type="button"
+                <AxeButton
+                  variant="primary"
                   onClick={() => setIsAddProductOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]"
                 >
                   <Plus className="h-4 w-4" />
-                  Novo produto
-                </button>
+                  Novo Produto
+                </AxeButton>
               ) : null}
               <button
                 type="button"
                 onClick={() => setIsCartOpen(true)}
-                className="relative inline-flex items-center gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] px-3 py-2 text-xs font-bold text-[#F1F5F9] transition hover:border-[#2F3643]"
+                className="relative inline-flex items-center gap-2 rounded-lg border border-[#D4AF37]/45 bg-black/40 backdrop-blur-md px-4 py-2.5 text-xs font-black text-amber-200 transition hover:bg-black/60 hover:text-white hover:border-[#D4AF37]"
               >
-                <ShoppingBag className="h-4 w-4 text-primary" />
+                <ShoppingBag className="h-4 w-4 text-amber-300" />
                 Carrinho
                 {cart.length > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-[#080A0D]">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-black text-[#080A0D]">
                     {cartQuantity}
                   </span>
                 ) : null}
@@ -548,12 +573,43 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           }
         />
 
+        <AxeMetricRail className="my-6">
+          <AxeMetricCard
+            label="Itens na Vitrine"
+            value={products.length}
+            icon={ShoppingBag}
+            tone="neutral"
+            subtext="Produtos cadastrados"
+          />
+          <AxeMetricCard
+            label="Estoque Normal"
+            value={products.filter((p) => p.estoque_atual > p.estoque_minimo).length}
+            icon={CheckCircle2}
+            tone="emerald"
+            subtext="Prontos para venda"
+          />
+          <AxeMetricCard
+            label="Estoque em Alerta"
+            value={products.filter((p) => p.estoque_atual <= p.estoque_minimo).length}
+            icon={AlertCircle}
+            tone="amber"
+            subtext="Próximos do fim"
+          />
+          <AxeMetricCard
+            label="Itens no Carrinho"
+            value={cartQuantity}
+            icon={ShoppingBag}
+            tone="purple"
+            subtext={`R$ ${cartTotal.toFixed(2)} acumulado`}
+          />
+        </AxeMetricRail>
+
         <div className="space-y-8">
 
         {loading ? (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 xl:pl-4 2xl:pl-6">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] animate-pulse">
+              <div key={i} className="overflow-hidden rounded-lg border border-[#1E242B] bg-[#13171D] animate-pulse">
                 <div className="aspect-square bg-[#1E242B]/40" />
                 <div className="space-y-3 p-3 md:space-y-4 md:p-6">
                   <div className="h-4 w-3/4 rounded-lg bg-[#1E242B]/40" />
@@ -564,11 +620,21 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
             ))}
           </div>
         ) : products.length === 0 ? (
-          <AppDemoCard className="py-16 text-center">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-[#D7A818]" />
-            <h3 className="text-lg font-bold text-[#1D211B]">Nenhum produto cadastrado</h3>
-            <p className="mt-2 text-sm text-[#6F6A60]">A loja do terreiro ainda está vazia.</p>
-          </AppDemoCard>
+          <div className="col-span-full rounded-lg border border-[#E5DECF] bg-white p-12 text-center shadow-xs">
+            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-amber-700" />
+            <h3 className="text-base font-black text-[#171A16]">Nenhum produto cadastrado</h3>
+            <p className="mt-2 text-xs font-semibold text-[#6B6355]">A lojinha do terreiro ainda está vazia.</p>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsAddProductOpen(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] px-5 py-2.5 text-xs font-black text-[#0A160F] shadow-sm hover:brightness-105 active:scale-95 transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                Cadastrar Primeiro Produto
+              </button>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 xl:pl-4 2xl:pl-6">
             {products.map(product => {
@@ -576,13 +642,13 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
               const isOutOfStock = product.estoque_atual === 0;
 
               return (
-                <div key={product.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#1E242B] bg-[#13171D] shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/20 hover:shadow-lg">
+                <div key={product.id} className="group relative flex flex-col overflow-hidden rounded-lg border border-[#E5DECF] bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:shadow-xl">
                   {isAdmin && (
                     <button
                       type="button"
                       onClick={() => handleDeleteProduct(product)}
                       disabled={deletingProductId === product.id}
-                      className="absolute right-2 top-2 z-20 flex items-center justify-center rounded-lg border border-rose-500/30 bg-[#13171D]/90 p-2 text-rose-300 transition hover:bg-rose-950/60 disabled:opacity-50 md:right-3 md:top-3 md:p-2.5"
+                      className="absolute right-2 top-2 z-20 flex items-center justify-center rounded-lg border border-rose-500/30 bg-white/90 p-2 text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 md:right-3 md:top-3 md:p-2.5 shadow-sm"
                       title="Excluir produto"
                       aria-label={`Excluir ${product.nome}`}
                     >
@@ -594,10 +660,10 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                     </button>
                   )}
                   {/* Image Container */}
-                  <div className="relative aspect-square overflow-hidden bg-[#12161A]">
+                  <div className="relative aspect-square overflow-hidden bg-[#FAF8F5]">
                     {product.imagem_url ? (
-                      <img 
-                        src={product.imagem_url} 
+                      <img
+                        src={product.imagem_url}
                         alt={product.nome}
                         className={cn(
                           "w-full h-full object-cover transition-all duration-500 group-hover:scale-105",
@@ -605,63 +671,63 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                         )}
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[#64748B]">
-                        <ImageIcon className="h-8 w-8 opacity-30 md:h-12 md:w-12" />
+                      <div className="flex h-full w-full items-center justify-center text-[#9B9184]">
+                        <ImageIcon className="h-8 w-8 opacity-40 md:h-12 md:w-12" />
                       </div>
                     )}
-                    
+
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1.5 md:top-4 md:left-4 md:gap-2">
                       {isOutOfStock ? (
-                        <span className="rounded-md border border-[#1E242B] bg-[#13171D]/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#94A3B8] backdrop-blur-sm md:rounded-lg md:px-3 md:py-1 md:text-xs">
+                        <span className="rounded-md border border-slate-300 bg-white/95 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-slate-700 shadow-sm md:rounded-lg md:px-3 md:py-1 md:text-xs">
                           Indisponível
                         </span>
                       ) : isLowStock ? (
-                        <span className="rounded-md border border-rose-500/30 bg-rose-950/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-rose-200 backdrop-blur-sm md:rounded-lg md:px-3 md:py-1 md:text-xs">
-                          Últimas
+                        <span className="rounded-md border border-rose-300 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-rose-800 shadow-sm md:rounded-lg md:px-3 md:py-1 md:text-xs">
+                          Últimas Peças
                         </span>
                       ) : null}
                     </div>
                   </div>
 
                   {/* Content */}
-                  <div className="flex flex-1 flex-col p-3 md:p-6">
+                  <div className="flex flex-1 flex-col p-4 md:p-5">
                     <div className="mb-2 flex flex-col gap-1 md:flex-row md:items-start md:justify-between md:gap-3">
-                      <h3 className="line-clamp-2 text-sm font-bold leading-tight text-[#F1F5F9] md:text-lg">{product.nome}</h3>
-                      <span className="whitespace-nowrap text-sm font-bold text-primary md:ml-4 md:text-lg">
+                      <h3 className="line-clamp-2 text-sm font-black leading-tight text-[#171A16] group-hover:text-amber-800 transition-colors md:text-base">{product.nome}</h3>
+                      <span className="whitespace-nowrap text-sm font-black text-emerald-800 md:ml-4 md:text-lg">
                         R$ {product.preco.toFixed(2)}
                       </span>
                     </div>
-                    <p className="mb-3 line-clamp-2 flex-1 text-xs text-[#94A3B8] md:mb-6 md:text-sm">{product.descricao}</p>
-                    
-                    <button 
+                    <p className="mb-3 line-clamp-2 flex-1 text-xs font-semibold text-[#6B6355] md:mb-5">{product.descricao}</p>
+
+                    <button
                       onClick={() => {
                         if (userRole === 'filho') setIntencaoLojaFilho('compra');
                         addToCart(product);
                       }}
                       disabled={isOutOfStock}
                       className={cn(
-                        "flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11px] font-bold transition-all md:gap-2 md:py-3 md:text-sm",
-                        isOutOfStock 
-                          ? "cursor-not-allowed border border-[#1E242B] bg-[#12161A] text-[#64748B]" 
-                          : "bg-primary text-[#080A0D] hover:bg-[#fde047] shadow-sm"
+                        "flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-black transition-all md:gap-2 md:py-3 shadow-xs",
+                        isOutOfStock
+                          ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+                          : "bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] text-[#0A160F] hover:brightness-105 active:scale-95"
                       )}
                     >
                       <ShoppingBag className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                      {isOutOfStock ? 'Sem estoque' : userRole === 'filho' ? 'Comprar' : 'Adicionar'}
+                      {isOutOfStock ? 'Sem estoque' : userRole === 'filho' ? 'Comprar' : 'Adicionar à Sacola'}
                     </button>
 
                     {userRole === 'filho' && !isOutOfStock && (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           setIntencaoLojaFilho('reserva');
                           addToCart(product);
                           setIsCartOpen(true);
                         }}
-                        className="mt-2 w-full rounded-xl border border-[#1E242B] bg-[#12161A] py-2.5 text-[10px] font-bold uppercase tracking-wide text-[#F1F5F9] transition hover:border-[#2F3643] md:py-3 md:text-xs"
+                        className="mt-2 w-full rounded-xl border border-[#D8D2C4] bg-[#FAF8F5] py-2 text-[10px] font-black uppercase tracking-wide text-[#4A4235] transition hover:bg-[#F0EAE0]"
                       >
-                        Reservar
+                        Reservar na Casa
                       </button>
                     )}
                   </div>
@@ -671,63 +737,13 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
           </div>
         )}
 
-        {isAdmin && (
-          <AppDemoCard className="space-y-4">
-            <div className="flex items-center gap-3">
-              <ClipboardList className="h-6 w-6 shrink-0 text-[#D7A818]" />
-              <div>
-                <h3 className="text-lg font-bold text-[#1D211B]">Pedidos dos filhos na loja</h3>
-                <p className="mt-0.5 text-xs text-[#6F6A60]">
-                  Compras e reservas feitas pelos filhos de santo aparecem aqui e no histórico do dashboard.
-                </p>
-              </div>
-            </div>
-            {loadingPedidos ? (
-              <p className="text-sm text-[#6F6A60]">Carregando pedidos…</p>
-            ) : lojaPedidos.length === 0 ? (
-              <p className="text-sm italic text-[#81796B]">Nenhum pedido registrado ainda.</p>
-            ) : (
-              <AppDemoTableShell>
-                <ul className="max-h-[min(420px,50vh)] space-y-2 overflow-y-auto p-3 no-scrollbar sm:p-4">
-                  {lojaPedidos.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex flex-col gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] px-4 py-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-sm font-bold text-primary">{p.filho_nome || 'Filho de santo'}</span>
-                        <span className="text-xs font-bold text-[#64748B]">
-                          {new Date(p.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#94A3B8]">
-                        <span className="font-bold text-[#F1F5F9]">{p.tipo === 'reserva' ? 'Reserva' : 'Compra'}</span>
-                        {' · '}
-                        <span className="uppercase tracking-wide text-[#64748B]">
-                          {p.metodo_pagamento === 'mensalidade'
-                            ? 'Mensalidade'
-                            : p.metodo_pagamento === 'pix'
-                              ? 'PIX'
-                              : p.metodo_pagamento === 'reserva'
-                                ? 'Somente reserva'
-                                : p.metodo_pagamento}
-                        </span>
-                      </p>
-                      <p className="line-clamp-2 text-xs text-[#94A3B8]">{p.resumo_itens}</p>
-                      <p className="text-sm font-bold text-[#F1F5F9]">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.valor_total) || 0)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </AppDemoTableShell>
-            )}
-          </AppDemoCard>
-        )}
         </div>
         </div>
         )}
+        <StoreOrdersPanel rows={lojaPedidos} loading={loadingPedidos} error={ordersError} manager={isAdmin} busy={orderBusy} refresh={()=>void fetchLojaPedidos()} onPix={id=>void showOrderPix(id)} onAction={(id,action,total)=>void actOnOrder(id,action,total)} />
       </AppPageShell>
+
+      <PixPaymentModal open={Boolean(pixOrder)} onClose={()=>setPixOrder(null)} loading={false} pixConfig={pixOrder?.pix || null} valor={Number(pixOrder?.order.total || 0)} descricao="Compra na Loja" txid={pixOrder?.pix.txid || ''} payload={pixOrder?.pix.payload} notice="Este Pix vai para a conta do terreiro. O pedido permanece pendente até o responsável confirmar o recebimento." />
 
       {/* Cart Sheet */}
       <Dialog.Root open={isCartOpen} onOpenChange={setIsCartOpen}>
@@ -737,7 +753,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
             className={cn(
               'fixed z-[101] flex w-full max-w-md flex-col overflow-hidden bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl',
               userRole === 'filho' && 'filho-store-cart-sheet',
-              'max-h-[min(92dvh,calc(100dvh-2rem))] rounded-[26px] border border-[#DED8CB]',
+              'max-h-[min(92dvh,calc(100dvh-2rem))] rounded-lg border border-[#DED8CB]',
               'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[min(28rem,calc(100vw-2rem))]',
               'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-300',
               'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -801,7 +817,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                 <div className="space-y-3">
                   {userRole === 'filho' && intencaoLojaFilho === 'compra' && (
                     <>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleCheckout('mensalidade')}
                         disabled={isCheckoutLoading}
@@ -810,7 +826,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                         {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FFFAF0]/30 border-t-[#FFFAF0]" /> : 'Pagamento na mensalidade'}
                       </button>
 
-                      <button 
+                      <button
                         type="button"
                         onClick={() => handleCheckout('pix')}
                         disabled={isCheckoutLoading}
@@ -822,7 +838,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                   )}
 
                   {userRole === 'filho' && intencaoLojaFilho === 'reserva' && (
-                    <button 
+                    <button
                       type="button"
                       onClick={() => handleCheckout('reserva')}
                       disabled={isCheckoutLoading}
@@ -833,7 +849,9 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                   )}
 
                   {userRole !== 'filho' && (
-                    <button 
+                    <>
+                    <button type="button" onClick={()=>handleCheckout('dinheiro')} disabled={isCheckoutLoading} className="w-full rounded-xl bg-[#17251D] py-4 text-sm font-bold text-white disabled:opacity-50">Receber em dinheiro</button>
+                    <button
                       type="button"
                       onClick={() => handleCheckout('pix')}
                       disabled={isCheckoutLoading}
@@ -841,6 +859,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                     >
                       {isCheckoutLoading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#4A463E]/30 border-t-[#4A463E]" /> : 'Pagamento via PIX'}
                     </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -853,7 +872,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       <Dialog.Root open={isAddProductOpen} onOpenChange={(open) => (open ? setIsAddProductOpen(true) : closeAddProductDialog())}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-          <Dialog.Content className="fixed left-[50%] top-[50%] z-[101] flex max-h-[88dvh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-8">
+          <Dialog.Content className="fixed left-[50%] top-[50%] z-[101] flex max-h-[88dvh] w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] p-6 text-[#171A16] shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:p-8">
             <div className="mb-6 flex items-center justify-between">
               <Dialog.Title className="text-xl font-bold text-[#171A16]">Novo produto</Dialog.Title>
               <Dialog.Close className="rounded-full border border-[#DCD6CA] bg-white/70 p-2 text-[#171A16] transition hover:bg-white">
@@ -864,8 +883,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
             <form onSubmit={handleSaveProduct} className="min-h-0 flex-1 space-y-4 overflow-y-auto">
               <div className="space-y-1.5">
                 <label className={paperModalLabelClass}>Nome do produto</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={newProduct.nome}
                   onChange={e => setNewProduct({...newProduct, nome: e.target.value})}
@@ -873,10 +892,10 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                   placeholder="Ex: Vela de 7 dias"
                 />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className={paperModalLabelClass}>Descrição</label>
-                <textarea 
+                <textarea
                   value={newProduct.descricao}
                   onChange={e => setNewProduct({...newProduct, descricao: e.target.value})}
                   className={cn(paperModalInputClass, 'h-24 resize-none')}
@@ -887,8 +906,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className={paperModalLabelClass}>Preço (R$)</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.01"
                     min="0"
                     required
@@ -899,7 +918,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                 </div>
                 <div className="space-y-1.5">
                   <label className={paperModalLabelClass}>Categoria</label>
-                  <select 
+                  <select
                     value={newProduct.categoria}
                     onChange={e => setNewProduct({...newProduct, categoria: e.target.value})}
                     className={cn(paperModalInputClass, '[&>option]:bg-white')}
@@ -916,8 +935,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className={paperModalLabelClass}>Estoque atual</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min="0"
                     required
                     value={newProduct.estoque_atual}
@@ -927,8 +946,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                 </div>
                 <div className="space-y-1.5">
                   <label className={paperModalLabelClass}>Estoque mínimo</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     min="0"
                     required
                     value={newProduct.estoque_minimo}
@@ -955,7 +974,7 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                   Se nenhuma foto for enviada, o sistema tenta sugerir uma imagem automaticamente.
                 </p>
                 {productImagePreview ? (
-                  <div className="overflow-hidden rounded-2xl border border-[#D8D2C4] bg-white">
+                  <div className="overflow-hidden rounded-lg border border-[#D8D2C4] bg-white">
                     <img src={productImagePreview} alt="Prévia do produto" className="h-48 w-full object-cover" />
                   </div>
                 ) : null}
@@ -967,8 +986,8 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
                     Cancelar
                   </button>
                 </Dialog.Close>
-                <AppPrimaryButton 
-                  type="submit" 
+                <AppPrimaryButton
+                  type="submit"
                   disabled={isSavingProduct || isUploadingProductImage}
                   className="flex items-center gap-2 bg-[#17251D] px-6 py-3 text-[#FFFAF0] hover:bg-[#20342A]"
                 >
@@ -983,12 +1002,12 @@ export default function Store({ userRole, tenantData, userId, isAdminGlobal, set
       </Dialog.Root>
 
       {/* Toast Notifications */}
-      <Toast.Root 
-        open={toastOpen} 
+      <Toast.Root
+        open={toastOpen}
         onOpenChange={setToastOpen}
         className={cn(
-          "flex w-[350px] items-start gap-4 rounded-2xl border bg-[#13171D] p-4 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-out",
-          toastMessage.type === 'success' ? "border-green-500/30" : 
+          "flex w-[350px] items-start gap-4 rounded-lg border bg-[#13171D] p-4 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out] data-[swipe=end]:animate-out",
+          toastMessage.type === 'success' ? "border-green-500/30" :
           toastMessage.type === 'error' ? "border-red-500/30" : "border-primary/30"
         )}
       >

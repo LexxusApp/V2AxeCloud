@@ -27,6 +27,12 @@ begin
   if v_count <> 1 then raise exception 'Consumo não encontrado após gravação'; end if;
   v_retry := public.registrar_consumo_cantina(v_owner, v_owner, v_filho, v_itens, 'fiado', v_key);
   if v_retry->>'id' <> v_tx->>'id' then raise exception 'Reenvio duplicou a comanda'; end if;
+  begin
+    perform public.registrar_consumo_cantina(v_owner,v_owner,v_filho,v_itens,'pago',v_key);
+    raise exception 'TEST_FAIL: reenvio mudou a forma de pagamento';
+  exception when raise_exception then
+    if SQLERRM not like '%identificação já foi usada%' then raise; end if;
+  end;
 
   update public.financeiro set status = 'pago' where id = (v_tx->>'id')::uuid;
   select count(*) into v_count from public.financeiro

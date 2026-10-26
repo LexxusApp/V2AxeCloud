@@ -4,9 +4,10 @@
 
 export function parseFinanceiroDataRef(t: {
   data?: string | null;
+  data_pagamento?: string | null;
   created_at?: string | null;
 }): Date | null {
-  const raw = t.data;
+  const raw = t.data_pagamento || t.data;
   const s = raw != null ? String(raw).trim() : '';
   if (!s) {
     if (!t.created_at) return null;
@@ -80,7 +81,7 @@ export function countsTowardSaldo(t: {
 }
 
 export function isLancamentoNoMesRef(
-  t: { data?: string | null; created_at?: string | null },
+  t: { data?: string | null; data_pagamento?: string | null; created_at?: string | null },
   ref: Date
 ): boolean {
   const d = parseFinanceiroDataRef(t);
