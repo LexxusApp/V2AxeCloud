@@ -23,8 +23,8 @@ export function renderFeaturedRituals(rituals, now = new Date()) {
   if (!active.length) return '';
   return `<section class="ritual-promotions" id="rituais-em-destaque" aria-labelledby="ritual-promotions-title">
     <div class="ritual-promotions-heading">
-      <h2 id="ritual-promotions-title">Rituais em destaque</h2>
-      <p>Divulgação do templo</p>
+      <h2 id="ritual-promotions-title">Anúncios</h2>
+      <p>Anúncio patrocinado</p>
     </div>
     <div class="ritual-promotions-track">
       ${active.map((ritual) => `<article class="ritual-promotion" data-ritual-id="${escape(ritual.id)}" data-ritual-until="${escape(ritual.expiresAt)}">
