@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'landing-dist');
+const rituals = JSON.parse(fs.readFileSync(path.join(ROOT, 'cinematic-site', 'featured-rituals.json'), 'utf8'));
 const CINEMATIC = [
   'index.html',
   'terreiros/index.html',
@@ -14,6 +15,7 @@ const CINEMATIC = [
   'conteudo/calendario-liturgico/index.html',
   'por-que-axecloud/index.html',
   'espaco-do-fiel/index.html',
+  ...rituals.map((ritual) => `eventos/${ritual.slug}/index.html`),
 ];
 const REACT = [
   '__react_shell.html',

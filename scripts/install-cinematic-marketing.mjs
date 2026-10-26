@@ -3,11 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildGoogleAdsHeadSnippet } from './google-ads-snippet.mjs';
+import { renderFeaturedRituals, renderRitualPage } from './lib/featuredRituals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(ROOT, 'cinematic-site');
 const OUT = path.join(ROOT, 'landing-dist');
 const ASSET_OUT = path.join(OUT, 'm-assets', 'cinematic');
+const rituals = JSON.parse(fs.readFileSync(path.join(SOURCE, 'featured-rituals.json'), 'utf8'));
+const buildTime = new Date();
 
 const pages = new Map([
   ['index.html', 'index.html'],
@@ -19,6 +22,7 @@ const pages = new Map([
   ['calendario-liturgico.html', 'conteudo/calendario-liturgico/index.html'],
   ['por-que-axecloud.html', 'por-que-axecloud/index.html'],
   ['espaco-do-fiel.html', 'espaco-do-fiel/index.html'],
+  ...rituals.map((ritual) => [`ritual:${ritual.id}`, `eventos/${ritual.slug}/index.html`]),
 ]);
 
 const assets = new Map([
@@ -27,6 +31,9 @@ const assets = new Map([
   ['/app.js', path.join(SOURCE, 'app.js')],
   ['/shared-footer.css', path.join(SOURCE, 'shared-footer.css')],
   ['/terreiros-v2.css', path.join(SOURCE, 'terreiros-v2.css')],
+  ['/rituais.css', path.join(SOURCE, 'rituais.css')],
+  ['/rituais.js', path.join(SOURCE, 'rituais.js')],
+  ...rituals.map((ritual) => [ritual.image, path.join(SOURCE, ritual.image.slice(1))]),
   ['/shared-footer.js', path.join(SOURCE, 'shared-footer.js')],
   ['/favicon.svg', path.join(SOURCE, 'favicon.svg')],
   ['/production-bridge.js', path.join(SOURCE, 'production-bridge.js')],
@@ -126,10 +133,12 @@ for (const name of ['marker-icon.png', 'marker-icon-2x.png', 'marker-shadow.png'
 
 const bridgeUrl = urls.get('/production-bridge.js');
 for (const [sourceName, outputRelative] of pages) {
+  const ritual = rituals.find((item) => sourceName === `ritual:${item.id}`);
   const sourcePath = path.join(SOURCE, sourceName);
-  assertFile(sourcePath);
-  let html = fs.readFileSync(sourcePath, 'utf8');
+  if (!ritual) assertFile(sourcePath);
+  let html = ritual ? renderRitualPage(ritual, buildTime) : fs.readFileSync(sourcePath, 'utf8');
   if (sourceName === 'terreiros.html') {
+    html = html.replace('<!-- FEATURED_RITUALS -->', renderFeaturedRituals(rituals, buildTime));
     // Links reais no HTML: a descoberta das cidades não depende do canvas/JS.
     const catalog = JSON.parse(fs.readFileSync(path.join(OUT, 'diretorio-cidades.json'), 'utf8'));
     const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -149,6 +158,7 @@ for (const [sourceName, outputRelative] of pages) {
   }
   for (const [from, to] of [...urls.entries()].sort((a, b) => b[0].length - a[0].length)) {
     html = html.replaceAll(`"${from}"`, `"${to}"`).replaceAll(`'${from}'`, `'${to}'`);
+    if (ritual) html = html.replaceAll(`"https://axecloud.com.br${from}"`, `"https://axecloud.com.br${to}"`);
   }
   if (sourceName === 'index.html') {
     html = html

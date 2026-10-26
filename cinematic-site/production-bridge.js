@@ -84,6 +84,9 @@
       "directory-profile-map": "directory_action",
       "directory-profile-instagram": "directory_action",
       "directory-profile-whatsapp": "directory_action",
+      ritual_promotion_view: "section_view",
+      ritual_promotion_details: "directory_action",
+      ritual_promotion_whatsapp: "directory_action",
     };
     const conversionEvent = eventMap[event];
     if (conversionEvent) {
