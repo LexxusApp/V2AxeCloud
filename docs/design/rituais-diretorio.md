@@ -1,6 +1,6 @@
 # Rituais no diretório
 
-Piloto local, sem deploy, com Azazel (02/11/2026, R$ 57) e Rei Paimon (13/11/2026, R$ 127), do Templo de Quimbanda Maria Padilha das Almas. Datas de 2026 e WhatsApp 5511970697597 autorizados pelo usuário. A modalidade não é exibida; participação e dúvidas são tratadas diretamente com o templo. Não publicar local, horário ou modalidade sem confirmação.
+Piloto com Azazel (02/11/2026, R$ 57) e Rei Paimon (13/11/2026, R$ 127), do Templo de Quimbanda Maria Padilha das Almas. Datas de 2026 e WhatsApp 5511970697597 autorizados pelo usuário. A modalidade não é exibida; participação e dúvidas são tratadas diretamente com o templo. Não publicar local, horário ou modalidade sem confirmação.
 
 ## Direction contract
 
@@ -34,4 +34,6 @@ A consulta `/api/admin-console/ritual-promotions` é atendida pelo Worker admin:
 
 ## Validação do piloto
 
-Instalador e validador geraram e validaram 11 páginas, com 15 rotas preservadas verificadas. Os 7 testes passaram após os ajustes finais de proporção visível e transcrição, cobrindo expiração, WhatsApp, métricas e os filtros existentes do diretório. Conferidos desktop, celular e expansão da transcrição no navegador. Prévia local; sem publicação em produção.
+Instalador e validador geraram e validaram 11 páginas, com 15 rotas preservadas verificadas. Os 10 testes passaram após os ajustes finais, cobrindo expiração, WhatsApp, métricas, autenticação administrativa e filtros existentes do diretório. Conferidos desktop, celular e expansão da transcrição no navegador.
+
+Publicado em 26/10/2026, após autorização do usuário e envio dos commits à main. Marketing: versão `31e486c7-d0b9-46a2-90b3-b18b142aa548`. Admin: versão `a0c7038f-e842-4ec9-b71d-09a634e78978`. Páginas dos dois rituais e cartazes responderam 200; admin entregue com o novo bundle e métricas sem sessão responderam 401. A conferência autenticada do painel fica disponível à sessão do usuário; nenhum acesso foi fabricado. A base administrativa anterior foi comparada ao bundle de produção por SHA-256 antes de acrescentar o painel, preservando as funções existentes.
