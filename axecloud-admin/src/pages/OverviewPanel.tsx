@@ -26,6 +26,7 @@ import { apiJson } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { AdminPanel, AdminQuickActions } from "./AdminDashboardLayout";
 import { TenantsTable } from "./TenantsTable";
+import { RitualPromotionMetrics } from "./RitualPromotionMetrics";
 import type { AdminNavTab } from "./AdminDashboardLayout";
 
 type Overview = {
@@ -854,6 +855,8 @@ export function OverviewPanel({
               </p>
             ) : null}
           </AdminPanel>
+
+          <RitualPromotionMetrics />
 
           <TenantsTable
             rows={overviewTenants}

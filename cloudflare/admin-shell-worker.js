@@ -1,3 +1,5 @@
+import { ritualPromotionMetrics } from './ritual-promotion-metrics.js';
+
 const ASSET_PATH_RE = /\.[a-z0-9]{2,16}$/i;
 
 const ADMIN_CSP = [
@@ -48,6 +50,10 @@ function getMonthRange() {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/api/admin-console/ritual-promotions') {
+      return secure(await ritualPromotionMetrics(request, env), url.pathname);
+    }
 
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       const target = new URL(url.pathname + url.search, 'https://axecloud.com.br');

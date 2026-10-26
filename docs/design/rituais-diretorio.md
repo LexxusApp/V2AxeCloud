@@ -26,6 +26,12 @@ FINISH: validar desktop, celular, links, assets, métricas e expiração. Revis�
 - `ritual_promotion_view`, `ritual_promotion_details` e `ritual_promotion_whatsapp` usam a ponte existente `window.axeTrack`; `promotionId` identifica o ritual e `surface` distingue `directory` de `ritual_page`. A observação de impressões aguarda `DOMContentLoaded` para a ponte de métricas deferida (ou começa imediatamente se o documento já estiver completo). Uma impressão exige pelo menos 50% do elemento visível, sem `hidden`, e envio pela ponte; ocorre uma vez por elemento a cada carregamento. Sem `IntersectionObserver`, não há impressão. Cliques incluem `destination` e `archived`; não comprovam conversa ou inscrição.
 - Preparar o build não publica o conteúdo. Publicação segue o fluxo de produção do projeto.
 
+## Métricas no admin
+
+Em **Visão geral → Anúncios de rituais**, escolher últimos 7 ou 30 dias e usar o botão de atualizar. Cada ritual mostra visualizações do destaque no diretório (pelo menos 50% visível), cliques para abrir detalhes e cliques no WhatsApp. Contagens são de ações, não de pessoas únicas ou inscrições confirmadas.
+
+A consulta `/api/admin-console/ritual-promotions` é atendida pelo Worker admin: valida a sessão na API antes de consultar contagens exatas no Supabase, usando os secrets que já existem nesse Worker. Retorna somente agregados; não entrega identificadores nem dados de visitantes. Erros aparecem como indisponibilidade, sem apresentar zero como se fosse um resultado válido. Não exige alteração no container da API nem no banco.
+
 ## Validação do piloto
 
 Instalador e validador geraram e validaram 11 páginas, com 15 rotas preservadas verificadas. Os 7 testes passaram após os ajustes finais de proporção visível e transcrição, cobrindo expiração, WhatsApp, métricas e os filtros existentes do diretório. Conferidos desktop, celular e expansão da transcrição no navegador. Prévia local; sem publicação em produção.
