@@ -1825,6 +1825,7 @@ async function carregaTodos() {
     perfilUrl: p.perfilUrl,
     verificada: p.verificada === true,
     instagramUrl: p.instagramUrl,
+    fotoUrl: p.fotoUrl || detalhesPopupPorSlug.get(p.slug)?.fotoUrl || null,
   }));
   totalItens = itens.length || totaisMapa.exact || 0;
   listaCompleta = true;
@@ -1915,6 +1916,7 @@ async function garanteListaCompleta() {
     perfilUrl: p.perfilUrl,
     verificada: p.verificada === true,
     instagramUrl: p.instagramUrl,
+    fotoUrl: p.fotoUrl || detalhesPopupPorSlug.get(p.slug)?.fotoUrl || null,
   }));
   totalItens = itens.length;
   listaCompleta = true;
@@ -1978,6 +1980,12 @@ function desenha() {
   empty.hidden = true;
 
   const fatia = filtrados.slice(0, visiveis);
+  fatia.forEach((c) => {
+    if (!c.fotoUrl && detalhesPopupPorSlug.has(c.slug)) {
+      const d = detalhesPopupPorSlug.get(c.slug);
+      if (d?.fotoUrl) c.fotoUrl = d.fotoUrl;
+    }
+  });
   grade.innerHTML = fatia.map((c) => {
     const fotoCandidata = urlSegura(c.fotoUrl);
     const foto = fotoCandidata.includes("/api/v1/public/diretorio/foto/") ? "" : fotoCandidata;
@@ -1986,7 +1994,7 @@ function desenha() {
     const endereco = c.endereco || c.bairro || local || "Localização disponível no perfil";
     return `
     <a class="house-card" href="${esc(perfil || "#mapa")}" ${perfil ? `data-profile-click="${esc(c.slug)}"` : ""}>
-      <div class="house-card-media">${foto ? `<img src="${esc(foto)}" alt="Foto pública de ${esc(c.nome)}" width="296" height="348" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}</div>
+      <div class="house-card-media">${foto ? `<img src="${esc(foto)}" alt="Foto de ${esc(c.nome)}" width="296" height="348" loading="eager" decoding="async" />` : ""}</div>
       <div class="house-card-content">
         <p class="house-card-city">${esc(local || "Brasil")}</p>
         <h3>${esc(c.nome)}</h3>
@@ -2013,6 +2021,10 @@ function desenha() {
     cards.forEach((card) => card.classList.add("visivel"));
   }
 
+  void enriqueceFotosCards(fatia);
+
+
+
   const mais = document.getElementById("mais");
   if (mais) mais.addEventListener("click", async () => {
     mais.disabled = true;
@@ -2028,6 +2040,52 @@ function desenha() {
     }
   });
 }
+
+
+async function enriqueceFotosCards(fatia) {
+  if (!Array.isArray(fatia)) return;
+  const pendentes = fatia.filter((c) => c && c.slug && !c.fotoUrl);
+  if (!pendentes.length) return;
+
+  await Promise.allSettled(
+    pendentes.map(async (c) => {
+      try {
+        let detalhes = detalhesPopupPorSlug.get(c.slug);
+        if (!detalhes) {
+          const res = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(c.slug)}`);
+          if (!res.ok) return;
+          detalhes = await res.json();
+          detalhesPopupPorSlug.set(c.slug, detalhes);
+        }
+        const candidata = detalhes?.fotoUrl || detalhes?.coverPhotoUrl || (Array.isArray(detalhes?.galleryPhotoUrls) ? detalhes.galleryPhotoUrls[0] : null);
+        const fotoUrl = urlSegura(candidata);
+        if (fotoUrl && !fotoUrl.includes('/api/v1/public/diretorio/foto/')) {
+          c.fotoUrl = fotoUrl;
+          const card = Array.from(document.querySelectorAll('.house-card')).find(
+            (el) => el.getAttribute('data-profile-click') === c.slug
+          );
+          if (card) {
+            const media = card.querySelector('.house-card-media');
+            if (media && !media.querySelector('img')) {
+              const img = document.createElement('img');
+              img.src = fotoUrl;
+              img.alt = `Foto de ${c.nome || ''}`;
+              img.width = 296;
+              img.height = 348;
+              img.loading = 'eager';
+              img.decoding = 'async';
+              media.appendChild(img);
+              console.log('[AxéCloud] Foto aplicada para:', c.nome);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[AxéCloud] Erro foto:', c?.slug, err);
+      }
+    })
+  );
+}
+
 
 function marcaChipEstado(uf) {
   const key = String(uf || "").toLowerCase();
