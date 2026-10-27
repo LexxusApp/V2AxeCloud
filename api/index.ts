@@ -64,6 +64,7 @@ import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerEventNotificationRoutes } from "./lib/eventNotificationRoutes.js";
 import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperationsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
+import { readMensalidadesForChildren, insertMensalidadesBatch, singleFlightMensalidadeSync } from "./lib/mensalidadeSyncBatch.js";
 import { registerManualFinanceRoutes } from "./lib/manualFinanceRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerFinanceiroValidarComprovanteRoutes } from "./lib/financeiroValidarComprovanteRoutes.js";
@@ -669,9 +670,9 @@ async function syncMensalidadesPendentes(
   resolveLeaderId: (id: string) => Promise<string>,
   userId: string,
   tenantId: string
-): Promise<{ created: number }> {
+): Promise<{ created: number; removed: number; revalued: number; mensalidade_ativa: boolean }> {
   const ativa = await isMensalidadeAtivaForTenant(supabaseAdmin, resolveLeaderId, tenantId);
-  if (!ativa) return { created: 0 };
+  if (!ativa) return { created: 0, removed: 0, revalued: 0, mensalidade_ativa: false };
 
   const resolvedTenant = await resolveLeaderId(tenantId);
   let dia = 10;
@@ -701,10 +702,29 @@ async function syncMensalidadesPendentes(
   const monthEnd = `${y}-${String(m0 + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
   const dueStr = format(clampDayInMonth(y, m0, dia), "yyyy-MM-dd");
 
-  const supportsStatus = await resolveFinanceiroStatusColumnSupported(supabaseAdmin);
-  const supportsFilhoId = await resolveFinanceiroFilhoIdColumnSupported(supabaseAdmin);
+  const [supportsStatus, supportsFilhoId] = await Promise.all([
+    resolveFinanceiroStatusColumnSupported(supabaseAdmin),
+    resolveFinanceiroFilhoIdColumnSupported(supabaseAdmin),
+  ]);
+  const snapshot = await readMensalidadesForChildren(supabaseAdmin, rows.map(c => String(c.id)), supportsFilhoId);
+  const pendingIds = new Set<string>();
+  const paidIds = new Set<string>();
+  for (const row of snapshot) {
+    const fid = deriveMensalidadeFilhoId(row);
+    if (!fid) continue;
+    if (rowIsMensalidadePendenteForDueCheck(row, supportsStatus) &&
+      mensalidadeYmdDentroDoMesCalendario(mensalidadeVencimentoOuDataYmd(row), monthStart, monthEnd)) pendingIds.add(fid);
+    const data = financeiroCampoParaYmdIso(row.data);
+    if (!mensalidadeYmdDentroDoMesCalendario(data, monthStart, monthEnd)) continue;
+    const status = String(row.status || '').toLowerCase();
+    const tipo = String(row.tipo || '').toLowerCase();
+    const paid = supportsStatus
+      ? ['pago', 'paid', 'confirmado'].includes(status) && ['entrada', 'receita', ''].includes(tipo)
+      : rowIsMensalidadePagaSemStatusColumn(row);
+    if (paid) paidIds.add(fid);
+  }
+  const inserts: Record<string, unknown>[] = [];
 
-  let created = 0;
   for (const child of rows) {
     const stFilho = String((child as any).status || "Ativo")
       .trim()
@@ -715,16 +735,7 @@ async function syncMensalidadesPendentes(
     const fid = child.id as string;
     if (!childEligibleForDueMonth(child, dueStr, dia)) continue;
 
-    const pendingThisMonth = await hasPendingMensalidadeForDueMonth(
-      supabaseAdmin,
-      fid,
-      monthStart,
-      monthEnd
-    );
-    if (pendingThisMonth) continue;
-
-    const paid = await hasPaidMensalidadeInCalendarMonth(supabaseAdmin, fid, ref);
-    if (paid) continue;
+    if (pendingIds.has(String(fid).toLowerCase()) || paidIds.has(String(fid).toLowerCase())) continue;
 
     const nome = String((child as any).nome || "Filho").trim() || "Filho";
     const insert: Record<string, unknown> = {
@@ -739,57 +750,16 @@ async function syncMensalidadesPendentes(
     };
     if (supportsFilhoId) insert.filho_id = fid;
     if (supportsStatus) insert.status = "pendente";
-    let { error: insErr } = await supabaseAdmin.from("financeiro").insert([insert]);
-    if (insErr && String(insErr.message || "").includes("data_vencimento")) {
-      delete insert.data_vencimento;
-      const r2 = await supabaseAdmin.from("financeiro").insert([insert]);
-      insErr = r2.error;
-    }
-    if (insErr && String(insErr.message || "").includes("filho_id")) {
-      delete insert.filho_id;
-      const r3 = await supabaseAdmin.from("financeiro").insert([insert]);
-      insErr = r3.error;
-    }
-    if (insErr && String(insErr.message || "").toLowerCase().includes("status")) {
-      delete insert.status;
-      const r4 = await supabaseAdmin.from("financeiro").insert([insert]);
-      insErr = r4.error;
-    }
-    if (!insErr) created += 1;
-    else {
-      console.warn(
-        "[SERVER] syncMensalidadesPendentes: insert falhou filho=",
-        fid,
-        "due=",
-        dueStr,
-        "err=",
-        insErr?.message || insErr
-      );
-    }
+    inserts.push(insert);
   }
+  const created = await insertMensalidadesBatch(supabaseAdmin, inserts);
 
   let removed = 0;
   let revalued = 0;
   const childById = new Map<string, any>(
     rows.map((c: any) => [String(c.id).trim().toLowerCase(), c])
   );
-  const buildCleanQuery = (cols: string) => {
-    let q = supabaseAdmin
-      .from("financeiro")
-      .select(cols)
-      .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
-      .eq("categoria", "Mensalidade");
-    if (supportsStatus) q = q.in("status", ["pendente", "atrasado", "pending", "overdue"]);
-    return q;
-  };
-  let { data: pendRows, error: pendErr } = await buildCleanQuery(
-    "id, valor, descricao, data, data_vencimento, status, categoria, filho_id, lancamento_manual"
-  );
-  if (pendErr && String(pendErr.message || "").toLowerCase().includes("data_vencimento")) {
-    ({ data: pendRows } = await buildCleanQuery(
-      "id, valor, descricao, data, status, categoria, filho_id, lancamento_manual"
-    ));
-  }
+  const pendRows = snapshot.filter(row => row.tenant_id === tenantId || row.lider_id === tenantId);
   for (const row of pendRows || []) {
     if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) continue;
     const ymd = mensalidadeVencimentoOuDataYmd(row);
@@ -805,15 +775,22 @@ async function syncMensalidadesPendentes(
       // Config Pix mudou (ex.: 150 → 200): pendências do mês acompanham o novo valor.
       const rowValor = Number((row as any).valor) || 0;
       if (valorPadrao > 0 && Math.abs(rowValor - valorPadrao) >= 0.005) {
-        const { error: updErr } = await supabaseAdmin
+        let updateQuery = supabaseAdmin
           .from("financeiro")
           .update({ valor: valorPadrao })
           .eq("id", row.id);
+        // The list is usable while sync runs: do not overwrite a payment/manual edit made meanwhile.
+        if (supportsStatus) updateQuery = updateQuery.in("status", ["pendente", "atrasado", "pending", "overdue"]);
+        if (Object.hasOwn(row, "lancamento_manual")) updateQuery = updateQuery.or("lancamento_manual.is.null,lancamento_manual.eq.false");
+        const { error: updErr } = await updateQuery;
         if (!updErr) revalued += 1;
       }
       continue;
     }
-    const { error: delErr } = await supabaseAdmin.from("financeiro").delete().eq("id", row.id);
+    let deleteQuery = supabaseAdmin.from("financeiro").delete().eq("id", row.id);
+    if (supportsStatus) deleteQuery = deleteQuery.in("status", ["pendente", "atrasado", "pending", "overdue"]);
+    if (Object.hasOwn(row, "lancamento_manual")) deleteQuery = deleteQuery.or("lancamento_manual.is.null,lancamento_manual.eq.false");
+    const { error: delErr } = await deleteQuery;
     if (!delErr) removed += 1;
   }
   if (removed > 0) {
@@ -823,7 +800,7 @@ async function syncMensalidadesPendentes(
     console.info("[SERVER] syncMensalidadesPendentes: valor atualizado p/ config =", revalued, "tenant =", tenantId);
   }
 
-  return { created };
+  return { created, removed, revalued, mensalidade_ativa: true };
 }
 
 async function loadFinanceiroRow(supabaseAdmin: any, id: string) {
@@ -2257,13 +2234,9 @@ async function startServer() {
       if (!tenant_id) return res.status(400).json({ error: "tenant_id obrigatório" });
       const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
       if (!ok) return res.status(403).json({ error: "Sem permissão" });
-      const ativa = await isMensalidadeAtivaForTenant(supabaseAdmin, resolveLeaderId, tenant_id);
-      if (!ativa) {
-        return res.json({ success: true, created: 0, mensalidade_ativa: false });
-      }
-      const { created } = await syncMensalidadesPendentes(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
-      console.info("[SERVER] mensalidades/sync-pendentes: created =", created, "tenant =", tenant_id);
-      res.json({ success: true, created });
+      const result = await singleFlightMensalidadeSync(`${tenant_id}:${user.id}`, () =>
+        syncMensalidadesPendentes(supabaseAdmin, resolveLeaderId, user.id, tenant_id));
+      res.json({ success: true, ...result });
     } catch (err: any) {
       console.error("[SERVER] mensalidades/sync-pendentes:", err?.message || err);
       res.status(500).json({ error: safeErrorMessage(err, "Erro interno") });

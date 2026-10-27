@@ -53,6 +53,7 @@ import {
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { buildManualFinanceEntry } from '../../lib/manualFinance';
 import { showHouseToast } from '../lib/houseToast';
+import { refreshMensalidadesWithoutBlocking, synchronizeMensalidadesOnce, withMensalidadeDeadline } from '../lib/mensalidadeRefresh';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
 type MensalidadeZeladorRow = {
@@ -233,6 +234,15 @@ export default function Financial({
   const [mensalidades, setMensalidades] = useState<MensalidadeZeladorRow[]>([]);
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});
   const [mensalidadesLoading, setMensalidadesLoading] = useState(false);
+  const [mensalidadesSyncing, setMensalidadesSyncing] = useState(false);
+  const [mensalidadesError, setMensalidadesError] = useState('');
+  const mensalidadesScope = `${userId}:${tenantId}`;
+  const mensalidadesScopeRef = useRef(mensalidadesScope);
+  mensalidadesScopeRef.current = mensalidadesScope;
+  const mensalidadesLoadedRef = useRef('');
+  const mensalidadesSyncCounts = useRef(new Map<string, number>());
+  useEffect(() => { setMensalidades([]); setMensalidadesSyncing(false); setMensalidadesLoading(false); setMensalidadesError(''); }, [mensalidadesScope]);
+  const mensalidadesRefreshVersion = useRef(0);
   const [processingMensalidadeId, setProcessingMensalidadeId] = useState<string | null>(null);
   const [sendingChargeKey, setSendingChargeKey] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
@@ -395,38 +405,47 @@ export default function Financial({
 
   const refreshMensalidades = useCallback(async (opts?: { skipSync?: boolean }) => {
     if (!tenantId) return;
-    setMensalidadesLoading(true);
-    try {
-      const skipSync = opts?.skipSync === true || !mensalidadeAtiva;
-      if (!skipSync) {
-        await authFetch('/api/v1/financial/mensalidades/sync-pendentes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tenant_id: tenantId }),
-        });
-      }
-      const base = `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId)}`;
-      const [rPen, rPag] = await Promise.all([
-        authFetch(`${base}&view=pendentes`),
-        authFetch(`${base}&view=pagas`),
-      ]);
-      const jPen = await rPen.json().catch(() => ({}));
-      const jPag = await rPag.json().catch(() => ({}));
-      if (!rPen.ok) throw new Error(String(jPen.error || 'Falha ao carregar pendentes'));
-      if (!rPag.ok) throw new Error(String(jPag.error || 'Falha ao carregar pagas'));
-      const pen = dedupeMensalidadesPorFilhoMesClient((jPen.data || []) as MensalidadeZeladorRow[]);
-      const pag = (jPag.data || []) as MensalidadeZeladorRow[];
-      const byId = new Map<string, MensalidadeZeladorRow>();
-      for (const r of pen) byId.set(r.id, r);
-      for (const r of pag) byId.set(r.id, r);
-      setMensalidades([...byId.values()]);
-    } catch (e) {
-      console.error('refreshMensalidades:', e);
-      setMensalidades([]);
-    } finally {
-      setMensalidadesLoading(false);
-    }
-  }, [tenantId, mensalidadeAtiva]);
+    const scope = `${userId}:${tenantId}`;
+    let version = 0;
+    const current = () => mensalidadesScopeRef.current === scope && mensalidadesRefreshVersion.current === version;
+    const sync = opts?.skipSync !== true && mensalidadeAtiva;
+    if (mensalidadesLoadedRef.current !== scope) setMensalidadesLoading(true);
+    setMensalidadesError('');
+    if (sync) { mensalidadesSyncCounts.current.set(scope, (mensalidadesSyncCounts.current.get(scope) || 0) + 1); setMensalidadesSyncing(true); }
+    await refreshMensalidadesWithoutBlocking({
+      read: async () => {
+        version = ++mensalidadesRefreshVersion.current;
+        const base = `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId)}`;
+        const [rPen, rPag] = await withMensalidadeDeadline(signal => Promise.all([
+          authFetch(`${base}&view=pendentes`, {signal}), authFetch(`${base}&view=pagas`, {signal}),
+        ]));
+        const [jPen, jPag] = await Promise.all([rPen.json().catch(() => ({})), rPag.json().catch(() => ({}))]);
+        if (!rPen.ok) throw new Error(String(jPen.error || 'Falha ao carregar pendentes'));
+        if (!rPag.ok) throw new Error(String(jPag.error || 'Falha ao carregar pagas'));
+        const byId = new Map<string, MensalidadeZeladorRow>();
+        for (const row of dedupeMensalidadesPorFilhoMesClient((jPen.data || []) as MensalidadeZeladorRow[])) byId.set(row.id, row);
+        for (const row of (jPag.data || []) as MensalidadeZeladorRow[]) byId.set(row.id, row);
+        return [...byId.values()];
+      },
+      sync: sync ? () => synchronizeMensalidadesOnce(scope, async () => {
+        const response = await withMensalidadeDeadline(signal => authFetch('/api/v1/financial/mensalidades/sync-pendentes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenant_id: tenantId }), signal,
+        }));
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(String(result.error || 'Não foi possível atualizar as mensalidades'));
+        return result;
+      }) : undefined,
+      onData: data => { if (current()) { setMensalidades(data); mensalidadesLoadedRef.current = scope; } },
+      onReadDone: () => { if (current()) setMensalidadesLoading(false); },
+      onSyncDone: () => {
+        if (!sync) return;
+        const remaining = Math.max(0, (mensalidadesSyncCounts.current.get(scope) || 1) - 1);
+        if (remaining) mensalidadesSyncCounts.current.set(scope, remaining); else mensalidadesSyncCounts.current.delete(scope);
+        if (mensalidadesScopeRef.current === scope && remaining === 0) setMensalidadesSyncing(false);
+      },
+      onError: error => { if (current()) { console.error('refreshMensalidades:', error); setMensalidadesError('Não foi possível atualizar agora. Os dados já carregados foram mantidos.'); } },
+    });
+  }, [tenantId, userId, mensalidadeAtiva]);
 
   const mensalidadesPendentes = useMemo(
     () => mensalidades.filter((r) => mensalidadeRowIsPendenteForTabs(r)),
@@ -1531,6 +1550,17 @@ export default function Financial({
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
             <>
+          {mensalidadesError && (
+            <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+              <p>{mensalidadesError}</p>
+              <button type="button" onClick={onRetryMensalidades} className="min-h-11 font-bold underline underline-offset-4">Tentar novamente</button>
+            </div>
+          )}
+          {mensalidadesSyncing && !mensalidadesLoading && (
+            <p role="status" className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#526558]">
+              <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" /> Atualizando mensalidades…
+            </p>
+          )}
               <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <AppDemoCard className="flex items-center justify-between">
                   <div>
