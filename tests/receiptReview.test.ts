@@ -54,6 +54,7 @@ test('upload, retry, listing and approval use review workflow without auto-settl
  assert.equal((await call(`/api/v1/financial/comprovantes/${id}/aprovar?tenantId=${owner}`,{...full,valor:101},'owner')).status,422);
  assert.equal((await call(`/api/v1/financial/comprovantes/${id}/aprovar?tenantId=${owner}`,full,'owner')).status,200);
  assert.equal((await call(`/api/v1/financial/comprovantes/${id}/aprovar?tenantId=${owner}`,full,'owner')).status,200);assert.equal(ctx.state().notifies,1);
+ const replay=await call('/api/v1/financeiro/validar-comprovante',payload);assert.equal(replay.body.status,'aceito');assert.equal(replay.body.requires_review,false);assert.match(replay.body.message,/já teve o recebimento confirmado/);assert.equal(ctx.state().uploads,1);
 }));
 test('legacy clients cannot report review as a confirmed payment',()=>runCase(async(ctx,call)=>{
  const response=await call('/api/v1/financeiro/validar-comprovante',await uploadBody({workflow:undefined}));assert.equal(response.status,202);assert.equal(response.body.success,false);assert.equal(response.body.requires_review,true);assert.match(response.body.error,/ainda não foi quitada/);assert.equal(ctx.state().notifies,0);
