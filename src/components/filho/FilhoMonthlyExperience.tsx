@@ -1,3 +1,4 @@
+import { cn } from '../../lib/utils';
 import type { RefObject } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,6 +33,7 @@ type MonthlyItem = {
 type Props = {
   active: boolean;
   pending: { valor?: number | string } | null;
+  pendingList?: MonthlyItem[];
   configuredValue: number;
   dueDay: number;
   pixConfig: PixConfig | null;
@@ -43,8 +45,10 @@ type Props = {
   cpfSaving: boolean;
   cpfError: string | null;
   history: MonthlyItem[];
+  linkedTransactions?: (MonthlyItem & { tipo?: string; categoria?: string })[];
   receiptInputRef: RefObject<HTMLInputElement | null>;
   onOpenPix: () => void;
+  onOpenPixItem?: (item: MonthlyItem) => void;
   onSelectReceipt: (file: File) => void;
   onTalkToHouse: () => void;
   onCpfDraftChange: (value: string) => void;
@@ -57,14 +61,32 @@ function money(value: number | string | undefined) {
 
 function safeDate(value?: string) {
   if (!value) return 'Data não informada';
-  const parsed = new Date(value);
+  const parsed = new Date(value.length === 10 ? value + 'T00:00:00' : value);
   if (Number.isNaN(parsed.getTime())) return 'Data não informada';
   return format(parsed, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+}
+
+function formatMonthYear(dateStr?: string) {
+  if (!dateStr) return 'Mês em aberto';
+  const d = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00' : dateStr);
+  if (Number.isNaN(d.getTime())) return 'Mês em aberto';
+  const mes = format(d, "MMMM 'de' yyyy", { locale: ptBR });
+  return mes.charAt(0).toUpperCase() + mes.slice(1);
+}
+
+function isDateOverdue(dateStr?: string) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr.length === 10 ? dateStr + 'T00:00:00' : dateStr);
+  if (Number.isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d.getTime() < today.getTime();
 }
 
 export default function FilhoMonthlyExperience({
   active,
   pending,
+  pendingList = [],
   configuredValue,
   dueDay,
   pixConfig,
@@ -75,15 +97,19 @@ export default function FilhoMonthlyExperience({
   cpfSaving,
   cpfError,
   history,
+  linkedTransactions = [],
   receiptInputRef,
   onOpenPix,
+  onOpenPixItem,
   onSelectReceipt,
   onTalkToHouse,
   onCpfDraftChange,
   onSaveCpf,
 }: Props) {
-  const isPending = active && Boolean(pending);
-  const currentValue = pending?.valor || configuredValue;
+  const pendingItems = pendingList && pendingList.length > 0 ? pendingList : (pending ? [pending as MonthlyItem] : []);
+  const isPending = active && pendingItems.length > 0;
+  const totalPending = pendingItems.reduce((acc, it) => acc + (Number(it.valor) || 0), 0);
+  const currentValue = totalPending || (pending?.valor || configuredValue);
   const receiptBlocked = needsFullCpf;
 
   return (
@@ -98,17 +124,17 @@ export default function FilhoMonthlyExperience({
         </div>
 
         <div className="filho-wallet-hero__status">
-          <p>{!active ? 'Cobrança pausada' : isPending ? 'Situação deste mês' : 'Situação deste mês'}</p>
+          <p>{!active ? 'Cobrança pausada' : isPending ? (pendingItems.length > 1 ? `${pendingItems.length} meses pendentes` : 'Situação deste mês') : 'Situação deste mês'}</p>
           <div>
             <span>{!active ? <ShieldCheck /> : isPending ? <Clock3 /> : <CheckCircle2 />}</span>
-            <strong>{!active ? 'Não habilitada' : isPending ? 'Aguardando pagamento' : 'Tudo em dia'}</strong>
+            <strong>{!active ? 'Não habilitada' : isPending ? (pendingItems.length > 1 ? `${pendingItems.length} pendências` : 'Aguardando pagamento') : 'Tudo em dia'}</strong>
           </div>
           <small>
             {!active
               ? 'A casa não utiliza mensalidade fixa neste momento.'
               : isPending
-                ? `Vencimento todo dia ${dueDay || 10}.`
-                : 'Sua contribuição deste mês já foi identificada.'}
+                ? (pendingItems.length > 1 ? `Total acumulado: ${money(totalPending)}.` : `Vencimento todo dia ${dueDay || 10}.`)
+                : 'Você não possui mensalidades pendentes no momento.'}
           </small>
         </div>
       </header>
@@ -128,16 +154,58 @@ export default function FilhoMonthlyExperience({
           <article className={`filho-wallet-current ${isPending ? 'is-pending' : 'is-paid'}`}>
             <div className="filho-wallet-current__top">
               <div>
-                <p>{isPending ? 'Contribuição em aberto' : 'Contribuição confirmada'}</p>
+                <p>{isPending ? (pendingItems.length > 1 ? 'Contribuições em aberto' : 'Contribuição em aberto') : 'Contribuição confirmada'}</p>
                 <h2>{isPending ? money(currentValue) : 'Axé, está tudo certo.'}</h2>
                 <span>
                   {isPending
-                    ? 'Escolha PIX ou envie o comprovante caso já tenha realizado o pagamento.'
+                    ? (pendingItems.length > 1 ? 'Escolha o mês que deseja quitar via PIX ou envie o comprovante.' : 'Escolha PIX ou envie o comprovante caso já tenha realizado o pagamento.')
                     : 'Obrigado por contribuir com a manutenção e os caminhos da sua casa.'}
                 </span>
               </div>
               <i>{isPending ? <AlertCircle /> : <Check />}</i>
             </div>
+
+            {isPending && pendingItems.length > 0 && (
+              <div className="filho-wallet-pending-multi space-y-2.5 my-3.5">
+                {pendingItems.map((item, idx) => {
+                  const overdue = isDateOverdue(item.data);
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="rounded-xl border border-amber-400/40 bg-black/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-amber-300 shrink-0" />
+                          <span className="font-black text-[#F1F5F9] text-sm">{formatMonthYear(item.data)}</span>
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider",
+                              overdue ? "bg-rose-500/20 text-rose-300" : "bg-amber-400/20 text-amber-300"
+                            )}
+                          >
+                            {overdue ? "Em atraso" : "A vencer"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#94A3B8] mt-1 truncate">{item.descricao || "Mensalidade do terreiro"}</p>
+                        <p className="text-sm font-black text-amber-200 mt-0.5">{money(item.valor)}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => onOpenPixItem ? onOpenPixItem(item) : onOpenPix()}
+                          disabled={pixUnavailable}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3.5 py-2 text-xs font-black text-[#080A0D] hover:bg-amber-300 transition shadow-xs"
+                        >
+                          <QrCode className="h-3.5 w-3.5" /> Pagar PIX
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {isPending ? (
               <>
@@ -227,6 +295,14 @@ export default function FilhoMonthlyExperience({
         </section>
       ) : null}
 
+      {linkedTransactions.length > 0 && <section className="filho-wallet-history">
+        <header><div><p>Registros da zeladoria</p><h2>Outros lançamentos vinculados a você</h2></div></header>
+        <div className="filho-wallet-history__list">{linkedTransactions.map(item => <article key={item.id}>
+          <div className="filho-wallet-history__icon"><ReceiptText /></div>
+          <div className="filho-wallet-history__copy"><span>{item.tipo === 'saida' ? 'Saída do caixa' : 'Entrada no caixa'} · {item.categoria}</span><h3>{item.descricao}</h3><p><CalendarDays /> {safeDate(item.data)}</p></div>
+          <div className="filho-wallet-history__value"><strong>{money(item.valor)}</strong></div>
+        </article>)}</div>
+      </section>}
       <section className="filho-wallet-history">
         <header>
           <div><p>Memória financeira</p><h2>Meus recibos</h2></div>

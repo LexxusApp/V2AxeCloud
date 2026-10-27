@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import {
   ArrowDownRight,
@@ -51,6 +51,7 @@ import {
   parseFinanceiroDataRef,
 } from '../lib/financeiroSaldo';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
+import { buildManualFinanceEntry } from '../../lib/manualFinance';
 import { showHouseToast } from '../lib/houseToast';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 
@@ -219,6 +220,9 @@ export default function Financial({
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitLock = useRef(false);
+  const requestRef = useRef<{ key: string; id: string } | null>(null);
   const [children, setChildren] = useState<any[]>([]);
   const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'caixinha' | 'configs'>(initialView);
 
@@ -270,7 +274,10 @@ export default function Financial({
     categoria: '',
     data: new Date().toISOString().split('T')[0],
     descricao: '',
-    filho_id: ''
+    filho_id: '',
+    status: 'pendente' as 'pago' | 'pendente',
+    jurosTipo: 'nenhum' as 'nenhum' | 'valor' | 'porcentagem',
+    jurosValor: '',
   });
 
   const financialTxKey =
@@ -616,7 +623,7 @@ export default function Financial({
         <AppDemoPanelHeader
           title="Financeiro do terreiro"
           description="Controle simplificado de fluxo de caixa."
-        />
+        />
 
       {isAdmin && (
         <div data-financial-tabs="true" className="mb-6 flex flex-wrap items-center gap-2 border-b border-[#252B33]/60 pb-3">
@@ -906,43 +913,41 @@ export default function Financial({
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent): Promise<boolean> {
     e.preventDefault();
+    if (submitLock.current) return false;
+    submitLock.current = true;
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      const { filho_id, ...otherFormData } = formData;
-      const insertData: Record<string, unknown> = {
-        ...otherFormData,
-        valor: parseFloat(formData.valor) || 0,
-      };
-
-      if (filho_id) {
-        const filhoNome = children.find(c => c.id === filho_id)?.nome || 'Filho';
-        insertData.descricao = `${formData.descricao || 'Lançamento'} - ${filhoNome} (ID:${filho_id})`;
-      }
-
+      if (!tenantId) throw new Error('Selecione o terreiro antes de registrar.');
+      const entry = buildManualFinanceEntry(formData);
+      const key = JSON.stringify({ tenantId, ...formData });
+      if (requestRef.current?.key !== key) requestRef.current = { key, id: crypto.randomUUID() };
       const res = await authFetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...insertData, tenantId }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, tenantId, requestId: requestRef.current.id }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erro ao registrar lançamento');
-      
-      setFormData({
-        tipo: 'entrada',
-        valor: '',
-        categoria: '',
-        data: new Date().toISOString().split('T')[0],
-        descricao: '',
-        filho_id: ''
-      });
-      fetchTransactions();
-      showHouseToast('Lançamento financeiro registrado');
+      if (!res.ok || !json.data?.id) throw new Error(json.error || 'O banco não confirmou o lançamento.');
+      const saved = { ...json.data, valor: Number(json.data.valor) };
+      setTransactions(previous => [saved, ...previous.filter(t => t.id !== saved.id)]);
+      requestRef.current = null;
+      setFormData({ tipo: 'entrada', valor: '', categoria: '', data: new Date().toLocaleDateString('en-CA'),
+        descricao: '', filho_id: '', status: 'pendente', jurosTipo: 'nenhum', jurosValor: '' });
+      window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
+      void fetchTransactions();
+      void refreshMensalidades({ skipSync: true });
+      showHouseToast(entry.categoria === 'Mensalidade' && entry.status === 'pendente'
+        ? 'Mensalidade salva em Mensalidades e vinculada ao portal do filho de santo.' : 'Lançamento registrado no extrato financeiro.');
+      return true;
     } catch (error) {
-      console.error('Error adding transaction:', error);
-      showHouseToast('Erro ao realizar lançamento financeiro.', 'error');
+      const message = error instanceof Error ? error.message : 'Erro ao realizar lançamento financeiro.';
+      setSubmitError(message);
+      showHouseToast(message, 'error');
+      return false;
     } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   }
@@ -1262,6 +1267,7 @@ export default function Financial({
                   </div>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
+                  {submitError && <p role="alert">{submitError}</p>}
                   <div>
                     <label className={appLabelClass}>Descrição</label>
                     <input

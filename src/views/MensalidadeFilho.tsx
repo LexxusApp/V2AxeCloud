@@ -25,6 +25,7 @@ import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 import { readStaleCache, writeStaleCache, clearStaleCacheKey } from '../lib/staleCache';
 import { format, setDate, addMonths, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { isPendingMonthlyEntry } from '../../lib/manualFinance';
 import FilhoMonthlyExperience from '../components/filho/FilhoMonthlyExperience';
 
 interface MensalidadeFilhoProps {
@@ -56,13 +57,20 @@ type MensalidadeCachePayload = {
   pixConfig: PixConfig | null;
   pixFetched: boolean;
   mensalidades: any[];
+  pendingList?: any[];
+  linkedTransactions?: any[];
 };
 
 export default function MensalidadeFilho({ user, tenantData, setActiveTab }: MensalidadeFilhoProps) {
   const [filho, setFilho] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mensalidades, setMensalidades] = useState<any[]>([]);
+  const [linkedTransactions, setLinkedTransactions] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadingScope = useRef<string | null>(null);
   const [pendingMensalidade, setPendingMensalidade] = useState<any>(null);
+  const [pendingMensalidadesList, setPendingMensalidadesList] = useState<any[]>([]);
+  const [selectedPixItem, setSelectedPixItem] = useState<any>(null);
   const [valorMensalidadeConfig, setValorMensalidadeConfig] = useState(MENSALIDADE_VALOR_PADRAO);
   
   const [pixConfig, setPixConfig] = useState<PixConfig | null>(null);
@@ -91,6 +99,8 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       setFilho(cached.filho);
       setValorMensalidadeConfig(cached.valorMensalidadeConfig);
       setPendingMensalidade(cached.pendingMensalidade);
+      setPendingMensalidadesList(cached.pendingList || []);
+      setLinkedTransactions(cached.linkedTransactions || []);
       setDiaVencimento(cached.diaVencimento);
       setPixConfig(cached.pixConfig);
       setPixFetched(cached.pixFetched);
@@ -100,10 +110,27 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       setLoading(true);
     }
     void fetchData();
+    const refresh = () => { if (document.visibilityState === 'visible') void fetchData(); };
+    const interval = window.setInterval(refresh, 30_000);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    window.addEventListener('axecloud:finance-updated', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('axecloud:finance-updated', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [userId, tenantId]);
 
   async function fetchData() {
     if (!userId || !tenantId) return;
+    const scope = `${userId}:${tenantId}`;
+    if (loadingScope.current === scope) return;
+    loadingScope.current = scope;
+    setLoadError(null);
     const cacheKey = `mensalidade_${userId}_${tenantId}`;
     clearStaleCacheKey(cacheKey);
 
@@ -113,25 +140,12 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     let snapPix: PixConfig | null = null;
 
     try {
-      // 1. Buscar Perfil do Filho
-      let { data: childData, error: childError } = await supabase
-        .from('filhos_de_santo')
-        .select('id, nome, tenant_id, cpf')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // The authenticated API resolves both personal and shadow-email logins.
+      const profileRes = await authFetch('/api/v1/filho/profile');
+      const profileJson = await profileRes.json();
+      if (!profileRes.ok || !profileJson.data?.id) throw new Error(profileJson.error || 'Perfil do membro não encontrado.');
+      const childData = profileJson.data;
 
-      if (!childData && user?.email) {
-        const byEmail = await supabase
-          .from('filhos_de_santo')
-          .select('id, nome, tenant_id, cpf')
-          .eq('email', user.email)
-          .maybeSingle();
-        childData = byEmail.data;
-        childError = byEmail.error;
-      }
-
-      if (childError) throw childError;
-      
       setFilho(childData);
       const existingCpf = String(childData?.cpf || '').replace(/\D/g, '');
       setCpfDraft(existingCpf.length === 11 ? existingCpf : existingCpf.slice(0, 6));
@@ -153,17 +167,9 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           if (!Number.isNaN(configuredValue) && configuredValue > 0 && ativa) {
             snapValor = configuredValue;
             setValorMensalidadeConfig(configuredValue);
-            snapPending = {
-              id: `mensalidade-${childData?.id || userId}`,
-              descricao: 'Mensalidade do terreiro',
-              valor: configuredValue,
-              status: 'pendente',
-            };
-            setPendingMensalidade(snapPending);
-          } else if (!ativa) {
-            snapPending = null;
-            setPendingMensalidade(null);
           }
+          snapPending = null;
+          setPendingMensalidade(null);
           if (pixData.dia_vencimento) {
             snapDia = Number(pixData.dia_vencimento);
             setDiaVencimento(snapDia);
@@ -190,6 +196,8 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       }
 
       let mensalidadesList: any[] = [];
+      let pendingItemsList: any[] = [];
+      let linkedList: any[] = [];
       try {
         if (childData?.id) {
           const { data: sess } = await supabase.auth.getSession();
@@ -211,17 +219,22 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
             const now = new Date();
             const y = now.getFullYear();
             const mo = now.getMonth();
+
+            // Cobranças pendentes registradas no banco para este filho (inclusive meses passados/juros)
+            const belongsToChild = (t: any) => t.filho_id === childData.id || String(t.descricao || '').includes('(ID:' + childData.id + ')');
+            const rawPending = txs.filter(t => belongsToChild(t) && isPendingMonthlyEntry(t));
+            linkedList = txs.filter(t => belongsToChild(t) && t.categoria !== 'Mensalidade');
+            setLinkedTransactions(linkedList);
+
+            // Mensalidades já pagas confirmadas
             const paidThisMonth = txs.some((t) => {
               if (!isPaidMensalidadeFinanceRow(t)) return false;
               const d = new Date(t.data);
               if (d.getFullYear() !== y || d.getMonth() !== mo) return false;
               if (t.filho_id === childData.id) return true;
-              return new RegExp(`\\(ID:${childData.id}\\)`).test(String(t.descricao || ""));
+              return String(t.descricao || "").includes("(ID:" + childData.id + ")");
             });
-            if (paidThisMonth) {
-              snapPending = null;
-              setPendingMensalidade(null);
-            }
+
             mensalidadesList = txs
               .filter((t) => isPaidMensalidadeFinanceRow(t))
               .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
@@ -233,15 +246,33 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
                 status: "pago",
               }));
             setMensalidades(mensalidadesList);
+
+
+            if (rawPending.length > 0) {
+              pendingItemsList = rawPending
+                .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+                .map((t) => ({
+                  id: t.id,
+                  descricao: t.descricao || "Mensalidade do terreiro",
+                  valor: Number(t.valor) || snapValor,
+                  data: t.data_vencimento || t.data,
+                  status: "pendente",
+                }));
+              snapPending = pendingItemsList[0];
+            } else {
+              snapPending = null;
+              pendingItemsList = [];
+            }
+            setPendingMensalidade(snapPending);
+            setPendingMensalidadesList(pendingItemsList);
           } else {
-            setMensalidades([]);
+            throw new Error("Não foi possível atualizar os lançamentos. Tente novamente.");
           }
         } else {
           setMensalidades([]);
         }
       } catch (e) {
-        console.warn('MensalidadeFilho: histórico financeiro', e);
-        setMensalidades([]);
+        throw e;
       }
 
       writeStaleCache(cacheKey, {
@@ -252,10 +283,13 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
         pixConfig: snapPix,
         pixFetched: true,
         mensalidades: mensalidadesList,
+        pendingList: pendingItemsList, linkedTransactions: linkedList,
       });
     } catch (error) {
       console.error('Erro ao carregar mensalidade do filho:', error);
+      setLoadError(error instanceof Error ? error.message : 'Erro ao atualizar seus lançamentos.');
     } finally {
+      if (loadingScope.current === scope) loadingScope.current = null;
       setLoading(false);
     }
   }
@@ -289,7 +323,8 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     }
   };
 
-  const openPixModal = async () => {
+  const openPixModal = async (item?: any) => {
+    setSelectedPixItem(item || pendingMensalidade);
     setPixModalOpen(true);
     await ensurePixConfig();
   };
@@ -386,9 +421,11 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   if (monthlyExperience) {
     return (
       <AppPageShell fullWidth>
+        {loadError && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">{loadError} <button type="button" className="underline font-bold" onClick={() => void fetchData()}>Tentar novamente</button></div>}
         <FilhoMonthlyExperience
-          active={mensalidadeAtiva}
+          active={mensalidadeAtiva || pendingMensalidadesList.length > 0}
           pending={pendingMensalidade}
+          pendingList={pendingMensalidadesList}
           configuredValue={valorMensalidadeConfig}
           dueDay={diaVencimento}
           pixConfig={pixConfig}
@@ -399,8 +436,10 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           cpfSaving={cpfSaving}
           cpfError={cpfError}
           history={mensalidades}
+          linkedTransactions={linkedTransactions}
           receiptInputRef={comprovanteInputRef}
           onOpenPix={() => void openPixModal()}
+          onOpenPixItem={(item) => void openPixModal(item)}
           onSelectReceipt={(file) => void handleEnviarComprovante(file)}
           onTalkToHouse={() => setActiveTab('chat')}
           onCpfDraftChange={(value) => {
@@ -414,10 +453,14 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           onClose={() => setPixModalOpen(false)}
           loading={loadingPix}
           pixConfig={pixConfig}
-          valor={pendingMensalidade?.valor || valorMensalidadeConfig}
-          descricao="Mensalidade Terreiro"
+          valor={selectedPixItem?.valor || pendingMensalidade?.valor || valorMensalidadeConfig}
+          descricao={selectedPixItem?.descricao || "Mensalidade Terreiro"}
           txid={(filho?.id || user.id).slice(0, 16).replace(/-/g, '')}
           vencimento={(() => {
+            if (selectedPixItem?.data) {
+              const d = new Date(selectedPixItem.data.length === 10 ? selectedPixItem.data + 'T00:00:00' : selectedPixItem.data);
+              if (!Number.isNaN(d.getTime())) return format(d, "dd/MM/yyyy");
+            }
             const hoje = new Date();
             let venc = setDate(hoje, diaVencimento);
             if (isBefore(venc, hoje)) venc = setDate(addMonths(hoje, 1), diaVencimento);

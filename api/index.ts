@@ -64,6 +64,7 @@ import { registerEventRsvpRoutes } from "./lib/eventRsvpRoutes.js";
 import { registerEventNotificationRoutes } from "./lib/eventNotificationRoutes.js";
 import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperationsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
+import { registerManualFinanceRoutes } from "./lib/manualFinanceRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerFinanceiroValidarComprovanteRoutes } from "./lib/financeiroValidarComprovanteRoutes.js";
 import { notifyMensalidadeConfirmadaWhatsApp } from "./lib/mensalidadeWhatsAppNotify.js";
@@ -239,6 +240,7 @@ type MensalidadeZeladorRow = {
   descricao: string | null;
   categoria: string | null;
   tipo?: string | null;
+  lancamento_manual?: boolean;
   filhos_de_santo?: { nome: string } | null;
 };
 
@@ -615,7 +617,7 @@ async function fetchMensalidadesPendentesList(
     if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) return false;
     const ymd = mensalidadeVencimentoOuDataYmd(row);
     const child = childById.get(fid);
-    if (!child) return true;
+    if (row.lancamento_manual || !child) return true;
     if (!ymd) return true;
     return childEligibleForDueMonth(child, ymd, diaVenc);
   });
@@ -649,13 +651,14 @@ async function fetchMensalidadesPagasMesAtual(
     .select("*")
     .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
     .eq("categoria", "Mensalidade")
-    .gte("data", start)
-    .lte("data", endStr)
     .order("data", { ascending: false });
   if (supportsStatus) q = q.eq("status", "pago");
   const { data, error } = await q;
   if (error) throw error;
-  const rows = (data || []) as MensalidadeZeladorRow[];
+  const rows = ((data || []) as MensalidadeZeladorRow[]).filter(row => {
+    const paidDate = financeiroCampoParaYmdIso((row as any).data_pagamento || row.data);
+    return paidDate && paidDate >= start && paidDate <= endStr;
+  });
   const withChild = rows.filter((row) => deriveMensalidadeFilhoId(row));
   const filtered = supportsStatus ? withChild : withChild.filter((row) => rowIsMensalidadePagaSemStatusColumn(row));
   return attachFilhosNomesMensalidades(supabaseAdmin, enrichMensalidadeRowsWithFilhoId(filtered));
@@ -780,23 +783,19 @@ async function syncMensalidadesPendentes(
     return q;
   };
   let { data: pendRows, error: pendErr } = await buildCleanQuery(
-    "id, valor, descricao, data, data_vencimento, status, categoria, filho_id"
+    "id, valor, descricao, data, data_vencimento, status, categoria, filho_id, lancamento_manual"
   );
   if (pendErr && String(pendErr.message || "").toLowerCase().includes("data_vencimento")) {
     ({ data: pendRows } = await buildCleanQuery(
-      "id, valor, descricao, data, status, categoria, filho_id"
+      "id, valor, descricao, data, status, categoria, filho_id, lancamento_manual"
     ));
   }
   for (const row of pendRows || []) {
     if (!rowIsMensalidadePendenteForDueCheck(row, supportsStatus)) continue;
     const ymd = mensalidadeVencimentoOuDataYmd(row);
     if (!ymd) continue;
-    // Meses anteriores em aberto: remove (só o mês corrente permanece cobrável).
-    if (ymd < monthStart.slice(0, 10)) {
-      const { error: delOldErr } = await supabaseAdmin.from("financeiro").delete().eq("id", row.id);
-      if (!delOldErr) removed += 1;
-      continue;
-    }
+    // Never erase old debts or overwrite explicit manual amounts/interest.
+    if (row.lancamento_manual || ymd < monthStart.slice(0, 10)) continue;
     if (!mensalidadeYmdDentroDoMesCalendario(ymd, monthStart, monthEnd)) continue;
     const fid = deriveMensalidadeFilhoId(row);
     if (!fid) continue;
@@ -4710,60 +4709,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/transactions", async (req, res) => {
-    const authUser = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!authUser) return;
-
-    const { tenantId, ...payload } = req.body || {};
-    const tid = normalizeQueryTenantId(tenantId);
-    if (!tid) return res.status(400).json({ error: "tenantId obrigatório" });
-
-    const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, authUser.id, tid);
-    if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-    try {
-      const allowedTxFields = new Set([
-        "tipo",
-        "valor",
-        "categoria",
-        "data",
-        "descricao",
-        "filho_id",
-        "data_vencimento",
-        "status",
-        "competencia_date",
-      ]);
-      const insertData: Record<string, unknown> = {
-        lider_id: authUser.id,
-        tenant_id: tid,
-        valor: Number(payload.valor) || 0,
-      };
-      for (const [k, v] of Object.entries(payload)) {
-        if (allowedTxFields.has(k)) insertData[k] = v;
-      }
-      if (insertData.filho_id) {
-        const fid = String(insertData.filho_id);
-        const leaderId = await resolveLeaderId(tid);
-        const { data: childRow } = await supabaseAdmin
-          .from("filhos_de_santo")
-          .select("id")
-          .eq("id", fid)
-          .or(`tenant_id.eq.${tid},tenant_id.eq.${leaderId},lider_id.eq.${tid},lider_id.eq.${leaderId}`)
-          .maybeSingle();
-        if (!childRow) return res.status(400).json({ error: "filho_id inválido para este terreiro" });
-      }
-      const { data, error } = await supabaseAdmin
-        .from("financeiro")
-        .insert([insertData])
-        .select("*")
-        .single();
-      if (error) throw error;
-      res.json({ data });
-    } catch (error: any) {
-      console.error("[SERVER] POST /api/transactions:", error.message || error);
-      res.status(500).json({ error: safeErrorMessage(error, "Erro ao registrar lançamento") });
-    }
-  });
+  registerManualFinanceRoutes(app, { supabaseAdmin });
 
   /**
    * Pedidos recentes da loja (dashboard). Via servidor para evitar 404 no browser

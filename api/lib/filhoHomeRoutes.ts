@@ -1,3 +1,6 @@
+import { fetchFinanceiroRowsForFilho } from './fetchFinanceiroRowsForFilho.js';
+import { resolveFilhoRowIdForFinance } from './resolveFilhoRowIdForFinance.js';
+import { isPendingMonthlyEntry } from '../../lib/manualFinance.js';
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAuthOrRespond } from "./requireAuth.js";
@@ -79,6 +82,14 @@ async function loadFilhoRecordForUser(
     }
   }
 
+  if (!child) {
+    const id = await resolveFilhoRowIdForFinance(supabaseAdmin, { jwtUserId: user.id, jwtEmail: user.email || '' });
+    if (id) {
+      const { data, error } = await supabaseAdmin.from('filhos_de_santo').select(selectCols).eq('id', id).maybeSingle();
+      if (error) throw error;
+      child = data;
+    }
+  }
   return child as FilhoRecord | null;
 }
 
@@ -279,17 +290,8 @@ export function registerFilhoHomeRoutes(app: Express, deps: Deps) {
         if (!ok) return res.status(403).json({ error: "Acesso negado" });
       }
 
-      let financialStatus = "pago";
-      const { data: finData } = await supabaseAdmin
-        .from("financeiro")
-        .select("id, status, data, filho_id")
-        .eq("filho_id", child.id)
-        .order("data", { ascending: false })
-        .limit(1);
-
-      if (finData?.length) {
-        financialStatus = String(finData[0].status || "pago");
-      }
+      const financialRows = await fetchFinanceiroRowsForFilho(supabaseAdmin, child.id, 500);
+      const financialStatus = financialRows.some(isPendingMonthlyEntry) ? 'pendente' : 'pago';
 
       const noticeTenant = tenantIdQ || child.tenant_id;
       let notices: unknown[] = [];
