@@ -19,12 +19,11 @@ import {
   Crown,
   StickyNote,
   User,
-  Camera,
   AlertCircle,
   Eye,
   EyeOff,
 } from 'lucide-react';
-import Avatar from '../Avatar';
+import MemberProfileHeader from './MemberProfileHeader';
 import { cn } from '../../lib/utils';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { formatFilhoMatricula } from '../../../lib/filhoMatricula';
@@ -220,95 +219,23 @@ export function ChildProfileV3View({
         {hasDebt && isSelfView ? <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-black text-red-600">Mensalidade pendente</span> : null}
       </div>
 
-      {/* Passport header */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#222B36] bg-[#13171D] shadow-2xl before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-r before:from-[#FACC15]/5 before:to-transparent">
-        <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-[#FACC15] to-amber-600" />
-        <div className="relative flex flex-col items-center justify-between gap-6 p-5 md:flex-row md:p-6">
-          <div className="flex w-full flex-col items-center gap-6 sm:flex-row sm:w-auto">
-            <div className="group relative shrink-0">
-              <div className="relative">
-                <Avatar
-                  src={typeof child.foto_url === 'string' ? child.foto_url : ''}
-                  name={nome}
-                  shape="square"
-                  className="h-24 w-24 rounded-2xl border border-[#2B3545] shadow-xl md:h-24 md:w-24"
-                  textSize="text-2xl"
-                />
-                {!isSelfView && (
-                  <button
-                    type="button"
-                    onClick={onPhotoClick}
-                    disabled={isUploadingPhoto}
-                    className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center rounded-2xl bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
-                  >
-                    {isUploadingPhoto ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-white" />
-                    ) : (
-                      <>
-                        <Camera className="mb-1 h-5 w-5 text-white" />
-                        <span className="text-[8px] font-bold uppercase tracking-wider text-white">Alterar</span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-              <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={onPhotoChange} />
-              <span className={cn(
-                'absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#13171D] px-3 py-1 text-[10px] font-extrabold text-[#080A0D] shadow-md',
-                status.toLowerCase() === 'ativo' ? 'bg-[#10B981]' : 'bg-amber-400',
-              )}>
-                {status} na corrente
-              </span>
-            </div>
+      <MemberProfileHeader
+        name={nome}
+        role={cargo}
+        status={status}
+        orixa={orixaFrente}
+        registration={registro}
+        photo={typeof child.foto_url === 'string' ? child.foto_url : ''}
+        whatsappUrl={waLink}
+        isSelfView={isSelfView}
+        uploading={isUploadingPhoto}
+        fileInputRef={fileInputRef}
+        onPhotoClick={onPhotoClick}
+        onPhotoChange={onPhotoChange}
+        onEdit={onEditOpen}
+      />
 
-            <div className="space-y-1.5 text-center sm:text-left">
-              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
-                <h2 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{nome}</h2>
-                <span className="rounded-full border border-[#FACC15]/30 bg-amber-500/10 px-3 py-1 text-xs font-black text-[#FACC15]">
-                  {cargo}
-                </span>
-              </div>
-              <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-400 sm:justify-start">
-                <span>Orixá de frente:</span>
-                <span className="font-black text-[#FACC15]">{orixaFrente || 'não informado'}</span>
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 pt-1 text-xs text-[#94A3B8] sm:justify-start">
-                <span className="rounded-md border border-[#222B36] bg-[#1C232E] px-2.5 py-1 font-mono text-[10.5px] tracking-wider">
-                  REGISTRO: <span className="font-extrabold text-white">{registro}</span>
-                </span>
-                <span className="flex items-center gap-1 font-bold text-emerald-400">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                  Cadastro verificado
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex w-full items-center justify-end gap-3 border-t border-[#222B36]/50 pt-4 sm:w-auto md:border-0 md:pt-0">
-            {waLink && (
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex cursor-pointer items-center rounded-xl border border-[#1E242B] bg-[#12161A] p-3 text-[#10B981] shadow-md transition-all hover:bg-[#1C222B] hover:text-emerald-400"
-                title="Enviar WhatsApp"
-              >
-                <Phone className="h-4 w-4" />
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={onEditOpen}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#FACC15] bg-[#FACC15]/5 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-[#FACC15] shadow-sm shadow-[#FACC15]/5 transition-all hover:bg-[#FACC15]/10"
-            >
-              <Pencil className="h-4 w-4" />
-              Editar Informações
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo do perfil">
+      <section className="member-profile-summary grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo do perfil">
         {[
           {
             label: 'Situação cadastral',
