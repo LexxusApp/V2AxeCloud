@@ -18,7 +18,6 @@
 <link rel="preload" href="/fonts/manrope-variable.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
 <link rel="preload" href="/diretorio-cidades.json" as="fetch" crossorigin />
-<link rel="preload" href="/terreiros/mapa.json" as="fetch" crossorigin />
 <style>
 /* ═══ O AMANHECER NO BARRACÃO — tema claro, porteira de mariwo ═══ */
 :root {
@@ -2075,12 +2074,10 @@ async function enriqueceFotosCards(fatia) {
               img.loading = 'eager';
               img.decoding = 'async';
               media.appendChild(img);
-              console.log('[AxéCloud] Foto aplicada para:', c.nome);
             }
           }
         }
-      } catch (err) {
-        console.warn('[AxéCloud] Erro foto:', c?.slug, err);
+      } catch (err) { /* silencioso */ 
       }
     })
   );
