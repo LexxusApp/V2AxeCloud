@@ -111,7 +111,7 @@ async function loadFilhoHouseRefs(
 }
 
 /** Resolve vínculo do filho (user_id, e-mail real ou sombra) com fallback ao Auth Admin. */
-async function resolveFilhoHouseRefs(
+export async function resolveFilhoHouseRefs(
   supabaseAdmin: SupabaseClient,
   user: { id: string; email?: string | null }
 ): Promise<FilhoHouseRefs | null> {
