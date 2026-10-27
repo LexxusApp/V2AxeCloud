@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Bell, 
   Plus, 
@@ -22,12 +22,14 @@ import {
   History,
   ArrowUpRight,
   RefreshCw,
-  MessageSquareText
+  MessageSquareText,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { confirmAction } from '../lib/confirmAction';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
+import { readNoticePublication, type NoticeProgress } from '../lib/noticePublication';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -45,6 +47,16 @@ import {
 import FilhoNoticeExperience from '../components/filho/FilhoNoticeExperience';
 import BodyPortal from '../components/BodyPortal';
 import { showHouseToast } from '../lib/houseToast';
+import {
+  AxeBadge,
+  AxeButton,
+  AxeCard,
+  AxeEmptyState,
+  AxeFilterBar,
+  AxeMetricCard,
+  AxeMetricRail,
+  AxePageHeader,
+} from '../components/shared/AxePageScaffold';
 
 export interface Notice {
   id: string;
@@ -117,6 +129,10 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const [publicationProgress, setPublicationProgress] = useState<NoticeProgress | null>(null);
+  const [publicationError, setPublicationError] = useState('');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lastPostedNotice, setLastPostedNotice] = useState<{titulo: string, conteudo: string} | null>(null);
   const [lastWhatsappResult, setLastWhatsappResult] = useState<{ sent: number; errors: number; skipped: number; status?: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -126,6 +142,13 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   const [broadcastLogs, setBroadcastLogs] = useState<BroadcastLog[]>([]);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSubmitting) return;
+    const started = Date.now();
+    const timer = window.setInterval(() => setElapsedSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [isSubmitting]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -199,7 +222,13 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
+    setElapsedSeconds(0);
+    setPublicationError('');
+    setPublicationProgress({ stage: 'publishing' });
+    let published = false;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not found');
@@ -220,6 +249,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/x-ndjson',
           'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
@@ -245,7 +275,10 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         throw new Error(errorMsg);
       }
       
-      const payload = await response.json().catch(() => ({}));
+      const payload = await readNoticePublication(response, (progress) => {
+        published = progress.stage !== 'publishing';
+        setPublicationProgress(progress);
+      });
       setLastPostedNotice({ titulo: formData.titulo, conteudo: formData.conteudo });
       setLastWhatsappResult(
         notifyWhatsApp && payload.whatsapp
@@ -265,13 +298,20 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       void fetchBroadcastLogs();
     } catch (error: any) {
       console.error('Error posting notice:', error);
+      const message = published
+        ? 'O comunicado já está no mural. Não foi possível confirmar o resultado das notificações. Confira o histórico antes de reenviar.'
+        : `Não foi possível confirmar a publicação: ${error.message || 'conexão interrompida'}. Confira o mural antes de tentar novamente.`;
+      setPublicationError(message);
+      void fetchNotices();
+      void fetchBroadcastLogs();
       if (error.code === 'PGRST205') {
         showHouseToast('O mural está temporariamente indisponível.', 'error');
       } else {
-        showHouseToast(`Erro ao publicar aviso: ${error.message || 'tente novamente'}`, 'error');
+        showHouseToast(message, 'error');
       }
     } finally {
       setIsSubmitting(false);
+      submittingRef.current = false;
     }
   }
 
@@ -369,166 +409,518 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
   return (
     <AppPageShell>
-      <div className="notice-v5-page">
-      <header className="comms-page-header">
-        <div className="comms-page-header__identity">
-          <span><Megaphone className="h-6 w-6" /></span>
-          <div>
-            <p>Comunicação da casa</p>
-            <h1>Comunicados</h1>
-            <small>Mensagens oficiais, orientações e avisos para toda a corrente.</small>
-          </div>
-        </div>
-        {isAdmin ? (
-          <button type="button" onClick={() => setComposerOpen(true)}>
-            <Plus className="h-4 w-4" /> Novo comunicado
-          </button>
-        ) : searchBar}
-      </header>
+      <div className="space-y-5">
+        {/* 1. Unified Header */}
+        <AxePageHeader
+          kicker="Comunicação Oficial da Casa"
+          title="Mural de Comunicados"
+          description="Mensagens oficiais, orientações litúrgicas e avisos para toda a corrente com transmissão simultânea por WhatsApp."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              {isAdmin && (
+                <div className="flex items-center gap-1 rounded-xl border border-[#E6DFD3] bg-white p-1 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection('published')}
+                    className={cn(
+                      'inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-all',
+                      activeSection === 'published'
+                        ? 'bg-[#1F5942] text-white shadow-xs'
+                        : 'text-[#59655E] hover:text-[#17251D]',
+                    )}
+                  >
+                    <MessageSquareText className="h-3.5 w-3.5" />
+                    Publicados
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection('history')}
+                    className={cn(
+                      'inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold transition-all',
+                      activeSection === 'history'
+                        ? 'bg-[#1F5942] text-white shadow-xs'
+                        : 'text-[#59655E] hover:text-[#17251D]',
+                    )}
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    Histórico
+                  </button>
+                </div>
+              )}
 
-      <div className="hidden" aria-hidden="true">
-      <AppDemoPanelHeader
-        title="Central de Comunicados"
-        description="Publique no mural da casa e acompanhe as transmissões enviadas pelo WhatsApp."
-        action={isAdmin ? (
-          <button type="button" onClick={() => setComposerOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-[#17130D] hover:bg-[#FFD34E]">
-            <Plus className="h-4 w-4" />
-            Novo comunicado
-          </button>
-        ) : searchBar}
-      />
-      </div>
+              {isAdmin ? (
+                <AxeButton
+                  type="button"
+                  variant="primary"
+                  disabled={isSubmitting}
+                  onClick={() => setComposerOpen((v) => !v)}
+                  icon={Plus}
+                >
+                  Novo comunicado
+                </AxeButton>
+              ) : (
+                searchBar
+              )}
+            </div>
+          }
+        />
 
-      {isAdmin ? (
-        <section className="comms-old-metrics hidden" aria-label="Resumo dos comunicados">
-          {[
-            { label: 'Avisos ativos', value: activeNoticesCount, detail: 'visíveis no mural', icon: Megaphone, color: 'text-sky-300', bg: 'border-sky-400/20 bg-sky-400/10' },
-            { label: 'Entregas registradas', value: successfulLogs.length, detail: 'no histórico recente', icon: Send, color: 'text-emerald-300', bg: 'border-emerald-400/20 bg-emerald-400/10' },
-            { label: 'Falhas de envio', value: failedLogs, detail: failedLogs === 0 ? 'nenhuma falha recente' : 'precisam de atenção', icon: XCircle, color: 'text-rose-300', bg: 'border-rose-400/20 bg-rose-400/10' },
-            { label: 'Comunicados', value: notices.length, detail: 'publicados pela casa', icon: Users, color: 'text-violet-300', bg: 'border-violet-400/20 bg-violet-400/10' },
-          ].map((item) => {
-            const Icon = item.icon;
-            return <div key={item.label} className="rounded-2xl border border-[#252C35] bg-[#11151A] p-4 text-[#F8FAFC]"><div className={cn('grid h-9 w-9 place-items-center rounded-xl border', item.bg)}><Icon className={cn('h-4 w-4', item.color)} /></div><p className="mt-3 text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">{item.label}</p><p className="mt-1 text-xl font-black">{item.value}</p><p className="mt-1 text-xs font-semibold text-[#64748B]">{item.detail}</p></div>;
-          })}
-        </section>
-      ) : null}
+        {/* 2. Unified Metric Rail (Admin only) */}
+        {isAdmin && (
+          <AxeMetricRail>
+            <AxeMetricCard
+              label="Avisos ativos"
+              value={activeNoticesCount}
+              icon={Megaphone}
+              tone="emerald"
+              subtext="visíveis no mural"
+            />
+            <AxeMetricCard
+              label="Entregas WhatsApp"
+              value={successfulLogs.length}
+              icon={Send}
+              tone="blue"
+              subtext="histórico recente"
+            />
+            <AxeMetricCard
+              label="Falhas de envio"
+              value={failedLogs}
+              icon={XCircle}
+              tone={failedLogs > 0 ? 'rose' : 'neutral'}
+              subtext={failedLogs === 0 ? 'nenhuma falha' : 'requer atenção'}
+            />
+            <AxeMetricCard
+              label="Comunicados"
+              value={notices.length}
+              icon={Users}
+              tone="purple"
+              subtext="publicados pela casa"
+            />
+          </AxeMetricRail>
+        )}
 
-      {isAdmin ? (
-        <div className="mb-4 flex w-fit rounded-xl border border-[#252C35] bg-[#11151A] p-1">
-          <button type="button" onClick={() => setActiveSection('published')} className={cn('inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold', activeSection === 'published' ? 'bg-primary text-[#17130D]' : 'text-[#94A3B8] hover:text-white')}><MessageSquareText className="h-4 w-4" />Publicados</button>
-          <button type="button" onClick={() => setActiveSection('history')} className={cn('inline-flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold', activeSection === 'history' ? 'bg-primary text-[#17130D]' : 'text-[#94A3B8] hover:text-white')}><History className="h-4 w-4" />Histórico de envios</button>
-        </div>
-      ) : null}
+        {/* 3. Composer Form */}
+        {composerOpen && isAdmin && (
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+            <AxeCard className="p-5 sm:p-6">
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-[#F0EBE1] pb-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B88728]">
+                    Novo comunicado
+                  </p>
+                  <h2 className="font-display text-lg font-black text-[#17251D]">
+                    Escreva a mensagem da casa
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  aria-label="Fechar formulário de comunicado"
+                  onClick={() => setComposerOpen(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E6DFD3] text-[#59655E] hover:border-[#D8CDBA] hover:text-[#17251D]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
 
-      {composerOpen && isAdmin ? (
-        <section className="comms-composer mb-5 grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(18rem,.7fr)]">
-          <AppDemoCard className="p-5 sm:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Novo comunicado</p><h2 className="mt-1 text-lg font-black text-white">Escreva a mensagem da casa</h2></div><button type="button" onClick={() => setComposerOpen(false)} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white"><X className="h-5 w-5" /></button></div>
-            <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2"><label className={appLabelClass}>Título</label><input required className={appInputClass} value={formData.titulo} onChange={(e) => setFormData({ ...formData, titulo: e.target.value })} placeholder="Ex: Orientações para a gira de sábado" /></div>
-              <div><label className={appLabelClass}>Categoria</label><select className={appInputClass} value={formData.categoria} onChange={(e) => setFormData({ ...formData, categoria: e.target.value as Notice['categoria'] })}><option value="Geral">Geral</option><option value="Urgente">Urgente</option><option value="Festas">Festas</option><option value="Doutrina">Doutrina</option></select></div>
-              <div><label className={appLabelClass}>Expiração</label><input type="date" className={appInputClass} value={formData.expiracao} onChange={(e) => setFormData({ ...formData, expiracao: e.target.value })} /></div>
-              <div className="sm:col-span-2"><label className={appLabelClass}>Mensagem</label><textarea required className={cn(appInputClass, 'min-h-32 resize-y text-sm')} value={formData.conteudo} onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })} placeholder="Escreva o comunicado que será visto pela corrente..." /></div>
-              <div className="space-y-2 sm:col-span-2">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-[#8E9AAA]">Canais de publicação</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="flex items-center gap-3 rounded-xl border border-sky-400/20 bg-sky-400/[0.06] p-3"><Smartphone className="h-5 w-5 text-sky-300" /><div><p className="text-sm font-black text-white">Mural do aplicativo</p><p className="text-xs font-semibold text-[#64748B]">Sempre publicado</p></div><CheckCircle2 className="ml-auto h-4 w-4 text-emerald-400" /></div>
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3"><MessageSquareText className="h-5 w-5 text-emerald-300" /><div><p className="text-sm font-black text-white">WhatsApp</p><p className="text-xs font-semibold text-[#64748B]">Com proteção anti-spam</p></div><input type="checkbox" checked={notifyWhatsApp} onChange={(e) => setNotifyWhatsApp(e.target.checked)} className="ml-auto h-4 w-4 accent-[#10B981]" /></label>
+              <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+                <fieldset disabled={isSubmitting} className="contents">
+                <div className="sm:col-span-2">
+                  <label className={appLabelClass}>Título do comunicado</label>
+                  <input
+                    required
+                    className={cn(appInputClass, 'bg-[#FAF7F2] border-[#D8CDBA] text-[#17251D]')}
+                    value={formData.titulo}
+                    onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                    placeholder="Ex: Orientações para a gira de sábado e firmeza"
+                  />
+                </div>
+
+                <div>
+                  <label className={appLabelClass}>Categoria</label>
+                  <select
+                    className={cn(appInputClass, 'bg-[#FAF7F2] border-[#D8CDBA] text-[#17251D]')}
+                    value={formData.categoria}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        categoria: e.target.value as Notice['categoria'],
+                      })
+                    }
+                  >
+                    <option value="Geral">Geral</option>
+                    <option value="Urgente">Urgente</option>
+                    <option value="Festas">Festas</option>
+                    <option value="Doutrina">Doutrina</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={appLabelClass}>Expiração (opcional)</label>
+                  <input
+                    type="date"
+                    className={cn(appInputClass, 'bg-[#FAF7F2] border-[#D8CDBA] text-[#17251D]')}
+                    value={formData.expiracao}
+                    onChange={(e) => setFormData({ ...formData, expiracao: e.target.value })}
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={appLabelClass}>Mensagem oficial</label>
+                  <textarea
+                    required
+                    rows={4}
+                    className={cn(
+                      appInputClass,
+                      'min-h-28 resize-y bg-[#FAF7F2] border-[#D8CDBA] text-sm text-[#17251D]',
+                    )}
+                    value={formData.conteudo}
+                    onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
+                    placeholder="Escreva o comunicado que será lido pelos filhos no aplicativo..."
+                  />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#8A958E]">
+                    Canais de publicação
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+                      <Smartphone className="h-5 w-5 text-emerald-700" />
+                      <div>
+                        <p className="text-xs font-black text-[#17251D]">Mural do aplicativo</p>
+                        <p className="text-[11px] text-[#59655E]">Publicação imediata</p>
+                      </div>
+                      <CheckCircle2 className="ml-auto h-4 w-4 text-emerald-600" />
+                    </div>
+
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 hover:bg-emerald-50 transition-colors">
+                      <MessageSquareText className="h-5 w-5 text-emerald-700" />
+                      <div>
+                        <p className="text-xs font-black text-[#17251D]">WhatsApp da corrente</p>
+                        <p className="text-[11px] text-[#59655E]">Disparo oficial com anti-spam</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={notifyWhatsApp}
+                        onChange={(e) => setNotifyWhatsApp(e.target.checked)}
+                        className="ml-auto h-4 w-4 accent-[#1F5942]"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:col-span-2 pt-2">
+                  <AxeButton
+                    type="submit"
+                    variant="primary"
+                    disabled={isSubmitting}
+                    icon={Send}
+                    loading={isSubmitting}
+                  >
+                    {isSubmitting ? (publicationProgress?.stage === 'whatsapp' ? 'Enviando avisos…' : 'Publicando…') : 'Publicar comunicado'}
+                  </AxeButton>
+                  <AxeButton
+                    type="button"
+                    variant="ghost"
+                    disabled={isSubmitting}
+                    onClick={() => setComposerOpen(false)}
+                  >
+                    Cancelar
+                  </AxeButton>
+                </div>
+                </fieldset>
+                {isSubmitting && publicationProgress && (
+                  <div role="status" aria-live="polite" aria-atomic="true" className="rounded-xl border border-[#B7D7C5] bg-[#F0F8F3] p-4 text-[#1F5942] sm:col-span-2">
+                    <div className="flex items-center gap-2 text-sm font-black">
+                      <Loader2 aria-hidden className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />
+                      {publicationProgress.stage === 'publishing' ? 'Publicando seu comunicado…' : publicationProgress.stage === 'published' ? 'Comunicado publicado! Notificando o aplicativo…' : 'Comunicado publicado! Enviando pelo WhatsApp…'}
+                    </div>
+                    <ol className="mt-3 space-y-1 text-xs font-semibold">
+                      <li>{publicationProgress.stage === 'publishing' ? '1. Publicação no mural em andamento' : '✓ Publicado no mural'}</li>
+                      {notifyWhatsApp && <li>{publicationProgress.stage === 'whatsapp' ? '2. Processando os avisos individuais no WhatsApp' : '2. WhatsApp aguardando publicação'}</li>}
+                    </ol>
+                    {publicationProgress.total !== undefined && (
+                      <div className="mt-3">
+                        <progress aria-label="Destinatários processados no WhatsApp" className="h-2 w-full accent-[#1F5942]" max={Math.max(1, publicationProgress.total)} value={(publicationProgress.sent || 0) + (publicationProgress.errors || 0)} />
+                        <p className="mt-1 text-xs">{(publicationProgress.sent || 0) + (publicationProgress.errors || 0)} de {publicationProgress.total} destinatários processados · {publicationProgress.sent || 0} enviados · {publicationProgress.errors || 0} falhas</p>
+                      </div>
+                    )}
+                    <p className="mt-3 text-xs text-[#59655E]">{elapsedSeconds}s decorridos. Aguarde nesta tela; não é necessário clicar novamente.{elapsedSeconds >= 20 ? ' O envio individual pode levar alguns minutos.' : ''}</p>
+                  </div>
+                )}
+                {publicationError && !isSubmitting && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:col-span-2">{publicationError}</div>}
+              </form>
+            </AxeCard>
+
+            {/* WhatsApp Preview Card */}
+            <AxeCard className="p-5 flex flex-col justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B88728]">
+                  Prévia no WhatsApp
+                </p>
+                <div className="mx-auto mt-4 max-w-sm rounded-2xl border-2 border-[#D8CDBA] bg-[#EFEAE2] p-3 shadow-md">
+                  <div className="rounded-xl bg-[#DCF8C6] p-3.5 text-[#17130D] shadow-xs">
+                    <p className="text-xs font-black text-[#075E54]">
+                      AxéCloud · {tenantData?.nome || 'Sua casa'}
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-[#171A16]">
+                      Olá, [nome do filho]. Registramos uma nova atualização oficial no mural do{' '}
+                      {tenantData?.nome || 'seu terreiro'}. Acesse o portal do filho para ler os detalhes.
+                    </p>
+                    <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-[#59655E]">
+                      Mensagem automática · Não responda.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <AppPrimaryButton type="submit" disabled={isSubmitting} className="sm:col-span-2 inline-flex items-center justify-center gap-2">{isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />Publicando e avisando…</> : <><Send className="h-4 w-4" />Publicar comunicado</>}</AppPrimaryButton>
-            </form>
-          </AppDemoCard>
-          <AppDemoCard className="p-5">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-300">Prévia para o filho</p>
-            <div className="mx-auto mt-4 max-w-sm rounded-[2rem] border-4 border-[#292F38] bg-[#E9E5DC] p-3 shadow-xl">
-              <div className="rounded-2xl bg-[#DCF8C6] p-3 text-[#17130D] shadow-sm">
-                <p className="text-xs font-black text-[#075E54]">AxéCloud · {tenantData?.nome || 'Sua casa'}</p>
-                <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed">
-                  Olá, [nome do filho]. Registramos uma atualização administrativa na sua conta de membro do {tenantData?.nome || 'seu terreiro'}. Os detalhes estão disponíveis na sua área do portal do filho de santo.
-                </p>
-                <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-[#66756F]">Mensagem automática. Não responda.</p>
-                <p className="mt-2 text-right text-[10px] text-[#66756F]">agora ✓✓</p>
-              </div>
-            </div>
-            <p className="mt-4 text-xs font-semibold leading-relaxed text-[#64748B]">
-              Um clique envia o mesmo aviso para todos os membros com WhatsApp. O nome de cada filho entra sozinho — não publique um aviso por pessoa. O texto no WhatsApp é o modelo Meta <span className="font-mono text-[11px] text-[#94A3B8]">aviso_portal_conta_axecloud</span>; o comunicado completo fica no mural do aplicativo, para o filho ler no portal.
-            </p>
-          </AppDemoCard>
-        </section>
-      ) : null}
 
-      {activeSection === 'published' || !isAdmin ? (
-        <div className="comms-workspace">
-          <div className="comms-feed">
-          <section className="mb-4 rounded-2xl border border-[#252C35] bg-[#11151A] p-3 sm:p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="relative min-w-0 flex-1"><Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#7F8B9C]" /><input type="search" placeholder="Buscar por título ou conteúdo" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={cn(appInputClass, 'min-h-11 pl-10 text-sm')} /></div>
-              <div className="flex flex-wrap gap-2">{categories.map((cat) => <button key={cat} type="button" onClick={() => setActiveCategory(cat)} className={cn('rounded-lg border px-3 py-2 text-xs font-bold', activeCategory === cat ? 'border-primary bg-primary text-[#17130D]' : 'border-[#252C35] bg-[#151A21] text-[#94A3B8] hover:text-white')}>{cat}</button>)}</div>
-            </div>
+              <p className="mt-4 text-xs font-semibold leading-relaxed text-[#59655E]">
+                O envio acontece de forma individual e personalizada para cada irmão que possui
+                WhatsApp cadastrado.
+              </p>
+            </AxeCard>
           </section>
-          <ul className="grid gap-3 lg:grid-cols-2" role="list">
-            {filteredNotices.map((notice) => {
-              const config = categoryConfig[notice.categoria] || categoryConfig.Geral;
-              const Icon = config.icon;
-              return (
-                <li key={notice.id}>
-                  <button type="button" onClick={() => setSelectedNotice(notice)} className={cn('flex h-full w-full items-start gap-4 rounded-2xl border bg-[#11151A] p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/25', notice.categoria === 'Urgente' ? 'border-rose-500/25' : 'border-[#252C35]')}>
-                    <span className={cn('grid h-11 w-11 shrink-0 place-items-center rounded-xl border', config.bg, config.border)}><Icon className={cn('h-5 w-5', config.color)} /></span>
-                    <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="text-xs font-black text-primary">{notice.categoria}</span><span className="text-xs font-semibold text-[#64748B]">{format(new Date(notice.data_publicacao), 'dd MMM yyyy', { locale: ptBR })}</span></span><span className="mt-2 block truncate text-base font-black text-white">{notice.titulo}</span><span className="mt-1 line-clamp-2 text-sm font-medium leading-relaxed text-[#8E9AAA]">{notice.conteudo}</span></span>
-                    <ArrowUpRight className="h-4 w-4 shrink-0 text-[#64748B]" />
-                  </button>
-                </li>
-              );
-            })}
-            {filteredNotices.length === 0 ? <li className="col-span-full rounded-2xl border border-dashed border-[#BFB5A6] bg-white/55 px-4 py-12 text-center text-sm font-bold text-[#665F55]">Nenhum comunicado encontrado.</li> : null}
-          </ul>
-          </div>
-          {isAdmin ? (
-            <aside className="comms-control">
-              <div className="comms-control__heading">
-                <span><Send className="h-5 w-5" /></span>
-                <div><p>Central de envio</p><h2>Alcance da comunicação</h2></div>
-              </div>
-              <div className="comms-control__numbers">
-                <div><strong>{activeNoticesCount}</strong><span>ativos no mural</span></div>
-                <div><strong>{successfulLogs.length}</strong><span>entregas recentes</span></div>
-                <div className={failedLogs > 0 ? 'has-alert' : ''}><strong>{failedLogs}</strong><span>falhas de envio</span></div>
-              </div>
-              <button type="button" onClick={() => setComposerOpen(true)} className="comms-control__create">
-                <Plus className="h-4 w-4" /> Escrever comunicado
-              </button>
-              <div className="comms-control__recent">
-                <p>Atividade recente</p>
-                {broadcastLogs.slice(0, 3).map((log) => {
-                  const failed = ['failed', 'falha', 'error', 'erro'].includes(String(log.status).toLowerCase());
-                  return (
-                    <div key={log.id}>
-                      <span className={failed ? 'is-failed' : 'is-sent'}>{failed ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}</span>
-                      <div><strong>{failed ? 'Falha no envio' : 'Mensagem entregue'}</strong><small>{format(new Date(log.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}</small></div>
+        )}
+
+        {/* 4. Section: Published Feed */}
+        {activeSection === 'published' || !isAdmin ? (
+          <div className="space-y-4">
+            {/* Filter Bar */}
+            <AxeFilterBar
+              search={{
+                value: searchTerm,
+                onChange: setSearchTerm,
+                placeholder: 'Buscar comunicado por título ou conteúdo...',
+              }}
+              filterTabs={{
+                current: activeCategory,
+                options: categories.map((cat) => ({ id: cat, label: cat })),
+                onChange: (id) => setActiveCategory(id as typeof activeCategory),
+              }}
+            />
+
+            {/* Notices Grid */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {filteredNotices.map((notice) => {
+                const config = categoryConfig[notice.categoria] || categoryConfig.Geral;
+                const Icon = config.icon;
+                const badgeVariant =
+                  notice.categoria === 'Urgente'
+                    ? 'rose'
+                    : notice.categoria === 'Festas'
+                    ? 'amber'
+                    : notice.categoria === 'Doutrina'
+                    ? 'blue'
+                    : 'stone';
+
+                return (
+                  <article
+                    key={notice.id}
+                    onClick={() => setSelectedNotice(notice)}
+                    className={cn(
+                      'group cursor-pointer rounded-lg border bg-white p-4 sm:p-5 shadow-[0_2px_8px_rgba(28,37,31,0.03)] transition-all hover:border-[#D8CDBA] hover:shadow-[0_4px_16px_rgba(28,37,31,0.06)]',
+                      notice.categoria === 'Urgente'
+                        ? 'border-red-200/90 bg-[#FFFDFD]'
+                        : 'border-[#E6DFD3]',
+                    )}
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <span
+                        className={cn(
+                          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border',
+                          config.bg,
+                          config.border,
+                        )}
+                      >
+                        <Icon className={cn('h-5 w-5', config.color)} />
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <AxeBadge variant={badgeVariant}>{notice.categoria}</AxeBadge>
+                          <span className="text-xs font-semibold text-[#8A958E]">
+                            {format(new Date(notice.data_publicacao), 'dd MMM yyyy', {
+                              locale: ptBR,
+                            })}
+                          </span>
+                        </div>
+
+                        <h3 className="mt-2 font-display text-base font-black text-[#17251D] group-hover:text-[#1F5942] transition-colors truncate">
+                          {notice.titulo}
+                        </h3>
+
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#59655E]">
+                          {notice.conteudo}
+                        </p>
+                      </div>
+
+                      <ArrowUpRight className="h-4 w-4 shrink-0 text-[#8A958E] group-hover:text-[#1F5942] transition-colors" />
                     </div>
-                  );
-                })}
-                {broadcastLogs.length === 0 ? <small className="comms-control__empty">Os próximos envios aparecerão aqui.</small> : null}
-              </div>
-              <button type="button" onClick={() => setActiveSection('history')} className="comms-control__history">
-                Ver histórico completo <ArrowUpRight className="h-4 w-4" />
-              </button>
-            </aside>
-          ) : null}
-        </div>
-      ) : (
-        <section className="overflow-hidden rounded-2xl border border-[#252C35] bg-[#11151A] text-[#F8FAFC]">
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4"><div><h2 className="text-lg font-black">Histórico de transmissões</h2><p className="text-xs font-semibold text-[#64748B]">Resultados recentes informados pelo canal oficial.</p></div><button type="button" onClick={() => void fetchBroadcastLogs()} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white"><RefreshCw className="h-4 w-4" /></button></div>
-          <div className="divide-y divide-white/10">
-            {broadcastLogs.map((log) => {
-              const failed = ['failed', 'falha', 'error', 'erro'].includes(String(log.status).toLowerCase());
-              return <div key={log.id} className="flex items-start gap-3 px-5 py-4"><span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl', failed ? 'bg-rose-400/10 text-rose-300' : 'bg-emerald-400/10 text-emerald-300')}>{failed ? <XCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{log.mensagem || 'Comunicado enviado'}</p><p className="mt-1 text-xs font-semibold text-[#64748B]">{log.telefone === 'corrente_geral' ? 'Corrente geral' : log.telefone || 'Destinatário'} · {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p></div><span className={cn('rounded-full px-2.5 py-1 text-xs font-black', failed ? 'bg-rose-400/10 text-rose-300' : 'bg-emerald-400/10 text-emerald-300')}>{failed ? 'Falhou' : 'Enviado'}</span></div>;
-            })}
-            {broadcastLogs.length === 0 ? <div className="px-5 py-12 text-center text-sm font-semibold text-[#64748B]">Nenhuma transmissão registrada ainda.</div> : null}
+                  </article>
+                );
+              })}
+            </div>
+
+            {filteredNotices.length === 0 && (
+              !notices.length ? (
+                <div className="space-y-5">
+                  <div className="relative overflow-hidden rounded-lg border border-[#D4AF37]/35 bg-gradient-to-br from-white via-[#FCFAF5] to-[#F7EFE1] p-6 sm:p-8 shadow-[0_4px_24px_rgba(28,37,31,0.05)]">
+                    <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-gradient-to-br from-[#D4AF37]/20 to-[#1F5942]/20 blur-2xl" />
+                    
+                    <div className="relative z-10">
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E5AE12]/15 border border-[#E5AE12]/40 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#8F630E] mb-3">
+                        <span>✦</span>
+                        <span>Comunicação Oficial & Alinhamento</span>
+                      </div>
+                      <h3 className="font-display text-2xl font-black text-[#17251D] sm:text-3xl">
+                        Mural de Avisos & Transmissão WhatsApp
+                      </h3>
+                      <p className="mt-2 max-w-2xl text-xs sm:text-sm font-medium text-[#59655E] leading-relaxed">
+                        Mantenha toda a corrente conectada e avisada. Publique avisos litúrgicos importantes com transmissão oficial para o WhatsApp de cada médium cadastrado.
+                      </p>
+
+                      <div className="mt-6 flex flex-wrap items-center gap-3">
+                        {isAdmin && (
+                          <AxeButton
+                            onClick={() => setComposerOpen(true)}
+                            icon={Plus}
+                            variant="primary"
+                            size="lg"
+                          >
+                            Escrever primeiro comunicado
+                          </AxeButton>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="rounded-lg border border-[#A8DEC0] bg-gradient-to-br from-white to-[#F0FAF4] p-4 sm:p-5 shadow-xs">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F5EE] border border-[#B7E2CB] text-[#1F5942]">
+                        <Megaphone className="h-5 w-5" />
+                      </div>
+                      <strong className="mt-3 block font-display text-sm font-black text-[#17251D]">
+                        1. Avisos de Giras & Festas
+                      </strong>
+                      <p className="mt-1 text-xs font-medium text-[#59655E] leading-relaxed">
+                        Data, horário, linha de trabalho, roupas e oferendas do dia.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-[#F8DC9B] bg-gradient-to-br from-white to-[#FFF9EB] p-4 sm:p-5 shadow-xs">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FEF7E6] border border-[#FBE3B5] text-[#8F630E]">
+                        <Sparkles className="h-5 w-5" />
+                      </div>
+                      <strong className="mt-3 block font-display text-sm font-black text-[#17251D]">
+                        2. Doutrina & Preceito
+                      </strong>
+                      <p className="mt-1 text-xs font-medium text-[#59655E] leading-relaxed">
+                        Orientações de recolhimento, banhos de axé e fundamentos.
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg border border-[#BDD9EC] bg-gradient-to-br from-white to-[#F0F7FC] p-4 sm:p-5 shadow-xs">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF5FA] border border-[#CDE3F1] text-[#1E567B]">
+                        <Send className="h-5 w-5" />
+                      </div>
+                      <strong className="mt-3 block font-display text-sm font-black text-[#17251D]">
+                        3. Entrega no WhatsApp
+                      </strong>
+                      <p className="mt-1 text-xs font-medium text-[#59655E] leading-relaxed">
+                        Disparo simultâneo garantido para todos os filhos de santo ativos.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <AxeEmptyState
+                  icon={Megaphone}
+                  title="Nenhum comunicado encontrado neste filtro"
+                  description="Tente selecionar outra categoria ou limpar a busca acima."
+                />
+              )
+            )}
           </div>
-        </section>
-      )}
+        ) : (
+          /* 5. Section: Transmission History (WhatsApp) */
+          <AxeCard className="p-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[#E6DFD3] bg-[#FAF7F2]/60 px-5 py-4">
+              <div>
+                <h2 className="font-display text-base font-black text-[#17251D]">
+                  Histórico de transmissões WhatsApp
+                </h2>
+                <p className="text-xs font-semibold text-[#59655E]">
+                  Entregas recentes processadas pelo canal oficial da casa.
+                </p>
+              </div>
+              <AxeButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void fetchBroadcastLogs()}
+                icon={RefreshCw}
+              >
+                Atualizar
+              </AxeButton>
+            </div>
+
+            <div className="divide-y divide-[#F0EBE1]">
+              {broadcastLogs.map((log) => {
+                const failed = ['failed', 'falha', 'error', 'erro'].includes(
+                  String(log.status).toLowerCase(),
+                );
+                return (
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-[#FAF7F2]/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
+                          failed
+                            ? 'border-red-200 bg-red-50 text-red-600'
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                        )}
+                      >
+                        {failed ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-black text-[#17251D]">
+                          {log.mensagem || 'Comunicado oficial enviado'}
+                        </p>
+                        <p className="text-[11px] font-semibold text-[#8A958E]">
+                          {log.telefone === 'corrente_geral'
+                            ? 'Corrente geral'
+                            : log.telefone || 'Destinatário'}{' '}
+                          ·{' '}
+                          {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm", {
+                            locale: ptBR,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <AxeBadge variant={failed ? 'rose' : 'emerald'}>
+                      {failed ? 'Falhou' : 'Enviado'}
+                    </AxeBadge>
+                  </div>
+                );
+              })}
+
+              {broadcastLogs.length === 0 && (
+                <div className="py-12 text-center text-sm font-semibold text-[#8A958E]">
+                  Nenhuma transmissão registrada ainda.
+                </div>
+              )}
+            </div>
+          </AxeCard>
+        )}
+      </div>
+
+
 
       <BodyPortal>
       <AnimatePresence>
@@ -560,7 +952,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-[min(100%,20rem)] mx-3 sm:mx-4 sm:w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-sm"
+              className="relative z-10 flex w-[min(100%,20rem)] mx-3 sm:mx-4 sm:w-full max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-sm"
             >
               <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-5 sm:py-6 text-center space-y-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#EAF2EC] rounded-full flex items-center justify-center mx-auto border border-[#CDE0D3]">
@@ -570,10 +962,12 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                 <div className="space-y-1">
                   <h3 className="font-display text-lg sm:text-xl font-black text-[#171A16] leading-tight">Aviso <span className="text-[#8F7724]">publicado!</span></h3>
                   {lastWhatsappResult ? (
-                    <p className="text-xs sm:text-sm text-[#3F7258] font-medium">
+                    <p className={cn('text-xs sm:text-sm font-medium', lastWhatsappResult.errors > 0 || lastWhatsappResult.status === 'offline' ? 'text-amber-800' : 'text-[#3F7258]')}>
+                      {lastWhatsappResult.status === 'offline' ? 'O canal WhatsApp está indisponível. O comunicado está publicado no mural.' : <>
                       WhatsApp: {lastWhatsappResult.sent} enviado(s)
                       {lastWhatsappResult.errors > 0 ? `, ${lastWhatsappResult.errors} falha(s)` : ''}
-                      {lastWhatsappResult.skipped > 0 ? `, ${lastWhatsappResult.skipped} fora do lote` : ''}.
+                      {lastWhatsappResult.skipped > 0 ? `, ${lastWhatsappResult.skipped} não processado(s) neste lote` : ''}.
+                      </>}
                     </p>
                   ) : (
                     <p className="text-xs sm:text-sm text-[#6F675C] font-medium">Publicado no app sem disparo WhatsApp.</p>
@@ -607,7 +1001,6 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         )}
       </AnimatePresence>
       </BodyPortal>
-      </div>
     </AppPageShell>
   );
 }

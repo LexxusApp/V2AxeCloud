@@ -1535,6 +1535,19 @@ async function startServer() {
   // API Route: Create Notice (Mural) and Trigger Push
   app.post("/api/notices", async (req, res) => {
     const { titulo, conteudo, categoria, tenantId: _bodyTenantIgnored, expiracao, notifyWhatsApp } = req.body;
+    const streaming = req.headers.accept?.includes('application/x-ndjson');
+    let publishedNotice: any = null;
+    const progress = (stage: string, details = {}) => {
+      if (!streaming || res.destroyed) return;
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.flushHeaders();
+      }
+      res.write(JSON.stringify({ type: 'progress', stage, ...details }) + '\n');
+      (res as any).flush?.();
+    };
 
     try {
       const user = await requireApiUser(supabaseAdmin, req, res);
@@ -1608,6 +1621,9 @@ async function startServer() {
         });
       }
 
+      publishedNotice = notice;
+      progress('published');
+
       const pushTargetTenant = pl.tenant_id || zeladorId;
       const pushResult = await sendPushNotification(pushTargetTenant, {
         title: `Novo Aviso: ${titulo}`,
@@ -1622,21 +1638,32 @@ async function startServer() {
         .maybeSingle();
       let whatsappDispatch: Awaited<ReturnType<typeof dispatchTransmissaoAviso>> | null = null;
       if (notifyWhatsApp !== false) {
+        progress('whatsapp');
         whatsappDispatch = await dispatchTransmissaoAviso(
           supabaseAdmin,
           zeladorId,
           titulo,
           conteudo,
-          String(leaderProfile?.nome_terreiro || "Terreiro")
+          String(leaderProfile?.nome_terreiro || "Terreiro"),
+          (details) => progress('whatsapp', details),
         ).catch((err) => {
           console.error("[TRANSMISSAO AVISO] auto-dispatch:", err);
           return { sent: 0, errors: 1, skipped: 0, status: "skipped" as const };
         });
       }
 
-      res.json({ success: true, data: notice, push: pushResult, whatsapp: whatsappDispatch });
+      const payload = { success: true, data: notice, push: pushResult, whatsapp: whatsappDispatch };
+      if (streaming) {
+        if (!res.destroyed) res.end(JSON.stringify({ type: 'result', payload }) + '\n');
+      } else res.json(payload);
     } catch (error: any) {
       console.error("[SERVER] Erro ao criar aviso:", error);
+      if (res.headersSent) {
+        if (!res.destroyed) res.end(JSON.stringify({ type: 'error', error: publishedNotice
+          ? 'O comunicado foi publicado no mural, mas não foi possível concluir as notificações. Confira o histórico antes de reenviar.'
+          : safeErrorMessage(error) }) + '\n');
+        return;
+      }
       res.status(500).json({ error: safeErrorMessage(error) });
     }
   });

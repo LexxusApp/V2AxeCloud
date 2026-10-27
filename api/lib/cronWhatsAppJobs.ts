@@ -300,7 +300,8 @@ export async function dispatchTransmissaoAviso(
   tenantId: string,
   titulo: string,
   conteudo: string,
-  nomeTerreiro: string
+  nomeTerreiro: string,
+  onProgress?: (progress: { total: number; sent: number; errors: number }) => void,
 ): Promise<{ sent: number; errors: number; skipped: number; status: "sent" | "skipped" | "offline" }> {
   let sent = 0;
   let errors = 0;
@@ -334,6 +335,7 @@ export async function dispatchTransmissaoAviso(
 
     const batch = capAndShuffleRecipients(eligible, FANOUT_MAX_RECIPIENTS);
     skipped = Math.max(0, eligible.length - batch.length);
+    onProgress?.({ total: batch.length, sent, errors });
 
     for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
       const child = batch[batchIndex];
@@ -370,9 +372,12 @@ export async function dispatchTransmissaoAviso(
         console.error(`[TRANSMISSAO AVISO] filho=${child.id}:`, err);
         const code = (err as { code?: string })?.code || "";
         if (code.startsWith("WA_QUOTA") || code.startsWith("WA_CAMPAIGN") || code.startsWith("WA_SEND_WINDOW")) {
+          skipped += Math.max(0, batch.length - batchIndex - 1);
+          onProgress?.({ total: batch.length, sent, errors });
           break;
         }
       }
+      onProgress?.({ total: batch.length, sent, errors });
     }
   } catch (err) {
     console.error("[TRANSMISSAO AVISO] dispatch:", err);
