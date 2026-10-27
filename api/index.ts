@@ -860,13 +860,15 @@ async function liquidarMensalidadePendente(
     tipo: "entrada",
     valor: v,
     data: paymentDate,
+    data_pagamento: paymentDate,
     descricao: `Mensalidade - ${nome} (competência ${comp}) (ID:${filhoId})`,
   };
   if (supportsStatus) up.status = "pago";
   let upd = supabaseAdmin.from("financeiro").update(up).eq("id", financeiroId);
   if (supportsStatus) upd = upd.eq("status", "pendente");
-  const { error: upErr } = await upd;
+  const { data: changedRows, error: upErr } = await upd.select("id");
   if (upErr) throw upErr;
+  if (changedRows?.length !== 1) throw new Error("A mensalidade mudou durante a baixa. Atualize a lista antes de tentar novamente.");
   return { ok: true };
 }
 

@@ -1,3 +1,7 @@
+import ReceiptReviewPanel from '../components/financial/ReceiptReviewPanel';
+import {useReceiptReviews,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
+import {SacredMensalidadesView} from '../components/financial/SacredMensalidadesView';
+import CantinaView from '../components/financial/CantinaView';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import {
@@ -225,12 +229,13 @@ export default function Financial({
   const submitLock = useRef(false);
   const requestRef = useRef<{ key: string; id: string } | null>(null);
   const [children, setChildren] = useState<any[]>([]);
-  const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'caixinha' | 'configs'>(initialView);
+  const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'cantina' | 'caixinha' | 'configs'>(initialView);
 
   useEffect(() => {
     setActiveView(initialView);
   }, [initialView]);
-  const [mensalidadesTab, setMensalidadesTab] = useState<'pendentes' | 'pagas'>('pendentes');
+  const [mensalidadesTab, setMensalidadesTab] = useState<'pendentes' | 'pagas' | 'comprovantes'>('pendentes');
+  const receiptFeed=useReceiptReviews(userId,tenantId,Boolean(userId&&tenantId&&isSessionReady&&userRole!=='filho'&&activeView==='mensalidades'));
   const [mensalidades, setMensalidades] = useState<MensalidadeZeladorRow[]>([]);
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});
   const [mensalidadesLoading, setMensalidadesLoading] = useState(false);
@@ -446,6 +451,13 @@ export default function Financial({
       onError: error => { if (current()) { console.error('refreshMensalidades:', error); setMensalidadesError('Não foi possível atualizar agora. Os dados já carregados foram mantidos.'); } },
     });
   }, [tenantId, userId, mensalidadeAtiva]);
+
+  useEffect(()=>{
+    if(!isAdmin||!isSessionReady||!tenantId)return;
+    const refresh=()=>{void refreshMensalidades({skipSync:true});void mutateTransactions();};
+    window.addEventListener(RECEIPT_UPDATED,refresh);
+    return()=>window.removeEventListener(RECEIPT_UPDATED,refresh);
+  },[isAdmin,isSessionReady,tenantId,refreshMensalidades,mutateTransactions]);
 
   const mensalidadesPendentes = useMemo(
     () => mensalidades.filter((r) => mensalidadeRowIsPendenteForTabs(r)),
@@ -1549,430 +1561,42 @@ export default function Financial({
       ) : (
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
-            <>
-          {mensalidadesError && (
-            <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
-              <p>{mensalidadesError}</p>
-              <button type="button" onClick={onRetryMensalidades} className="min-h-11 font-bold underline underline-offset-4">Tentar novamente</button>
-            </div>
-          )}
-          {mensalidadesSyncing && !mensalidadesLoading && (
-            <p role="status" className="mb-3 flex items-center gap-2 text-xs font-semibold text-[#526558]">
-              <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" /> Atualizando mensalidades…
-            </p>
-          )}
-              <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <AppDemoCard className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Em aberto</span>
-                    <p className="mt-2 text-2xl font-black text-amber-300">{formatBRL(pendingMonthlyTotal)}</p>
-                    <p className="mt-1 text-[10px] font-medium text-slate-300">{mensalidadesPendentes.length} cobranças pendentes</p>
-                  </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-amber-500/20 bg-amber-950/40 text-amber-300">
-                    <Clock3 className="h-5 w-5" />
-                  </div>
-                </AppDemoCard>
-                <AppDemoCard className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Recebido</span>
-                    <p className="mt-2 text-2xl font-black text-emerald-400">{formatBRL(paidMonthlyTotal)}</p>
-                    <p className="mt-1 text-[10px] font-medium text-slate-300">{mensalidadesPagas.length} pagamentos confirmados</p>
-                  </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </div>
-                </AppDemoCard>
-                <AppDemoCard className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Em atraso</span>
-                    <p className="mt-2 text-2xl font-black text-rose-400">{overdueMonthlyCount}</p>
-                    <p className="mt-1 text-[10px] font-medium text-slate-300">pedem acompanhamento</p>
-                  </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-400">
-                    <CalendarDays className="h-5 w-5" />
-                  </div>
-                </AppDemoCard>
-              </div>
-
-              <AppDemoCard>
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-3 rounded-xl border border-[#2A3441] bg-[#151D26] px-4 py-3">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={mensalidadeAtiva}
-                    aria-busy={isTogglingMensalidade}
-                    aria-label="Ativar ou desativar cobrança de mensalidade"
-                    disabled={isTogglingMensalidade}
-                    onClick={() => void handleToggleMensalidadeAtiva(!mensalidadeAtiva)}
-                    className={cn(
-                      'relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-70',
-                      mensalidadeAtiva ? 'bg-primary' : 'bg-[#2F3643]',
-                    )}
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'pointer-events-none block h-5 w-5 rounded-full bg-[#F1F5F9] shadow-sm transition-transform duration-200 ease-out',
-                        mensalidadeAtiva ? 'translate-x-5' : 'translate-x-0',
-                        isTogglingMensalidade && 'opacity-0',
-                      )}
-                    />
-                    {isTogglingMensalidade ? (
-                      <Loader2
-                        className="absolute inset-0 m-auto h-3.5 w-3.5 animate-spin text-[#080A0D]"
-                        aria-hidden
-                      />
-                    ) : null}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-white">
-                      Cobrança de mensalidade {mensalidadeAtiva ? 'ativa' : 'desativada'}
-                    </p>
-                    <p className="text-xs text-slate-300">
-                      {mensalidadeAtiva
-                        ? 'O sistema gera pendentes mensais e os filhos veem a cobrança no portal.'
-                        : 'Nenhuma mensalidade nova será gerada. Ideal para terreiros que não cobram contribuição fixa.'}
-                    </p>
-                  </div>
-                </div>
-
-                {mensalidadeAtiva ? (
-                <div
-                  role="tablist"
-                  aria-label="Mensalidades por status"
-                  className="flex shrink-0 rounded-xl border border-[#2A3441] bg-[#151D26] p-1"
-                >
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={mensalidadesTab === 'pendentes'}
-                    id="tab-mensalidades-pendentes"
-                    onClick={() => setMensalidadesTab('pendentes')}
-                    className={cn(
-                      'rounded-lg px-4 py-2 text-xs font-bold transition-all sm:px-5',
-                      mensalidadesTab === 'pendentes'
-                        ? 'bg-primary text-[#080A0D] shadow-sm'
-                        : 'text-slate-300 hover:text-white',
-                    )}
-                  >
-                    Pendentes
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={mensalidadesTab === 'pagas'}
-                    id="tab-mensalidades-pagas"
-                    onClick={() => setMensalidadesTab('pagas')}
-                    className={cn(
-                      'rounded-lg px-4 py-2 text-xs font-bold transition-all sm:px-5',
-                      mensalidadesTab === 'pagas'
-                        ? 'bg-primary text-[#080A0D] shadow-sm'
-                        : 'text-slate-300 hover:text-white',
-                    )}
-                  >
-                    Pagas
-                  </button>
-                </div>
-                ) : null}
-              </div>
-
-              {mensalidadeAtiva ? (
-                <div className="mb-5 flex flex-col gap-3 border-y border-[#252B33] py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="relative min-w-0 sm:w-80">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="search"
-                      value={mensalidadeSearch}
-                      onChange={(event) => setMensalidadeSearch(event.target.value)}
-                      placeholder="Buscar filho de santo"
-                      className={cn(appInputClass, 'pl-9')}
-                    />
-                  </label>
-                  <p className="text-xs font-semibold text-slate-300">
-                    {mensalidadesTab === 'pendentes'
-                      ? `${mensalidadesPendentesFiltradas.length} cobrança${mensalidadesPendentesFiltradas.length === 1 ? '' : 's'} em aberto`
-                      : `${mensalidadesPagasFiltradas.length} pagamento${mensalidadesPagasFiltradas.length === 1 ? '' : 's'} confirmado${mensalidadesPagasFiltradas.length === 1 ? '' : 's'}`}
-                  </p>
-                </div>
-              ) : null}
-
-              {!mensalidadeAtiva ? (
-                <div className="rounded-xl border border-[#1E242B] bg-[#12161A] px-6 py-12 text-center">
-                  <p className="text-sm font-bold text-[#F1F5F9]">Mensalidade desativada</p>
-                  <p className="mx-auto mt-2 max-w-md text-sm font-medium text-[#CBD5E1]">
-                    Ative o interruptor acima quando quiser voltar a gerar cobranças e exibir o módulo aos filhos de santo.
-                    Pagamentos antigos continuam no financeiro em Visão geral.
-                  </p>
-                </div>
-              ) : null}
-
-              {mensalidadeAtiva && mensalidadesLoading && (
-                <div className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-300">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  Atualizando lista…
-                </div>
-              )}
-
-              {mensalidadeAtiva && mensalidadesTab === 'pendentes' ? (
-                <div role="tabpanel" aria-labelledby="tab-mensalidades-pendentes">
-                  {mensalidadesPendentesFiltradas.length === 0 && !mensalidadesLoading ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-950/30 px-6 py-14 text-center">
-                      <CheckCircle2 className="mb-4 h-16 w-16 text-emerald-400" aria-hidden />
-                      <p className="text-lg font-bold text-[#F1F5F9]">Tudo em dia!</p>
-                      <p className="mt-2 max-w-md text-sm font-medium leading-relaxed text-[#CBD5E1]">
-                        Nenhuma mensalidade em aberto.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-3 sm:hidden">
-                        {mensalidadesPendentesFiltradas.map((row) => {
-                          const nome = row.filhos_de_santo?.nome || 'Filho de santo';
-                          const fid = row.filho_id || '';
-                          const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
-                          const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
-                          const chargeKey = `${fid}:${venc}`;
-                          const isSendingCharge = sendingChargeKey === chargeKey;
-                          return (
-                            <div key={row.id} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
-                              <div className="mb-3 flex items-start justify-between gap-3">
-                                <h4 className="min-w-0 flex-1 text-base font-bold leading-snug text-[#F1F5F9]">{nome}</h4>
-                                <span className="shrink-0 rounded-full border border-amber-400 bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-900 shadow-xs dark:border-amber-500/30 dark:bg-amber-950/50 dark:text-amber-300">
-                                  Pendente
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <label className="space-y-1.5">
-                                  <span className={appLabelClass}>Valor (R$)</span>
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={valorCampo}
-                                    onChange={(e) =>
-                                      setMensalidadesValorEdits((prev) => ({ ...prev, [row.id]: e.target.value }))
-                                    }
-                                    className={appInputClass}
-                                  />
-                                </label>
-                                <div className="space-y-1.5">
-                                  <span className={appLabelClass}>Vencimento</span>
-                                  <p className="flex h-10 items-center rounded-xl border border-[#1E242B] bg-[#13171D] px-3 text-xs font-bold text-[#94A3B8]">
-                                    {venc ? new Date(`${venc}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="mt-4 grid grid-cols-2 gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => void handleMensalidadeLiquidar(row)}
-                                  disabled={processingMensalidadeId !== null}
-                                  aria-busy={processingMensalidadeId === row.id}
-                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#17251D] bg-[#17251D] text-xs font-black text-white shadow-xs transition hover:bg-[#233B2E] disabled:cursor-wait disabled:opacity-55"
-                                >
-                                  {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                  {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    fid
-                                      ? void handleGerarCobranca(fid, nome, venc, valorCampo)
-                                      : undefined
-                                  }
-                                  disabled={!fid || sendingChargeKey !== null}
-                                  aria-busy={isSendingCharge}
-                                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-600 bg-emerald-50 text-xs font-black text-emerald-900 shadow-xs transition-all hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                  title="Gerar Cobrança WhatsApp"
-                                >
-                                  {isSendingCharge ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                                  {isSendingCharge ? 'Enviando…' : 'Cobrar'}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="hidden sm:block">
-                        <AppDemoTableShell>
-                        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-[#2A3441] bg-[#1A222C]">
-                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Filho</th>
-                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Valor (R$)</th>
-                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Vencimento</th>
-                              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Status</th>
-                              <th className="px-4 py-3 text-right text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[#1E242B]">
-                            {mensalidadesPendentesFiltradas.map((row) => {
-                              const nome = row.filhos_de_santo?.nome || 'Filho de santo';
-                              const fid = row.filho_id || '';
-                              const venc = String(row.data_vencimento || row.data || '').slice(0, 10);
-                              const valorCampo = mensalidadesValorEdits[row.id] ?? String(row.valor ?? '');
-                              const chargeKey = `${fid}:${venc}`;
-                              const isSendingCharge = sendingChargeKey === chargeKey;
-                              return (
-                                <tr key={row.id} className="transition-colors hover:bg-[#F1ECE3]">
-                                  <td className="px-4 py-3 font-bold text-[#25211B]">{nome}</td>
-                                  <td className="px-4 py-3">
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={valorCampo}
-                                      onChange={(e) =>
-                                        setMensalidadesValorEdits((prev) => ({ ...prev, [row.id]: e.target.value }))
-                                      }
-                                      className={cn(appInputClass, 'w-28')}
-                                    />
-                                  </td>
-                                  <td className="px-4 py-3 text-sm font-medium text-[#657083]">
-                                    {venc ? new Date(`${venc}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <span className="rounded-full border border-amber-400 bg-amber-100 px-3 py-1 text-[10px] font-black text-amber-900 shadow-xs dark:border-amber-500/30 dark:bg-amber-950/50 dark:text-amber-300">
-                                      Pendente
-                                    </span>
-                                  </td>
-                                  <td className="space-x-2 px-4 py-3 text-right">
-                                    <button
-                                      type="button"
-                                      onClick={() => void handleMensalidadeLiquidar(row)}
-                                      disabled={processingMensalidadeId !== null}
-                                      aria-busy={processingMensalidadeId === row.id}
-                                      className="inline-flex items-center gap-2 rounded-xl border border-[#17251D] bg-[#17251D] px-4 py-2 text-xs font-black text-white shadow-xs transition hover:bg-[#233B2E] disabled:cursor-wait disabled:opacity-55"
-                                    >
-                                      {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                      {processingMensalidadeId === row.id ? 'Registrando…' : 'Pago'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        fid ? void handleGerarCobranca(fid, nome, venc, valorCampo) : undefined
-                                      }
-                                      disabled={!fid || sendingChargeKey !== null}
-                                      aria-busy={isSendingCharge}
-                                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-900 shadow-xs transition-all hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                      title="Gerar Cobrança WhatsApp"
-                                    >
-                                      {isSendingCharge ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                                      {isSendingCharge ? 'Enviando…' : 'Cobrar'}
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                        </AppDemoTableShell>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : mensalidadeAtiva && mensalidadesTab === 'pagas' ? (
-                <div role="tabpanel" aria-labelledby="tab-mensalidades-pagas" className="space-y-4">
-                  {mensalidadesPagasFiltradas.length === 0 && !mensalidadesLoading ? (
-                    <p className="rounded-xl border border-[#1E242B] bg-[#12161A] py-10 text-center text-sm text-[#94A3B8]">
-                      Nenhuma mensalidade paga registrada no mês atual.
-                    </p>
-                  ) : (
-                    <>
-                      <div className="space-y-3 sm:hidden">
-                        {mensalidadesPagasFiltradas.map((row) => {
-                          const nome = row.filhos_de_santo?.nome || 'Filho de santo';
-                          const pay = String(row.data || '').slice(0, 10);
-                          return (
-                            <div key={row.id} className="rounded-xl border border-[#1E242B] bg-[#12161A] p-4">
-                              <div className="mb-3 flex items-start justify-between gap-3">
-                                <h4 className="min-w-0 flex-1 text-base font-bold leading-snug text-[#F1F5F9]">{nome}</h4>
-                                <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-950/50 px-2.5 py-1 text-[10px] font-bold text-emerald-300">
-                                  Pago
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                  <span className={appLabelClass}>Valor</span>
-                                  <p className="mt-1 font-bold text-emerald-400">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                      Number(row.valor) || 0
-                                    )}
-                                  </p>
-                                </div>
-                                <div>
-                                  <span className={appLabelClass}>Pagamento</span>
-                                  <p className="mt-1 font-bold text-[#94A3B8]">
-                                    {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => void handleMensalidadeEstornar(row)}
-                                disabled={processingMensalidadeId !== null}
-                                aria-busy={processingMensalidadeId === row.id}
-                                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60 disabled:cursor-wait disabled:opacity-55"
-                              >
-                                {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
-                                {processingMensalidadeId === row.id ? 'Estornando…' : 'Estornar pagamento'}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="hidden sm:block">
-                        <AppDemoTableShell>
-                          <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-                            <thead>
-                              <tr className="border-b border-[#2A3441] bg-[#1A222C]">
-                                <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Filho</th>
-                                <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Valor</th>
-                                <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Data do pagamento</th>
-                                <th className="px-4 py-3 text-right text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Ações</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#1E242B]">
-                              {mensalidadesPagasFiltradas.map((row) => {
-                                const nome = row.filhos_de_santo?.nome || 'Filho de santo';
-                                const pay = String(row.data || '').slice(0, 10);
-                                return (
-                                  <tr key={row.id} className="transition-colors hover:bg-[#F1ECE3]">
-                                    <td className="px-4 py-3 font-bold text-[#25211B]">{nome}</td>
-                                    <td className="px-4 py-3 text-sm font-bold text-emerald-400">
-                                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                        Number(row.valor) || 0
-                                      )}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-[#657083]">
-                                      {pay ? new Date(`${pay}T12:00:00`).toLocaleDateString('pt-BR') : '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                      <button
-                                        type="button"
-                                        onClick={() => void handleMensalidadeEstornar(row)}
-                                        disabled={processingMensalidadeId !== null}
-                                        aria-busy={processingMensalidadeId === row.id}
-                                        className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-2 text-xs font-bold text-rose-300 transition-colors hover:bg-rose-950/60 disabled:cursor-wait disabled:opacity-55"
-                                      >
-                                        {processingMensalidadeId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
-                                        {processingMensalidadeId === row.id ? 'Estornando…' : 'Estornar'}
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </AppDemoTableShell>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : null}
-              </AppDemoCard>
-            </>
+            <SacredMensalidadesView
+              receiptPanel={<ReceiptReviewPanel feed={receiptFeed} tenantId={tenantId||''}/>}
+              receiptPendingCount={receiptFeed.pendingCount}
+              receiptOpenIds={receiptFeed.openIds}
+              mensalidadeAtiva={mensalidadeAtiva}
+              isTogglingMensalidade={isTogglingMensalidade}
+              handleToggleMensalidadeAtiva={handleToggleMensalidadeAtiva}
+              mensalidadesTab={mensalidadesTab}
+              setMensalidadesTab={setMensalidadesTab}
+              mensalidadeSearch={mensalidadeSearch}
+              setMensalidadeSearch={setMensalidadeSearch}
+              mensalidadesLoading={mensalidadesLoading}
+              mensalidadesSyncing={mensalidadesSyncing}
+              mensalidadesError={mensalidadesError}
+              onRetryMensalidades={() => void refreshMensalidades()}
+              mensalidadesPendentesFiltradas={mensalidadesPendentesFiltradas}
+              mensalidadesPagasFiltradas={mensalidadesPagasFiltradas}
+              pendingMonthlyTotal={pendingMonthlyTotal}
+              overdueMonthlyCount={overdueMonthlyCount}
+              handleMensalidadeLiquidar={handleMensalidadeLiquidar}
+              handleGerarCobranca={handleGerarCobranca}
+              processingMensalidadeId={processingMensalidadeId}
+              sendingChargeKey={sendingChargeKey}
+              mensalidadesValorEdits={mensalidadesValorEdits}
+              setMensalidadesValorEdits={setMensalidadesValorEdits}
+              formatBRL={formatBRL}
+              onNavigateToConfigs={() => setActiveTab?.('financial-configs')}
+              onNavigateToChildren={() => setActiveTab?.('children')}
+            />
+          ) : activeView === 'cantina' ? (
+            <CantinaView
+              tenantId={tenantId}
+              userId={userId}
+              terreiroNome={tenantData?.nome_terreiro || tenantData?.name || 'Terreiro'}
+              chavePix={pixConfig.chave_pix}
+            />
           ) : activeView === 'caixinha' ? (
             <div className="space-y-8">
               <div className="flex items-center justify-between">

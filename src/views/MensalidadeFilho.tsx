@@ -26,6 +26,9 @@ import { readStaleCache, writeStaleCache, clearStaleCacheKey } from '../lib/stal
 import { format, setDate, addMonths, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isPendingMonthlyEntry } from '../../lib/manualFinance';
+import ReceiptReviewPanel from '../components/financial/ReceiptReviewPanel';
+import {receiptRequest,signalReceiptUpdate,useReceiptReviews} from '../lib/receiptReviewClient';
+import {showHouseToast} from '../lib/houseToast';
 import FilhoMonthlyExperience from '../components/filho/FilhoMonthlyExperience';
 
 interface MensalidadeFilhoProps {
@@ -87,6 +90,16 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
 
   const tenantId = tenantData?.tenant_id;
   const userId = user?.id;
+  const receiptFeed=useReceiptReviews(userId,tenantId,Boolean(userId&&tenantId),'todos');
+  const [selectedReceiptId,setSelectedReceiptId]=useState('');
+  const receiptDebt=useRef('');
+  const uploadRequest=useRef<{key:string;id:string}|null>(null);
+  const uploadingRef=useRef(false);
+  const [receiptMessage,setReceiptMessage]=useState('');
+  const receiptScope=useRef(`${userId}:${tenantId}`);receiptScope.current=`${userId}:${tenantId}`;
+  useEffect(()=>{setReceiptMessage('');setSelectedReceiptId('');receiptDebt.current='';uploadRequest.current=null;},[userId,tenantId]);
+  function requestReceipt(id:string){receiptDebt.current=id;setSelectedReceiptId(id);comprovanteInputRef.current?.click();}
+  useEffect(()=>{if(!pendingMensalidadesList.some(item=>item.id===selectedReceiptId))setSelectedReceiptId(pendingMensalidadesList[0]?.id||'');},[pendingMensalidadesList,selectedReceiptId]);
 
   useEffect(() => {
     if (!userId || !tenantId) {
@@ -359,50 +372,26 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
   }
 
   async function handleEnviarComprovante(file: File) {
-    if (!tenantId) return;
-    const cpfDigits = String(filho?.cpf || '').replace(/\D/g, '');
-    if (cpfDigits.length !== 11) {
-      setCpfError('Complete o CPF (11 dígitos) antes de enviar o comprovante.');
-      alert('Complete o CPF (11 dígitos) antes de enviar o comprovante.');
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      alert('Envie uma imagem do comprovante (JPEG, PNG ou WebP).');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 5 MB.');
-      return;
-    }
-
-    setComprovanteUploading(true);
-    try {
-      const { base64, contentType } = await comprovanteFileToBase64(file);
-      const res = await authFetch('/api/v1/financeiro/validar-comprovante', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenant_id: tenantId,
-          fileData: base64,
-          contentType,
-        }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body.success) {
-        throw new Error(String(body.error || 'Não foi possível validar o comprovante.'));
-      }
-
-      setPendingMensalidade(null);
-      await fetchData();
-      alert('Comprovante validado! Sua mensalidade foi confirmada. Axé!');
-    } catch (error: unknown) {
-      console.error('Erro ao enviar comprovante:', error);
-      const msg = error instanceof Error ? error.message : 'Erro ao validar comprovante.';
-      alert(msg);
-    } finally {
-      setComprovanteUploading(false);
-      if (comprovanteInputRef.current) comprovanteInputRef.current.value = '';
-    }
+    if(!tenantId||uploadingRef.current)return;
+    const debtId=receiptDebt.current||selectedReceiptId;
+    if(!debtId||!pendingMensalidadesList.some(item=>item.id===debtId)){setReceiptMessage('Escolha a mensalidade antes de enviar.');return;}
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||!file.size||file.size>5*1024*1024){setReceiptMessage('Envie uma imagem JPEG, PNG ou WebP de até 5 MB.');return;}
+    const scope=`${userId}:${tenantId}`,key=`${scope}:${debtId}:${file.name}:${file.size}:${file.lastModified}`;
+    if(uploadRequest.current?.key!==key)uploadRequest.current={key,id:crypto.randomUUID()};
+    uploadingRef.current=true;setComprovanteUploading(true);setReceiptMessage('');
+    try{
+      const {base64,contentType}=await comprovanteFileToBase64(file);
+      if(receiptScope.current!==scope)return;
+      const body=await receiptRequest('/api/v1/financeiro/validar-comprovante',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({tenant_id:tenantId,workflow:'manual_review_v1',financeiro_id:debtId,request_id:uploadRequest.current.id,fileData:base64,contentType}),
+      },45_000);
+      if(!body.data?.id)throw Error('O recebimento não foi confirmado. Tente novamente.');
+      if(receiptScope.current!==scope)return;
+      setReceiptMessage(`Comprovante recebido. Protocolo ${String(body.data.id).slice(0,8).toUpperCase()}. Aguarde a análise do zelador; a mensalidade continua pendente.`);
+      showHouseToast('Comprovante recebido para análise do zelador.');signalReceiptUpdate();void receiptFeed.refresh();
+    }catch(error){if(receiptScope.current===scope)setReceiptMessage(error instanceof Error?error.message:'Não foi possível enviar. Tente novamente.');}
+    finally{uploadingRef.current=false;setComprovanteUploading(false);if(comprovanteInputRef.current)comprovanteInputRef.current.value='';}
   }
 
   if (loading && filho == null) {
@@ -422,6 +411,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
     return (
       <AppPageShell fullWidth>
         {loadError && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">{loadError} <button type="button" className="underline font-bold" onClick={() => void fetchData()}>Tentar novamente</button></div>}
+        {receiptMessage&&<p role="status" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">{receiptMessage}</p>}
         <FilhoMonthlyExperience
           active={mensalidadeAtiva || pendingMensalidadesList.length > 0}
           pending={pendingMensalidade}
@@ -437,6 +427,10 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           cpfError={cpfError}
           history={mensalidades}
           linkedTransactions={linkedTransactions}
+          selectedReceiptId={selectedReceiptId}
+          onSelectReceiptId={setSelectedReceiptId}
+          onRequestReceipt={requestReceipt}
+          receiptOpenIds={receiptFeed.openIds}
           receiptInputRef={comprovanteInputRef}
           onOpenPix={() => void openPixModal()}
           onOpenPixItem={(item) => void openPixModal(item)}
@@ -448,6 +442,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           }}
           onSaveCpf={() => void handleSaveFullCpf()}
         />
+        <section className="my-6 rounded-xl border border-[#E0D7C6] bg-white p-4 sm:p-6"><ReceiptReviewPanel feed={receiptFeed} tenantId={tenantId||''} admin={false}/></section>
         <PixPaymentModal
           open={pixModalOpen}
           onClose={() => setPixModalOpen(false)}

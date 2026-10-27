@@ -1,3 +1,4 @@
+import { withoutReceiptReviews } from './receiptReviewReminders.js';
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { differenceInCalendarDays, format, parseISO, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -211,7 +212,7 @@ async function runMensalidadeReminders(
         .gte("data", monthStart)
         .lte("data", monthEnd);
 
-      const unpaid = (pendingRows || []).filter((row) => rowIsUnpaidMensalidade(row));
+      const unpaid = await withoutReceiptReviews(sb, (pendingRows || []).filter((row) => rowIsUnpaidMensalidade(row)));
       if (unpaid.length === 0) {
         skipped++;
         continue;
@@ -260,6 +261,7 @@ async function runMensalidadeReminders(
         let digits = String(phone).replace(/\D/g, "");
         if (!digits.startsWith("55")) digits = `55${digits}`;
 
+        if(!(await withoutReceiptReviews(sb,[currentRow])).length){skipped++;continue;}
         await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: fid,

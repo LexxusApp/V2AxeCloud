@@ -1,3 +1,4 @@
+import { withoutReceiptReviews } from './receiptReviewReminders.js';
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,6 +37,7 @@ type FinanceRow = {
 };
 
 export type AdminMensalidadeRecipient = {
+  financeiroId?: string;
   filhoId: string;
   nome: string;
   phone: string;
@@ -156,7 +158,7 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
   if (financeResult.error) throw financeResult.error;
 
   const pendingByChild = new Map<string, FinanceRow>();
-  for (const row of (financeResult.data || []) as FinanceRow[]) {
+  for (const row of await withoutReceiptReviews(sb, (financeResult.data || []) as FinanceRow[])) {
     if (!isUnpaid(row)) continue;
     const filhoId = rowFilhoId(row);
     if (filhoId && !pendingByChild.has(filhoId)) pendingByChild.set(filhoId, row);
@@ -189,6 +191,7 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
     const valor = Number(pending.valor || 0);
     const dueYmd = String(pending.data_vencimento || pending.data || "").slice(0, 10);
     recipients.push({
+      financeiroId: pending.id || undefined,
       filhoId,
       nome: String(child.nome || "Membro"),
       phone,
@@ -241,6 +244,7 @@ export async function sendAdminMensalidadeDispatch(
 
   let sent = 0;
   let failed = 0;
+  let reviewSkipped = 0;
   const results: Array<{ filhoId: string; nome: string; ok: boolean; error?: string }> = [];
   for (const target of targets) {
     try {
@@ -258,6 +262,7 @@ export async function sendAdminMensalidadeDispatch(
         data_vencimento: target.vencimentoBr,
       };
       const message = buildWhatsAppMessage(preview.templates, "cobranca_mensalidade", variables);
+      if(target.financeiroId&&!(await withoutReceiptReviews(sb,[{id:target.financeiroId}])).length){reviewSkipped++;continue;}
       await logAndSendWhatsApp(sb, {
         tenantId: preview.tenantId,
         filhoId: target.filhoId,
@@ -282,5 +287,5 @@ export async function sendAdminMensalidadeDispatch(
     }
   }
 
-  return { sent, failed, skipped: preview.alreadySentToday, results };
+  return { sent, failed, skipped: preview.alreadySentToday+reviewSkipped, results };
 }

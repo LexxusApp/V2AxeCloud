@@ -31,6 +31,10 @@ type MonthlyItem = {
 };
 
 type Props = {
+  selectedReceiptId?: string;
+  onSelectReceiptId?: (id:string)=>void;
+  onRequestReceipt?: (id:string)=>void;
+  receiptOpenIds?: string[];
   active: boolean;
   pending: { valor?: number | string } | null;
   pendingList?: MonthlyItem[];
@@ -39,7 +43,7 @@ type Props = {
   pixConfig: PixConfig | null;
   pixUnavailable: boolean;
   uploading: boolean;
-  /** CPF com menos de 11 dígitos — comprovante automático exige completo. */
+  /** CPF pode ser completado sem bloquear o envio para revisão. */
   needsFullCpf: boolean;
   cpfDraft: string;
   cpfSaving: boolean;
@@ -84,6 +88,7 @@ function isDateOverdue(dateStr?: string) {
 }
 
 export default function FilhoMonthlyExperience({
+  selectedReceiptId, onSelectReceiptId, onRequestReceipt, receiptOpenIds=[],
   active,
   pending,
   pendingList = [],
@@ -110,7 +115,8 @@ export default function FilhoMonthlyExperience({
   const isPending = active && pendingItems.length > 0;
   const totalPending = pendingItems.reduce((acc, it) => acc + (Number(it.valor) || 0), 0);
   const currentValue = totalPending || (pending?.valor || configuredValue);
-  const receiptBlocked = needsFullCpf;
+  const selectedDebt=selectedReceiptId||pendingItems[0]?.id||'';
+  const receiptBlocked = !selectedDebt || receiptOpenIds.includes(selectedDebt);
 
   return (
     <div className="filho-wallet-page">
@@ -191,7 +197,7 @@ export default function FilhoMonthlyExperience({
                         <p className="text-sm font-black text-emerald-900 mt-0.5">{money(item.valor)}</p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => onOpenPixItem ? onOpenPixItem(item) : onOpenPix()}
@@ -200,6 +206,7 @@ export default function FilhoMonthlyExperience({
                         >
                           <QrCode className="h-3.5 w-3.5" /> Pagar PIX
                         </button>
+                        {receiptOpenIds.includes(item.id)?<span className="text-xs font-bold text-amber-900">Em análise pelo zelador</span>:<button type="button" disabled={uploading} className="min-h-11 rounded-lg border border-[#B9AD95] bg-white px-3 py-2 text-xs font-bold text-[#17251D]" onClick={()=>onRequestReceipt?.(item.id)}>Enviar comprovante</button>}
                       </div>
                     </div>
                   );
@@ -212,7 +219,7 @@ export default function FilhoMonthlyExperience({
                 {needsFullCpf ? (
                   <div className="filho-wallet-cpf-gate">
                     <p>
-                      Para validar o comprovante automático, complete seu CPF (11 dígitos). A senha de
+                      Você pode completar seu CPF para facilitar a conferência. Isso não impede o envio do comprovante. A senha de
                       login continua sendo só os 6 primeiros.
                     </p>
                     <div className="filho-wallet-cpf-gate__row">
@@ -233,6 +240,7 @@ export default function FilhoMonthlyExperience({
                     {cpfError ? <small className="filho-wallet-cpf-gate__error">{cpfError}</small> : null}
                   </div>
                 ) : null}
+                {pendingItems.length>1&&<label className="mb-3 block text-sm font-bold text-[#17251D]">Mensalidade do comprovante<select className="mt-1 min-h-11 w-full rounded-xl border border-[#C8C0AF] bg-white px-3 text-sm" value={selectedDebt} onChange={event=>onSelectReceiptId?.(event.target.value)}>{pendingItems.map(item=><option key={item.id} value={item.id}>{formatMonthYear(item.data)} · {money(item.valor)}</option>)}</select></label>}
                 <div className="filho-wallet-current__actions">
                   <button type="button" onClick={onOpenPix} disabled={pixUnavailable} data-filho-tour="mensalidade-pix">
                     <QrCode /> Pagar com PIX
@@ -240,7 +248,7 @@ export default function FilhoMonthlyExperience({
                   <input
                     ref={receiptInputRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     hidden
                     disabled={uploading || receiptBlocked}
                     onChange={(event) => {
@@ -251,11 +259,11 @@ export default function FilhoMonthlyExperience({
                   <button
                     type="button"
                     disabled={uploading || receiptBlocked}
-                    onClick={() => receiptInputRef.current?.click()}
+                    onClick={() => onRequestReceipt?.(selectedDebt)}
                     data-filho-tour="mensalidade-comprovante"
                   >
                     {uploading ? <Loader2 className="animate-spin" /> : <Upload />}
-                    {uploading ? 'Analisando...' : receiptBlocked ? 'Complete o CPF primeiro' : 'Enviar comprovante'}
+                    {uploading ? 'Enviando para análise…' : receiptBlocked ? 'Comprovante em análise' : 'Enviar comprovante'}
                   </button>
                 </div>
                 {pixUnavailable ? <p className="filho-wallet-current__warning">A casa ainda não cadastrou uma chave PIX.</p> : null}
@@ -272,8 +280,8 @@ export default function FilhoMonthlyExperience({
             <header><Landmark /><div><p>Como funciona</p><h2>Simples e reservado.</h2></div></header>
             <ol>
               <li><span>1</span><p><strong>Faça o PIX</strong><small>Use o QR Code gerado para a casa.</small></p></li>
-              <li><span>2</span><p><strong>Envie o comprovante</strong><small>O AxéCloud confere os dados da imagem.</small></p></li>
-              <li><span>3</span><p><strong>Acompanhe a confirmação</strong><small>O pagamento entra no histórico pessoal.</small></p></li>
+              <li><span>2</span><p><strong>Envie o comprovante</strong><small>A IA ajuda a ler a imagem; o zelador confere o recebimento.</small></p></li>
+              <li><span>3</span><p><strong>Acompanhe a confirmação</strong><small>Após a confirmação do zelador, o pagamento entra no histórico.</small></p></li>
             </ol>
             <p className="filho-wallet-guide__privacy"><ShieldCheck /> Sua contribuição não fica exposta para a corrente.</p>
           </aside>

@@ -30,11 +30,9 @@ export function isComprovanteDateCompatible(
   const [year, month] = competence.split("-").map(Number);
   const min = new Date(Date.UTC(year, month - 1, 1));
   min.setUTCDate(min.getUTCDate() - 7);
-  const max = new Date(Date.UTC(year, month, 0));
-  max.setUTCDate(max.getUTCDate() + 15);
-  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const today = new Date(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(now)+'T00:00:00.000Z');
   const paidAt = new Date(`${payment}T00:00:00.000Z`);
-  return paidAt >= min && paidAt <= max && paidAt <= tomorrow;
+  return paidAt >= min && paidAt <= today;
 }
 
 function normalizedName(raw: string): string {
@@ -50,13 +48,8 @@ export function comprovanteBeneficiarioMatches(expected: string, extracted: stri
   const a = normalizedName(expected);
   const b = normalizedName(extracted);
   if (!a || !b) return false;
-  if (a.includes(b) || b.includes(a)) return true;
-  const meaningful = (value: string) => value.split(" ").filter((token) => token.length >= 3);
-  const expectedTokens = meaningful(a);
-  const extractedTokens = new Set(meaningful(b));
-  if (expectedTokens.length === 0) return false;
-  const matches = expectedTokens.filter((token) => extractedTokens.has(token)).length;
-  return matches >= Math.min(2, expectedTokens.length);
+  const legalSuffix=(value:string)=>value.replace(/\s+(ltda|eireli|me|epp|s a)$/,'');
+  return legalSuffix(a)===legalSuffix(b);
 }
 
 export function normalizeComprovanteTransactionId(raw: string): string {
@@ -102,7 +95,7 @@ export function cpfComprovanteMatches(fullCadastroCpf: string, rawExtracted: str
       visible++;
       if (c !== full[i]) return false;
     }
-    return visible >= 3;
+    return visible >= 6;
   }
 
   // Somente os 6 dígitos do meio (padrão BACEN ***.456.789-**)
@@ -111,9 +104,5 @@ export function cpfComprovanteMatches(fullCadastroCpf: string, rawExtracted: str
   }
 
   // Últimos recursos: sequência visível suficiente contida no CPF completo
-  if (!hasMask && onlyDigits.length >= 4 && onlyDigits.length < 11) {
-    return full.includes(onlyDigits);
-  }
-
   return false;
 }

@@ -1,3 +1,4 @@
+import {receiptRequest,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -578,10 +579,14 @@ export default function NotificationPanel({
       inFlight = true;
       setLoading(true);
       try {
-        const result = isFilho
-          ? await loadFilhoNotifications(tenantId)
-          : await loadZeladorNotifications(tenantId, userId ?? null);
-        const items = result.items;
+        const [base,receipts]=await Promise.allSettled([
+          isFilho?loadFilhoNotifications(tenantId):loadZeladorNotifications(tenantId,userId??null),
+          receiptRequest(`/api/v1/financial/comprovantes/eventos?tenantId=${encodeURIComponent(tenantId)}`),
+        ]);
+        const result=base.status==='fulfilled'?base.value:{items:[],partial:true};
+        const receiptItems=receipts.status==='fulfilled'?(receipts.value.data||[]):[];
+        if(receipts.status==='rejected')result.partial=true;
+        const items = [...result.items,...receiptItems];
         if (!isFilho) {
           const trialFollowup = buildTrialFollowup(tenantData);
           if (trialFollowup) items.unshift(trialFollowup);
@@ -614,9 +619,10 @@ export default function NotificationPanel({
     reloadRef.current = () => { void load(); void inbox.sync(); };
     void load();
     const interval = window.setInterval(() => void load(), 120_000);
+    const refreshReceipt=()=>void load();window.addEventListener(RECEIPT_UPDATED,refreshReceipt);
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      window.clearInterval(interval);window.removeEventListener(RECEIPT_UPDATED,refreshReceipt);
     };
   }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, tenantData?.whatsapp_missing, userId, whatsappResolved, inbox, scope]);
 
