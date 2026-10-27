@@ -72,7 +72,8 @@ function isPreservedUiPrefKey(key: string): boolean {
     key.startsWith(OBRIGACOES_SEEN_PREFIX) ||
     // Insights do dashboard (ex.: card do YLÊ) — senão voltam a cada login
     key.startsWith('axecloud:insight:') ||
-    key.startsWith('axecloud:notification-inbox:v1:')
+    key.startsWith('axecloud:notification-inbox:v1:') ||
+    key.startsWith('axecloud:filho-tour-seen:v1:')
   );
 }
 

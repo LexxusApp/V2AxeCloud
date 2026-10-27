@@ -22,7 +22,7 @@ export function AppRuntimeOverlays({ showLegalTermsModal, onAcceptLegalTerms, le
     <>
       <ConfirmActionDialog />
       {showLegalTermsModal ? <LegalTermsModal open onAccept={onAcceptLegalTerms} accepting={legalTermsAccepting} /> : null}
-      {userRole === 'filho' && session && !showLegalTermsModal ? <FilhoCoachTour activeTab={activeTab} onNavigate={onNavigate} /> : null}
+      {userRole === 'filho' && session && !showLegalTermsModal ? <FilhoCoachTour key={session.user.id} userId={session.user.id} activeTab={activeTab} onNavigate={onNavigate} /> : null}
       {session && effectiveTenantId && !blockingSpinnerActive ? <ChatFloatingWidget tenantData={tenantData} userId={session.user.id} userRole={userRole} /> : null}
     </>
   );

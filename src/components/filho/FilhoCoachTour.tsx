@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ArrowRight, X } from 'lucide-react';
 import {
   FILHO_OPEN_TOUR_EVENT,
-  FILHO_TOUR_DONE_KEY,
   FILHO_TOUR_STEPS,
   type FilhoTourStep,
 } from '../../constants/filhoGuide';
-import { safeLocalStorageGet, safeLocalStorageSet } from '../../lib/browserCapabilities';
+import { supabase } from '../../lib/supabase';
+import { createFilhoTourPreference, FILHO_TOUR_ACCOUNT_FIELD } from '../../lib/filhoTourPreference';
 
 type FilhoCoachTourProps = {
+  userId: string;
   activeTab: string;
   onNavigate: (tab: string) => void;
 };
@@ -54,42 +55,71 @@ function pickPlacement(
   return space.bottom >= space.top ? 'bottom' : 'top';
 }
 
-export function FilhoCoachTour({ activeTab, onNavigate }: FilhoCoachTourProps) {
+export function FilhoCoachTour({ userId, activeTab, onNavigate }: FilhoCoachTourProps) {
   const [active, setActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [box, setBox] = useState<AnchorBox | null>(null);
   const [placement, setPlacement] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
   const [waiting, setWaiting] = useState(false);
+  const preference = useMemo(() => {
+    let storage: Storage | undefined;
+    try { storage = localStorage; } catch { /* Private mode. */ }
+    const currentUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error || data.user?.id !== userId) throw new Error('Sessão do guia indisponível.');
+      return data.user;
+    };
+    return createFilhoTourPreference(userId, storage, {
+      read: async () => (await currentUser()).user_metadata?.[FILHO_TOUR_ACCOUNT_FIELD] === true,
+      markSeen: async () => {
+        const user = await currentUser();
+        if (user.user_metadata?.[FILHO_TOUR_ACCOUNT_FIELD] === true) return;
+        const { error } = await supabase.auth.updateUser({ data: { [FILHO_TOUR_ACCOUNT_FIELD]: true } });
+        if (error) throw error;
+      },
+    });
+  }, [userId]);
 
   const step = FILHO_TOUR_STEPS[stepIndex] ?? null;
   const total = FILHO_TOUR_STEPS.length;
 
   const finish = useCallback(() => {
-    safeLocalStorageSet(FILHO_TOUR_DONE_KEY, '1');
+    preference.markSeen();
     setActive(false);
     setBox(null);
     setWaiting(false);
-  }, []);
+  }, [preference]);
 
   const start = useCallback(() => {
+    // Automatic presentation happens once, even if the user leaves before the final step.
+    preference.markSeen();
     setStepIndex(0);
     setActive(true);
-  }, []);
+  }, [preference]);
 
   useEffect(() => {
-    const onOpen = () => start();
+    let cancelled = false;
+    let timer: number | undefined;
+    const onOpen = () => { if (timer) window.clearTimeout(timer); start(); };
     window.addEventListener(FILHO_OPEN_TOUR_EVENT, onOpen);
-
-    if (safeLocalStorageGet(FILHO_TOUR_DONE_KEY) !== '1') {
-      const t = window.setTimeout(() => start(), 700);
-      return () => {
-        window.clearTimeout(t);
-        window.removeEventListener(FILHO_OPEN_TOUR_EVENT, onOpen);
-      };
-    }
-
-    return () => window.removeEventListener(FILHO_OPEN_TOUR_EVENT, onOpen);
-  }, [start]);
+    const check = async () => {
+      const seen = await preference.refresh();
+      if (cancelled || seen !== false) return;
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(start, 700);
+    };
+    const reconnect = () => { if (document.visibilityState === 'visible') void check(); };
+    void check();
+    window.addEventListener('online', reconnect);
+    window.addEventListener('focus', reconnect);
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      window.removeEventListener(FILHO_OPEN_TOUR_EVENT, onOpen);
+      window.removeEventListener('online', reconnect);
+      window.removeEventListener('focus', reconnect);
+    };
+  }, [start, preference]);
 
   const goNext = useCallback(() => {
     setStepIndex((i) => {
