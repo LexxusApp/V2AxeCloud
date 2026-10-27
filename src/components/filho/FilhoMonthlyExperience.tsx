@@ -172,23 +172,23 @@ export default function FilhoMonthlyExperience({
                   return (
                     <div
                       key={item.id || idx}
-                      className="rounded-xl border border-amber-400/40 bg-black/40 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                      className="rounded-xl border border-amber-300 bg-[#FAF4E6] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-amber-300 shrink-0" />
-                          <span className="font-black text-[#F1F5F9] text-sm">{formatMonthYear(item.data)}</span>
+                          <CalendarDays className="h-4 w-4 text-amber-800 shrink-0" />
+                          <span className="font-black text-[#17251D] text-sm">{formatMonthYear(item.data)}</span>
                           <span
                             className={cn(
                               "rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider",
-                              overdue ? "bg-rose-500/20 text-rose-300" : "bg-amber-400/20 text-amber-300"
+                              overdue ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-900"
                             )}
                           >
                             {overdue ? "Em atraso" : "A vencer"}
                           </span>
                         </div>
-                        <p className="text-xs text-[#94A3B8] mt-1 truncate">{item.descricao || "Mensalidade do terreiro"}</p>
-                        <p className="text-sm font-black text-amber-200 mt-0.5">{money(item.valor)}</p>
+                        <p className="text-xs text-[#635A4B] mt-1 break-words">{item.descricao?.replace(/\s*\(ID:[^)]*\)/gi, '') || "Mensalidade do terreiro"}</p>
+                        <p className="text-sm font-black text-emerald-900 mt-0.5">{money(item.valor)}</p>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
@@ -299,7 +299,7 @@ export default function FilhoMonthlyExperience({
         <header><div><p>Registros da zeladoria</p><h2>Outros lançamentos vinculados a você</h2></div></header>
         <div className="filho-wallet-history__list">{linkedTransactions.map(item => <article key={item.id}>
           <div className="filho-wallet-history__icon"><ReceiptText /></div>
-          <div className="filho-wallet-history__copy"><span>{item.tipo === 'saida' ? 'Saída do caixa' : 'Entrada no caixa'} · {item.categoria}</span><h3>{item.descricao}</h3><p><CalendarDays /> {safeDate(item.data)}</p></div>
+          <div className="filho-wallet-history__copy"><span>{item.tipo === 'saida' ? 'Saída do caixa' : 'Entrada no caixa'} · {item.categoria}</span><h3>{item.descricao?.replace(/\s*\(ID:[^)]*\)/gi, '')}</h3><p><CalendarDays /> {safeDate(item.data)}</p></div>
           <div className="filho-wallet-history__value"><strong>{money(item.valor)}</strong></div>
         </article>)}</div>
       </section>}
