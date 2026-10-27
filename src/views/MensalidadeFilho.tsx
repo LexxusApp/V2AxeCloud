@@ -388,8 +388,8 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
       },45_000);
       if(!body.data?.id)throw Error('O recebimento não foi confirmado. Tente novamente.');
       if(receiptScope.current!==scope)return;
-      setReceiptMessage(`Comprovante recebido. Protocolo ${String(body.data.id).slice(0,8).toUpperCase()}. Aguarde a análise do zelador; a mensalidade continua pendente.`);
-      showHouseToast('Comprovante recebido para análise do zelador.');signalReceiptUpdate();void receiptFeed.refresh();
+      setReceiptMessage(`${body.message||'Comprovante recebido para análise do zelador.'} Protocolo ${String(body.data.id).slice(0,8).toUpperCase()}.`);
+      showHouseToast(body.data.status==='em_analise'?'Comprovante recebido para análise do zelador.':'Situação do comprovante atualizada.');signalReceiptUpdate();void receiptFeed.refresh();
     }catch(error){if(receiptScope.current===scope)setReceiptMessage(error instanceof Error?error.message:'Não foi possível enviar. Tente novamente.');}
     finally{uploadingRef.current=false;setComprovanteUploading(false);if(comprovanteInputRef.current)comprovanteInputRef.current.value='';}
   }

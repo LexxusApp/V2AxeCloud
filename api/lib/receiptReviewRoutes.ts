@@ -78,9 +78,10 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
     return rows.map(row=>{const f=debts.get(row.financeiro_id);return {...dto(row),nome:names.get(row.filho_id)||'Membro',valor_atual:Number(f?.valor??row.submitted_value),competencia:String(f?.data_vencimento||f?.data||'').slice(0,10)};});
   }
   function sendSubmission(res:Response,row:any,v2:boolean){
-    const message='Comprovante recebido. Aguarde a análise do zelador; a mensalidade ainda não foi quitada.';
+    const reviewing=row.status==='em_analise';
+    const message=reviewing?'Comprovante recebido. Aguarde a análise do zelador; a mensalidade ainda não foi quitada.':row.status==='aceito'?'Este comprovante já teve o recebimento confirmado pelo zelador.':row.status==='rejeitado'?'Este comprovante foi rejeitado. Consulte o motivo no histórico antes de realizar outro envio.':'Esta mensalidade foi encerrada por outra via. Consulte seu histórico.';
     res.setHeader('Cache-Control','private, no-store');
-    return res.status(202).json({success:v2,status:row.status,requires_review:true,data:dto(row),message,...(!v2?{error:message}:{}),replayed:Boolean(row.replayed)});
+    return res.status(202).json({success:v2,status:row.status,requires_review:reviewing,data:dto(row),message,...(!v2?{error:message}:{}),replayed:Boolean(row.replayed)});
   }
 
   app.post('/api/v1/financeiro/validar-comprovante',comprovanteVisionRateLimit,async(req,res)=>{
