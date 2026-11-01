@@ -1,6 +1,6 @@
 /* Expiração em horário de Brasília e métricas agregadas da divulgação. */
 (() => {
-  const entries = [...document.querySelectorAll('[data-ritual-id][data-ritual-until]')];
+  const entries = [...document.querySelectorAll('[data-ritual-id]')];
   if (!entries.length) return;
   const seen = new Set();
   const track = (event, entry, extra = {}) => {
@@ -10,6 +10,7 @@
   };
   const expire = () => {
     for (const entry of entries) {
+      if (!entry.dataset.ritualUntil) continue;
       if (Date.now() < Date.parse(entry.dataset.ritualUntil)) continue;
       if (!entry.hasAttribute('data-ritual-detail')) {
         entry.hidden = true;
@@ -33,7 +34,7 @@
     const link = event.target.closest?.('[data-ritual-action]');
     const entry = link?.closest('[data-ritual-id]');
     if (!entry) return;
-    track(`ritual_promotion_${link.dataset.ritualAction}`, entry, { destination: link.pathname, archived: Date.now() >= Date.parse(entry.dataset.ritualUntil) });
+    track(`ritual_promotion_${link.dataset.ritualAction}`, entry, { destination: link.pathname, archived: Boolean(entry.dataset.ritualUntil && Date.now() >= Date.parse(entry.dataset.ritualUntil)) });
   });
   const observeViews = () => {
     if (!('IntersectionObserver' in window)) return;

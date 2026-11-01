@@ -39,7 +39,7 @@ export async function ritualPromotionMetrics(request, env, fetchData = fetch) {
         count(ritual, 'ritual_promotion_details', 'directory'),
         count(ritual, 'ritual_promotion_whatsapp'),
       ]);
-      return { id: ritual.id, title: ritual.title, date: ritual.date, impressions, detailOpens, whatsappClicks };
+      return { id: ritual.id, title: ritual.title, date: ritual.date || null, impressions, detailOpens, whatsappClicks };
     }));
     return json({ days, since, measuredAt: new Date().toISOString(), rows });
   } catch {

@@ -146,6 +146,13 @@ const SITEMAP_BASE_ROUTES = [
     comment: 'Agenda de eventos públicos',
   },
   {
+    path: '/anuncios/atelie-fios-de-encantaria',
+    changeFrequency: 'monthly',
+    priority: 0.6,
+    lastModified: '2026-11-01',
+    comment: 'Anúncio do Ateliê Fios de Encantaria',
+  },
+  {
     path: '/conteudo/calendario-liturgico',
     changeFrequency: 'yearly',
     priority: 0.75,
@@ -155,8 +162,8 @@ const SITEMAP_BASE_ROUTES = [
 
 export const SITEMAP_ROUTES = SITEMAP_BASE_ROUTES.map((route) => ({
   ...route,
-  lastModified:
+  lastModified: route.lastModified || (
     route.path === '/termos' || route.path === '/privacidade'
       ? LEGAL_CONTENT_LASTMOD
-      : PUBLIC_SITE_SHELL_LASTMOD,
+      : PUBLIC_SITE_SHELL_LASTMOD),
 }));

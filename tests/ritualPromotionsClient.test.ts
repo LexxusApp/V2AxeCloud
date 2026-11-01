@@ -5,6 +5,18 @@ import { runInNewContext } from 'node:vm';
 
 const source = readFileSync(new URL('../cinematic-site/rituais.js', import.meta.url), 'utf8');
 
+test('anúncio sem data permanece visível e mede cliques sem marcar como arquivado',()=>{
+ const events:any[]=[];
+ const entry={dataset:{ritualId:'atelie-fios-de-encantaria'},hidden:false,hasAttribute:()=>true};
+ const listeners:any={};
+ const document={readyState:'complete',querySelectorAll:()=>[entry],querySelector:()=>null,addEventListener:(name:string,fn:any)=>{listeners[name]=fn;}};
+ runInNewContext(source,{document,window:{axeTrack:(event:any,metadata:any)=>events.push({event,metadata})},Date,setInterval(){}});
+ assert.equal(entry.hidden,false);
+ listeners.click({target:{closest:()=>({dataset:{ritualAction:'whatsapp'},pathname:'/5511954409080',closest:()=>entry})}});
+ assert.equal(events[0].metadata.archived,false);
+ assert.equal(events[0].metadata.promotionId,'atelie-fios-de-encantaria');
+});
+
 test('página já entregue retira os destaques vencidos e conserva apenas o contato para próximos rituais', () => {
   let now = Date.parse('2026-11-02T23:59:00-03:00');
   const deadline = '2026-11-03T00:00:00-03:00';

@@ -40,5 +40,29 @@
       "Valor: R$ 127,00. Traga sua fé, seu pedido e deixe o Rei Paimon cuidar do resto.",
       "Entre em contato para mais informações e garantir sua vaga."
     ]
+  },
+  {
+    "id": "atelie-fios-de-encantaria",
+    "kind": "advertisement",
+    "slug": "atelie-fios-de-encantaria",
+    "title": "Ateliê Fios de Encantaria",
+    "temple": "Roupas de Axé · Tecidos exclusivos",
+    "description": "Roupas de Axé sob encomenda, com tecidos estampados exclusivos e personalização de acordo com a sua Nação. Conheça os modelos e consulte o ateliê pelo WhatsApp.",
+    "image": "/assets/atelie-fios-de-encantaria-capa.webp",
+    "imageWidth": 1169,
+    "imageHeight": 1280,
+    "whatsapp": "5511954409080",
+    "services": [
+      "Saias, pano da costa e pano de cabeça",
+      "Conjuntos completos sob encomenda",
+      "Tecidos estampados exclusivos",
+      "Personalização de acordo com a sua Nação"
+    ],
+    "gallery": [
+      { "image": "/assets/atelie-fios-de-encantaria-multicolorido.webp", "alt": "Conjunto com estampa multicolorida: saia, pano da costa e pano de cabeça" },
+      { "image": "/assets/atelie-fios-de-encantaria-tons-terrosos.webp", "alt": "Conjunto com estampa em tons terrosos: saia, pano da costa e pano de cabeça" },
+      { "image": "/assets/atelie-fios-de-encantaria-branco-dourado.webp", "alt": "Conjunto com estampa branca e dourada: saia, pano da costa e pano de cabeça" },
+      { "image": "/assets/atelie-fios-de-encantaria-vermelho-dourado.webp", "alt": "Conjunto com estampa vermelha e dourada: saia, pano da costa e pano de cabeça" }
+    ]
   }
 ]

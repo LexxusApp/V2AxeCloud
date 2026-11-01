@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildGoogleAdsHeadSnippet } from './google-ads-snippet.mjs';
-import { renderFeaturedRituals, renderRitualPage } from './lib/featuredRituals.mjs';
+import { renderFeaturedRituals, renderRitualPage, ritualPath } from './lib/featuredRituals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(ROOT, 'cinematic-site');
@@ -22,7 +22,7 @@ const pages = new Map([
   ['calendario-liturgico.html', 'conteudo/calendario-liturgico/index.html'],
   ['por-que-axecloud.html', 'por-que-axecloud/index.html'],
   ['espaco-do-fiel.html', 'espaco-do-fiel/index.html'],
-  ...rituals.map((ritual) => [`ritual:${ritual.id}`, `eventos/${ritual.slug}/index.html`]),
+  ...rituals.map((ritual) => [`ritual:${ritual.id}`, `${ritualPath(ritual).slice(1)}/index.html`]),
 ]);
 
 const assets = new Map([
@@ -34,6 +34,7 @@ const assets = new Map([
   ['/rituais.css', path.join(SOURCE, 'rituais.css')],
   ['/rituais.js', path.join(SOURCE, 'rituais.js')],
   ...rituals.map((ritual) => [ritual.image, path.join(SOURCE, ritual.image.slice(1))]),
+  ...rituals.flatMap((ritual) => (ritual.gallery || []).map((item) => [item.image, path.join(SOURCE, item.image.slice(1))])),
   ['/shared-footer.js', path.join(SOURCE, 'shared-footer.js')],
   ['/favicon.svg', path.join(SOURCE, 'favicon.svg')],
   ['/production-bridge.js', path.join(SOURCE, 'production-bridge.js')],
@@ -186,4 +187,14 @@ for (const [sourceName, outputRelative] of pages) {
   fs.writeFileSync(destination, html, 'utf8');
 }
 
+// Inclui os anúncios e detalhes no sitemap estático sem refazer o diretório.
+const staticSitemap = path.join(OUT, 'sitemap-static.xml');
+if (fs.existsSync(staticSitemap)) {
+  let xml = fs.readFileSync(staticSitemap, 'utf8');
+  for (const promotion of rituals) {
+    const location = `https://axecloud.com.br${ritualPath(promotion)}`;
+    if (!xml.includes(`<loc>${location}</loc>`)) xml = xml.replace('</urlset>', `<url><loc>${location}</loc><lastmod>${buildTime.toISOString().slice(0,10)}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n</urlset>`);
+  }
+  fs.writeFileSync(staticSitemap, xml, 'utf8');
+}
 console.log(`[cinematic] ${pages.size} páginas instaladas com ${assets.size + 1} assets versionados.`);

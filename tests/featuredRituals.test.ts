@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { isRitualActive, renderFeaturedRituals, renderRitualPage, ritualWhatsAppUrl } from '../scripts/lib/featuredRituals.mjs';
 
-const rituals = JSON.parse(readFileSync(new URL('../cinematic-site/featured-rituals.json', import.meta.url), 'utf8'));
+const promotions = JSON.parse(readFileSync(new URL('../cinematic-site/featured-rituals.json', import.meta.url), 'utf8'));
+const rituals = promotions.filter((item: any) => item.kind !== 'advertisement');
 const [azazel, paimon] = rituals;
 
 test('destaques expiram ao terminar o dia do ritual em Brasília, independentemente do fuso do visitante', () => {
@@ -15,6 +16,25 @@ test('destaques expiram ao terminar o dia do ritual em Brasília, independenteme
   assert.doesNotMatch(middle, /data-ritual-id="azazel-2026"/);
   assert.match(middle, /data-ritual-id="rei-paimon-2026"/);
   assert.equal(renderFeaturedRituals(rituals, new Date('2026-11-14T03:00:00Z')), '');
+});
+
+test('anúncio do ateliê mantém contato correto, cinco imagens e não inventa data ou preço', () => {
+  const ad = promotions.find((item: any) => item.id === 'atelie-fios-de-encantaria');
+  assert.ok(ad);
+  assert.equal(isRitualActive(ad,new Date('2030-01-01')),true);
+  const page=renderRitualPage(ad);
+  assert.match(page,/Anúncio patrocinado/);
+  assert.match(page,/https:\/\/axecloud.com.br\/anuncios\/atelie-fios-de-encantaria/);
+  assert.match(page,/\(11\) 95440-9080/);
+  assert.doesNotMatch(page,/97069-7597|R\$|Invalid Date|undefined|datetime=/);
+  assert.equal((page.match(/<img /g)||[]).length,5);
+  const url=new URL(ritualWhatsAppUrl(ad));
+  assert.equal(url.pathname,'/5511954409080');
+  assert.match(url.searchParams.get('text')!,/Ateliê Fios de Encantaria/);
+  const cards=renderFeaturedRituals(promotions,new Date('2026-11-01T12:00:00-03:00'));
+  assert.match(cards,/data-ritual-id="atelie-fios-de-encantaria"/);
+  assert.match(cards,/Ver anúncio/);
+  assert.ok(cards.indexOf('atelie-fios-de-encantaria')<cards.indexOf('azazel-2026'));
 });
 
 test('cada WhatsApp usa o contato autorizado e identifica o ritual e a data sem inventar modalidade', () => {

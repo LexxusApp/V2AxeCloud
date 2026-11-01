@@ -28,8 +28,9 @@ test('consulta contagens exatas por ritual e período, distinguindo visualizaç�
   });
   const body = await response.json();
   assert.equal(body.days, 7);
-  assert.equal(body.rows.length, 2);
-  assert.equal(calls.length, 6);
+  assert.equal(body.rows.length, 3);
+  assert.equal(calls.length, 9);
+  assert.equal(body.rows.find((row:any)=>row.id==='atelie-fios-de-encantaria').date,null);
   assert.ok(calls.every((url) => url.searchParams.has('created_at') && url.searchParams.has('metadata->>promotionId')));
   assert.ok(calls.filter((url) => url.searchParams.get('cta_id') === 'eq.ritual_promotion_view').every((url) => url.searchParams.get('metadata->>surface') === 'eq.directory'));
   assert.equal(body.rows[0].impressions, 12);

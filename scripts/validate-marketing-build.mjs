@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ritualPath } from './lib/featuredRituals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'landing-dist');
@@ -15,7 +16,7 @@ const CINEMATIC = [
   'conteudo/calendario-liturgico/index.html',
   'por-que-axecloud/index.html',
   'espaco-do-fiel/index.html',
-  ...rituals.map((ritual) => `eventos/${ritual.slug}/index.html`),
+  ...rituals.map((ritual) => `${ritualPath(ritual).slice(1)}/index.html`),
 ];
 const REACT = [
   '__react_shell.html',

@@ -2,7 +2,7 @@
 .ritual-promotions-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; margin-bottom: 14px; }
 .ritual-promotions-heading h2 { margin: 0; font: 750 clamp(1.1rem, 1.6vw, 1.4rem)/1.3 "Manrope", system-ui, sans-serif; letter-spacing: -.02em; }
 .ritual-promotions-heading p { margin: 0 0 0 auto; color: var(--muted); font-size: .75rem; }
-.ritual-promotions-track { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.ritual-promotions-track { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 18px; }
 .ritual-promotion { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .ritual-promotion[hidden], .ritual-promotions[hidden], .ritual-archive-note[hidden] { display: none; }
 .ritual-promotion-link { display: grid; grid-template-columns: 124px minmax(0, 1fr); height: 100%; color: inherit; text-decoration: none; }
@@ -15,7 +15,18 @@
 .ritual-promotion-bottom { display: flex; width: 100%; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: auto; padding-top: 18px; }
 .ritual-promotion-bottom strong { font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ritual-promotion-bottom > span { display: inline-flex; min-height: 28px; align-items: center; gap: 8px; color: var(--gold-strong); font-size: .8rem; font-weight: 750; white-space: nowrap; }
-.ritual-promotions-track:has(.ritual-promotion[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.sponsored-ad-eyebrow { color: var(--gold-strong); font-size: .78rem; font-weight: 750; }
+.sponsored-ad-card .ritual-promotion-bottom strong { font-size: .88rem; white-space: normal; }
+.sponsored-ad-page h1 { max-width: 18ch; }
+.sponsored-ad-services { margin: 24px 0; padding-left: 20px; color: var(--ink); font-size: .9rem; line-height: 1.8; }
+.sponsored-ad-gallery { margin-top: 64px; }
+.sponsored-ad-gallery h2 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.2; }
+.sponsored-ad-gallery > p { margin: 14px 0 28px; color: var(--muted); line-height: 1.7; }
+.sponsored-ad-gallery-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-bottom: 32px; }
+.sponsored-ad-gallery figure { min-width: 0; margin: 0; }
+.sponsored-ad-gallery img { display: block; width: 100%; height: auto; border-radius: var(--radius); }
+.sponsored-ad-gallery a:focus-visible { outline: 3px solid var(--gold-strong); outline-offset: 4px; }
+.sponsored-ad-gallery figcaption { margin-top: 12px; color: var(--muted); font-size: .82rem; line-height: 1.6; }
 .ritual-promotion-link:active { background: var(--surface-2); }
 .ritual-site-header { justify-content: space-between; }
 .ritual-back { display: inline-flex; min-height: 44px; align-items: center; font-size: .85rem; font-weight: 700; text-decoration: none; }
@@ -55,6 +66,8 @@
   .ritual-back:hover { color: var(--gold-strong); }
 }
 @media (max-width: 760px) {
+  .sponsored-ad-gallery { margin-top: 40px; }
+  .sponsored-ad-gallery-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .ritual-promotions-heading { gap: 6px; }
   .ritual-promotions-heading p { width: 100%; margin-left: 0; }
   .ritual-promotions-track { display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 2px; scrollbar-width: thin; scrollbar-color: var(--gold) var(--surface); padding: 2px 2px 12px; }

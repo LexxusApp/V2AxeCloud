@@ -153,7 +153,7 @@ export default {
       }
     }
 
-    if (/^\/(?:conteudo|recursos|por-que-axecloud)(?:\/|$)/.test(path)) {
+    if (/^\/(?:anuncios|conteudo|recursos|por-que-axecloud)(?:\/|$)/.test(path)) {
       return respond(new Response('Página não encontrada.', { status: 404 }));
     }
 
