@@ -643,14 +643,14 @@ async function main() {
     const cityKey = `${String(row.estado || "").toLowerCase()}:${row.cidadeSlug}`;
     const cityItems = cityMap.get(cityKey) || [];
     const siblingTerreiros = cityItems
-      .filter((item) => item.slug && item.slug !== row.slug && isDiretorioListingIndexable(item))
-      .slice(0, 6);
+      .filter((item) => item.slug && item.slug !== row.slug && isDiretorioListingIndexable(item));
 
     writePrerenderPage(
       template,
       buildTerreiroPrerenderPage(row, {
         indexable: isDiretorioListingIndexable(row),
         siblingTerreiros,
+        cityTotal: cityItems.length,
       }),
     );
     terreiroPages += 1;

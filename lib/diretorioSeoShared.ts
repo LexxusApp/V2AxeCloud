@@ -6,7 +6,7 @@ export const PORTAL_BRAND = "Portal AxéCloud";
 // Atualize esta data quando o conteudo/template SEO de todas as paginas do
 // diretorio mudar. Ela funciona como piso do <lastmod> no sitemap dinamico,
 // permitindo que buscadores recrawleiem perfis antigos apos uma melhoria global.
-export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-10-08";
+export const DIRETORIO_SEO_TEMPLATE_LASTMOD = "2026-11-07";
 export const PUBLIC_SITE_SHELL_LASTMOD = "2026-10-03";
 
 export const STATIC_SITEMAP_PATHS: readonly {
@@ -104,6 +104,10 @@ export type DiretorioSeoTerreiro = {
   estado: string | null;
   cidadeSlug: string | null;
   cidadeUrl: string | null;
+  bairro?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  verificada?: boolean;
 };
 
 export type DiretorioSeoCidade = {
@@ -162,6 +166,15 @@ export function getCitySeoContent(cidade: string, estado: string | null, total: 
 
 export function buildLocalBusinessJsonLd(terreiro: DiretorioSeoTerreiro): Record<string, unknown> {
   const url = canonicalUrl(`/terreiro/${terreiro.slug}`);
+  const latitude = terreiro.latitude;
+  const longitude = terreiro.longitude;
+  const hasGeo =
+    typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    Math.abs(latitude) <= 90 &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude) &&
+    Math.abs(longitude) <= 180;
   const json: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -175,6 +188,13 @@ export function buildLocalBusinessJsonLd(terreiro: DiretorioSeoTerreiro): Record
           addressLocality: terreiro.cidade || undefined,
           addressRegion: terreiro.estado || undefined,
           addressCountry: "BR",
+        }
+      : undefined,
+    geo: hasGeo
+      ? {
+          "@type": "GeoCoordinates",
+          latitude,
+          longitude,
         }
       : undefined,
     telephone: terreiro.telefone || undefined,
@@ -257,11 +277,35 @@ function detectTradicaoAxe(nome: string): string {
   return "tradições afro-brasileiras";
 }
 
+function distanceKm(a: DiretorioSeoTerreiro, b: DiretorioSeoTerreiro): number | null {
+  if (
+    typeof a.latitude !== "number" || !Number.isFinite(a.latitude) ||
+    typeof a.longitude !== "number" || !Number.isFinite(a.longitude) ||
+    typeof b.latitude !== "number" || !Number.isFinite(b.latitude) ||
+    typeof b.longitude !== "number" || !Number.isFinite(b.longitude)
+  ) return null;
+  const rad = Math.PI / 180;
+  const dLat = (b.latitude - a.latitude) * rad;
+  const dLon = (b.longitude - a.longitude) * rad;
+  const lat1 = a.latitude * rad;
+  const lat2 = b.latitude * rad;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function distanceLabel(km: number): string {
+  if (km < 1) return `${Math.max(100, Math.round(km * 1000 / 100) * 100)} m`;
+  return `${km < 10 ? km.toFixed(1).replace(".", ",") : Math.round(km)} km`;
+}
+
 export function buildTerreiroPrerenderPage(
   terreiro: DiretorioSeoTerreiro,
   options?: {
     indexable?: boolean;
     siblingTerreiros?: DiretorioSeoTerreiro[];
+    cityTotal?: number;
   },
 ): DiretorioPrerenderPage {
   const loc = [terreiro.cidade, terreiro.estado].filter(Boolean).join(", ");
@@ -273,12 +317,24 @@ export function buildTerreiroPrerenderPage(
   const indexable = options?.indexable !== false;
   const featured = FEATURED_TERREIRO_COPY[terreiro.slug];
   const tradicao = detectTradicaoAxe(terreiro.nome);
+  const cityTotal = Math.max(0, Number(options?.cityTotal || 0));
+  const nearby = (options?.siblingTerreiros || [])
+    .filter((s) => s.slug && s.slug !== terreiro.slug)
+    .map((s) => ({ terreiro: s, distance: distanceKm(terreiro, s) }))
+    .filter(({ distance }) => distance === null || distance >= 0.05)
+    .sort((a, b) => {
+      if (a.distance === null && b.distance === null) return a.terreiro.nome.localeCompare(b.terreiro.nome, "pt-BR");
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    })
+    .slice(0, 6);
 
   const sections: { heading: string; body: string }[] = [];
   if (terreiro.endereco) {
     sections.push({
       heading: "Endereço e localização",
-      body: `${terreiro.nome} fica em ${terreiro.endereco}${loc ? ` (${loc})` : ""}. Use o mapa para traçar a rota com respeito aos horários e orientações da casa.`,
+      body: `${terreiro.nome} fica em ${terreiro.endereco}${loc ? ` (${loc})` : ""}. Use o mapa para conferir a rota antes da visita.`,
     });
   }
   if (terreiro.telefone) {
@@ -298,7 +354,18 @@ export function buildTerreiroPrerenderPage(
   } else if (loc) {
     sections.push({
       heading: `Terreiro em ${loc}`,
-      body: `${terreiro.nome} aparece no diretório de casas de ${tradicao} e tradições afro-brasileiras em ${loc}. Confira também outras casas da mesma cidade no hub local.`,
+      body: `${terreiro.nome} aparece no diretório de casas de ${tradicao} e tradições afro-brasileiras em ${loc}.${cityTotal > 1 ? ` O guia de ${terreiro.cidade} reúne ${cityTotal} casas mapeadas para comparação de localização e contato.` : ""}`,
+    });
+  }
+  if (nearby.length > 0) {
+    const nearbyText = nearby.map(({ terreiro: item, distance }) => {
+      const distanceText = distance === null ? "" : `, a aproximadamente ${distanceLabel(distance)}`;
+      return `${item.nome}${distanceText}`;
+    }).join("; ");
+    const hasDistances = nearby.some(({ distance }) => distance !== null);
+    sections.push({
+      heading: terreiro.cidade ? `Casas próximas em ${terreiro.cidade}` : "Casas próximas",
+      body: `Para comparar opções na mesma região, o diretório também referencia: ${nearbyText}.${hasDistances ? " Distâncias são aproximadas e calculadas a partir das coordenadas públicas cadastradas." : ""}`,
     });
   }
   sections.push({
@@ -325,16 +392,14 @@ export function buildTerreiroPrerenderPage(
     loc ? `em ${loc}` : null,
     terreiro.endereco ? "com endereço" : null,
     terreiro.telefone ? "telefone de contato" : null,
+    terreiro.linkMaps ? "e rota no mapa" : null,
     "no diretório AxéCloud",
   ].filter(Boolean);
 
-  const siblingLinks = (options?.siblingTerreiros || [])
-    .filter((s) => s.slug && s.slug !== terreiro.slug)
-    .slice(0, 6)
-    .map((s) => ({
-      href: `/terreiro/${s.slug}`,
-      label: s.nome,
-    }));
+  const siblingLinks = nearby.map(({ terreiro: item, distance }) => ({
+    href: `/terreiro/${item.slug}`,
+    label: `${item.nome}${distance === null ? "" : ` · ~${distanceLabel(distance)}`}`,
+  }));
 
   return {
     path,
@@ -344,7 +409,7 @@ export function buildTerreiroPrerenderPage(
     intro:
       featured?.intro ||
       (loc
-        ? `${terreiro.nome} é uma casa de axé listada em ${loc}. Abaixo estão os dados públicos disponíveis para consulta e rota.`
+        ? `${terreiro.nome} é uma casa de axé listada em ${loc}. Este perfil reúne os dados públicos disponíveis para localizar a casa${terreiro.telefone ? ", entrar em contato" : ""}${terreiro.linkMaps ? " e conferir a rota" : ""}.${cityTotal > 1 ? ` Em ${terreiro.cidade}, o AxéCloud mapeia ${cityTotal} casas para consulta no guia local.` : ""}`
         : `${terreiro.nome} está listado no diretório público ${PORTAL_BRAND}.`),
     sections,
     jsonLd: [buildLocalBusinessJsonLd(terreiro), breadcrumbs],

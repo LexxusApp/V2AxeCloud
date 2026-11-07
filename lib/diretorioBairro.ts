@@ -67,11 +67,13 @@ export function extractBairroFromEndereco(
 
   const cidadeNorm = normalizeForMatch(cidade || SAO_PAULO_CIDADE);
 
-  for (const b of BAIRROS_SP_CONHECIDOS) {
-    if (normalizeForMatch(addr).includes(normalizeForMatch(b))) return b;
-  }
-
   if (cidadeNorm.includes("sao paulo")) {
+    const addrNorm = normalizeForMatch(addr);
+    for (const b of BAIRROS_SP_CONHECIDOS) {
+      const bairroNorm = normalizeForMatch(b);
+      const escaped = bairroNorm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(addrNorm)) return b;
+    }
     const dashMatch = addr.match(/-\s*([^,]+),\s*S[aã]o Paulo/i);
     if (dashMatch) {
       const candidate = dashMatch[1].trim();
