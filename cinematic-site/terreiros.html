@@ -650,6 +650,19 @@ footer a { color: var(--ouro); text-decoration: none; }
 
     <!-- FEATURED_RITUALS -->
 
+    <!-- Vitrine visual das casas que utilizam o AxéCloud: utiliza os perfis públicos já existentes. -->
+    <section class="official-showcase" id="casas-oficiais" aria-labelledby="official-showcase-title" hidden>
+      <div class="official-showcase-heading">
+        <div>
+          <p class="official-showcase-kicker">✦ Comunidade AxéCloud</p>
+          <h2 id="official-showcase-title">Casas de Axé em destaque</h2>
+          <p class="official-showcase-subtitle">Conheça terreiros que já utilizam o AxéCloud e visite seus perfis públicos.</p>
+        </div>
+        <a class="official-showcase-all" href="#map-shell">Explorar no mapa <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="official-showcase-grid" id="official-showcase-grid" aria-label="Casas oficiais em destaque"></div>
+    </section>
+
     <div class="map-stage">
       <div class="map-shell" id="map-shell">
         <div id="mapa" aria-label="Mapa interativo dos terreiros brasileiros"></div>
@@ -667,25 +680,7 @@ footer a { color: var(--ouro); text-decoration: none; }
         <p class="mapa-status" id="mapa-status" role="status" aria-live="polite"></p>
         <p class="mapa-nota" id="mapa-nota">Carregando pontos do mapa…</p>
 
-        <!-- FITA FLUTUANTE DE CASAS OFICIAIS -->
-        <div class="map-ribbon-dock" id="map-ribbon-dock" aria-label="Casas oficiais em destaque">
-          <div class="map-ribbon-bar">
-            <div class="map-ribbon-title">
-              <span class="ribbon-beacon" aria-hidden="true"></span>
-              <span class="ribbon-star" aria-hidden="true">⭐</span>
-              <strong class="ribbon-title-desktop">Casas Oficiais no AxéCloud</strong><strong class="ribbon-title-mobile">Oficiais</strong>
-              <span class="ribbon-counter" id="ribbon-total"></span>
-            </div>
-            <div class="map-ribbon-actions">
-              <button type="button" class="ribbon-arrow" id="ribbon-scroll-prev" aria-label="Casas anteriores">‹</button>
-              <button type="button" class="ribbon-arrow" id="ribbon-scroll-next" aria-label="Próximas casas">›</button>
-              <button type="button" class="ribbon-toggle" id="ribbon-toggle-btn" aria-label="Recolher / Expandir fita" title="Recolher / Expandir">−</button>
-            </div>
-          </div>
-          <div class="map-ribbon-track" id="map-ribbon-track" tabindex="0" role="region" aria-label="Carrossel de casas oficiais">
-            <!-- Preenchido dinamicamente -->
-          </div>
-        </div>
+
       </div>
     </div>
   </section>
@@ -1550,7 +1545,7 @@ function garanteMapa() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(snapMapaPixel, 80);
   });
-  inicializaControlesFita();
+
 }
 
 function pontosDoContexto() {
@@ -1563,98 +1558,78 @@ function pontosDoContexto() {
 }
 
 
-function renderizaFitaFlutuante(pontos) {
-  const dock = document.getElementById("map-ribbon-dock");
-  const track = document.getElementById("map-ribbon-track");
-  const totalEl = document.getElementById("ribbon-total");
-  const filterCountEl = document.getElementById("map-verified-count");
-  if (!dock || !track) return;
-
-  const candidatos = (pontos && pontos.length) ? pontos : todosPontos;
-  const oficiais = candidatos.filter((p) => p.verificada);
-  const totalGeralOficiais = todosPontos.filter((p) => p.verificada).length;
-
-  if (totalEl) totalEl.textContent = oficiais.length ? `(${oficiais.length})` : "";
-  if (filterCountEl) filterCountEl.textContent = totalGeralOficiais ? `(${totalGeralOficiais})` : "";
-
+// A vitrine apenas reaproveita os perfis oficiais já presentes no mapa.
+const fotosVitrineEmCarga = new Set();
+function renderizaVitrineOficiais(oficiais) {
+  const secao = document.getElementById("casas-oficiais");
+  const gradeVitrine = document.getElementById("official-showcase-grid");
+  if (!secao || !gradeVitrine) return;
   if (!oficiais.length) {
-    dock.style.display = "none";
+    secao.hidden = true;
+    gradeVitrine.replaceChildren();
     return;
   }
-  dock.style.display = "flex";
 
-  track.innerHTML = oficiais.map((p) => {
+  // Rodízio visual diário: nenhuma casa fica permanentemente nas primeiras posições.
+  const inicio = Math.floor(Date.now() / 86400000) % oficiais.length;
+  const selecionados = Array.from(
+    { length: Math.min(4, oficiais.length) },
+    (_, indice) => oficiais[(inicio + indice) % oficiais.length],
+  );
+  secao.hidden = false;
+  gradeVitrine.innerHTML = selecionados.map((p) => {
+    const detalhes = detalhesPopupPorSlug.get(p.slug) || itensPorSlug.get(p.slug) || {};
+    const foto = urlSegura(p.fotoUrl || detalhes.fotoUrl || detalhes.coverPhotoUrl || "");
     const local = [p.cidade, p.estado].filter(Boolean).join(" · ");
+    const perfil = perfilLocal(p) || p.perfilUrl;
     return `
-      <article class="ribbon-card" data-slug="${esc(p.slug)}" data-lat="${p.lat}" data-lng="${p.lng}">
-        <div class="ribbon-card-head">
-          <span class="ribbon-badge"><span class="ribbon-dot"></span> Oficial</span>
-          <span class="ribbon-city">${esc(local)}</span>
+      <a class="official-showcase-card" href="${esc(perfil)}" data-official-slug="${esc(p.slug)}">
+        <div class="official-showcase-media">
+          <span class="official-showcase-monogram" aria-hidden="true"></span>
+          ${foto && !foto.includes("/api/v1/public/diretorio/foto/") ? `<img src="${esc(foto)}" alt="Foto de ${esc(p.nome)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}
+          <span class="official-showcase-badge">✦ Casa oficial</span>
         </div>
-        <h4 class="ribbon-card-name" title="${esc(p.nome)}">${esc(p.nome)}</h4>
-        <div class="ribbon-card-actions">
-          <button type="button" class="ribbon-action-fly" data-action="fly" title="Ver localização exata no mapa">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-            <span class="ribbon-btn-desktop">Ver no mapa</span><span class="ribbon-btn-mobile">Mapa</span>
-          </button>
-          <a href="${esc(p.perfilUrl)}" class="ribbon-action-profile" title="Abrir perfil completo da casa">
-            Perfil →
-          </a>
+        <div class="official-showcase-content">
+          <p class="official-showcase-place">${esc(local || "Brasil")}</p>
+          <h3>${esc(p.nome)}</h3>
+          <span class="official-showcase-cta">Conhecer esta casa <span aria-hidden="true">↗</span></span>
         </div>
-      </article>
-    `;
+      </a>`;
   }).join("");
 
-  track.querySelectorAll(".ribbon-card").forEach((card) => {
-    card.addEventListener("click", (e) => {
-      const link = e.target.closest(".ribbon-action-profile");
-      if (link) return;
-      e.preventDefault();
-      const slug = card.dataset.slug;
-      const lat = Number(card.dataset.lat);
-      const lng = Number(card.dataset.lng);
-      const point = todosPontos.find((p) => p.slug === slug);
-      if (!point || !mapa) return;
-
-      track.querySelectorAll(".ribbon-card").forEach((c) => c.classList.remove("is-active"));
-      card.classList.add("is-active");
-
-      mapa.flyTo([lat, lng], 15, { duration: 0.85 });
-      window.setTimeout(() => abrePopupPonto(point), 550);
-    });
+  // Só consulta as quatro casas em destaque; não carrega fotos de todo o diretório.
+  selecionados.forEach(async (p) => {
+    if (fotosVitrineEmCarga.has(p.slug)) return;
+    const card = Array.from(gradeVitrine.querySelectorAll(".official-showcase-card"))
+      .find((elemento) => elemento.dataset.officialSlug === p.slug);
+    if (!card || card.querySelector(".official-showcase-media img")) return;
+    const salvo = detalhesPopupPorSlug.get(p.slug) || itensPorSlug.get(p.slug);
+    let foto = urlSegura(salvo?.fotoUrl || salvo?.coverPhotoUrl || "");
+    if (!foto || foto.includes("/api/v1/public/diretorio/foto/")) {
+      fotosVitrineEmCarga.add(p.slug);
+      try {
+        const response = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(p.slug)}`);
+        if (!response.ok) return;
+        const detalhes = await response.json();
+        detalhesPopupPorSlug.set(p.slug, detalhes);
+        foto = urlSegura(detalhes?.fotoUrl || detalhes?.coverPhotoUrl || detalhes?.galleryPhotoUrls?.[0] || "");
+      } catch { return; }
+      finally { fotosVitrineEmCarga.delete(p.slug); }
+    }
+    if (!foto || foto.includes("/api/v1/public/diretorio/foto/")) return;
+    const cardAtual = Array.from(gradeVitrine.querySelectorAll(".official-showcase-card"))
+      .find((elemento) => elemento.dataset.officialSlug === p.slug);
+    const media = cardAtual?.querySelector(".official-showcase-media");
+    if (!media || media.querySelector("img")) return;
+    const img = document.createElement("img");
+    img.src = foto;
+    img.alt = `Foto de ${p.nome}`;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.onerror = () => img.remove();
+    media.insertBefore(img, media.querySelector(".official-showcase-badge"));
   });
-}
-
-let controlesFitaIniciados = false;
-function inicializaControlesFita() {
-  if (controlesFitaIniciados) return;
-  controlesFitaIniciados = true;
-  const track = document.getElementById("map-ribbon-track");
-  const prev = document.getElementById("ribbon-scroll-prev");
-  const next = document.getElementById("ribbon-scroll-next");
-  const toggle = document.getElementById("ribbon-toggle-btn");
-  const dock = document.getElementById("map-ribbon-dock");
-
-  if (prev && track) {
-    prev.addEventListener("click", (e) => {
-      e.stopPropagation();
-      track.scrollBy({ left: -260, behavior: "smooth" });
-    });
-  }
-  if (next && track) {
-    next.addEventListener("click", (e) => {
-      e.stopPropagation();
-      track.scrollBy({ left: 260, behavior: "smooth" });
-    });
-  }
-  if (toggle && dock) {
-    toggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      dock.classList.toggle("is-collapsed");
-      toggle.textContent = dock.classList.contains("is-collapsed") ? "+" : "−";
-      toggle.title = dock.classList.contains("is-collapsed") ? "Expandir fita" : "Recolher fita";
-    });
-  }
 }
 
 function aplicaPontosNoMapa(pontos, { ajustarVista = true } = {}) {
@@ -1663,7 +1638,12 @@ function aplicaPontosNoMapa(pontos, { ajustarVista = true } = {}) {
   if (filtroMapa === "verified") pontos = pontos.filter((p) => p.verificada);
   pontosAtivos = pontos;
   camadaPontos.setPoints(pontos);
-  renderizaFitaFlutuante(pontosAtivos);
+  renderizaVitrineOficiais(pontosAtivos.filter((p) => p.verificada));
+  const countEl = document.getElementById("map-verified-count");
+  if (countEl) {
+    const total = todosPontos.filter((p) => p.verificada).length;
+    countEl.textContent = total ? `(${total})` : "";
+  }
 
   const nota = $("#mapa-nota");
   if (!pontos.length) {
