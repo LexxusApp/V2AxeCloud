@@ -5,7 +5,7 @@ import { WorkflowEntrypoint, type WorkflowStep, type WorkflowEvent } from "cloud
 export interface Env {
   MYBROWSER: any;
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
   PHOTO_SWEEP_WORKFLOW?: any;
 }
 
@@ -171,6 +171,9 @@ async function scrapeOne(page: any, item: TerreiroItem): Promise<string | null> 
  * Processa um lote de terreiros sem foto
  */
 export async function runBatch(env: Env, batchSize = 5, dryRun = false) {
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada.");
+  }
   const sb = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
   const start = Date.now();
 
@@ -332,6 +335,16 @@ export class PhotoSweepWorkflow extends WorkflowEntrypoint<Env, { batchSize?: nu
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+      return Response.json(
+        {
+          ok: false,
+          service: "axecloud-photo-sweep-cloudflare",
+          error: "SUPABASE_SERVICE_ROLE_KEY não configurada.",
+        },
+        { status: 503 },
+      );
+    }
     const sb = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
     // Status geral
@@ -410,6 +423,10 @@ export default {
 
   // Cron disparado a cada 1 minuto pela Cloudflare
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn("[photo-sweep] Cron ignorado: SUPABASE_SERVICE_ROLE_KEY não configurada.");
+      return;
+    }
     console.log(`[photo-sweep] Cron Cloudflare disparado em ${new Date().toISOString()}`);
     ctx.waitUntil(
       runBatch(env, 5, false)
