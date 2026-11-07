@@ -166,7 +166,7 @@ async function resolveStreetViewFastPass(options) {
     const { data, error } = await sb
       .from(TABLE)
       .select("id, nome, link_maps")
-      .is("foto_url", null)
+      .eq("tipo", "terreiro")
       .is("owner_photo_url", null)
       .like("link_maps", "%streetviewpixels%")
       .range(offset, offset + PAGE - 1);
@@ -225,7 +225,7 @@ async function fetchPendingTerreiros(limit = Infinity) {
     const { data, error } = await sb
       .from(TABLE)
       .select("id, nome, cidade, estado, link_maps")
-      .is("foto_url", null)
+      .eq("tipo", "terreiro")
       .is("owner_photo_url", null)
       .not("link_maps", "is", null)
       .order("created_at", { ascending: true })
@@ -247,7 +247,7 @@ async function fetchPendingTerreiros(limit = Infinity) {
       const { data, error } = await sb
         .from(TABLE)
         .select("id, nome, cidade, estado, link_maps")
-        .is("foto_url", null)
+        .eq("tipo", "terreiro")
         .is("owner_photo_url", null)
         .is("link_maps", null)
         .order("created_at", { ascending: true })
@@ -361,12 +361,12 @@ async function workerLoop(workerId, queue, results, options, progress) {
       const bestPhoto = await scrapeTerreiroPhoto(page, item);
 
       if (bestPhoto) {
-        let storageUrl = bestPhoto;
+        let storageUrl = null;
         if (!options.dryRun) {
           try {
             storageUrl = await uploadToStorage(item.id, bestPhoto);
           } catch (storageErr) {
-            log(`    [Storage aviso] ID ${item.id}: ${storageErr.message} - salvando URL direta do Google`);
+            log(`    [Storage retry] ID ${item.id}: ${storageErr.message} - mantendo pendente para nova tentativa`);
           }
 
           const { error: updErr } = await sb

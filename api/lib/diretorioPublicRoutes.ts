@@ -17,7 +17,11 @@ import {
   fetchTerreirosByCitySlug,
   fetchTerreirosByEstado,
 } from "../../lib/diretorioQuery.js";
-import { fetchBestGooglePhoto, isAllowedGooglePhotoUrl } from "./diretorioPhotoUrl.js";
+import {
+  fetchBestGooglePhoto,
+  isAllowedGooglePhotoUrl,
+  isPublicDirectoryPhotoUrl,
+} from "./diretorioPhotoUrl.js";
 import { isPlausibleDiretorioCoordinate } from "../../lib/diretorioCoordinates.js";
 import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingIndexable, isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
@@ -120,6 +124,20 @@ function validCoordinate(value: unknown, max: number): number | null {
   return Number.isFinite(parsed) && Math.abs(parsed) <= max ? parsed : null;
 }
 
+export function resolveDiretorioCardPhotoUrl(row: Record<string, unknown>, slug: string): string | null {
+  const ownerPhoto = String(row.owner_photo_url || "").trim();
+  if (ownerPhoto) {
+    if (isPublicDirectoryPhotoUrl(ownerPhoto)) return ownerPhoto;
+    if (isAllowedGooglePhotoUrl(ownerPhoto) && slug) return `${diretorioFotoProxyPath(slug)}?v=3`;
+  }
+
+  const sourcePhoto = String(row.foto_url || "").trim();
+  if (!sourcePhoto || sourcePhoto.includes("default-user")) return null;
+  if (isPublicDirectoryPhotoUrl(sourcePhoto)) return sourcePhoto;
+  if (isAllowedGooglePhotoUrl(sourcePhoto) && slug) return `${diretorioFotoProxyPath(slug)}?v=3`;
+  return null;
+}
+
 function mapRow(row: Record<string, unknown>) {
   const slug = String(row.slug || "").trim();
   const cidade = String(row.cidade || "").trim();
@@ -152,11 +170,7 @@ function mapRow(row: Record<string, unknown>) {
     telefone: row.telefone ? String(row.telefone).trim() : null,
     whatsapp,
     hasWhatsapp: Boolean(whatsapp),
-    fotoUrl: row.owner_photo_url
-      ? String(row.owner_photo_url).trim()
-      : row.foto_url && !String(row.foto_url).includes("default-user") && slug
-        ? `${diretorioFotoProxyPath(slug)}?v=2`
-        : null,
+    fotoUrl: resolveDiretorioCardPhotoUrl(row, slug),
     coverPhotoUrl: row.cover_photo_url ? String(row.cover_photo_url).trim() : null,
     galleryPhotoUrls,
     linkMaps: row.link_maps ? String(row.link_maps).trim() : null,
@@ -537,23 +551,40 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
       const slug = slugifyTerreiroNome(String(req.params.slug || ""));
       if (!slug) return res.status(400).end();
 
-      const { data, error } = await sb.from(TABLE).select("foto_url").eq("slug", slug).maybeSingle();
+      const { data, error } = await sb
+        .from(TABLE)
+        .select("foto_url, owner_photo_url")
+        .eq("slug", slug)
+        .maybeSingle();
       if (error) throw error;
+
+      const ownerPhotoUrl = data?.owner_photo_url ? String(data.owner_photo_url).trim() : "";
+      if (isPublicDirectoryPhotoUrl(ownerPhotoUrl)) {
+        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        return res.redirect(307, ownerPhotoUrl);
+      }
+
       const rawUrl = data?.foto_url ? String(data.foto_url).trim() : "";
+      if (isPublicDirectoryPhotoUrl(rawUrl)) {
+        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        return res.redirect(307, rawUrl);
+      }
+
       // Foto é opcional. Uma origem ausente/expirada não deve transformar a
       // página pública em uma sequência de erros 404; o cliente usa o 204 para
-      // ativar o placeholder visual já existente.
+      // ativar o placeholder visual já existente. Cache curto: o photo-sweep
+      // pode substituir a origem temporária por uma cópia permanente depois.
       if (!rawUrl || !isAllowedGooglePhotoUrl(rawUrl)) {
-        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        res.setHeader("Cache-Control", "public, max-age=300, s-maxage=1800");
         return res.status(204).end();
       }
 
       const photo = await fetchBestGooglePhoto(rawUrl);
       if (!photo) {
         console.warn("[public/diretorio/foto] sem imagem útil", slug);
-        // A URL de origem do Google pode expirar. Isso significa que a foto
-        // deixou de existir, não que o servidor do AxéCloud esteja indisponível.
-        res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=86400");
+        // URLs do Maps expiram. Não mantenha o 204 por um dia inteiro porque
+        // o varredor pode recuperar e persistir uma foto nova a qualquer momento.
+        res.setHeader("Cache-Control", "public, max-age=300, s-maxage=1800");
         return res.status(204).end();
       }
 

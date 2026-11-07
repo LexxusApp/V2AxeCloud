@@ -1685,7 +1685,7 @@ function renderizaVitrineOficiais(oficiais) {
       <a class="official-showcase-card" href="${esc(perfil)}" data-official-slug="${esc(p.slug)}">
         <div class="official-showcase-media">
           <span class="official-showcase-monogram" aria-hidden="true"></span>
-          ${foto && !foto.includes("/api/v1/public/diretorio/foto/") ? `<img src="${esc(foto)}" alt="Foto de ${esc(p.nome)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}
+          ${foto ? `<img src="${esc(foto)}" alt="Foto de ${esc(p.nome)}" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}
           <span class="official-showcase-badge">✦ Casa oficial</span>
         </div>
         <div class="official-showcase-content">
@@ -1719,7 +1719,7 @@ function renderizaVitrineOficiais(oficiais) {
     if (!card || card.querySelector(".official-showcase-media img")) return;
     const salvo = detalhesPopupPorSlug.get(p.slug) || itensPorSlug.get(p.slug);
     let foto = urlSegura(salvo?.fotoUrl || salvo?.coverPhotoUrl || "");
-    if (!foto || foto.includes("/api/v1/public/diretorio/foto/")) {
+    if (!foto) {
       fotosVitrineEmCarga.add(p.slug);
       try {
         const response = await fetch(`/api/v1/public/diretorio/terreiro/${encodeURIComponent(p.slug)}`);
@@ -1730,7 +1730,7 @@ function renderizaVitrineOficiais(oficiais) {
       } catch { return; }
       finally { fotosVitrineEmCarga.delete(p.slug); }
     }
-    if (!foto || foto.includes("/api/v1/public/diretorio/foto/")) return;
+    if (!foto) return;
     const cardAtual = Array.from(gradeVitrine.querySelectorAll(".official-showcase-card"))
       .find((elemento) => elemento.dataset.officialSlug === p.slug);
     const media = cardAtual?.querySelector(".official-showcase-media");
@@ -1738,7 +1738,7 @@ function renderizaVitrineOficiais(oficiais) {
     const img = document.createElement("img");
     img.src = foto;
     img.alt = `Foto de ${p.nome}`;
-    img.loading = "lazy";
+    img.loading = "eager";
     img.decoding = "async";
     img.referrerPolicy = "no-referrer";
     img.onerror = () => img.remove();
@@ -2080,14 +2080,13 @@ function desenha() {
     }
   });
   grade.innerHTML = fatia.map((c) => {
-    const fotoCandidata = urlSegura(c.fotoUrl);
-    const foto = fotoCandidata.includes("/api/v1/public/diretorio/foto/") ? "" : fotoCandidata;
+    const foto = urlSegura(c.fotoUrl);
     const perfil = perfilLocal(c);
     const local = [c.cidade, c.estado].filter(Boolean).join(", ");
     const endereco = c.endereco || c.bairro || local || "Localização disponível no perfil";
     return `
     <a class="house-card" href="${esc(perfil || "#mapa")}" ${perfil ? `data-profile-click="${esc(c.slug)}"` : ""}>
-      <div class="house-card-media">${foto ? `<img src="${esc(foto)}" alt="Foto de ${esc(c.nome)}" width="296" height="348" loading="eager" decoding="async" />` : ""}</div>
+      <div class="house-card-media">${foto ? `<img src="${esc(foto)}" alt="Foto de ${esc(c.nome)}" width="296" height="348" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}</div>
       <div class="house-card-content">
         <p class="house-card-city">${esc(local || "Brasil")}</p>
         <h3>${esc(c.nome)}</h3>
@@ -2152,7 +2151,7 @@ async function enriqueceFotosCards(fatia) {
         }
         const candidata = detalhes?.fotoUrl || detalhes?.coverPhotoUrl || (Array.isArray(detalhes?.galleryPhotoUrls) ? detalhes.galleryPhotoUrls[0] : null);
         const fotoUrl = urlSegura(candidata);
-        if (fotoUrl && !fotoUrl.includes('/api/v1/public/diretorio/foto/')) {
+        if (fotoUrl) {
           c.fotoUrl = fotoUrl;
           const card = Array.from(document.querySelectorAll('.house-card')).find(
             (el) => el.getAttribute('data-profile-click') === c.slug
@@ -2167,6 +2166,8 @@ async function enriqueceFotosCards(fatia) {
               img.height = 348;
               img.loading = 'eager';
               img.decoding = 'async';
+              img.referrerPolicy = 'no-referrer';
+              img.onerror = () => img.remove();
               media.appendChild(img);
             }
           }

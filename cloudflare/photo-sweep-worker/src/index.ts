@@ -18,6 +18,8 @@ interface TerreiroItem {
   cidade: string | null;
   estado: string | null;
   link_maps: string | null;
+  foto_url?: string | null;
+  owner_photo_url?: string | null;
   updated_at?: string;
 }
 
@@ -176,8 +178,8 @@ export async function runBatch(env: Env, batchSize = 5, dryRun = false) {
   // Ordena por updated_at ascendente para que os terreiros já checados fiquem no fim da fila
   let { data: items, error: pErr } = await sb
     .from(TABLE)
-    .select("id, nome, cidade, estado, link_maps, updated_at")
-    .is("foto_url", null)
+    .select("id, nome, cidade, estado, link_maps, foto_url, owner_photo_url, updated_at")
+    .eq("tipo", "terreiro")
     .is("owner_photo_url", null)
     .not("link_maps", "is", null)
     .order("updated_at", { ascending: true })
@@ -191,8 +193,8 @@ export async function runBatch(env: Env, batchSize = 5, dryRun = false) {
     // Se acabaram os com link_maps, pega os sem link_maps
     const { data: noLinkItems, error: nlErr } = await sb
       .from(TABLE)
-      .select("id, nome, cidade, estado, link_maps, updated_at")
-      .is("foto_url", null)
+      .select("id, nome, cidade, estado, link_maps, foto_url, owner_photo_url, updated_at")
+      .eq("tipo", "terreiro")
       .is("owner_photo_url", null)
       .is("link_maps", null)
       .order("updated_at", { ascending: true })
@@ -234,12 +236,12 @@ export async function runBatch(env: Env, batchSize = 5, dryRun = false) {
         const bestPhoto = await scrapeOne(page, item);
 
         if (bestPhoto) {
-          let storageUrl = bestPhoto;
+          let storageUrl: string | null = null;
           if (!dryRun) {
             try {
               storageUrl = await uploadToStorage(sb, item.id, bestPhoto);
             } catch (stErr: any) {
-              console.warn(`[storage fallback] ${item.nome}: ${stErr.message}`);
+              console.warn(`[storage retry] ${item.nome}: ${stErr.message}`);
             }
 
             await sb
@@ -253,7 +255,7 @@ export async function runBatch(env: Env, batchSize = 5, dryRun = false) {
           }
 
           added++;
-          results.push({ id: item.id, nome: item.nome, status: "added", photo: storageUrl });
+          results.push({ id: item.id, nome: item.nome, status: "added", photo: storageUrl || bestPhoto });
         } else {
           // Marca updated_at para mover para o fim da fila
           if (!dryRun) {
@@ -348,8 +350,8 @@ export default {
       const { count: pending } = await sb
         .from(TABLE)
         .select("*", { count: "exact", head: true })
-        .is("owner_photo_url", null)
-        .is("foto_url", null);
+        .eq("tipo", "terreiro")
+        .is("owner_photo_url", null);
 
       return Response.json({
         ok: true,
@@ -359,7 +361,7 @@ export default {
           totalTerreiros: total,
           comFotoStorage: withStoragePhoto,
           comFotoUrl: withFotoUrl,
-          pendentesSemFoto: pending,
+          pendentesSemCopiaPermanente: pending,
         },
       });
     }

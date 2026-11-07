@@ -20,8 +20,17 @@ export function highResGooglePhotoUrl(url: string, width = 1200): string {
 }
 
 export function googlePhotoUrlCandidates(rawUrl: string): string[] {
-  const base = stripGooglePhotoSizeSuffix(rawUrl);
-  if (!base) return [rawUrl];
+  const raw = String(rawUrl || "").trim();
+  if (!raw) return [];
+  try {
+    const host = new URL(raw).hostname.toLowerCase();
+    if (host === "streetviewpixels-pa.googleapis.com") return [raw];
+  } catch {
+    return [raw];
+  }
+
+  const base = stripGooglePhotoSizeSuffix(raw);
+  if (!base) return [raw];
 
   const urls = [
     `${base}=w1600-h1200-k-no`,
@@ -41,7 +50,24 @@ export function isAllowedGooglePhotoUrl(url: string): boolean {
     const raw = String(url || "").trim();
     if (!raw || raw.includes("default-user")) return false;
     const u = new URL(raw);
-    return u.protocol === "https:" && /(^|\.)googleusercontent\.com$/i.test(u.hostname);
+    if (u.protocol !== "https:") return false;
+    return (
+      /(^|\.)googleusercontent\.com$/i.test(u.hostname) ||
+      u.hostname.toLowerCase() === "streetviewpixels-pa.googleapis.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function isPublicDirectoryPhotoUrl(url: unknown): boolean {
+  try {
+    const raw = String(url || "").trim();
+    if (!raw || raw.includes("default-user")) return false;
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    if (isAllowedGooglePhotoUrl(raw)) return false;
+    return !/(^|\.)google\.com$/i.test(u.hostname);
   } catch {
     return false;
   }
