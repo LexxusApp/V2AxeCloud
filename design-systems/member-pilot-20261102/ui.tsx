@@ -1,0 +1,13 @@
+import PageLoading, {type LoadingVariant} from '../shared/PageLoading';
+import type {ReactNode} from 'react';
+import {AlertCircle,ArrowLeft,Search,X} from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+export const money=(value:unknown)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(value)||0);
+export function date(value?:string,withTime=false){if(!value)return 'Data não informada';const parsed=new Date(value.length===10?value+'T12:00:00-03:00':value);return Number.isFinite(parsed.getTime())?new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'short',year:'numeric',...(withTime?{hour:'2-digit',minute:'2-digit'}:{})}).format(parsed):'Data não informada';}
+export function Heading({title,text,action}:{title:string;text?:string;action?:ReactNode}){return <header className="mp-heading"><div><h1 tabIndex={-1}>{title}</h1>{text&&<p>{text}</p>}</div>{action}</header>;}
+export function Empty({title,text,children}:{title:string;text?:string;children?:ReactNode}){return <div className="mp-empty"><h3>{title}</h3>{text&&<p>{text}</p>}{children}</div>;}
+export function Loading({text='Carregando informações…',variant='page'}:{text?:string;variant?:LoadingVariant}){return <PageLoading label={text} variant={variant}/>;}
+export function ErrorBox({message,onRetry}:{message:string;onRetry?:()=>void}){return <div className="mp-error" role="alert"><AlertCircle size={19}/><span>{message}</span>{onRetry&&<button className="mp-btn secondary" onClick={onRetry}>Tentar novamente</button>}</div>;}
+export function SearchBox({value,onChange,placeholder='Buscar…'}:{value:string;onChange:(value:string)=>void;placeholder?:string}){return <label className="mp-search"><Search size={18}/><input type="search" value={value} onChange={event=>onChange(event.target.value)} placeholder={placeholder} aria-label={placeholder}/></label>;}
+export function Modal({open,onClose,title,text,children}:{open:boolean;onClose:()=>void;title:string;text?:string;children:ReactNode}){return <Dialog.Root open={open} onOpenChange={value=>{if(!value)onClose();}}><Dialog.Portal><Dialog.Overlay className="mp-overlay"/><Dialog.Content className="mp-modal"><div className="mp-modal-top"><Dialog.Title>{title}</Dialog.Title><Dialog.Close aria-label="Fechar janela" className="mp-icon"><X size={20}/></Dialog.Close></div><Dialog.Description className={text?'':'mp-sr'}>{text||title}</Dialog.Description>{children}</Dialog.Content></Dialog.Portal></Dialog.Root>;}
+export function Back({children,onClick}:{children:ReactNode;onClick:()=>void}){return <button className="mp-btn secondary" onClick={onClick}><ArrowLeft size={16}/>{children}</button>;}

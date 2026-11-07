@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "./styles/dashboard-desktop.css";
 @import "./styles/financial-navigation.css";
@@ -7030,7 +7031,7 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .library-empty-preview::before {
-  content: "Exemplo de material Â· Fundamentos de ervas Â· PDF";
+  content: "Exemplo de material \00B7  Fundamentos de ervas \00B7  PDF";
 }
 
 .app-v5-identity .atendimento-empty-preview::before {
@@ -8754,7 +8755,7 @@ html:has(.landing-mockup-nav) {
   color: var(--axe-v5-ink) !important;
 }
 
-/* Perfil: ficha viva com cabeÃ§alho protagonista e conteÃºdo editorial. */
+/* Perfil: ficha viva com cabeçalho protagonista e conteúdo editorial. */
 .app-v5-identity .child-profile-v5-page > div > div:nth-child(2) {
   border-color: rgba(232, 199, 103, 0.15) !important;
   border-radius: 1.55rem !important;
@@ -8766,9 +8767,9 @@ html:has(.landing-mockup-nav) {
 .app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] {
   gap: 0 !important;
   overflow: hidden;
-  border: 1px solid rgba(107, 94, 76, 0.15);
-  border-radius: 1.25rem;
-  background: #fffdf8;
+  border: 1px solid rgba(107, 94, 76, 0.22) !important;
+  border-radius: 1.25rem !important;
+  background: #fffdf8 !important;
 }
 
 .app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] > div {
@@ -8779,17 +8780,51 @@ html:has(.landing-mockup-nav) {
 }
 
 .app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] > div + div {
-  border-left: 1px solid rgba(107, 94, 76, 0.12) !important;
+  border-left: 1px solid rgba(107, 94, 76, 0.15) !important;
 }
 
-.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] [class~="text-white"] {
-  color: var(--axe-v5-ink) !important;
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] [class~="text-white"],
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] .child-summary-value {
+  color: #17130d !important;
+  font-weight: 900 !important;
+}
+
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] [class*="text-[#8E9AAA]"],
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] [class*="text-zinc-400"],
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] .child-summary-label {
+  color: #4a4136 !important;
+  font-weight: 900 !important;
+}
+
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] [class*="text-[#64748B]"],
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] [class*="text-zinc-300"],
+.app-v5-identity .child-profile-v5-page section[aria-label="Resumo do perfil"] .child-summary-detail {
+  color: #5d5345 !important;
+  font-weight: 700 !important;
 }
 
 .app-v5-identity .child-profile-v5-page > div > div.sticky {
-  border-color: rgba(107, 94, 76, 0.16) !important;
-  background: rgba(255, 253, 248, 0.92) !important;
-  box-shadow: 0 14px 34px -30px rgba(45, 34, 21, 0.6);
+  border-color: rgba(107, 94, 76, 0.22) !important;
+  background: rgba(255, 253, 248, 0.96) !important;
+  box-shadow: 0 14px 34px -30px rgba(45, 34, 21, 0.6) !important;
+}
+
+.app-v5-identity .child-profile-v5-page > div > div.sticky button {
+  color: #4f473c !important;
+  font-weight: 800 !important;
+}
+
+.app-v5-identity .child-profile-v5-page > div > div.sticky button:hover {
+  color: #17130d !important;
+  background: rgba(107, 94, 76, 0.08) !important;
+}
+
+.app-v5-identity .child-profile-v5-page > div > div.sticky button[class*="text-amber"],
+.app-v5-identity .child-profile-v5-page > div > div.sticky button[class*="text-[#FACC15]"] {
+  border-color: #926600 !important;
+  background: rgba(216, 150, 0, 0.14) !important;
+  color: #724900 !important;
+  font-weight: 950 !important;
 }
 
 /* Giras: agenda em fluxo, com calendÃ¡rio como ferramenta secundÃ¡ria. */
@@ -10984,7 +11019,7 @@ html:has(.landing-mockup-nav) {
 }
 
 .current-person-dossier > div:first-child h2 {
-  color: white;
+  color: white !important;
 }
 
 .current-person-dossier > div:nth-child(2) {
@@ -10996,26 +11031,106 @@ html:has(.landing-mockup-nav) {
 
 .current-person-dossier > div:nth-child(2) h3,
 .current-person-dossier > div:nth-child(2) [class*='text-white'] {
-  color: #1d1812 !important;
+  color: #17130d !important;
+  font-weight: 900 !important;
 }
 
 .current-person-dossier > div:nth-child(2) [class*='border-white'] {
-  border-color: #ddd5c9 !important;
+  border-color: #cfc6b7 !important;
 }
 
 .current-person-dossier > div:nth-child(2) [class*='bg-white'] {
-  background: rgba(255, 255, 255, 0.68) !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
 .current-person-dossier > div:nth-child(2) [class*='text-[#7F8B9C]'],
 .current-person-dossier > div:nth-child(2) [class*='text-[#8E9AAA]'] {
-  color: #766e64 !important;
+  color: #4b4337 !important;
+  font-weight: 800 !important;
+}
+
+/* Status badges inside current-person-dossier */
+.current-person-dossier span[class*='text-amber-200'],
+.current-person-dossier span[class*='text-amber-300'],
+.current-person-dossier span[class*='bg-amber-950'] {
+  color: #7b4f00 !important;
+  background: #fef3c7 !important;
+  border-color: #f59e0b !important;
+  font-weight: 900 !important;
+}
+
+.current-person-dossier span[class*='text-emerald-300'],
+.current-person-dossier span[class*='text-emerald-400'],
+.current-person-dossier span[class*='bg-emerald-950'] {
+  color: #065f46 !important;
+  background: #d1fae5 !important;
+  border-color: #10b981 !important;
+  font-weight: 900 !important;
+}
+
+.current-person-dossier span[class*='text-rose-300'],
+.current-person-dossier span[class*='text-rose-400'],
+.current-person-dossier span[class*='bg-rose-950'] {
+  color: #9f1239 !important;
+  background: #ffe4e6 !important;
+  border-color: #f43f5e !important;
+  font-weight: 900 !important;
+}
+
+/* Financial card inside drawer */
+.current-person-dossier [class*='bg-emerald-400/[0.07]'] {
+  background: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+}
+.current-person-dossier [class*='bg-emerald-400/[0.07]'] svg {
+  color: #047857 !important;
+}
+.current-person-dossier [class*='bg-emerald-400/[0.07]'] p {
+  color: #064e3b !important;
+  font-weight: 900 !important;
+}
+.current-person-dossier [class*='bg-emerald-400/[0.07]'] p:last-child {
+  color: #047857 !important;
+  font-weight: 700 !important;
+}
+
+.current-person-dossier [class*='bg-rose-400/[0.07]'] {
+  background: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+.current-person-dossier [class*='bg-rose-400/[0.07]'] svg {
+  color: #be123c !important;
+}
+.current-person-dossier [class*='bg-rose-400/[0.07]'] p {
+  color: #881337 !important;
+  font-weight: 900 !important;
+}
+.current-person-dossier [class*='bg-rose-400/[0.07]'] p:last-child {
+  color: #9f1239 !important;
+  font-weight: 700 !important;
 }
 
 .current-person-dossier > div:last-child {
   border-color: #ddd5c9 !important;
-  background: rgba(250, 247, 240, 0.96) !important;
+  background: rgba(250, 247, 240, 0.98) !important;
   box-shadow: 0 -14px 30px rgba(33, 25, 15, 0.05);
+}
+
+.current-person-dossier > div:last-child button:last-child {
+  border-color: #059669 !important;
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+
+.current-person-dossier > div:last-child button:last-child:hover {
+  background: #d1fae5 !important;
+  border-color: #047857 !important;
+}
+
+.current-person-dossier > div:last-child button:last-child span {
+  color: #065f46 !important;
+  font-weight: 850 !important;
 }
 
 /* â”€â”€â”€ Central de OperaÃ§Ã£o Ritual / Giras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

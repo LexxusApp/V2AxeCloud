@@ -450,7 +450,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           pixConfig={pixConfig}
           valor={selectedPixItem?.valor || pendingMensalidade?.valor || valorMensalidadeConfig}
           descricao={selectedPixItem?.descricao || "Mensalidade Terreiro"}
-          txid={(filho?.id || user.id).slice(0, 16).replace(/-/g, '')}
+          txid="***"
           vencimento={(() => {
             if (selectedPixItem?.data) {
               const d = new Date(selectedPixItem.data.length === 10 ? selectedPixItem.data + 'T00:00:00' : selectedPixItem.data);
@@ -740,7 +740,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
         pixConfig={pixConfig}
         valor={pendingMensalidade?.valor || valorMensalidadeConfig}
         descricao="Mensalidade Terreiro"
-        txid={(filho?.id || user.id).slice(0, 16).replace(/-/g, '')}
+        txid="***"
         vencimento={(() => {
           const hoje = new Date();
           let venc = setDate(hoje, diaVencimento);

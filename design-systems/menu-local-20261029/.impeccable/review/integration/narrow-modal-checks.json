@@ -1,0 +1,86 @@
+[
+  {
+    "route": "children",
+    "fields": 13,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "calendar",
+    "fields": 10,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "obligations",
+    "fields": 7,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "mural",
+    "fields": 7,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "chat",
+    "fields": 1,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "gallery",
+    "fields": 4,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "inventory",
+    "fields": 7,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "library",
+    "fields": 7,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "store",
+    "fields": 8,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "financial",
+    "fields": 5,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "financial-mensalidades",
+    "fields": 4,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "suporte",
+    "fields": 6,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "subscription",
+    "fields": 0,
+    "fits": true,
+    "overflow": false
+  },
+  {
+    "route": "radar",
+    "fields": 0,
+    "fits": true,
+    "overflow": false
+  }
+]

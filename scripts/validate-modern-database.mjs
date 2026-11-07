@@ -1,0 +1,13 @@
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+const root = process.cwd();
+const directory = path.join(root, 'artifacts/modern-integration/database');
+await mkdir(directory, { recursive: true });
+const migration = await readFile('supabase/migrations/20261031130000_library_private_audience.sql', 'utf8');
+const financeMigration = await readFile('supabase/migrations/20261101090000_finance_ledger_revision.sql', 'utf8');
+const checks = await readFile('tests/modernDatabase.validation.sql', 'utf8');
+const transactional = [migration, financeMigration].map(source => source.replace(/^begin;\s*$/m, '').replace(/^commit;\s*$/m, '')).join('\n');
+const sql = `begin; set local lock_timeout='3s'; set local statement_timeout='20s';\n${transactional}\n${checks}\nrollback; select 'passed' as validation, 'business records and schema rolled back' as persistence;`;
+const file = path.join(directory, 'transaction-validation.sql');
+await writeFile(file, sql);
+console.log('Transação de validação preparada. Execute com o Supabase CLI já vinculado:', file);

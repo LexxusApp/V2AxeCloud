@@ -1187,6 +1187,42 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
     }
   });
 
+  app.post("/api/admin-console/gira-dispatch/jobs/:jobId/cancel", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { cancelAdminGiraDispatchJob } = await import("./lib/adminGiraDispatch.js");
+      const { success, job } = cancelAdminGiraDispatchJob(String(req.params.jobId || ""));
+      if (!job) return res.status(404).json({ error: "Job não encontrado ou expirado." });
+      void logEvent(deps.supabaseAdmin, {
+        eventType: "gira-dispatch.cancel",
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        targetType: "job",
+        targetId: job.id,
+        description: `Disparo de gira cancelado pelo operador (job ${job.id})`,
+        metadata: { jobId: job.id, sent: job.sent, eligible: job.eligible },
+        req,
+      });
+      res.json({ success, job });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao cancelar disparo") });
+    }
+  });
+
+  app.get("/api/admin-console/gira-dispatch/active-job", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { getActiveAdminGiraDispatchJob } = await import("./lib/adminGiraDispatch.js");
+      const tenantId = req.query.tenantId ? String(req.query.tenantId) : undefined;
+      const job = getActiveAdminGiraDispatchJob(tenantId);
+      res.json({ job });
+    } catch (e: any) {
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao consultar job ativo") });
+    }
+  });
+
   app.get("/api/admin-console/gira-dispatch/dispatch-log", async (req, res) => {
     const ctx = await requireConsoleAdmin(deps, req, res);
     if (!ctx) return;

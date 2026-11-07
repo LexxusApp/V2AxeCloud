@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import {
   ArrowUpRight,
@@ -75,6 +75,12 @@ import { authFetch, ensureFreshAccessToken } from '../lib/authenticatedFetch';
 import { ROUTES } from '../lib/routes';
 import { notifySessionExpired } from '../lib/supabase';
 import { excludeObrigacaoEvents } from '../lib/calendarEventFilters';
+
+import { loadStandardDashboardCore, mergeStandardDashboard } from '../lib/standardDashboardLoad';
+import { DashboardCoreError } from '../lib/dashboardCoreClient';
+import { rememberChildren } from '../lib/childrenRead';
+import { useModernInterface } from '../components/app/ModernInterfaceContext';
+import ModernDashboard from '../components/dashboard/ModernDashboard';
 
 const SESSION_EXPIRED_ERR = 'SESSION_EXPIRED';
 const DASHBOARD_FETCH_ERR = 'DASHBOARD_FETCH_FAILED';
@@ -206,13 +212,27 @@ async function fetchDashboardFinanceBundle(
   user: { id: string },
   tenantIdEfetivo: string,
   userRole: string,
-  tenantIdDasProps: string | undefined | null
+  tenantIdDasProps: string | undefined | null,
+  phase: 'all' | 'core' | 'secondary' = 'all'
 ): Promise<DashboardBundle> {
   try {
     await ensureFreshAccessToken();
 
+    const core = phase === 'core' ? await loadStandardDashboardCore({
+      tenantId: tenantIdEfetivo, userId: user.id, userRole,
+    }, authFetch) : null;
+    const loadLegacyCore = phase !== 'secondary' && !core;
+    const loadSecondary = phase !== 'core';
+    if (core?.children.data) rememberChildren({ userId: user.id, tenantId: tenantIdEfetivo }, core.children.data);
+    const readJson = async <T,>(response: Response, fallback: T): Promise<T> => {
+      if (phase === 'secondary' && !response.ok && response.status !== 401) {
+        throw new Error('Informações complementares indisponíveis.');
+      }
+      return parseApiJson<T>(response, fallback);
+    };
+
     let lojaTenantPkPromise: PromiseLike<string | null> = Promise.resolve(null);
-    if (userRole !== 'filho') {
+    if (loadSecondary && userRole !== 'filho') {
       const seed = tenantIdEfetivo || user.id;
       lojaTenantPkPromise = supabase
         .from('perfil_lider')
@@ -231,12 +251,12 @@ async function fetchDashboardFinanceBundle(
     const tidEnc = encodeURIComponent(tenantIdEfetivo || '');
     const today = format(new Date(), 'yyyy-MM-dd');
     const [childrenRes, txRes, lojaRes, pedidosRes, noticesRes, eventsRes, pixConfigRes, profileSetupRes, inventoryRes, whatsappLogsRes, radarSummaryRes] = await Promise.all([
-      authFetch(
+      !loadLegacyCore ? Promise.resolve(core?.children || { data: [] }) : authFetch(
         `/api/children?userId=${encodeURIComponent(user.id)}&tenantId=${encodeURIComponent(
           tenantIdEfetivo || user.id
         )}&userRole=${encodeURIComponent(userRole || '')}`
-      ).then((r) => parseApiJson<{ data?: any[] }>(r, { data: [] })),
-      authFetch(txUrl).then(async (r) => {
+      ).then((r) => readJson<{ data?: any[] }>(r, { data: [] })),
+      !loadLegacyCore ? Promise.resolve(core?.transactions || { data: [] }) : authFetch(txUrl).then(async (r) => {
         if (r.status === 401) {
           const errText = await r.text().catch(() => '');
           console.error('[Dashboard] /api/transactions', r.status, errText);
@@ -254,62 +274,65 @@ async function fetchDashboardFinanceBundle(
         }
         return r.json() as Promise<{ data?: any[] }>;
       }),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? lojaTenantPkPromise.then((lojaTenantPk) =>
             lojaTenantPk
               ? authFetch(
                   `/api/loja-pedidos?userId=${encodeURIComponent(user.id)}&userRole=${encodeURIComponent(
                     userRole || ''
                   )}&tenantId=${encodeURIComponent(tenantIdEfetivo || '')}`
-                ).then((r) => parseApiJson<{ data?: any[] }>(r, { data: [] }))
+                ).then((r) => readJson<{ data?: any[] }>(r, { data: [] }))
               : { data: [] as any[] },
           )
         : Promise.resolve({ data: [] as any[] }),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? authFetch(`/api/v1/atendimentos/pedidos-reza?tenantId=${tidEnc}`).then((r) =>
-            parseApiJson<{ items?: DashboardPedidoReza[]; data?: DashboardPedidoReza[] }>(r, {
+            readJson<{ items?: DashboardPedidoReza[]; data?: DashboardPedidoReza[] }>(r, {
               items: [],
             })
           )
         : Promise.resolve({ items: [] as DashboardPedidoReza[], data: undefined }),
-      userRole !== 'filho'
+      !loadLegacyCore ? Promise.resolve(core?.notices || { data: [] }) : userRole !== 'filho'
         ? authFetch(`/api/notices?tenantId=${tidEnc}`).then((r) =>
-            parseApiJson<{ data?: any[] }>(r, { data: [] })
+            readJson<{ data?: any[] }>(r, { data: [] })
           )
         : Promise.resolve({ data: [] }),
       // Sem `start=today`: precisamos de giras passadas para a jornada de estrutura
       // (já agendou = etapa ok), e ainda derivamos a próxima gira no cliente.
-      authFetch(`/api/events?tenantId=${tidEnc}&scope=calendar`).then((r) =>
-        parseApiJson<{ data?: any[] }>(r, { data: [] })
+      !loadLegacyCore ? Promise.resolve(core?.events || { data: [] }) : authFetch(`/api/events?tenantId=${tidEnc}&scope=calendar`).then((r) =>
+        readJson<{ data?: any[] }>(r, { data: [] })
       ),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? authFetch(`/api/v1/financial/pix-config?tenantId=${tidEnc}`).then((r) =>
-            parseApiJson<any>(r, null)
+            readJson<any>(r, null)
           )
         : Promise.resolve(null),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? supabase
             .from('perfil_lider')
             .select('nome_terreiro,foto_url,whatsapp_publico,descricao_publica,cidade_publica,estado_publico,portal_publico_ativo,public_slug')
             .eq('id', user.id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? authFetch(`/api/inventory?tenantId=${tidEnc}`).then((r) =>
-            parseApiJson<{ data?: any[] }>(r, { data: [] })
+            readJson<{ data?: any[] }>(r, { data: [] })
           )
         : Promise.resolve({ data: [] as any[] }),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? authFetch('/api/whatsapp/logs?limit=50', { cache: 'no-store' }).then((r) =>
-            parseApiJson<{ logs?: any[] }>(r, { logs: [] })
+            readJson<{ logs?: any[] }>(r, { logs: [] })
           )
         : Promise.resolve({ logs: [] as any[] }),
-      userRole !== 'filho'
+      loadSecondary && userRole !== 'filho'
         ? authFetch('/api/v1/settings/directory-profile', { cache: 'no-store' }).then((r) =>
-            parseApiJson<DashboardBundle['radarSummary']>(r, null)
+            readJson<DashboardBundle['radarSummary']>(r, null)
           )
         : Promise.resolve(null),
     ]);
+    if (phase === 'secondary' && 'error' in profileSetupRes && profileSetupRes.error) {
+      throw new Error('Perfil complementar indisponível.');
+    }
 
     const children = (childrenRes.data || []).filter((c: any) => {
       const s = String(c?.status ?? 'Ativo').trim().toLowerCase();
@@ -433,6 +456,7 @@ async function fetchDashboardFinanceBundle(
       },
     };
   } catch (e) {
+    if (phase !== 'all') throw e;
     if (e instanceof Error && e.message === SESSION_EXPIRED_ERR) throw e;
     if (e instanceof Error && e.message === DASHBOARD_FETCH_ERR) throw e;
     console.error('Error fetching dashboard data:', e);
@@ -491,6 +515,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ setActiveTab, user, userRole = 'admin', tenantData, isAdminGlobal = false, setSelectedChildId, systemVersion = '1.0.0', isSessionReady = false }: DashboardProps) {
+  const modern = useModernInterface();
   const initialTenantFromStorage = typeof window !== 'undefined'
     ? String(localStorage.getItem('tenant_id') || '').trim()
     : '';
@@ -505,35 +530,51 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
       ),
     [tenantData?.tenant_id, user?.id, userRole, initialTenantFromStorage]
   );
-  /** Último bundle válido — evita “sumir” dados durante revalidação SWR ou HMR. */
-  const lastBundleRef = useRef<DashboardBundle | null>(null);
 
   const [flowPeriod, setFlowPeriod] = useState<'6months' | 'month'>('6months');
   const [flowPeriodOpen, setFlowPeriodOpen] = useState(false);
 
   const dashboardSwrKey =
     user?.id && tenantId && isSessionReady
-      ? (['dashboard-finance', user.id, tenantId, userRole] as const)
+      ? (['standard-dashboard-core-v1', user.id, tenantId, userRole] as const)
       : null;
-  const { data: dashboardBundle, isLoading, isValidating, error, mutate } = useSWR(
+  const { data: dashboardBundle, isLoading, isValidating, error, mutate: mutateCore } = useSWR(
     dashboardSwrKey,
-    () => fetchDashboardFinanceBundle(user!, tenantId, userRole, tenantData?.tenant_id),
+    () => fetchDashboardFinanceBundle(user!, tenantId, userRole, tenantData?.tenant_id, userRole === 'filho' ? 'all' : 'core'),
     {
       revalidateOnMount: true,
       revalidateOnFocus: false,
       dedupingInterval: 2000,
-      keepPreviousData: true,
+      keepPreviousData: false,
       errorRetryCount: 2,
     }
   );
 
-  if (dashboardBundle) {
-    const prev = lastBundleRef.current;
-    if (!prev || bundleHasMeaningfulData(dashboardBundle) || !bundleHasMeaningfulData(prev)) {
-      lastBundleRef.current = dashboardBundle;
+  const secondary = useSWR(
+    dashboardSwrKey && dashboardBundle && !error && userRole !== 'filho'
+      ? ['standard-dashboard-secondary-v1', user!.id, tenantId, userRole] : null,
+    () => fetchDashboardFinanceBundle(user!, tenantId, userRole, tenantData?.tenant_id, 'secondary'),
+    { revalidateOnFocus: false, dedupingInterval: 15000, keepPreviousData: false, errorRetryCount: 1 },
+  );
+  const mutateSecondary = secondary.mutate;
+  const mutate = useCallback(() => Promise.all([mutateCore(), mutateSecondary()]), [mutateCore, mutateSecondary]);
+  const accessDenied = error instanceof DashboardCoreError && [401, 403].includes(error.status);
+  const resolvedBundle = !accessDenied && dashboardBundle
+    ? mergeStandardDashboard(dashboardBundle, secondary.data) : null;
+  const secondaryReady = userRole === 'filho' || Boolean(secondary.data);
+  const secondaryLoading = !secondaryReady && !secondary.error;
+  const perfReported = useRef<string | null>(null);
+  useEffect(() => {
+    if (!resolvedBundle || !dashboardSwrKey) return;
+    const scope = JSON.stringify(dashboardSwrKey);
+    if (perfReported.current === scope) return;
+    perfReported.current = scope;
+    if (new URLSearchParams(window.location.search).get('dashboardPerf') === '1') {
+      requestAnimationFrame(() => console.info('[dashboard:ready]', JSON.stringify({
+        variant: 'standard', navigationMs: Math.round(performance.now()),
+      })));
     }
-  }
-  const resolvedBundle = dashboardBundle ?? lastBundleRef.current;
+  }, [resolvedBundle, dashboardSwrKey]);
   const transactions = resolvedBundle?.transactions ?? [];
   const childrenData = resolvedBundle?.childrenData ?? [];
   const nextEvent = resolvedBundle?.nextEvent ?? null;
@@ -1005,7 +1046,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
   const radarClaimed = radarSummary?.claimed === true;
   const radarPublicationStatus = String(radarSummary?.profile?.publicacaoStatus || '').trim().toLowerCase();
   const radarPublished = radarPublicationStatus === 'publicado';
-  const radarStatusLabel = radarSummary == null
+  const radarStatusLabel = secondaryLoading ? 'Carregando…' : radarSummary == null
     ? 'Dados indisponíveis'
     : radarClaimed
       ? radarPublished
@@ -1013,9 +1054,21 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
         : 'Perfil em preparação'
       : 'Configuração pendente';
 
+  if (modern && userRole !== 'filho') return <AppPageShell><ModernDashboard
+    key={`${user?.id}-${tenantId}`} tenantId={tenantId} userId={user?.id || ''}
+    houseName={terreiroNome || 'Minha casa'} name={String(user?.user_metadata?.nome_zelador || user?.user_metadata?.name || 'Zelador(a)').split(' ')[0]}
+    members={allChildren} withoutApp={withoutAppAccess} incompleteProfiles={incompleteProfiles}
+    pendingCount={pendingMensalidades} pendingValue={pendingMensalidadesValue}
+    nextEvent={nextEvent} events={houseTimelineEvents} setupSteps={setupStepsV5} onSetup={openSetupStep}
+    secondaryReady={secondaryReady} secondaryError={Boolean(secondary.error)} failed={fetchFailed}
+    stale={staleDataBanner} onReload={() => void mutate()} attention={attention} radar={radarSummary}
+    pendingCare={pendingRezas} onNavigate={setActiveTab}
+  /></AppPageShell>;
+
   return (
     <AppPageShell>
       <div className="dashboard-v5">
+      {!secondaryReady && <p role="status" className="text-sm text-slate-500">{secondary.error ? 'Algumas informações complementares estão indisponíveis.' : 'Atualizando informações complementares…'}</p>}
       {fetchFailed && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
           <p className="text-sm font-medium text-amber-200">
@@ -1081,9 +1134,9 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
             </p>
           </div>
           <div className="dashboard-v5-hero__actions" aria-label="Atalhos principais">
-            <button type="button" onClick={() => nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab('children')} className="dashboard-v5-hero__primary">
+            <button type="button" onClick={() => secondaryReady && nextSetupStep && !setupComplete ? openSetupStep(nextSetupStep) : setActiveTab('children')} className="dashboard-v5-hero__primary">
               {setupComplete ? <Users className="h-4 w-4" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />}
-              {setupComplete ? 'Ver corrente' : 'Continuar configuração'}
+              {!secondaryReady || setupComplete ? 'Ver corrente' : 'Continuar configuração'}
             </button>
             <button type="button" onClick={() => setActiveTab('calendar')} className="dashboard-v5-hero__secondary">
               <Plus className="h-4 w-4" aria-hidden />
@@ -1133,15 +1186,15 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           },
           {
             label: 'WhatsApp',
-            value: attention.whatsappFailed > 0 ? String(attention.whatsappFailed) : 'Conectado',
-            detail: attention.whatsappFailed > 0 ? 'Envios para revisar' : 'Últimos envios sem falha',
+            value: !secondaryReady ? '—' : attention.whatsappFailed > 0 ? String(attention.whatsappFailed) : 'Conectado',
+            detail: !secondaryReady ? (secondaryLoading ? 'Carregando histórico' : 'Histórico indisponível') : attention.whatsappFailed > 0 ? 'Envios para revisar' : 'Últimos envios sem falha',
             icon: MessageCircle,
             tab: 'settings',
             tone: attention.whatsappFailed > 0 ? 'warning' : 'whatsapp',
-            status: attention.whatsappFailed > 0 ? 'Revisar agora' : '100% online',
+            status: !secondaryReady ? 'Aguarde' : attention.whatsappFailed > 0 ? 'Revisar agora' : '100% online',
             footerLeft: 'Linha oficial Meta',
             footerRight: 'Avisos e lembretes',
-            healthy: attention.whatsappFailed === 0,
+            healthy: secondaryReady && attention.whatsappFailed === 0,
           },
         ].map((metric) => {
           const Icon = metric.icon;
@@ -1237,8 +1290,8 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
               ) : (
                 <div className="dashboard-v5-radar-card__empty">
                   <MapPinned aria-hidden />
-                  <strong>{radarSummary == null ? 'Não foi possível carregar agora' : 'Sua casa ainda não aparece no Radar'}</strong>
-                  <span>{radarSummary == null ? 'Abra o módulo para tentar novamente.' : 'Complete o perfil para começar a acompanhar sua visibilidade.'}</span>
+                  <strong>{secondaryLoading ? 'Carregando presença pública…' : radarSummary == null ? 'Não foi possível carregar agora' : 'Sua casa ainda não aparece no Radar'}</strong>
+                  <span>{secondaryLoading ? 'Os indicadores principais já estão disponíveis.' : radarSummary == null ? 'Abra o módulo para tentar novamente.' : 'Complete o perfil para começar a acompanhar sua visibilidade.'}</span>
                 </div>
               )}
 
@@ -1412,7 +1465,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               ))}
-              {withoutAppAccess === 0 &&
+              {secondaryReady && withoutAppAccess === 0 &&
               attention.whatsappFailed === 0 &&
               attention.obligationsPending === 0 &&
               attention.lowStock === 0 &&
@@ -1429,7 +1482,7 @@ export default function Dashboard({ setActiveTab, user, userRole = 'admin', tena
           </section>
         </div>
 
-        {!setupComplete ? (
+        {secondaryReady && !setupComplete ? (
         <aside className="space-y-5">
           <section className="dashboard-v5-progress" aria-labelledby="progress-v5">
             <div className="flex items-start justify-between gap-3">

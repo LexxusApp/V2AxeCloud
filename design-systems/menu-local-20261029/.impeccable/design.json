@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T13:04:43Z",
+  "title": "Design System: AxéCloud — prévia local, etapa 14 com estúdio do Radar e 19 destinos; menu e cabeçalho aprovados, Dashboard com aceite provisório; extensões com avaliação visual pendente",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "dialog",
+        "value": "0 25px 90px #10251d30",
+        "purpose": "Diálogos da prévia local."
+      },
+      {
+        "name": "drawer",
+        "value": "-20px 0 60px #12251d30",
+        "purpose": "Menu completo mobile."
+      },
+      {
+        "name": "mobile-dock",
+        "value": "0 8px 30px #19352a28",
+        "purpose": "Barra inferior preservada no celular."
+      },
+      {
+        "name": "toast",
+        "value": "0 12px 40px #19372a30",
+        "purpose": "Retorno de ações simuladas."
+      },
+      {
+        "name": "store-bag",
+        "value": "-20px 0 80px #15271e22",
+        "purpose": "Sombra lateral da sacola da Loja local, sem alterar o shell."
+      },
+      {
+        "name": "radar-public-dialog",
+        "value": "0 25px 90px #0d22194d",
+        "purpose": "Diálogo da prévia de visitante do Radar, etapa 14; valor literal de radar-studio.css, restrito à extensão local em avaliação."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-background-color",
+        "value": "150ms ease",
+        "purpose": "Transições de fundo e cor dos botões."
+      },
+      {
+        "name": "button-transform",
+        "value": "120ms ease",
+        "purpose": "Deslocamento ao pressionar."
+      },
+      {
+        "name": "navigation",
+        "value": "140ms ease",
+        "purpose": "Transições de fundo e cor na navegação."
+      },
+      {
+        "name": "group-chevron",
+        "value": "180ms ease",
+        "purpose": "Rotação da seta do grupo."
+      },
+      {
+        "name": "overlay",
+        "value": "150ms ease-out",
+        "purpose": "Entrada do overlay."
+      },
+      {
+        "name": "dialog-toast",
+        "value": "180ms ease-out",
+        "purpose": "Entrada de diálogo e toast."
+      },
+      {
+        "name": "drawer",
+        "value": "200ms ease-out",
+        "purpose": "Entrada do drawer."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "animation:none!important; transition:none!important; scroll-behavior:auto!important."
+      },
+      {
+        "name": "store-photo",
+        "value": "200ms; scale(1.015)",
+        "purpose": "Hover da imagem do catálogo; movimento reduzido remove transição e transformação."
+      },
+      {
+        "name": "completion-whatsapp-switch",
+        "value": "transform 150ms ease",
+        "purpose": "Indicador do interruptor local de WhatsApp em Configurações; a regra de movimento reduzido remove a transição."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "(min-width:1600px)"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "(max-width:1240px) and (min-width:921px)"
+      },
+      {
+        "name": "laptop-readability",
+        "value": "(min-width:921px) and (max-width:1599px)"
+      },
+      {
+        "name": "mobile-navigation",
+        "value": "(max-width:920px)"
+      },
+      {
+        "name": "phone",
+        "value": "(max-width:640px)"
+      },
+      {
+        "name": "narrow-phone",
+        "value": "(max-width:359px)"
+      },
+      {
+        "name": "store-two-columns",
+        "value": "(max-width:1150px)"
+      },
+      {
+        "name": "store-navigation-wrap",
+        "value": "(max-width:360px)"
+      },
+      {
+        "name": "completion-wide",
+        "value": "(min-width:1700px)"
+      },
+      {
+        "name": "completion-compact",
+        "value": "(max-width:1100px)"
+      },
+      {
+        "name": "completion-stacked",
+        "value": "(max-width:760px)"
+      }
+    ]
+  },
+  "narrative": {
+    "rules": [
+      {
+        "name": "Composição por função",
+        "body": "As próximas páginas devem ter mais ousadia visual, elementos, cor e organização própria, mantendo a essência da casa e a navegação comum.",
+        "section": "layout"
+      },
+      {
+        "name": "Áreas financeiras locais",
+        "body": "Mensalidades usa resumo dividido e lista; Cantina usa cardápio e comanda; Pix usa etapas e prévia. Navegação aprovada preservada. Composições ainda aguardam avaliação do usuário. Dados em memória, sem publicação ou integração.",
+        "section": "layout"
+      },
+      {
+        "name": "Rotinas de Casa em avaliação",
+        "body": "Obrigações: agenda por membro, sálvia e damasco. Frequência: chamadas e histórico, azul esverdeado. Comunicados: mural editorial e rascunhos, argila clara. Menu e cabeçalho mantidos; ações apenas em memória e nenhuma mensagem enviada. Aceite visual pendente.",
+        "section": "layout"
+      },
+      {
+        "name": "Mensagens em avaliação",
+        "body": "Lista e leitura lado a lado no desktop; uma conversa por tela no celular. Canvas suave, mensagens próprias em verde e recebidas brancas. Rascunhos, arquivos, grupos e leitura locais; nenhuma entrega real. Navegação aprovada mantida e aceite visual pendente.",
+        "section": "layout"
+      },
+      {
+        "name": "Galeria em avaliação",
+        "body": "Álbum dominante e coleções laterais no desktop; imagens e cards em pilha no celular. Texto fora da foto, visualizador verde profundo. Exemplos de IA identificados; estado em memória, sem upload remoto. Menu, cabeçalho e barra inferior aprovados preservados. Aceite visual pendente.",
+        "section": "layout"
+      },
+      {
+        "name": "The Estoque por unidade Rule",
+        "body": "No Almoxarifado local, usar lista contínua e painel de reposição areia/argila, com controles compactos no celular. Exibir quantidade e mínimo por unidade, sem somar unidades incompatíveis; registrar saldo antes/depois nas movimentações. Lista de compras não cria operação financeira. Preservar o shell aprovado, o estado de negócio em memória e o aceite visual pendente desta página.",
+        "section": "layout"
+      },
+      {
+        "name": "The Acervo individual local Rule",
+        "body": "Na Biblioteca local, usar lilás para sinalizar o acervo individual e manter a audiência explícita no card e no leitor. Iniciar cadastros como privados, exigir destinatário por ID e confirmar transferência ou ampliação de acesso. Na prévia de membro, limitar listas, contagens, assuntos, busca, detalhe, leitura e download ao conjunto permitido. Preservar o shell aprovado e o aceite visual pendente; a cor e o filtro local não constituem autenticação ou proteção de armazenamento.",
+        "section": "colors"
+      },
+      {
+        "name": "The Catálogo e pedido local Rule",
+        "body": "Na Loja local, preservar catálogo editorial com imagens identificadas, preços argila, pedidos expansíveis e sacola adaptada. Editar conserva o estado arquivado; restaurar exige ação explícita. Reserva separa estoque sem dívida ou receita; recebimento gera uma entrada estável por pedido no caixa de teste. No celular, quantidade, Remover e fechar a sacola têm mínimo de 44×44px. Preservar o shell aprovado, o estado em memória e o aceite visual pendente.",
+        "section": "layout"
+      },
+      {
+        "name": "The Radar e Conta locais Rule",
+        "body": "Preservar o estúdio fotográfico do Radar da etapa 14, contrato e livro de renovações na Assinatura, índice e editor em Configurações e orientações lilás no Suporte. Manter rascunho separado do salvo e identificar conexão, publicação, renovação e pedido como simulações. Preservar os 19 destinos, o shell aprovado e o aceite visual pendente das extensões; a validação final cabe à principal.",
+        "section": "components"
+      },
+      {
+        "name": "The Radar público salvo Rule",
+        "body": "No Radar local, abrir com capa, retrato e identidade salvos e organizar a gestão em sete seções. Exibir somente o salvo na prévia de visitante; manter a galeria pública independente da Galeria interna e copiar a foto da conta apenas por ação explícita. No celular, antecipar próxima gira, horários e localização à galeria. Preservar Inter, floresta, dourado e shell aprovado; a composição da etapa 14 aguarda aceite visual do usuário.",
+        "section": "components"
+      }
+    ]
+  }
+}

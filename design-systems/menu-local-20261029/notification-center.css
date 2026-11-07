@@ -1,0 +1,43 @@
+.notice-item {
+  border-top: 1px solid var(--line);
+}
+
+.notice-item > .notice-row {
+  padding-bottom: 10px;
+  border-top: 0;
+}
+
+.notice-mark-one {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  margin: -2px 0 12px 30px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: #edf3e7;
+  color: #365d3b;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notice-mark-one:hover:not(:disabled),
+.notice-mark-one:focus-visible {
+  background: #e0ead8;
+  color: #234a2d;
+}
+
+.notice-item.read > .notice-row {
+  padding-bottom: 20px;
+}
+
+@media (max-width: 640px) {
+  .notice-mark-one {
+    min-height: 40px;
+    margin-left: 29px;
+    font-size: 12px;
+  }
+}

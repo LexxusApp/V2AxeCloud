@@ -118,7 +118,7 @@ const CanvasPointsLayer = L.Layer.extend({
     _canvas: HTMLCanvasElement;
     _redraw: () => void;
   }, map: L.Map) {
-    map.off('moveend zoomend resize viewreset zoomanim', this._redraw, this);
+    map.off('moveend zoomend resize viewreset', this._redraw, this);
     L.DomUtil.remove(this._canvas);
   },
   setPoints(this: L.Layer & { _points: DiretorioMapPoint[]; _redraw: () => void }, points: DiretorioMapPoint[]) {
@@ -151,11 +151,17 @@ const CanvasPointsLayer = L.Layer.extend({
     const map = this._map;
     if (!map || !this._canvas) return;
     const size = map.getSize();
+    if (size.x <= 0 || size.y <= 0) return;
     const topLeft = map.containerPointToLayerPoint([0, 0]);
     L.DomUtil.setPosition(this._canvas, topLeft);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this._canvas.width = Math.round(size.x * dpr);
-    this._canvas.height = Math.round(size.y * dpr);
+    
+    const targetW = Math.round(size.x * dpr);
+    const targetH = Math.round(size.y * dpr);
+    if (this._canvas.width !== targetW || this._canvas.height !== targetH) {
+      this._canvas.width = targetW;
+      this._canvas.height = targetH;
+    }
     this._canvas.style.width = `${size.x}px`;
     this._canvas.style.height = `${size.y}px`;
     const ctx = this._canvas.getContext('2d');
@@ -167,45 +173,77 @@ const CanvasPointsLayer = L.Layer.extend({
     const bounds = map.getBounds().pad(0.08);
     const zoom = map.getZoom();
 
-    const visible = this._points.filter((point) => bounds.contains([point.lat, point.lng]));
-    const renderPoint = (point: DiretorioMapPoint) => {
-      const pt = map.latLngToContainerPoint([point.lat, point.lng]);
-      const highlighted = point.verificada || point.gerenciada;
-      const radius = highlighted ? 7 : zoom >= 13 ? 5.5 : 4.5;
-      ctx.save();
-      ctx.shadowColor = highlighted ? 'rgba(16, 185, 129, .42)' : 'rgba(91, 62, 0, .24)';
-      ctx.shadowBlur = highlighted ? 12 : 5;
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
-      ctx.fillStyle = highlighted ? '#16865f' : '#e5ae12';
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = highlighted ? 2.5 : 1.5;
-      ctx.strokeStyle = highlighted ? '#ffffff' : '#fff8e2';
-      ctx.stroke();
-      if (highlighted) {
+    const visibleUnverified: DiretorioMapPoint[] = [];
+    const visibleVerified: DiretorioMapPoint[] = [];
+    for (const point of this._points) {
+      if (bounds.contains([point.lat, point.lng])) {
+        if (point.verificada || point.gerenciada) {
+          visibleVerified.push(point);
+        } else {
+          visibleUnverified.push(point);
+        }
+      }
+    }
+
+    if (zoom >= 12) {
+      // 1) BATCH DRAW: Unverified points in a single path
+      const radius = zoom >= 13 ? 5.5 : 4.5;
+      if (visibleUnverified.length > 0) {
         ctx.beginPath();
-        ctx.moveTo(pt.x - 2.4, pt.y);
-        ctx.lineTo(pt.x - 0.4, pt.y + 2.2);
-        ctx.lineTo(pt.x + 3.2, pt.y - 2.6);
-        ctx.strokeStyle = '#ffffff';
+        for (const point of visibleUnverified) {
+          const pt = map.latLngToContainerPoint([point.lat, point.lng]);
+          ctx.moveTo(pt.x + radius, pt.y);
+          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+          this._renderedItems.push({ kind: 'point', point, x: pt.x, y: pt.y, radius });
+        }
+        ctx.fillStyle = '#e5ae12';
+        ctx.fill();
         ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#fff8e2';
+        ctx.stroke();
+      }
+
+      // 2) Verified points on top
+      for (const point of visibleVerified) {
+        const pt = map.latLngToContainerPoint([point.lat, point.lng]);
+        const vRadius = 9;
+
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, vRadius + 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.22)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, vRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#059669';
+        ctx.fill();
+        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = '#fbbf24';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(pt.x - 3.2, pt.y);
+        ctx.lineTo(pt.x - 0.5, pt.y + 2.8);
+        ctx.lineTo(pt.x + 3.8, pt.y - 3.2);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
-      }
-      ctx.restore();
-      this._renderedItems.push({ kind: 'point', point, x: pt.x, y: pt.y, radius });
-    };
 
-    if (zoom >= 12) {
-      visible.forEach(renderPoint);
+        this._renderedItems.push({ kind: 'point', point, x: pt.x, y: pt.y, radius: vRadius });
+      }
       return;
     }
 
+    // zoom < 12: Cluster rendering
     const cellSize = zoom <= 5 ? 112 : zoom <= 7 ? 100 : zoom <= 9 ? 68 : 52;
     const groups = new Map<string, DiretorioMapPoint[]>();
-    for (const point of visible) {
+    const allVisible = visibleUnverified.concat(visibleVerified);
+    for (const point of allVisible) {
       const pt = map.latLngToContainerPoint([point.lat, point.lng]);
       const key = `${Math.floor(pt.x / cellSize)}:${Math.floor(pt.y / cellSize)}`;
       const group = groups.get(key);
@@ -213,28 +251,97 @@ const CanvasPointsLayer = L.Layer.extend({
       else groups.set(key, [point]);
     }
 
+    const singleUnverified: DiretorioMapPoint[] = [];
+    const clusters: DiretorioMapPoint[][] = [];
     for (const group of groups.values()) {
       if (group.length === 1) {
-        renderPoint(group[0]);
-        continue;
+        if (group[0].verificada || group[0].gerenciada) {
+          const point = group[0];
+          const pt = map.latLngToContainerPoint([point.lat, point.lng]);
+          const vRadius = 9;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, vRadius + 5, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.22)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, vRadius, 0, Math.PI * 2);
+          ctx.fillStyle = '#059669';
+          ctx.fill();
+          ctx.lineWidth = 2.4;
+          ctx.strokeStyle = '#fbbf24';
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(pt.x - 3.2, pt.y);
+          ctx.lineTo(pt.x - 0.5, pt.y + 2.8);
+          ctx.lineTo(pt.x + 3.8, pt.y - 3.2);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+
+          this._renderedItems.push({ kind: 'point', point, x: pt.x, y: pt.y, radius: vRadius });
+        } else {
+          singleUnverified.push(group[0]);
+        }
+      } else {
+        clusters.push(group);
       }
-      const lat = group.reduce((sum, point) => sum + point.lat, 0) / group.length;
-      const lng = group.reduce((sum, point) => sum + point.lng, 0) / group.length;
-      const verifiedCount = group.reduce((sum, point) => sum + (point.verificada || point.gerenciada ? 1 : 0), 0);
+    }
+
+    // Batch draw single unverified points
+    if (singleUnverified.length > 0) {
+      const sRadius = 4.5;
+      ctx.beginPath();
+      for (const point of singleUnverified) {
+        const pt = map.latLngToContainerPoint([point.lat, point.lng]);
+        ctx.moveTo(pt.x + sRadius, pt.y);
+        ctx.arc(pt.x, pt.y, sRadius, 0, Math.PI * 2);
+        this._renderedItems.push({ kind: 'point', point, x: pt.x, y: pt.y, radius: sRadius });
+      }
+      ctx.fillStyle = '#e5ae12';
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#fff8e2';
+      ctx.stroke();
+    }
+
+    // Render clusters
+    for (const group of clusters) {
+      let sumLat = 0;
+      let sumLng = 0;
+      let verifiedCount = 0;
+      for (const p of group) {
+        sumLat += p.lat;
+        sumLng += p.lng;
+        if (p.verificada || p.gerenciada) verifiedCount++;
+      }
+      const lat = sumLat / group.length;
+      const lng = sumLng / group.length;
       const pt = map.latLngToContainerPoint([lat, lng]);
       const radius = Math.min(29, 14 + Math.log2(group.length) * 2.2);
 
-      ctx.save();
-      ctx.shadowColor = 'rgba(10, 42, 30, .30)';
-      ctx.shadowBlur = 15;
+      if (verifiedCount > 0) {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, radius + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
       ctx.fillStyle = '#153d2d';
       ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.8;
       ctx.strokeStyle = '#f1b90b';
       ctx.stroke();
+
       ctx.beginPath();
       ctx.arc(pt.x, pt.y, Math.max(4, radius - 6), 0, Math.PI * 2);
       ctx.lineWidth = 1;
@@ -249,15 +356,29 @@ const CanvasPointsLayer = L.Layer.extend({
       ctx.fillText(label, pt.x, pt.y + 0.5);
 
       if (verifiedCount > 0) {
+        const badgeText = `⭐ ${verifiedCount}`;
+        ctx.font = '800 10.5px Manrope, system-ui, sans-serif';
+        const bw = Math.max(26, ctx.measureText(badgeText).width + 10);
+        const bx = pt.x + radius * 0.72;
+        const by = pt.y - radius * 0.72 - 3;
+        const rPill = 8;
+
         ctx.beginPath();
-        ctx.arc(pt.x + radius * 0.72, pt.y - radius * 0.72, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#34d399';
+        ctx.arc(bx - bw / 2 + rPill, by, rPill, Math.PI / 2, (Math.PI * 3) / 2);
+        ctx.arc(bx + bw / 2 - rPill, by, rPill, (Math.PI * 3) / 2, Math.PI / 2);
+        ctx.closePath();
+        ctx.fillStyle = '#044733';
         ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = '#fbbf24';
         ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badgeText, bx, by + 0.5);
       }
-      ctx.restore();
+
       this._renderedItems.push({ kind: 'cluster', lat, lng, count: group.length, verifiedCount, x: pt.x, y: pt.y, radius });
     }
   },
@@ -279,6 +400,7 @@ export function DirectoryCoverageMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<InstanceType<typeof CanvasPointsLayer> | null>(null);
+  const officialLayerRef = useRef<L.LayerGroup | null>(null);
   const pointsRef = useRef(points);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   pointsRef.current = points;
@@ -336,6 +458,7 @@ export function DirectoryCoverageMap({
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
+      officialLayerRef.current = null;
     };
   }, []);
 

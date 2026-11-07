@@ -94,6 +94,23 @@ function buildMessagePreview(opts: {
   const hora = String(evento.hora || "—").slice(0, 5);
   const quando = resolveQuandoLabel(evento.data);
 
+  if (templateName.includes("lembrete_util")) {
+    return {
+      body: [
+        `Ola, ${membroNome}!`,
+        "",
+        `Lembramos que sua proxima gira no terreiro ${terreiro} esta agendada para ${quando}:`,
+        "",
+        titulo,
+        `Horario: ${hora}.`,
+        "",
+        "Contamos com sua presenca na corrente.",
+      ].join("\n"),
+      footer: "Mensagem automatica — nao responda.",
+      hasBanner: false,
+    };
+  }
+
   if (templateName.includes("lembrete_membro")) {
     return {
       body: [
@@ -805,7 +822,7 @@ export function GiraDispatchPanel() {
               ) : null}
             </label>
 
-            {templateName.includes("lembrete_membro") ? (
+            {(templateName.includes("lembrete_membro") || templateName.includes("lembrete_util")) ? (
               <label className="block">
                 <span className="admin-label">Nome na prévia (exemplo de membro)</span>
                 <input

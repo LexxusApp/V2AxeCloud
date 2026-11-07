@@ -5,6 +5,9 @@ function digitsOnly(value: unknown): string {
 function normalizeBrazilianPhone(value: unknown): string | null {
   let digits = digitsOnly(value);
   if (digits.startsWith("00")) digits = digits.slice(2);
+  if (digits.startsWith("0") && (digits.length === 11 || digits.length === 12)) {
+    digits = digits.slice(1);
+  }
   if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
   if (!/^55[1-9]\d(?:\d{8}|\d{9})$/.test(digits)) return null;
   return digits;

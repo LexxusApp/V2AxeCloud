@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "api/**/*.ts",
+    "lib/**/*.ts",
+    "design-systems/menu-local-20261029/**/*.ts",
+    "design-systems/menu-local-20261029/**/*.tsx",
+    "server.ts",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "artifacts",
+    "scripts",
+    "tests",
+    "axecloud-admin",
+    "site-next",
+    "cloudflare",
+    "deploy",
+    "api/lib/falhaAcessoMembroZeladorWhatsApp.ts"
+  ]
+}

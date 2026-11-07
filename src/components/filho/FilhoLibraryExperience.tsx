@@ -1,3 +1,4 @@
+import { downloadLibraryDocument } from '../../lib/libraryDownload';
 import { useMemo } from 'react';
 import {
   ArrowLeft,
@@ -115,7 +116,7 @@ export default function FilhoLibraryExperience({
             <span>Sala de leitura</span>
             <strong>{selectedMaterial.categoria}</strong>
           </div>
-          <button type="button" onClick={() => window.open(selectedMaterial.arquivo_url, '_blank', 'noopener,noreferrer')}>
+          <button type="button" onClick={() => void downloadLibraryDocument(selectedMaterial, tenantId)}>
             <Download />
             Baixar
           </button>

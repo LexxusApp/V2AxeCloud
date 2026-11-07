@@ -51,6 +51,19 @@ type Deps = {
   supabaseAdmin: SupabaseClient;
 };
 
+type ExistingPixCharge = Awaited<ReturnType<typeof efiPixGetCob>>;
+
+export function isReusableEfiPixCharge(
+  charge: ExistingPixCharge,
+  nowMs = Date.now()
+): boolean {
+  if (charge.status !== "ATIVA" || !charge.copyPaste) return false;
+  if (!charge.createdAt || !charge.expirationSeconds) return true;
+  const createdAtMs = new Date(charge.createdAt).getTime();
+  if (!Number.isFinite(createdAtMs)) return true;
+  return createdAtMs + charge.expirationSeconds * 1000 > nowMs + 30_000;
+}
+
 async function resolveTenantFromAuth(
   supabaseAdmin: SupabaseClient,
   req: Request,
@@ -271,6 +284,48 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         return res.status(pending.status).json({ error: pending.error });
       }
 
+      const { data: existingSubscription } = await supabaseAdmin
+        .from("subscriptions")
+        .select("efi_pix_txid, pending_billing_cycle, billing_cycle")
+        .eq("id", tenant.tenantId)
+        .maybeSingle();
+
+      const existingTxid = String(existingSubscription?.efi_pix_txid || "").trim();
+      const existingCycle = normalizeBillingCycle(
+        existingSubscription?.pending_billing_cycle || existingSubscription?.billing_cycle
+      );
+      if (existingTxid && existingCycle === billingCycle) {
+        const existingCharge = await efiPixGetCob(pixEnv, existingTxid);
+        if (existingCharge.paid) {
+          await activateTenantSubscription(supabaseAdmin, tenant.tenantId, {
+            chargeId: `pix:${existingTxid}`,
+            provider: "efi_pix",
+            billingCycle,
+          });
+          return res.json({
+            alreadyActive: true,
+            paid: true,
+            message: "Pagamento confirmado. Acesso liberado.",
+          });
+        }
+        if (isReusableEfiPixCharge(existingCharge)) {
+          const qrCodeDataUrl = await QRCode.toDataURL(existingCharge.copyPaste!, {
+            margin: 2,
+            width: 280,
+            color: { dark: "#000000", light: "#ffffff" },
+          });
+          return res.json({
+            txid: existingTxid,
+            copyPaste: existingCharge.copyPaste,
+            qrCodeDataUrl,
+            status: existingCharge.status,
+            expiresIn: existingCharge.expirationSeconds || 86400,
+            billingCycle,
+            reused: true,
+          });
+        }
+      }
+
       const { data: profile } = await supabaseAdmin
         .from("perfil_lider")
         .select("nome_terreiro, cargo, email")
@@ -340,7 +395,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         billingCycle,
         chargeId: charge.txid,
         message: "PIX gerado e disponibilizado ao cliente.",
-        metadata: { expiresIn: 3600, providerStatus: charge.status, purpose },
+        metadata: { expiresIn: 86400, providerStatus: charge.status, purpose },
       });
 
       res.json({
@@ -348,7 +403,7 @@ export function registerEfiCheckoutRoutes(app: Express, { supabaseAdmin }: Deps)
         copyPaste: charge.copyPaste,
         qrCodeDataUrl,
         status: charge.status,
-        expiresIn: 3600,
+        expiresIn: 86400,
         billingCycle,
       });
     } catch (err: any) {

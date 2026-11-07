@@ -181,7 +181,7 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     latitude: hasCoordinates ? latitude : null,
     longitude: hasCoordinates ? longitude : null,
     coordinateSource: hasCoordinates ? String(row.coordinate_source || "google_maps_url") : null,
-    verificada: Boolean(row.verified_at),
+    verificada: Boolean(row.verified_at || row.claimed_by_tenant_id),
     createdAt: row.created_at ? String(row.created_at) : null,
     updatedAt: row.updated_at ? String(row.updated_at) : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
@@ -382,6 +382,7 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
       nome: row.nome,
       cidade: row.cidade || '',
       estado: row.estado || 'SP',
+      verificada: Boolean(row.verificada),
       ...coordinates,
     }];
   });
@@ -397,6 +398,7 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
   const e: number[] = [];
   const a: number[] = [];
   const o: number[] = [];
+  const r: number[] = [];
   for (const point of points) {
     const cityKey = point.cidade;
     let ci = cityIndex.get(cityKey);
@@ -418,6 +420,7 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
     e.push(ui);
     a.push(Math.round(point.lat * 1e5));
     o.push(Math.round(point.lng * 1e5));
+    r.push(point.verificada ? 1 : 0);
   }
 
   const outDir = path.join(OUT_DIR, 'terreiros');
@@ -435,6 +438,7 @@ function writeDirectoryMap(rows: SnapshotRow[]) {
       e,
       a,
       o,
+      r,
     }),
     'utf8',
   );

@@ -91,10 +91,10 @@ export default function MinhaAssinatura({ session, tenantData, onRefresh }: Minh
             <div>
               <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-[#8B6413]">
                 <span className="h-2 w-2 rounded-full bg-[#D9A619] shadow-[0_0_0_5px_rgba(217,166,25,.12)]" />
-                Continuidade do AxéCloud
+                ✦ CONTINUIDADE & PLANO AXÉCLOUD ✦
               </p>
               <h1 className="mt-4 max-w-3xl font-display text-3xl font-black tracking-[-0.045em] text-[#151914] sm:text-5xl">
-                Sua mensalidade, sem caminho escondido.
+                Sua Assinatura, Sem Caminho Escondido.
               </h1>
               <p className="mt-4 max-w-2xl text-sm font-semibold leading-relaxed text-[#676154] sm:text-base">
                 Acompanhe o vencimento, escolha o melhor ciclo e conclua o pagamento sem sair desta página.
@@ -154,19 +154,19 @@ export default function MinhaAssinatura({ session, tenantData, onRefresh }: Minh
                 {([
                   ['monthly', 'Mensal', monthly, 'Flexibilidade mês a mês'],
                   ['annual', 'Anual', annual, `Economia de R$ ${formatPriceBRL(annualSaving)} no ano`],
-                ] as const).map(([cycle, title, price, note]) => <button type="button" onClick={() => setSelectedCycle(cycle)} className={cn('grid min-h-[76px] grid-cols-[22px_1fr_auto] items-center gap-3 rounded-2xl border px-4 text-left transition', selectedCycle === cycle ? 'border-[#A97910] bg-[#FFF9EA] shadow-[0_12px_32px_-24px_rgba(112,77,5,.7)]' : 'border-[#D8CEBC] bg-[#F5EFE3] hover:border-[#BFAE8C]')} key={cycle}><span className={cn('grid h-5 w-5 place-items-center rounded-full border', selectedCycle === cycle ? 'border-[#A97910] bg-[#DDAA20]' : 'border-[#BDB3A2]')} >{selectedCycle === cycle ? <Check className="h-3 w-3 text-[#171309]" /> : null}</span><span><strong className="block text-sm font-black">{title}</strong><small className="mt-1 block text-[10px] font-semibold text-[#7A7266]">{note}</small></span><span className="text-right"><strong className="block text-base font-black">R$ {formatPriceBRL(price)}</strong><small className="text-[9px] font-bold text-[#7A7266]">/{cycle === 'annual' ? 'ano' : 'mês'}</small></span></button>)}
+                ] as const).map(([cycle, title, price, note]) => <button type="button" onClick={() => setSelectedCycle(cycle)} className={cn('grid min-h-[76px] grid-cols-[22px_1fr_auto] items-center gap-3 rounded-lg border px-4 text-left transition', selectedCycle === cycle ? 'border-[#A97910] bg-[#FFF9EA] shadow-[0_12px_32px_-24px_rgba(112,77,5,.7)]' : 'border-[#D8CEBC] bg-[#F5EFE3] hover:border-[#BFAE8C]')} key={cycle}><span className={cn('grid h-5 w-5 place-items-center rounded-full border', selectedCycle === cycle ? 'border-[#A97910] bg-[#DDAA20]' : 'border-[#BDB3A2]')} >{selectedCycle === cycle ? <Check className="h-3 w-3 text-[#171309]" /> : null}</span><span><strong className="block text-sm font-black">{title}</strong><small className="mt-1 block text-[10px] font-semibold text-[#7A7266]">{note}</small></span><span className="text-right"><strong className="block text-base font-black">R$ {formatPriceBRL(price)}</strong><small className="text-[9px] font-bold text-[#7A7266]">/{cycle === 'annual' ? 'ano' : 'mês'}</small></span></button>)}
               </div>
               <button type="button" disabled={plansLoading} onClick={() => openPayment(selectedCycle)} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1C4E3B] px-5 text-sm font-black text-white transition hover:bg-[#153C2E] disabled:opacity-60">Continuar para pagamento <ArrowDown className="h-4 w-4" /></button>
             </div>
 
             <div className="grid content-start gap-3 sm:grid-cols-2">
-              <article className="rounded-2xl border border-[#D7CBB5] bg-[#E7DDC9] p-5 sm:col-span-2"><ReceiptText className="h-6 w-6 text-[#8B6413]" /><strong className="mt-5 block text-lg font-black">Tudo acontece aqui.</strong><p className="mt-2 text-xs font-semibold leading-relaxed text-[#6F685B]">Você escolhe o período, gera o Pix ou paga com cartão e acompanha a confirmação sem abrir outra página.</p></article>
-              <article className="rounded-2xl border border-[#D7CBB5] bg-[#F7F1E5] p-5"><LockKeyhole className="h-5 w-5 text-[#1F6147]" /><strong className="mt-4 block text-sm font-black">Pagamento protegido</strong><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[#777063]">Processamento seguro pela Efí.</p></article>
-              <article className="rounded-2xl border border-[#D7CBB5] bg-[#F7F1E5] p-5"><ShieldCheck className="h-5 w-5 text-[#1F6147]" /><strong className="mt-4 block text-sm font-black">Liberação automática</strong><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[#777063]">A confirmação atualiza a assinatura.</p></article>
+              <article className="rounded-lg border border-[#D7CBB5] bg-[#E7DDC9] p-5 sm:col-span-2"><ReceiptText className="h-6 w-6 text-[#8B6413]" /><strong className="mt-5 block text-lg font-black">Tudo acontece aqui.</strong><p className="mt-2 text-xs font-semibold leading-relaxed text-[#6F685B]">Você escolhe o período, gera o Pix ou paga com cartão e acompanha a confirmação sem abrir outra página.</p></article>
+              <article className="rounded-lg border border-[#D7CBB5] bg-[#F7F1E5] p-5"><LockKeyhole className="h-5 w-5 text-[#1F6147]" /><strong className="mt-4 block text-sm font-black">Pagamento protegido</strong><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[#777063]">Processamento seguro pela Efí.</p></article>
+              <article className="rounded-lg border border-[#D7CBB5] bg-[#F7F1E5] p-5"><ShieldCheck className="h-5 w-5 text-[#1F6147]" /><strong className="mt-4 block text-sm font-black">Liberação automática</strong><p className="mt-2 text-[11px] font-semibold leading-relaxed text-[#777063]">A confirmação atualiza a assinatura.</p></article>
             </div>
           </section>
         ) : (
-          <section className="px-5 py-9 sm:px-8 lg:px-11"><div className="flex flex-col gap-4 rounded-2xl border border-violet-200 bg-violet-50 p-6 sm:flex-row sm:items-center"><span className="grid h-12 w-12 place-items-center rounded-full bg-violet-900 text-white"><Sparkles className="h-5 w-5" /></span><div><strong className="text-lg font-black text-violet-950">Nenhuma cobrança necessária.</strong><p className="mt-1 text-sm font-semibold text-violet-900/65">Esta casa possui acesso {planKey === 'vita' ? 'Vita' : 'permanente'} ao AxéCloud.</p></div></div></section>
+          <section className="px-5 py-9 sm:px-8 lg:px-11"><div className="flex flex-col gap-4 rounded-lg border border-violet-200 bg-violet-50 p-6 sm:flex-row sm:items-center"><span className="grid h-12 w-12 place-items-center rounded-full bg-violet-900 text-white"><Sparkles className="h-5 w-5" /></span><div><strong className="text-lg font-black text-violet-950">Nenhuma cobrança necessária.</strong><p className="mt-1 text-sm font-semibold text-violet-900/65">Esta casa possui acesso {planKey === 'vita' ? 'Vita' : 'permanente'} ao AxéCloud.</p></div></div></section>
         )}
 
         {paymentOpen && !lifetime && tenantId ? (

@@ -83,6 +83,10 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
       title: 'Cobrança de Mensalidade',
       hint: 'Template Meta cobranca_mensalidade_axecloud — botão Gerar cobrança no Financeiro.',
     },
+    mensalidade_vencida: {
+      title: 'Mensalidade vencida',
+      hint: 'Lembrete privado para mensalidades que passaram da data de vencimento.',
+    },
     mensalidade_disponivel: {
       title: 'Mensalidade disponível',
       hint: 'Automático no dia 1 do mês: avisa que a mensalidade da competência já está disponível para pagamento.',

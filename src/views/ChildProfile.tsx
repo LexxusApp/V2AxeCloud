@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Edit2, Save, X, Trash2, Loader2, ShieldCheck, NotebookPen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -13,6 +13,7 @@ import { ChildProfileEditModal } from '../components/child-profile/ChildProfileE
 import BodyPortal from '../components/BodyPortal';
 import { showHouseToast } from '../lib/houseToast';
 import { confirmAction } from '../lib/confirmAction';
+import { compressImage } from '../lib/imageCompression';
 
 interface ChildProfileProps {
   childId: string | null;
@@ -213,8 +214,15 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
             }
           });
           if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Erro ao buscar dados do filho");
+            let errMsg = "Erro ao buscar dados do filho";
+            try {
+              const errData = await response.json();
+              if (errData?.error) errMsg = errData.error;
+            } catch {
+              const text = await response.text().catch(() => "");
+              if (text) errMsg = text.slice(0, 150);
+            }
+            throw new Error(errMsg);
           }
           const result = await response.json();
           data = result.data;
@@ -332,8 +340,15 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to update');
+        let errMsg = 'Failed to update';
+        try {
+          const errData = await response.json();
+          if (errData?.error) errMsg = errData.error;
+        } catch {
+          const text = await response.text().catch(() => "");
+          if (text) errMsg = text.slice(0, 150);
+        }
+        throw new Error(errMsg);
       }
       
       const result = await response.json();
@@ -703,70 +718,58 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file || !user || !child) return;
 
     try {
       setIsUploadingPhoto(true);
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `child-${child.id}-${Date.now()}.${fileExt}`;
-
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+      if (!session) throw new Error('Sessao expirada. Faca login novamente.');
 
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = (reader.result as string).split(',')[1];
-          
-          const response = await authFetch('/api/v1/profile/upload-photo', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({
-              fileData: base64Data,
-              fileName: fileName,
-              contentType: file.type
-            })
-          });
+      // Compressao client-side (evita HTTP 413 em fotos pesadas de celulares)
+      const compressed = await compressImage(file, {
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.82,
+      });
 
-          if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || 'Erro ao subir foto.');
-          }
+      const fileName = `${user.id}-child-${child.id}-${Date.now()}.${compressed.extension}`;
 
-          const { publicUrl } = await response.json();
+      const response = await authFetch('/api/v1/profile/upload-photo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          fileData: compressed.fileData,
+          fileName: fileName,
+          contentType: compressed.contentType
+        })
+      });
 
-          // Atualizar o banco de dados do filho
-          const { error: dbError } = await supabase
-            .from('filhos_de_santo')
-            .update({ foto_url: publicUrl })
-            .eq('id', child.id);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || 'Erro ao subir foto.');
+      }
 
-          if (dbError) throw dbError;
+      const { publicUrl } = await response.json();
 
-          setChild({ ...child, foto_url: publicUrl });
-          showHouseToast('Foto de perfil atualizada');
-        } catch (error: any) {
-          console.error('Error uploading photo:', error);
-          showHouseToast(`Erro ao atualizar foto: ${error.message || 'tente novamente'}`, 'error');
-        } finally {
-          setIsUploadingPhoto(false);
-        }
-      };
+      // Atualizar o banco de dados do filho
+      const { error: dbError } = await supabase
+        .from('filhos_de_santo')
+        .update({ foto_url: publicUrl })
+        .eq('id', child.id);
 
-      reader.onerror = () => {
-        showHouseToast('Erro ao processar imagem.', 'error');
-        setIsUploadingPhoto(false);
-      };
+      if (dbError) throw dbError;
 
-      reader.readAsDataURL(file);
-
+      setChild({ ...child, foto_url: publicUrl });
+      showHouseToast('Foto de perfil atualizada com sucesso');
     } catch (error: any) {
-      console.error('Error initiating photo upload:', error);
-      showHouseToast(`Erro ao iniciar upload de foto: ${error.message}`, 'error');
+      console.error('Error uploading photo:', error);
+      showHouseToast(`Erro ao atualizar foto: ${error.message || 'tente novamente'}`, 'error');
+    } finally {
       setIsUploadingPhoto(false);
     }
   };
@@ -828,6 +831,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
         <ChildProfileV3View
           child={child}
           isSelfView={isSelfView}
+          tenantData={tenantData}
           activeTab={activeProfileTab}
           onTabChange={setActiveProfileTab}
           onBack={() => setActiveTab(isSelfView ? 'home' : 'children')}
@@ -885,7 +889,7 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-xl"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-xl"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="flex items-center gap-3 min-w-0">

@@ -2,37 +2,72 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import type { GiraWhatsAppDispatchResult } from "./cronWhatsAppJobs.js";
 
+export type GiraDispatchFailedMember = {
+  nome: string;
+  telefone: string;
+};
+
 export type GiraDispatchSummaryStats = {
   enviados: number;
   entregues: number;
   falhas: number;
   pendentes: number;
   eligible: number;
+  failedMembers?: GiraDispatchFailedMember[];
 };
+
+export function formatPhoneBr(phone: string): string {
+  const d = String(phone || "").replace(/\D/g, "");
+  if (d.length === 13 && d.startsWith("55")) {
+    return `${d.slice(2, 4)} ${d.slice(4, 9)}-${d.slice(9)}`;
+  }
+  if (d.length === 12 && d.startsWith("55")) {
+    return `${d.slice(2, 4)} ${d.slice(4, 8)}-${d.slice(8)}`;
+  }
+  if (d.length === 11) {
+    return `${d.slice(0, 2)} ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+  if (d.length === 10) {
+    return `${d.slice(0, 2)} ${d.slice(2, 6)}-${d.slice(6)}`;
+  }
+  return phone;
+}
 
 export function buildResumoDisparoGiraText(stats: GiraDispatchSummaryStats): string {
   if (stats.eligible === 0) {
     return "Nenhum membro com WhatsApp cadastrado para receber o aviso.";
   }
 
-  const base = `Enviados: ${stats.enviados} · Entregues: ${stats.entregues} · Falhas: ${stats.falhas}`;
+  const lines: string[] = [];
 
-  if (stats.falhas === 0 && stats.entregues >= stats.enviados && stats.enviados > 0) {
-    return `${base} · Todos os membros elegiveis receberam o aviso.`;
+  if (stats.entregues > 0) {
+    const plural = stats.entregues === 1 ? "médium recebeu" : "médiuns receberam";
+    lines.push(`✅ ${stats.entregues} ${plural} com sucesso.`);
   }
 
   if (stats.falhas > 0) {
     const n = stats.falhas;
-    const verbo = n === 1 ? "nao foi entregue" : "nao foram entregues";
-    return `${base} · ${n} aviso${n === 1 ? "" : "s"} ${verbo}.`;
+    const header = `⚠️ ${n} ${n === 1 ? "número falhou" : "números falharam"} (sem WhatsApp ou número incorreto):`;
+    lines.push(header);
+
+    if (stats.failedMembers && stats.failedMembers.length > 0) {
+      for (const m of stats.failedMembers.slice(0, 8)) {
+        const nome = m.nome || "Membro";
+        const tel = m.telefone ? ` (${formatPhoneBr(m.telefone)})` : "";
+        lines.push(`• ${nome}${tel}`);
+      }
+      if (stats.failedMembers.length > 8) {
+        lines.push(`• e mais ${stats.failedMembers.length - 8} membro(s)`);
+      }
+    }
   }
 
   if (stats.pendentes > 0) {
     const n = stats.pendentes;
-    return `${base} · ${n} aviso${n === 1 ? "" : "s"} ainda em processamento pela operadora.`;
+    lines.push(`⏳ ${n} ${n === 1 ? "aviso ainda em processamento" : "avisos ainda em processamento"}.`);
   }
 
-  return base;
+  return lines.join("\n");
 }
 
 function resolveSummaryDelayMs(): number {
@@ -78,7 +113,7 @@ async function fetchDispatchStats(
 
   const { data, error } = await sb
     .from("whatsapp_logs")
-    .select("external_id, status")
+    .select("external_id, status, filho_id, telefone")
     .in("external_id", ids);
 
   if (error) throw error;
@@ -87,16 +122,42 @@ async function fetchDispatchStats(
   let entregues = 0;
   let falhas = apiErrors;
   let pendentes = 0;
+  const failedFilhoIds: string[] = [];
+  const failedMap = new Map<string, string>();
 
   for (const row of rows) {
     const status = String((row as { status?: string }).status || "sent").toLowerCase();
-    if (status === "delivered" || status === "read") entregues++;
-    else if (status === "failed") falhas++;
-    else pendentes++;
+    if (status === "delivered" || status === "read") {
+      entregues++;
+    } else if (status === "failed") {
+      falhas++;
+      const fid = (row as { filho_id?: string | null }).filho_id;
+      const tel = String((row as { telefone?: string | null }).telefone || "");
+      if (fid) {
+        failedFilhoIds.push(String(fid));
+        failedMap.set(String(fid), tel);
+      }
+    } else {
+      pendentes++;
+    }
   }
 
   const missing = ids.length - rows.length;
   if (missing > 0) falhas += missing;
+
+  const failedMembers: GiraDispatchFailedMember[] = [];
+  if (failedFilhoIds.length) {
+    const { data: filhos } = await sb
+      .from("filhos_de_santo")
+      .select("id, nome")
+      .in("id", failedFilhoIds);
+    for (const f of filhos || []) {
+      failedMembers.push({
+        nome: String(f.nome || "Membro").trim(),
+        telefone: failedMap.get(String(f.id)) || "",
+      });
+    }
+  }
 
   return {
     enviados: ids.length,
@@ -104,6 +165,7 @@ async function fetchDispatchStats(
     falhas,
     pendentes,
     eligible: ids.length,
+    failedMembers,
   };
 }
 

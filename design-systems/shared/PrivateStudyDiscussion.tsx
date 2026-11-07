@@ -1,0 +1,10 @@
+import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {readPrivateComments,sendPrivateComment} from './privateLibraryComments';
+export default function PrivateStudyDiscussion({materialId}:{materialId:string}){
+ const [rows,setRows]=useState<any[]>([]),[text,setText]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
+ const attempt=useRef({id:crypto.randomUUID(),text:''}),lock=useRef(false);
+ async function load(){setLoading(true);try{setRows(await readPrivateComments(materialId));setError('');}catch(reason){setError(reason instanceof Error?reason.message:'Não foi possível carregar a conversa.');}finally{setLoading(false);}}
+ useEffect(()=>{void load();},[materialId]);
+ async function submit(event:FormEvent){event.preventDefault();if(lock.current||!text.trim())return;lock.current=true;setBusy(true);setError('');if(attempt.current.text!==text.trim())attempt.current={id:crypto.randomUUID(),text:text.trim()};try{await sendPrivateComment(materialId,text.trim(),attempt.current.id);setText('');attempt.current={id:crypto.randomUUID(),text:''};await load();}catch(reason){setError(reason instanceof Error?reason.message:'Não foi possível enviar. Seu texto foi preservado.');}finally{lock.current=false;setBusy(false);}}
+ return <div>{error&&<p className="wf-error" role="alert">{error}</p>}{loading?<p role="status">Carregando conversa…</p>:rows.length?<div>{rows.map(row=><article key={row.id}><strong>{row.authorName}{row.leadership?' · Zeladoria':''}</strong><p style={{whiteSpace:'pre-wrap'}}>{row.texto}</p><small>{new Date(row.created_at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})}</small></article>)}</div>:<p>A conversa deste estudo começa aqui.</p>}<form onSubmit={submit}><label className="wf-field">Comentário reservado<textarea maxLength={2000} rows={3} value={text} disabled={busy} onChange={event=>setText(event.target.value)}/></label><button className="wf-button" disabled={busy||!text.trim()}>{busy?'Enviando…':'Enviar comentário reservado'}</button></form></div>;
+}

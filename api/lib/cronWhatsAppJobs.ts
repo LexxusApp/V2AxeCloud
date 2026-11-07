@@ -16,7 +16,7 @@ import {
   capAndShuffleRecipients,
 } from "./whatsappSendGuards.js";
 import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
-import { filterActiveTenantIds } from "./activeTenantScope.js";
+import { filterActiveTenantIds, loadActiveTenantScopeIds } from "./activeTenantScope.js";
 
 function envInt(name: string, fallback: number): number {
   const raw = Number(process.env[name]);
@@ -302,10 +302,12 @@ export async function dispatchTransmissaoAviso(
   conteudo: string,
   nomeTerreiro: string,
   onProgress?: (progress: { total: number; sent: number; errors: number }) => void,
-): Promise<{ sent: number; errors: number; skipped: number; status: "sent" | "skipped" | "offline" }> {
+): Promise<{ sent: number; errors: number; skipped: number; status: "sent" | "skipped" | "offline"; externalIds?: string[] }> {
   let sent = 0;
   let errors = 0;
   let skipped = 0;
+  const externalIds: string[] = [];
+  const immediateFailures: Array<{ nome: string; telefone: string; motivo?: string }> = [];
 
   try {
     if (!(await isOfficialChannelReady())) {
@@ -339,14 +341,13 @@ export async function dispatchTransmissaoAviso(
 
     for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
       const child = batch[batchIndex];
+      let digits = String(child.whatsapp_phone || "").replace(/\D/g, "");
+      if (digits && !digits.startsWith("55")) digits = `55${digits}`;
       try {
         await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, child);
 
-        let digits = String(child.whatsapp_phone).replace(/\D/g, "");
-        if (!digits.startsWith("55")) digits = `55${digits}`;
-
         const nomeMembro = String(child.nome || "Filho");
-        await logAndSendWhatsApp(sb, {
+        const { externalId } = await logAndSendWhatsApp(sb, {
           tenantId,
           filhoId: child.id,
           tipo: "transmissao_aviso",
@@ -366,9 +367,15 @@ export async function dispatchTransmissaoAviso(
             nome_zelador: ctx.zelador || "",
           },
         });
+        if (externalId) externalIds.push(externalId);
         sent++;
       } catch (err) {
         errors++;
+        immediateFailures.push({
+          nome: String(child.nome || "Membro"),
+          telefone: digits,
+          motivo: (err as any)?.message || "Erro no envio",
+        });
         console.error(`[TRANSMISSAO AVISO] filho=${child.id}:`, err);
         const code = (err as { code?: string })?.code || "";
         if (code.startsWith("WA_QUOTA") || code.startsWith("WA_CAMPAIGN") || code.startsWith("WA_SEND_WINDOW")) {
@@ -379,6 +386,23 @@ export async function dispatchTransmissaoAviso(
       }
       onProgress?.({ total: batch.length, sent, errors });
     }
+
+    if (sent > 0 || errors > 0) {
+      void import("./muralDispatchSummaryWhatsApp.js")
+        .then(({ scheduleMuralDispatchSummary }) => {
+          scheduleMuralDispatchSummary(sb, {
+            tenantId,
+            leaderId: ctx.leaderId,
+            zeladorNome: ctx.zelador,
+            tituloAviso: tituloSafe,
+            externalIds,
+            apiErrors: errors,
+            eligible: eligible.length,
+            immediateFailures,
+          });
+        })
+        .catch((e) => console.warn("[MURAL WA] falha ao agendar resumo:", e));
+    }
   } catch (err) {
     console.error("[TRANSMISSAO AVISO] dispatch:", err);
     errors++;
@@ -386,7 +410,7 @@ export async function dispatchTransmissaoAviso(
 
   const status: "sent" | "skipped" | "offline" =
     sent > 0 ? "sent" : errors > 0 ? "skipped" : "skipped";
-  return { sent, errors, skipped, status };
+  return { sent, errors, skipped, status, externalIds };
 }
 
 /** @deprecated Use dispatchTransmissaoAviso */
@@ -415,7 +439,7 @@ export type GiraWhatsAppDispatchResult = {
   sent: number;
   errors: number;
   eligible: number;
-  status: "sent" | "partial" | "no_recipients" | "channel_offline" | "disabled" | "failed";
+  status: "sent" | "partial" | "no_recipients" | "channel_offline" | "disabled" | "failed" | "cancelled";
   externalIds?: string[];
 };
 
@@ -432,6 +456,7 @@ export type DispatchGiraWhatsAppOptions = {
   onlyFilhoIds?: string[];
   /** Progresso por destinatário (painel admin). */
   onProgress?: (p: { sent: number; errors: number; eligible: number; index: number }) => void;
+  shouldCancel?: () => boolean;
 };
 
 export async function dispatchGiraWhatsApp(
@@ -523,6 +548,10 @@ export async function dispatchGiraWhatsApp(
     eligible = batch.length;
 
     for (let batchIndex = 0; batchIndex < batch.length; batchIndex++) {
+      if (options?.shouldCancel?.()) {
+        console.warn(`[GIRA WA] Disparo interrompido por cancelamento no índice ${batchIndex}. Enviados: ${sent}, Falhas: ${errors}`);
+        break;
+      }
       const child = batch[batchIndex];
 
       try {
@@ -589,6 +618,10 @@ export async function dispatchGiraWhatsApp(
         const code = (err as { code?: string })?.code || "";
         if (code.startsWith("WA_QUOTA") || code.startsWith("WA_CAMPAIGN") || code.startsWith("WA_SEND_WINDOW")) {
           options?.onProgress?.({ sent, errors, eligible, index: batchIndex + 1 });
+      if (options?.shouldCancel?.()) {
+        console.warn(`[GIRA WA] Disparo cancelado após envio ${batchIndex + 1}/${eligible}. Interrompendo.`);
+        break;
+      }
           break;
         }
       }
@@ -600,7 +633,8 @@ export async function dispatchGiraWhatsApp(
   }
 
   let status: GiraWhatsAppDispatchResult["status"];
-  if (errors > 0 && sent === 0) status = "failed";
+  if (options?.shouldCancel?.()) status = "cancelled";
+  else if (errors > 0 && sent === 0) status = "failed";
   else if (errors > 0) status = "partial";
   else if (sent > 0) status = "sent";
   else if (eligible === 0) status = "no_recipients";
@@ -659,6 +693,7 @@ async function runGiraReminders(
   const { shouldSendGiraReminderToday } = await import("./giraReminderSchedule.js");
   const { ymd: todayStr } = brazilTodayParts();
   const today = startOfDay(parseISO(`${todayStr}T12:00:00`));
+  const activeTenantIds = await loadActiveTenantScopeIds(sb);
 
   const { data: rows, error } = await sb
     .from("calendario_axe")
@@ -756,7 +791,7 @@ async function runGiraReminders(
 
     const tenantId = String(row.tenant_id || row.lider_id || "").trim();
     const eventId = String(row.id || "").trim();
-    if (!tenantId || !eventId) {
+    if (!tenantId || !eventId || !activeTenantIds.has(tenantId)) {
       skipped++;
       continue;
     }

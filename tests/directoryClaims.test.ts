@@ -154,13 +154,17 @@ test("mapa consulta os pontos atuais da API e mantém o arquivo estático como c
   assert.match(mapClient, /verificada/);
 
   const appMap = readFileSync("src/components/portal/DirectoryCoverageMap.tsx", "utf8");
-  assert.match(appMap, /const highlighted = point\.verificada \|\| point\.gerenciada/);
-  assert.match(appMap, /ctx\.fillStyle = highlighted \? '#16865f' : '#e5ae12'/);
+  assert.match(appMap, /if \(point\.verificada \|\| point\.gerenciada\) \{\s*visibleVerified\.push\(point\)/);
+  assert.match(appMap, /ctx\.fillStyle = '#e5ae12'/);
+  assert.match(appMap, /for \(const point of visibleVerified\) \{[\s\S]{0,1100}ctx\.fillStyle = '#059669'/);
   assert.match(appMap, /verifiedCount/);
 
   const marketingMap = readFileSync("cinematic-site/terreiros.html", "utf8");
   assert.match(marketingMap, /Perfil verificado/);
-  assert.match(marketingMap, /point\.verificada \? "#16865f" : "#e5ae12"/);
+  assert.match(marketingMap, /if \(p\.verificada\) visibleVerified\.push\(p\)/);
+  assert.match(marketingMap, /for \(let i = 0; i < visibleVerified\.length; i\+\+\)/);
+  assert.match(marketingMap, /core\.addColorStop\(0\.45, "#059669"\)/);
+  assert.match(marketingMap, /desenhaMarcadorNobreCanvas\(ctx, pt\.x, pt\.y, vRadius\)/);
   assert.match(marketingMap, /verifiedCount/);
   assert.match(marketingMap, /axe-map-profile__photo/);
   assert.match(marketingMap, /\.axecloud-map-popup \.leaflet-popup-content\s*\{[\s\S]*width:\s*min\(310px, calc\(100vw - 46px\)\)\s*!important;[\s\S]*overflow:\s*hidden;/);

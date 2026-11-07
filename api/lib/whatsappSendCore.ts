@@ -185,11 +185,15 @@ function messageIncludesCredentials(
 
 function buildCredentialsAccessBlock(variables: Record<string, string | number>): string {
   const loginId = String(variables.filho_login_id || "").trim();
+  const email = String(variables.email_filho || "").trim();
   const senha = String(variables.senha_acesso || "").trim();
   const loginUrl = String(variables.login_url || resolveFilhoLoginPublicUrl()).trim();
-  if (!loginId) return "";
+  if (!loginId && !email) return "";
+  const loginLine = email
+    ? `Login: ${email} (ou WhatsApp / Registro: ${loginId})`
+    : `Login: seu WhatsApp ou Registro (${loginId})`;
   return (
-    `\n\n🔐 *Seu acesso:*\nRegistro: ${loginId}\nCódigo (6 dígitos do CPF): ${senha}\nEntrar: ${loginUrl}` +
+    `\n\n🔐 *Seus Dados de Acesso:*\n${loginLine}\nSenha (6 primeiros dígitos do CPF): ${senha}\nEntrar: ${loginUrl}` +
     `\n\nNo app: giras, mensalidade, obrigações, recados e chat com a casa.` +
     `\nGuia: https://axecloud.com.br/instrucoes/membro`
   );
@@ -291,7 +295,7 @@ async function enrichBoasVindasVariables(
 
   const { data: filho, error } = await sb
     .from("filhos_de_santo")
-    .select("id, nome, cpf, tenant_id, lider_id, data_entrada")
+    .select("id, nome, cpf, tenant_id, lider_id, data_entrada, email")
     .eq("id", filhoId)
     .maybeSingle();
   if (error) throw error;
@@ -319,6 +323,8 @@ async function enrichBoasVindasVariables(
     nome_filho: variables.nome_filho || String(filho.nome || ""),
     filho_login_id: formatFilhoMatricula(String(filho.id), filho.data_entrada),
     senha_acesso: senhaAcesso,
+    codigo_cpf: cpfDigits,
+    email_filho: String((filho as any).email || variables.email_filho || "").trim(),
   };
 }
 
@@ -880,6 +886,8 @@ export async function broadcastWhatsAppForTenant(
   let sent = 0;
   let failed = 0;
   let lastError: string | undefined;
+  const externalIds: string[] = [];
+  const immediateFailures: Array<{ nome: string; telefone: string; motivo?: string }> = [];
 
   for (let i = 0; i < shuffled.length; i++) {
     const filho = shuffled[i];
@@ -887,7 +895,7 @@ export async function broadcastWhatsAppForTenant(
     try {
       await assertFilhoBelongsToTerreiro(sb, ctx.leaderId, filho);
       const nomeMembro = String(filho.nome || "Membro");
-      await logAndSendWhatsApp(sb, {
+      const { externalId } = await logAndSendWhatsApp(sb, {
         tenantId,
         filhoId: String(filho.id),
         tipo: "broadcast",
@@ -905,10 +913,16 @@ export async function broadcastWhatsAppForTenant(
           comunicado: messageText,
         },
       });
+      if (externalId) externalIds.push(externalId);
       sent += 1;
     } catch (err) {
       failed += 1;
       lastError = err instanceof Error ? err.message : String(err);
+      immediateFailures.push({
+        nome: String(filho.nome || "Membro"),
+        telefone: phone,
+        motivo: lastError,
+      });
       const code = (err as { code?: string })?.code || "";
       console.error(`[WHATSAPP] broadcast falhou (${phone}):`, lastError);
       if (code.startsWith("WA_QUOTA")) break;
@@ -937,6 +951,21 @@ export async function broadcastWhatsAppForTenant(
       status: sent > 0 ? (failed > 0 ? "partial" : "sent") : "failed",
       external_id: `broadcast_${Date.now()}`,
     });
+
+    void import("./muralDispatchSummaryWhatsApp.js")
+      .then(({ scheduleMuralDispatchSummary }) => {
+        scheduleMuralDispatchSummary(sb, {
+          tenantId,
+          leaderId: ctx.leaderId,
+          zeladorNome: ctx.zelador,
+          tituloAviso: messageText.slice(0, 50).trim(),
+          externalIds,
+          apiErrors: failed,
+          eligible: shuffled.length,
+          immediateFailures,
+        });
+      })
+      .catch((e) => console.warn("[WHATSAPP] falha ao agendar resumo broadcast:", e));
   }
 
   return { sent, failed, total: shuffled.length, lastError };
@@ -959,7 +988,7 @@ export async function resendDadosAcessoWhatsAppForTenant(
 
   const { data: filhos, error } = await sb
     .from("filhos_de_santo")
-    .select("id, nome, whatsapp_phone, cpf, status, tenant_id, lider_id, data_entrada")
+    .select("id, nome, whatsapp_phone, cpf, status, tenant_id, lider_id, data_entrada, email")
     .or(`tenant_id.eq.${ctx.idTerreiro},lider_id.eq.${ctx.leaderId}`);
 
   if (error) throw error;
@@ -1006,6 +1035,7 @@ export async function resendDadosAcessoWhatsAppForTenant(
           nome_filho: nomeMembro,
           nome_terreiro: ctx.nomeTerreiro,
           nome_sistema: "AxéCloud",
+          email_filho: String((filho as any).email || "").trim(),
         },
       });
       sent += 1;

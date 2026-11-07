@@ -62,7 +62,8 @@ function generateFilhoPassword(): string {
 
 async function auditFilhoLoginSuccess(
   req: any,
-  child: { id: string; nome?: string | null; user_id?: string | null }
+  child: { id: string; nome?: string | null; user_id?: string | null },
+  method: string = "matricula"
 ): Promise<void> {
   if (!supabaseAdmin) return;
   try {
@@ -81,6 +82,7 @@ async function auditFilhoLoginSuccess(
       filhoId: child.id,
       nome: child.nome || null,
       userId: child.user_id || null,
+      loginMethod: method,
       source: "filho-login-api",
     });
   } catch (e) {
@@ -165,6 +167,75 @@ async function findChildByIdPrefix(
   if (matches.length > 1) return { child: null, ambiguous: true };
   return { child: null, ambiguous: false };
 }
+
+async function findChildSmart(
+  sb: SupabaseClient,
+  identifierInput: string,
+  cpfPrefix: string
+): Promise<{ child: any | null; ambiguous: boolean; method: 'email' | 'phone' | 'matricula' }> {
+  const raw = String(identifierInput || "").trim();
+  const cpfDigits = String(cpfPrefix || "").replace(/\D/g, "");
+
+  // 1. Busca por E-mail (se contiver @)
+  if (raw.includes("@") && raw.length >= 5) {
+    const cleanEmail = raw.toLowerCase().trim();
+    const { data, error } = await sb
+      .from("filhos_de_santo")
+      .select("id, cpf, user_id, nome, email, tenant_id, lider_id")
+      .ilike("email", cleanEmail);
+    if (error) throw error;
+
+    const matchingCpf = (data || []).filter((c) => {
+      const cleanCpf = String(c.cpf || "").replace(/\D/g, "");
+      return cleanCpf.startsWith(cpfDigits);
+    });
+
+    if (matchingCpf.length === 1) return { child: matchingCpf[0], ambiguous: false, method: 'email' };
+    if (matchingCpf.length > 1) return { child: null, ambiguous: true, method: 'email' };
+    return { child: null, ambiguous: false, method: 'email' };
+  }
+
+  // 2. Busca por WhatsApp / Telefone nacional
+  let cleanDigits = raw.replace(/\D/g, "");
+  if (cleanDigits.startsWith("55") && cleanDigits.length >= 12) {
+    cleanDigits = cleanDigits.slice(2);
+  }
+  if (cleanDigits.startsWith("0") && cleanDigits.length >= 11) {
+    cleanDigits = cleanDigits.replace(/^0+/, "");
+  }
+
+  if (cleanDigits.length >= 8 && cleanDigits.length <= 16 && !raw.toUpperCase().startsWith("AXC-")) {
+    const last8 = cleanDigits.slice(-8);
+
+    const { data, error } = await sb
+      .from("filhos_de_santo")
+      .select("id, cpf, user_id, nome, whatsapp_phone, tenant_id, lider_id")
+      .ilike("whatsapp_phone", `%${last8}%`);
+    if (error) throw error;
+
+    const matchingCpf = (data || []).filter((c) => {
+      const cleanCpf = String(c.cpf || "").replace(/\D/g, "");
+      return cleanCpf.startsWith(cpfDigits);
+    });
+
+    // Se houver mais de um que bate com os 8 dígitos finais + CPF, desambigua pelo número completo com DDD
+    const exactMatch = matchingCpf.filter((c) => {
+      const dbDigits = String(c.whatsapp_phone || "").replace(/\D/g, "").replace(/^55/, "").replace(/^0+/, "");
+      return dbDigits === cleanDigits;
+    });
+
+    const chosen = exactMatch.length === 1 ? exactMatch[0] : (matchingCpf.length === 1 ? matchingCpf[0] : null);
+
+    if (chosen) return { child: chosen, ambiguous: false, method: 'phone' };
+    if (matchingCpf.length > 1) return { child: null, ambiguous: true, method: 'phone' };
+    return { child: null, ambiguous: false, method: 'phone' };
+  }
+
+  // 3. Fallback: Registro / Matrícula tradicional (AXC-ANO-XXXX ou UUID)
+  const res = await findChildByIdPrefix(sb, raw, cpfDigits);
+  return { ...res, method: 'matricula' };
+}
+
 
 function legacyFilhoEmails(child: { id: string }, childIdShort: string): string[] {
   const id = String(child.id || "");
@@ -265,31 +336,35 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
   let childIdRaw = "";
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-    let { childId, cpfPrefix } = body as { childId?: string; cpfPrefix?: string };
+    let { childId, cpfPrefix, identifier } = body as { childId?: string; cpfPrefix?: string; identifier?: string };
 
-    const childIdStr = String(childId || "").trim();
-    childIdRaw = filhoLoginRateLimitKey(childIdStr);
+    const loginIdStr = String(identifier || childId || "").trim();
+    childIdRaw = loginIdStr.toLowerCase().replace(/[^a-z0-9@._-]/g, "");
     cpfPrefix = String(cpfPrefix || "").replace(/\D/g, "");
 
-    if (!childIdStr || cpfPrefix.length !== CPF_PREFIX_LEN) {
+    if (!loginIdStr || cpfPrefix.length !== CPF_PREFIX_LEN) {
       return sendJson(res, 400, {
-        error: `Registro (AXC-ANO-CÓDIGO) e os ${CPF_PREFIX_LEN} primeiros dígitos do CPF são obrigatórios.`,
+        error: `Informe seu E-mail, WhatsApp ou Registro, e os ${CPF_PREFIX_LEN} primeiros dígitos do CPF.`,
       });
     }
 
-    if (!isValidFilhoLoginId(childIdStr)) {
+    const isEmail = loginIdStr.includes("@");
+    const digitsOnly = loginIdStr.replace(/\D/g, "");
+    const isPhone = digitsOnly.length >= 10 && digitsOnly.length <= 13 && !loginIdStr.toUpperCase().startsWith("AXC-");
+
+    if (!isEmail && !isPhone && !isValidFilhoLoginId(loginIdStr)) {
       return sendJson(res, 400, {
-        error: "Informe o registro (ex.: AXC-2021-B2CA). Pode digitar com ou sem hífen.",
+        error: "Informe seu E-mail, WhatsApp ou Registro (ex.: AXC-2021-B2CA).",
       });
     }
 
     if (filhoLoginIsLocked(childIdRaw, req)) {
       return sendJson(res, 429, {
-        error: "Muitas tentativas incorretas para este ID. Aguarde 30 minutos.",
+        error: "Muitas tentativas incorretas para este usuário. Aguarde 30 minutos.",
       });
     }
 
-    const { child, ambiguous } = await findChildByIdPrefix(supabaseAdmin, childIdStr, cpfPrefix);
+    const { child, ambiguous, method } = await findChildSmart(supabaseAdmin, loginIdStr, cpfPrefix);
     if (ambiguous) {
       recordFilhoLoginFailure(childIdRaw, req);
       return sendJson(res, 401, { error: FILHO_LOGIN_DENIED });
@@ -336,7 +411,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       await cleanupShadowFilhoPerfilLider(supabaseAdmin, authUser.id);
 
       const session = await issueFilhoSession(fakeEmail, generatedPassword);
-      await auditFilhoLoginSuccess(req, { ...child, user_id: authUser.id });
+      await auditFilhoLoginSuccess(req, { ...child, user_id: authUser.id }, method);
       return sendJson(res, 200, session);
     }
 
@@ -374,7 +449,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     await cleanupShadowFilhoPerfilLider(supabaseAdmin, newUser.user.id);
 
     const session = await issueFilhoSession(fakeEmail, generatedPassword);
-    await auditFilhoLoginSuccess(req, { ...child, user_id: newUser.user.id });
+    await auditFilhoLoginSuccess(req, { ...child, user_id: newUser.user.id }, method);
     return sendJson(res, 200, session);
   } catch (error: any) {
     console.error("[AUTH] Erro no Login do Filho:", error);

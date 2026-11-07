@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Info, Plus, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle, MoreVertical, Send, UserCheck, Clock3, Users, Cake, AlertCircle, CalendarDays, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Info, Plus, Mail, Search, Trash2, Phone, Loader2, Lock, X, MessageCircle, MoreVertical, Send, UserCheck, Clock3, Users, Cake, AlertCircle, CalendarDays, ArrowUpRight, Pencil, ListFilter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import useSWR from 'swr';
+import { childrenReadKey, loadChildren, loadPendingPayments, recentChildren, forgetChildren, type ChildrenScope } from '../lib/childrenRead';
 import { authFetch } from '../lib/authenticatedFetch';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import { supabase } from '../lib/supabase';
@@ -39,6 +41,7 @@ export interface Child {
   whatsapp_phone?: string | null;
   telefone?: string | null;
   cpf?: string | null;
+  email?: string | null;
   /** Preenchido no primeiro login do membro — sem isso, ainda não entrou no app. */
   user_id?: string | null;
   created_at?: string | null;
@@ -66,7 +69,23 @@ type ChildForm = {
   status: Child['status'];
   foto_url: string;
   whatsapp_phone: string;
+  email?: string;
 };
+
+
+export const CARGO_PRESETS = [
+  'Abiã',
+  'Iyawó',
+  'Ekeji',
+  'Ogã',
+  'Babalaô',
+  'Cambono',
+  'Curimbeiro',
+  'Mãe Pequena',
+  'Pai Pequeno',
+  'Médium de Desenvolvimento',
+  'Filho de Santo',
+];
 
 const EMPTY_CHILD_FORM: ChildForm = {
   nome: '',
@@ -78,14 +97,14 @@ const EMPTY_CHILD_FORM: ChildForm = {
   status: 'Ativo',
   foto_url: '',
   whatsapp_phone: '',
+  email: '',
 };
 
 export default function Children({ setActiveTab, user, tenantData, setSelectedChildId }: ChildrenProps) {
   const tenantId = tenantData?.tenant_id;
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('Todos');
-  const [children, setChildren] = useState<Child[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -93,10 +112,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const [resendingWelcome, setResendingWelcome] = useState(false);
   const [openActionsId, setOpenActionsId] = useState<string | null>(null);
   const [sendingCredentialsId, setSendingCredentialsId] = useState<string | null>(null);
-  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
-  const [pendingPaymentsLoading, setPendingPaymentsLoading] = useState(true);
+
   const [sortBy, setSortBy] = useState<'nome' | 'entrada' | 'aniversario'>('nome');
   const [previewChildId, setPreviewChildId] = useState<string | null>(null);
+  const [isCustomCargo, setIsCustomCargo] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({ ...EMPTY_CHILD_FORM, data_entrada: new Date().toISOString().split('T')[0] });
@@ -111,9 +130,47 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     setAddModalOpen(true);
   }, []);
 
+  const scope = useMemo<ChildrenScope | undefined>(() => user?.id && tenantId
+    ? { userId: user.id, tenantId } : undefined, [user?.id, tenantId]);
+  const cachedRows = useMemo(() => scope ? recentChildren(scope) : undefined, [scope]);
+  const read = useCallback((url: string, init?: RequestInit) => authFetch(url, {
+    ...init, signal: AbortSignal.timeout(15000),
+  }), []);
+  const members = useSWR<Child[]>(childrenReadKey(scope), () => loadChildren(scope!, read), {
+    fallbackData: cachedRows, keepPreviousData: false, revalidateOnMount: true,
+    revalidateOnFocus: true, dedupingInterval: 2000, errorRetryCount: 1,
+    shouldRetryOnError: (error) => ![401, 403].includes(error?.status),
+  });
+  const accessDenied = [401, 403].includes(members.error?.status);
+  const children = accessDenied ? [] : members.data ?? [];
+  const loading = !members.data && !members.error;
+  const payments = useSWR<any[]>(scope && members.data && !accessDenied
+    ? ['children-pending-payments-v2', scope.userId, scope.tenantId] : null,
+    () => loadPendingPayments(scope!, read), {
+      keepPreviousData: false, revalidateOnFocus: true, dedupingInterval: 2000, errorRetryCount: 1,
+      shouldRetryOnError: (error) => ![401, 403].includes(error?.status),
+    });
+  const pendingPayments = payments.data ?? [];
+  const pendingPaymentsLoading = !payments.data && !payments.error;
+  const financialState = payments.error ? 'error' : pendingPaymentsLoading ? 'loading' : 'ready';
+  const mutateMembers = members.mutate, mutatePayments = payments.mutate;
+  const fetchChildren = useCallback(() => {
+    if (scope) forgetChildren(scope);
+    return Promise.allSettled([mutateMembers(), mutatePayments()]);
+  }, [scope, mutateMembers, mutatePayments]);
+  const startedAt = useMemo(() => performance.now(), [scope]);
+  const perfReported = useRef<ChildrenScope | undefined>(undefined);
   useEffect(() => {
-    fetchChildren();
-  }, [tenantId]);
+    if (!scope || !members.data || accessDenied || perfReported.current === scope) return;
+    const frame = requestAnimationFrame(() => {
+      perfReported.current = scope;
+      if (new URLSearchParams(window.location.search).get('childrenPerf') === '1') {
+        console.info('[children:ready]', JSON.stringify({ mountMs: Math.round(performance.now() - startedAt),
+          source: cachedRows ? 'recent-dashboard' : 'network' }));
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [scope, members.data, accessDenied, startedAt, cachedRows]);
 
   useEffect(() => {
     if (!openActionsId) return;
@@ -132,63 +189,6 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [openActionsId]);
-
-  async function fetchChildren() {
-    setLoading(true);
-    setPendingPaymentsLoading(true);
-    setPendingPayments([]);
-    let finished = false;
-    const timeoutId = setTimeout(() => {
-      if (finished) return;
-      console.warn(
-        '[DEBUG] fetchChildren safety timeout (12s) — liberando spinner; fetch pode ainda concluir em background.'
-      );
-      setLoading(false);
-    }, 12000);
-
-    try {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // A lista principal não deve esperar a consulta financeira mais pesada.
-      // As duas chamadas continuam concorrentes; apenas exibimos cada resultado
-      // assim que estiver disponível.
-      void authFetch(
-        `/api/v1/financial/mensalidades?tenantId=${encodeURIComponent(tenantId || '')}&view=pendentes`,
-        { cache: 'no-store' },
-      )
-        .then(async (paymentsResponse) => {
-          const paymentsResult = await paymentsResponse.json().catch(() => ({ data: [] }));
-          setPendingPayments(
-            paymentsResponse.ok && Array.isArray(paymentsResult.data)
-              ? paymentsResult.data
-              : [],
-          );
-        })
-        .catch((error) => {
-          console.error('Error fetching pending payments:', error);
-          setPendingPayments([]);
-        })
-        .finally(() => setPendingPaymentsLoading(false));
-
-      const response = await authFetch(
-        `/api/children?userId=${user.id}&tenantId=${tenantId || ''}`,
-        { cache: 'no-store' },
-      );
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Erro ao buscar filhos");
-      }
-
-      setChildren(result.data || []);
-    } catch (error) {
-      console.error('Error fetching children:', error);
-    } finally {
-      finished = true;
-      clearTimeout(timeoutId);
-      setLoading(false);
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -317,6 +317,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             nome_filho: childName,
             nome_terreiro: tenantData?.nome || 'AxéCloud',
             nome_sistema: 'AxéCloud',
+            email_filho: children.find((c) => c.id === childId)?.email || '',
           },
         }),
       });
@@ -325,7 +326,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         throw new Error(result.error || 'Não foi possível enviar o acesso.');
       }
       const { showHouseToast } = await import('../lib/houseToast');
-      showHouseToast(`Acesso enviado · ${childName} entra com Registro + 6 dígitos do CPF`);
+      showHouseToast(`Acesso enviado · ${childName} entra com WhatsApp, E-mail ou Registro + 6 dígitos do CPF`);
     } catch (error) {
       console.error('[Children] send credentials WA:', error);
       const { showHouseToast } = await import('../lib/houseToast');
@@ -340,7 +341,8 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
     if (!(await confirmAction({ title: `Excluir o perfil de ${name}?`, description: 'O cadastro e o acesso desta pessoa serão removidos. Esta ação não pode ser desfeita.', confirmLabel: 'Excluir perfil', tone: 'danger' }))) return;
 
     const snapshot = children;
-    setChildren((prev) => prev.filter((c) => c.id !== id));
+    if (scope) forgetChildren(scope);
+    void mutateMembers((prev) => prev?.filter((c) => c.id !== id), false);
     setDeletingId(id);
 
     try {
@@ -360,7 +362,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
       showHouseToast(`${name} foi removido da corrente`);
     } catch (error) {
       console.error('Error deleting child:', error);
-      setChildren(snapshot);
+      void mutateMembers(snapshot, false);
       const { showHouseToast } = await import('../lib/houseToast');
       showHouseToast(error instanceof Error ? error.message : 'Erro ao excluir filho de santo.', 'error');
     } finally {
@@ -413,8 +415,15 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   const childLimit = PLAN_LIMITS[currentPlan] || PLAN_LIMITS.premium;
   const isLimitReached = children.length >= childLimit;
 
-  if (loading && children.length === 0) {
+  if (!scope || (loading && children.length === 0)) {
     return <AppPanelLoading />;
+  }
+
+  if (accessDenied || (members.error && !members.data)) {
+    return <AppPageShell><div role="alert" className="rounded-xl border bg-white p-5">
+      <p>Não foi possível carregar os filhos de santo. Tente novamente.</p>
+      <button type="button" onClick={() => void fetchChildren()}>Tentar novamente</button>
+    </div></AppPageShell>;
   }
 
   const searchBar = (
@@ -448,10 +457,13 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
   return (
     <AppPageShell>
       <div className="children-v5-page">
+      {members.error && <p role="status">Não foi possível atualizar a lista. Exibindo os últimos dados carregados.</p>}
+      {payments.error && <p role="status">Situação financeira indisponível. <button type="button" onClick={() => void mutatePayments()}>Tentar novamente</button></p>}
       <ChildrenCurrentExperience
         childrenData={children}
         filteredChildren={filteredChildren}
         pendingChildIds={pendingChildIds}
+        financialState={financialState}
         incompleteChildren={incompleteChildren}
         withoutAccessCount={withoutAccessCount}
         birthdaysThisMonth={birthdaysThisMonth}
@@ -476,7 +488,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         onDelete={(id, name) => void handleDelete(id, name)}
       />
 
-      <div className="hidden" aria-hidden="true">
+      {false && <div className="hidden" aria-hidden="true">
       <AppDemoPanelHeader
         title="Filhos de Santo"
         description={`${children.length} ${children.length === 1 ? 'pessoa cadastrada' : 'pessoas cadastradas'} na corrente da casa.`}
@@ -518,7 +530,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
           return (
             <div
               key={item.label}
-              className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#252C35] bg-[#151A21] p-4 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]"
+              className="flex min-w-0 items-center gap-3 rounded-lg border border-[#252C35] bg-[#151A21] p-4 shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]"
             >
               <span className={cn('hidden h-10 w-10 shrink-0 place-items-center rounded-xl border sm:grid', item.bg)}>
                 <Icon className={cn('h-5 w-5', item.color)} aria-hidden />
@@ -534,7 +546,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         })}
       </div>
 
-      <section className="app-command-strip mb-4 rounded-2xl border border-[#252C35] bg-[#11151A] p-3 sm:p-4" aria-label="Busca e filtros">
+      <section className="app-command-strip mb-4 rounded-lg border border-[#252C35] bg-[#11151A] p-3 sm:p-4" aria-label="Busca e filtros">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#7F8B9C]" aria-hidden />
@@ -609,7 +621,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                 key={child.id}
                 type="button"
                 onClick={() => setPreviewChildId(child.id)}
-                className="rounded-2xl border border-[#252C35] bg-[#151A21] p-4 text-left text-[#F8FAFC] transition hover:border-primary/30"
+                className="rounded-lg border border-[#252C35] bg-[#151A21] p-4 text-left text-[#F8FAFC] transition hover:border-primary/30"
               >
                 <div className="flex items-start gap-3">
                   <Avatar src={child.foto_url} name={child.nome} shape="circle" textSize="text-sm" className="h-12 w-12 shrink-0" />
@@ -628,7 +640,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
             );
           })}
           {filteredChildren.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#BFB5A6] bg-white/55 px-5 py-10 text-center text-[#17130D]">
+            <div className="rounded-lg border border-dashed border-[#BFB5A6] bg-white/55 px-5 py-10 text-center text-[#17130D]">
               <Users className="mx-auto h-8 w-8 text-[#9A6A00]" />
               <p className="mt-3 text-sm font-black">{children.length === 0 ? 'Sua corrente começa aqui' : 'Nenhum resultado encontrado'}</p>
               <p className="mt-1 text-xs font-semibold text-[#665F55]">{children.length === 0 ? 'Cadastre o primeiro filho de santo.' : 'Ajuste a busca ou os filtros.'}</p>
@@ -793,6 +805,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         </div>
       </div>
 
+      }
       {/* Portal: fixed do dossiê ancora na viewport (evita drawer "gigante" no mobile). */}
       <BodyPortal>
       <AnimatePresence>
@@ -815,83 +828,83 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               role="dialog"
               aria-modal="true"
               aria-labelledby="child-preview-title"
-              className="current-person-dossier fixed inset-y-0 right-0 z-[81] flex h-[100dvh] max-h-[100dvh] w-full max-w-[27rem] flex-col overflow-hidden border-l border-[#2B333D] bg-[#0F1318] text-[#F8FAFC] shadow-2xl"
+              className="current-person-dossier fixed inset-y-0 right-0 z-[81] flex h-[100dvh] max-h-[100dvh] w-full max-w-[27rem] flex-col overflow-hidden border-l border-[#E6DFD3] bg-[#FAF7F2] text-[#17251D] shadow-2xl"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#E6DFD3] bg-white px-5 py-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-primary">Resumo do cadastro</p>
-                  <h2 id="child-preview-title" className="mt-0.5 text-base font-black">Filho de Santo</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B88728]">Resumo do cadastro</p>
+                  <h2 id="child-preview-title" className="mt-0.5 font-display text-base font-black text-[#17251D]">Filho de Santo</h2>
                 </div>
-                <button type="button" onClick={() => setPreviewChildId(null)} className="grid h-10 w-10 place-items-center rounded-xl text-[#94A3B8] hover:bg-white/5 hover:text-white" aria-label="Fechar">
-                  <X className="h-5 w-5" />
+                <button type="button" onClick={() => setPreviewChildId(null)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E6DFD3] bg-white text-[#59655E] hover:border-[#D8CDBA] hover:text-[#17251D]" aria-label="Fechar">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar src={previewChild.foto_url} name={previewChild.nome} shape="circle" textSize="text-base" className="h-16 w-16 shrink-0" />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-lg font-black">{previewChild.nome}</h3>
-                    <p className="mt-0.5 text-xs font-bold text-primary">{previewChild.cargo || 'Função não informada'}</p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 space-y-4">
+                <div className="flex items-center gap-3.5 rounded-lg border border-[#E6DFD3] bg-white p-4 shadow-xs">
+                  <Avatar src={previewChild.foto_url} name={previewChild.nome} shape="circle" textSize="text-base" className="h-16 w-16 shrink-0 border-2 border-[#E6DFD3]" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-display text-lg font-black text-[#17251D]">{previewChild.nome}</h3>
+                    <p className="mt-0.5 text-xs font-bold text-[#1F5942]">{previewChild.cargo || 'Função não informada'}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <span className={childStatusClass(previewChild.status)}>{previewChild.status}</span>
                       {!childHasAppAccess(previewChild) ? (
-                        <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold text-amber-200">
-                          Ainda não entrou no app
+                        <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-800">
+                          Sem app
                         </span>
                       ) : (
-                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-                          Já entrou no app
+                        <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                          No app
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
-                    <p className="text-[10px] font-bold text-[#7F8B9C]">Orixá de frente</p>
-                    <p className="mt-0.5 text-xs font-black text-white">{previewChild.orixa_frente || 'Não informado'}</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="rounded-xl border border-[#E6DFD3] bg-white p-3 shadow-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A958E]">Orixá de frente</p>
+                    <p className="mt-1 font-display text-sm font-black text-[#17251D]">{previewChild.orixa_frente || 'Não informado'}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
-                    <p className="text-[10px] font-bold text-[#7F8B9C]">Entrada na casa</p>
-                    <p className="mt-0.5 text-xs font-black text-white">{previewChild.data_entrada ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${previewChild.data_entrada.slice(0, 10)}T12:00:00`)) : 'Não informada'}</p>
+                  <div className="rounded-xl border border-[#E6DFD3] bg-white p-3 shadow-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A958E]">Entrada na casa</p>
+                    <p className="mt-1 font-display text-sm font-black text-[#17251D]">{previewChild.data_entrada ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${previewChild.data_entrada.slice(0, 10)}T12:00:00`)) : 'Não informada'}</p>
                   </div>
-                  <div className="col-span-2 rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
-                    <p className="text-[10px] font-bold text-[#7F8B9C]">Contato</p>
-                    <p className="mt-0.5 text-xs font-black text-white">{previewChild.whatsapp_phone || previewChild.telefone || 'Não informado'}</p>
+                  <div className="col-span-2 rounded-xl border border-[#E6DFD3] bg-white p-3 shadow-xs">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A958E]">Contato / WhatsApp</p>
+                    <p className="mt-1 text-xs font-black text-[#17251D]">{previewChild.whatsapp_phone || previewChild.telefone || 'Não informado'}</p>
                   </div>
                 </div>
 
                 <div className={cn(
-                  'mt-3 flex items-center gap-3 rounded-xl border p-3',
-                  pendingPaymentsLoading
-                    ? 'border-white/10 bg-white/[0.035]'
+                  'flex items-center gap-3 rounded-2xl border p-4 shadow-xs',
+                  pendingPaymentsLoading || payments.error
+                    ? 'border-[#E6DFD3] bg-white'
                     : pendingChildIds.has(previewChild.id)
-                    ? 'border-rose-400/20 bg-rose-400/[0.07]'
-                    : 'border-emerald-400/20 bg-emerald-400/[0.07]',
+                    ? 'border-rose-200 bg-rose-50'
+                    : 'border-emerald-200 bg-emerald-50',
                 )}>
-                  {pendingPaymentsLoading
-                    ? <Loader2 className="h-5 w-5 animate-spin text-[#AEB8C6]" />
+                  {payments.error ? <AlertCircle className="h-5 w-5 text-[#8A958E]" /> : pendingPaymentsLoading
+                    ? <Loader2 className="h-5 w-5 animate-spin text-[#8A958E]" />
                     : pendingChildIds.has(previewChild.id)
-                      ? <AlertCircle className="h-5 w-5 text-rose-300" />
-                      : <UserCheck className="h-5 w-5 text-emerald-300" />}
+                      ? <AlertCircle className="h-5 w-5 text-rose-600" />
+                      : <UserCheck className="h-5 w-5 text-emerald-700" />}
                   <div>
-                    <p className="text-xs font-black">{pendingPaymentsLoading ? 'Carregando mensalidades…' : pendingChildIds.has(previewChild.id) ? 'Mensalidade pendente' : 'Sem mensalidade pendente'}</p>
-                    <p className="text-[10px] font-semibold text-[#7F8B9C]">{pendingPaymentsLoading ? 'A lista de membros já está disponível' : 'Situação financeira atual'}</p>
+                    <p className="text-xs font-black text-[#17251D]">{payments.error ? 'Situação financeira indisponível' : pendingPaymentsLoading ? 'Carregando mensalidades…' : pendingChildIds.has(previewChild.id) ? 'Mensalidade pendente' : 'Sem mensalidade pendente'}</p>
+                    <p className="text-[11px] font-semibold text-[#59655E]">{pendingPaymentsLoading ? 'Aguarde um momento…' : 'Situação financeira atual'}</p>
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <div className="rounded-2xl border border-[#E6DFD3] bg-white p-4 shadow-xs">
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-sky-300" />
-                    <p className="text-xs font-black">Nascimento</p>
+                    <CalendarDays className="h-4 w-4 text-[#B88728]" />
+                    <p className="text-xs font-black text-[#17251D]">Data de Nascimento</p>
                   </div>
-                  <p className="mt-1 text-[10px] font-semibold text-[#8E9AAA]">{previewChild.data_nascimento ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${previewChild.data_nascimento.slice(0, 10)}T12:00:00`)) : 'Data não informada'}</p>
+                  <p className="mt-1 text-xs font-semibold text-[#59655E]">{previewChild.data_nascimento ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${previewChild.data_nascimento.slice(0, 10)}T12:00:00`)) : 'Data não informada'}</p>
                 </div>
               </div>
 
-              <div className="shrink-0 space-y-2 border-t border-white/10 bg-[#0F1318] p-4">
+              <div className="shrink-0 space-y-2 border-t border-[#E6DFD3] bg-white p-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -899,7 +912,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     setPreviewChildId(null);
                     setActiveTab('profile');
                   }}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-[#17130D] hover:bg-[#FFD34E]"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#1F5942] px-4 text-sm font-black text-white hover:bg-[#184533] shadow-xs transition-colors"
                 >
                   Ver perfil completo
                   <ArrowUpRight className="h-4 w-4" />
@@ -908,14 +921,14 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                   type="button"
                   onClick={() => void handleSendCredentials(previewChild.id, previewChild.nome)}
                   disabled={sendingCredentialsId === previewChild.id}
-                  className="inline-flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.07] px-4 py-2.5 text-emerald-300 hover:bg-emerald-400/[0.12]"
+                  className="inline-flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-xl border border-[#D8CDBA] bg-white px-4 py-2 text-xs font-bold text-[#17251D] hover:bg-[#FAF7F2] shadow-xs transition-colors"
                 >
-                  <span className="inline-flex items-center gap-2 text-sm font-bold">
-                    {sendingCredentialsId === previewChild.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
-                    {sendingCredentialsId === previewChild.id ? 'Enviando acesso…' : 'Enviar acesso'}
+                  <span className="inline-flex items-center gap-2 text-xs font-black text-[#1F5942]">
+                    {sendingCredentialsId === previewChild.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                    {sendingCredentialsId === previewChild.id ? 'Enviando acesso…' : 'Enviar acesso via WhatsApp'}
                   </span>
-                  <span className="text-[10px] font-semibold leading-snug text-emerald-300/75">
-                    Entra com Registro + 6 dígitos do CPF
+                  <span className="text-[10px] font-semibold text-[#59655E]">
+                    WhatsApp, E-mail ou Registro + 6 dígitos do CPF
                   </span>
                 </button>
               </div>
@@ -947,7 +960,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
               aria-modal="true"
               aria-labelledby="add-child-title"
               onClick={(e) => e.stopPropagation()}
-              className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-3xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
+              className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-3xl flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
             >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="flex min-w-0 items-center gap-3">
@@ -1013,22 +1026,67 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     />
                   </div>
                   <div>
-                    <label className={paperLabelClass}>Cargo</label>
-                    <select
-                      required
-                      className={paperInputClass}
-                      value={formData.cargo}
-                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                    >
-                      <option value="">Selecione...</option>
-                      <option value="Abiã">Abiã</option>
-                      <option value="Iyawó">Iyawó</option>
-                      <option value="Ekeji">Ekeji</option>
-                      <option value="Ogã">Ogã</option>
-                      <option value="Babalaô">Babalaô</option>
-                      <option value="Médium de Desenvolvimento">Médium de Desenvolvimento</option>
-                      <option value="Filho de Santo">Filho de Santo</option>
-                    </select>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className={paperLabelClass}>Cargo</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomCargo((prev) => !prev)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-[#8F7724] hover:text-[#17251D] transition-colors cursor-pointer"
+                      >
+                        {isCustomCargo ? (
+                          <>
+                            <ListFilter className="h-3 w-3" />
+                            <span>Escolher da lista</span>
+                          </>
+                        ) : (
+                          <>
+                            <Pencil className="h-3 w-3" />
+                            <span>Digitar outro cargo</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {isCustomCargo ? (
+                      <div className="relative">
+                        <input
+                          required
+                          type="text"
+                          className={paperInputClass}
+                          list="cargos-sugestoes"
+                          value={formData.cargo}
+                          onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                          placeholder="Digite o cargo (ex: Cambono, Pai Pequeno, Tata...)"
+                          autoFocus
+                        />
+                        <datalist id="cargos-sugestoes">
+                          {CARGO_PRESETS.map((c) => (
+                            <option key={c} value={c} />
+                          ))}
+                        </datalist>
+                      </div>
+                    ) : (
+                      <select
+                        required
+                        className={paperInputClass}
+                        value={CARGO_PRESETS.includes(formData.cargo) ? formData.cargo : (formData.cargo ? '__custom__' : '')}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') {
+                            setIsCustomCargo(true);
+                            setFormData({ ...formData, cargo: '' });
+                          } else {
+                            setFormData({ ...formData, cargo: e.target.value });
+                          }
+                        }}
+                      >
+                        <option value="">Selecione...</option>
+                        {CARGO_PRESETS.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                        <option value="__custom__">✏️ Outro (digitar cargo diferente...)</option>
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className={paperLabelClass}>Orixá de frente</label>
@@ -1069,6 +1127,23 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                         placeholder="11999999999"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className={paperLabelClass}>E-mail</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#6F675C]" />
+                      <input
+                        required
+                        type="email"
+                        className={cn(paperInputClass, 'pl-9')}
+                        value={formData.email || ''}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value.trim().toLowerCase() })}
+                        placeholder="filho@exemplo.com"
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-[#8A8070]">
+                      Obrigatório: permite ao filho acessar o portal com o próprio e-mail pessoal.
+                    </p>
                   </div>
                   <div>
                     <label className={paperLabelClass}>Nascimento</label>

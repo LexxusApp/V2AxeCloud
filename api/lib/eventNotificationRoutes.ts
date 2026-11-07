@@ -52,7 +52,7 @@ export function registerEventNotificationRoutes(app: Express, supabaseAdmin: Sup
         data: String(event.data || ""),
         hora: String(event.hora || ""),
         banner_url: event.banner_url || null,
-      }, { notifyZeladorSummary: true });
+      }, { notifyZeladorSummary: true, bypassFanoutCooldown: true });
 
       res.json({ success: true, whatsapp });
     } catch (error: unknown) {

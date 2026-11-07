@@ -1,0 +1,27 @@
+import { brazilFinancialMonth, cashOverview } from '../../lib/financialOverview';
+import { useMemo, useState } from 'react';
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, Clock3, Leaf, Plus, Search, Wallet } from 'lucide-react';
+import type { SacredOverviewViewProps } from './SacredOverviewView';
+import { normalizeMovimentoTipo, parseFinanceiroDataRef } from '../../lib/financeiroSaldo';
+import './modern-financial.css';
+
+export function ModernFinancialOverview(props: SacredOverviewViewProps) {
+  const { saldo, pendingMonthlyTotal, cashTransactions, financeSearch, setFinanceSearch, financeTypeFilter, setFinanceTypeFilter, setFormData, onNewEntry, renderTransactionActions, children: members, formatBRL: money } = props;
+  const [period, setPeriod] = useState(brazilFinancialMonth);
+  const { rows: monthRows, income, expense, weeks } = useMemo(() => cashOverview(cashTransactions, period), [cashTransactions, period]);
+  const rows = monthRows.filter(row => (financeTypeFilter === 'todos' || normalizeMovimentoTipo(row.tipo) === financeTypeFilter) && `${row.descricao} ${row.categoria}`.toLocaleLowerCase('pt-BR').includes(financeSearch.toLocaleLowerCase('pt-BR')));
+  const maximum = Math.max(1, ...weeks.flatMap(week => [week.income, week.expense]));
+  const quick = (kind: 'entrada' | 'saida', category: string, description: string) => { setFormData(previous => ({ ...previous, tipo: kind, categoria: category, descricao: description })); onNewEntry(); };
+  return <div className="modern-financial">
+    <div className="mf-toolbar"><span>Livro de caixa da casa</span><label>Período do extrato<input type="month" aria-label="Período do extrato" value={period} onChange={event => setPeriod(event.target.value)}/></label></div>
+    <div className="mf-grid">
+      <section className="mf-balance"><div><h2>Saldo em caixa</h2><Wallet size={23}/></div><strong>{money(saldo)}</strong><p>Saldo acumulado dos movimentos registrados.</p><dl><div><dt>Entradas no período</dt><dd><ArrowUpRight size={16}/>{money(income)}</dd></div><div><dt>Saídas no período</dt><dd><ArrowDownLeft size={16}/>{money(expense)}</dd></div></dl></section>
+      <section className="mf-flow"><h2>Como o caixa se moveu</h2><p>Entradas e saídas por semana do período selecionado.</p><div className="mf-chart" aria-label="Movimento financeiro por semana">{weeks.map((week, index) => <div key={index} aria-label={`Semana ${index + 1}: entradas ${money(week.income)}, saídas ${money(week.expense)}`}><span style={{ height: `${100 * week.income / maximum}%` }}/><i style={{ height: `${100 * week.expense / maximum}%` }}/><small>{index + 1}</small></div>)}</div><div className="mf-legend"><span><i/>Entradas</span><span><i/>Saídas</span></div></section>
+      <section className="mf-receivable"><Clock3 size={23}/><h2>Mensalidades em aberto</h2><strong>{money(pendingMonthlyTotal)}</strong><p>Contribuições pendentes não entram no saldo do caixa.</p><small>Confira a baixa em Mensalidades quando o recebimento estiver confirmado.</small></section>
+      <section className="mf-ledger"><header><div><h2>Movimentos do caixa</h2><p>{rows.length} registros neste filtro.</p></div><label><Search size={17}/><input aria-label="Buscar movimento" placeholder="Buscar no extrato…" value={financeSearch} onChange={event => setFinanceSearch(event.target.value)}/></label></header><div className="mf-filters" aria-label="Filtrar movimentos">{[{ id: 'todos', label: 'Todos' }, { id: 'entrada', label: 'Entradas' }, { id: 'saida', label: 'Saídas' }].map(filter => <button key={filter.id} type="button" aria-pressed={financeTypeFilter === filter.id} onClick={() => setFinanceTypeFilter(filter.id as 'todos' | 'entrada' | 'saida')}>{filter.label}</button>)}</div>
+        {rows.length ? rows.map(row => { const member = members.find(member => member.id === row.filho_id), outgoing = normalizeMovimentoTipo(row.tipo) === 'saida'; return <article className="mf-ledger-row" key={row.id}><span className={`mf-movement-icon${outgoing ? ' outgoing' : ''}`}>{outgoing ? <ArrowDownLeft size={19}/> : <ArrowUpRight size={19}/>}</span><div className="mf-row-copy"><strong>{row.descricao}</strong><small>{row.categoria}{member ? ` · ${member.nome}` : ''}</small></div><time dateTime={String(row.data)}>{parseFinanceiroDataRef(row)?.toLocaleDateString('pt-BR') || 'Data indisponível'}</time><strong className={outgoing ? 'mf-amount outgoing' : 'mf-amount'}>{outgoing ? '−' : '+'} {money(Number(row.valor))}</strong>{renderTransactionActions(row)}</article>; }) : <div className="mf-empty"><Wallet size={28}/><h3>Nenhum movimento neste filtro</h3><p>Escolha outro período ou registre uma entrada ou saída.</p>{props.isAdmin && <button type="button" onClick={onNewEntry}>Registrar lançamento<Plus size={17}/></button>}</div>}
+      </section>
+      {props.isAdmin && <section className="mf-quick"><h2>Registrar um cuidado</h2><p>Atalhos para as rotinas do caixa.</p><button type="button" onClick={() => quick('saida', 'Insumos', 'Velas e defumação')}><Leaf size={18}/>Velas e defumação<Plus size={16}/></button><button type="button" onClick={() => quick('saida', 'Insumos', 'Ervas da casa')}><Leaf size={18}/>Ervas da casa<Plus size={16}/></button><button type="button" onClick={() => quick('entrada', 'Doação', 'Doação da assistência')}><Wallet size={18}/>Doação da assistência<Plus size={16}/></button><button type="button" onClick={() => quick('saida', 'Contas', 'Contas da casa')}><CalendarDays size={18}/>Contas da casa<Plus size={16}/></button></section>}
+    </div>
+  </div>;
+}

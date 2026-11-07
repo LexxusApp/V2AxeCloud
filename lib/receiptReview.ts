@@ -14,6 +14,14 @@ export type ReceiptReview = {
 export const receiptStatusLabel: Record<ReceiptStatus,string> = {
   em_analise:'Aguardando análise do zelador',aceito:'Pagamento confirmado',rejeitado:'Comprovante rejeitado',encerrado:'Mensalidade encerrada por outra via',
 };
+export function readReceiptPage(body:any):{data:ReceiptReview[];next_cursor:string|null;pending_count:number;open_financeiro_ids:string[]}{
+  if(!body||!Array.isArray(body.data)||!Array.isArray(body.open_financeiro_ids)||body.open_financeiro_ids.some((id:unknown)=>typeof id!=='string')
+    ||!Number.isSafeInteger(body.pending_count)||body.pending_count<0||(body.next_cursor!=null&&typeof body.next_cursor!=='string')
+    ||body.data.some((row:any)=>!row||typeof row.id!=='string'||typeof row.financeiro_id!=='string'||!Object.hasOwn(receiptStatusLabel,row.status)
+      ||!Array.isArray(row.alerts)||row.alerts.some((alert:unknown)=>typeof alert!=='string')||!row.analysis||typeof row.analysis!=='object'||Array.isArray(row.analysis)
+      ||!Number.isFinite(Date.parse(row.created_at))||!Number.isFinite(Number(row.submitted_value))))throw Error('O servidor não retornou uma lista válida de comprovantes. Tente atualizar novamente.');
+  return {...body,next_cursor:body.next_cursor||null};
+}
 export function receiptMoneyCents(value: unknown): number {
   const text=String(value??'').trim().replace(',','.');
   if(!/^\d+(\.\d{1,2})?$/.test(text))throw Error('Informe um valor válido, com até duas casas decimais.');

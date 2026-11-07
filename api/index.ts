@@ -32,6 +32,10 @@ import {
 import { resolveWhatsAppTemplate } from "../src/constants/whatsappTemplates.js";
 import { permanentDeleteZeladorAccount } from "./permanentAccountDelete.js";
 import { isConsoleGlobalAdmin } from "./lib/consoleAdmin.js";
+import { canReadLibraryMaterial, libraryMaterialResponse } from '../lib/libraryAudience.js';
+import { resolveLibraryReader } from './lib/libraryAudienceAccess.js';
+import { registerTransactionReadRoute } from './lib/transactionReadRoute.js';
+import { registerLibraryRoutes } from './lib/libraryRoutes.js';
 import { parseWaReminderIntervalDays, userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
@@ -82,6 +86,7 @@ import { registerChatRoutes } from "./lib/chatRoutes.js";
 import { registerAccountCredentialsRoutes } from "./lib/accountCredentialsRoutes.js";
 import { registerForgotPasswordWhatsappRoutes } from "./lib/forgotPasswordWhatsappRoutes.js";
 import { registerSupportRoutes } from "./lib/supportRoutes.js";
+import { registerDashboardCoreRoutes } from "./lib/dashboardCoreRoutes.js";
 import { isAllowedCorsOrigin } from "./lib/corsOrigins.js";
 import {
   getSupabaseServerAnonKey,
@@ -2068,6 +2073,29 @@ async function startServer() {
         .maybeSingle();
 
       if (error) throw error;
+      if (data) {
+        const { data: leader } = await supabaseAdmin
+          .from('perfil_lider')
+          .select('cidade, whatsapp_publico, whatsapp')
+          .eq('id', resolvedId)
+          .maybeSingle();
+        let detectedCity = String(leader?.cidade || '').trim();
+        if (!detectedCity || detectedCity.toUpperCase() === 'BRASIL') {
+          const phone = String(leader?.whatsapp_publico || leader?.whatsapp || '');
+          const ddd = phone.replace(/\D/g, '').slice(0, 4).replace(/^55/, '').slice(0, 2);
+          if (ddd === '21' || ddd === '22' || ddd === '24') detectedCity = 'RIO DE JANEIRO';
+          else if (ddd === '11' || ddd === '19' || ddd === '12' || ddd === '13') detectedCity = 'SAO PAULO';
+          else if (ddd === '71' || ddd === '73' || ddd === '75') detectedCity = 'SALVADOR';
+          else if (ddd === '31' || ddd === '32' || ddd === '34') detectedCity = 'BELO HORIZONTE';
+          else if (ddd === '81' || ddd === '87') detectedCity = 'RECIFE';
+          else if (ddd === '85' || ddd === '88') detectedCity = 'FORTALEZA';
+          else if (ddd === '41' || ddd === '42') detectedCity = 'CURITIBA';
+          else if (ddd === '51' || ddd === '53') detectedCity = 'PORTO ALEGRE';
+          else if (ddd === '61') detectedCity = 'BRASILIA';
+          else detectedCity = 'SAO PAULO';
+        }
+        data.cidade = detectedCity;
+      }
       res.setHeader("Cache-Control", "private, max-age=60, stale-while-revalidate=300");
       res.json({ data });
     } catch (err: any) {
@@ -2333,119 +2361,7 @@ async function startServer() {
   });
 
   // API Route: Get Library Materials (bypasses RLS — filhos podem ler materiais do zelador)
-  app.get("/api/v1/library/materials", async (req, res) => {
-    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
-    if (!access) return;
-
-    try {
-      const resolvedId = await resolveLeaderId(access.tenantId);
-      const { data, error } = await supabaseAdmin
-        .from('biblioteca')
-        .select('*')
-        .or(`tenant_id.eq.${resolvedId},tenant_id.eq.${access.tenantId}`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const enriched = await Promise.all(
-        (data || []).map(async (row: { storage_path?: string | null; arquivo_url?: string | null }) => {
-          const storagePath = String(row.storage_path || "").replace(/\\/g, "/");
-          if (!storagePath) return row;
-          const { data: signed } = await supabaseAdmin.storage
-            .from("biblioteca_estudos")
-            .createSignedUrl(storagePath, 3600);
-          return {
-            ...row,
-            arquivo_url: signed?.signedUrl || row.arquivo_url,
-          };
-        })
-      );
-
-      res.json({ data: enriched });
-    } catch (err: any) {
-      console.error("[SERVER] Erro ao buscar materiais:", err.message || err);
-      res.status(500).json({ error: safeErrorMessage(err, "Erro ao buscar materiais") });
-    }
-  });
-
-  app.post("/api/v1/library/upload-url", async (req, res) => {
-    const { fileName, contentType, categoria, tenantId } = req.body;
-    if (!fileName || !tenantId) {
-      return res.status(400).json({ error: "Unauthorized or missing data" });
-    }
-    const mime = String(contentType || "application/pdf").toLowerCase();
-    if (mime !== "application/pdf") {
-      return res.status(400).json({ error: "Apenas PDF (application/pdf) é permitido" });
-    }
-
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
-      if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-      const safeCategoria = slugifyStoragePath(categoria || 'geral');
-      const safeFileName = slugifyStoragePath(fileName);
-      const storagePath = `${tenantId}/${safeCategoria}/${Date.now()}_${safeFileName}`;
-
-      const { data, error } = await supabaseAdmin.storage
-        .from('biblioteca_estudos')
-        .createSignedUploadUrl(storagePath);
-
-      if (error) throw error;
-      res.json({
-        path: storagePath,
-        token: data.token,
-        contentType: contentType || 'application/pdf'
-      });
-    } catch (error: any) {
-      console.error("[SERVER] Erro ao criar URL de upload:", error.message || error);
-      res.status(500).json({ error: safeErrorMessage(error, "Erro ao preparar upload") });
-    }
-  });
-
-  app.post("/api/v1/library/complete-upload", async (req, res) => {
-    const { storagePath, titulo, categoria, tenantId } = req.body;
-    if (!storagePath || !titulo || !tenantId) {
-      return res.status(400).json({ error: "Unauthorized or missing data" });
-    }
-
-    try {
-      const user = await requireApiUser(supabaseAdmin, req, res);
-      if (!user) return;
-
-      const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
-      if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-      const normalizedPath = String(storagePath || "").replace(/\\/g, "/");
-      if (!normalizedPath.startsWith(`${tenantId}/`)) {
-        return res.status(400).json({ error: "storagePath inválido para este tenant" });
-      }
-
-      const { data: signed, error: signErr } = await supabaseAdmin.storage
-        .from('biblioteca_estudos')
-        .createSignedUrl(normalizedPath, 3600 * 24 * 7);
-
-      if (signErr) throw signErr;
-
-      const { error: dbError } = await supabaseAdmin
-        .from('biblioteca')
-        .insert([{
-          titulo,
-          categoria,
-          arquivo_url: signed?.signedUrl || null,
-          tenant_id: tenantId,
-          storage_path: normalizedPath
-        }]);
-
-      if (dbError) throw dbError;
-      res.json({ success: true, publicUrl: signed?.signedUrl || null });
-    } catch (error: any) {
-      console.error("[SERVER] Erro ao finalizar upload:", error.message || error);
-      res.status(500).json({ error: safeErrorMessage(error, "Erro interno ao salvar material") });
-    }
-  });
+  registerLibraryRoutes(app, { supabaseAdmin, slugifyStoragePath });
 
   /** URL assinada para PDF privado de obrigação (zelador → pasta por filho). */
   app.post("/api/v1/obrigacao-pdf/upload-url", async (req, res) => {
@@ -2576,49 +2492,6 @@ async function startServer() {
     } catch (error: any) {
       console.error("[SERVER] Erro ao atualizar PDF de obrigação:", error.message || error);
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao atualizar PDF") });
-    }
-  });
-
-  app.delete("/api/v1/library/material/:id", async (req, res) => {
-    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!user) return;
-
-    const materialId = String(req.params.id || "").trim();
-    const tenantId = normalizeQueryTenantId(req.query.tenantId);
-    if (!materialId || !tenantId) {
-      return res.status(400).json({ error: "id e tenantId são obrigatórios" });
-    }
-
-    const ok = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenantId);
-    if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-    try {
-      const resolvedId = await resolveLeaderId(tenantId);
-      const { data: row, error: fetchErr } = await supabaseAdmin
-        .from("biblioteca")
-        .select("id, tenant_id, storage_path")
-        .eq("id", materialId)
-        .maybeSingle();
-      if (fetchErr) throw fetchErr;
-      if (!row) return res.status(404).json({ error: "Material não encontrado" });
-
-      const rowTenant = String(row.tenant_id || "");
-      if (rowTenant !== tenantId && rowTenant !== resolvedId) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-
-      const storagePath = String(row.storage_path || "").replace(/\\/g, "/");
-      if (storagePath) {
-        await supabaseAdmin.storage.from("biblioteca_estudos").remove([storagePath]);
-      }
-
-      const { error: delErr } = await supabaseAdmin.from("biblioteca").delete().eq("id", materialId);
-      if (delErr) throw delErr;
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("[SERVER] Erro ao excluir material:", error.message || error);
-      res.status(500).json({ error: safeErrorMessage(error, "Erro ao excluir material") });
     }
   });
 
@@ -3091,58 +2964,6 @@ async function startServer() {
     } catch (error: any) {
       console.error("[SERVER] Erro no upload de banner de evento:", error.message || error);
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao enviar banner") });
-    }
-  });
-
-  // API Route: PDF Proxy — path+tenantId autenticado (sem modo ?url=)
-  app.get("/api/v1/library/pdf-proxy", async (req, res) => {
-    const user = await requireAuthOrRespond(supabaseAdmin, req, res);
-    if (!user) return;
-
-    const pathRaw = typeof req.query.path === "string" ? req.query.path : "";
-    const tenantIdRaw = normalizeQueryTenantId(req.query.tenantId);
-
-    if (!pathRaw || !tenantIdRaw) {
-      return res.status(400).json({ error: "path e tenantId são obrigatórios" });
-    }
-
-    const ok = await assertUserCanAccessTenant(supabaseAdmin, user, tenantIdRaw);
-    if (!ok) return res.status(403).json({ error: "Acesso negado" });
-
-    const normalizedPath = pathRaw.replace(/\\/g, "/");
-    if (!normalizedPath.startsWith(`${tenantIdRaw}/`)) {
-      return res.status(403).json({ error: "Caminho inválido" });
-    }
-
-    const isObrigacaoPdf = normalizedPath.includes("/obrigacoes/");
-    if (isObrigacaoPdf) {
-      const { assertObrigacaoPdfStorageAccess } = await import("./lib/tenantAccess.js");
-      const obrigacaoOk = await assertObrigacaoPdfStorageAccess(
-        supabaseAdmin,
-        user,
-        tenantIdRaw,
-        normalizedPath
-      );
-      if (!obrigacaoOk) return res.status(403).json({ error: "Acesso negado" });
-    }
-
-    try {
-      const { data, error } = await supabaseAdmin.storage
-        .from("biblioteca_estudos")
-        .download(normalizedPath);
-      if (error || !data) {
-        return res.status(404).send("PDF não encontrado");
-      }
-      const buffer = Buffer.from(await data.arrayBuffer());
-      res.set({
-        "Content-Type": "application/pdf",
-        "Content-Length": String(buffer.length),
-        "Cache-Control": "private, max-age=300",
-      });
-      return res.send(buffer);
-    } catch (err: any) {
-      console.error("[PDF-PROXY] storage:", err?.message || err);
-      return res.status(500).send("Erro interno");
     }
   });
 
@@ -3871,6 +3692,7 @@ async function startServer() {
   registerAuthAuditRoutes(app, { supabaseAdmin, verifyUser });
   registerAccountCredentialsRoutes(app, { supabaseAdmin });
   registerSupportRoutes(app, { supabaseAdmin });
+  registerDashboardCoreRoutes(app, supabaseAdmin);
   registerForgotPasswordWhatsappRoutes(app, { supabaseAdmin });
 
   app.post("/api/auth/filho-login", filhoLoginRateLimit, (req, res) => {
@@ -4603,7 +4425,7 @@ async function startServer() {
 
   // API Route: Get Notices (Bypasses RLS)
   app.get("/api/notices", async (req, res) => {
-    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
+    const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId, { allowMissingTenant: true });
     if (!access) return;
     const tenantId = access.tenantId;
     try {
@@ -4641,75 +4463,7 @@ async function startServer() {
     }
   });
 
-  // API Route: Get Transactions (Bypasses RLS)
-  app.get("/api/transactions", async (req, res) => {
-    try {
-      const authUser = await requireAuthOrRespond(supabaseAdmin, req, res);
-      if (!authUser) return;
-      const { tenantId, userRole, limit, userEmail: userEmailQ } = req.query;
-      const userId = authUser.id;
-      const userRoleStr = String(userRole || "").toLowerCase();
-      const tenantIdRaw = normalizeQueryTenantId(tenantId);
-      const limNum = limit ? Number(limit) : 150;
-
-      if (userRoleStr === "filho") {
-        const jwtUid = authUser.id;
-        const jwtEm = String(authUser.email || "").trim().toLowerCase();
-        let fid: string | null = null;
-        try {
-          fid = await resolveFilhoRowIdForFinance(supabaseAdmin, {
-            queryUserId: userId,
-            queryUserEmail: String(userEmailQ || "").trim().toLowerCase(),
-            jwtUserId: jwtUid,
-            jwtEmail: jwtEm,
-          });
-        } catch (e: any) {
-          console.error("[SERVER] resolveFilhoRowIdForFinance:", e?.message || e);
-        }
-        if (!fid) {
-          return res.json({ data: [] });
-        }
-        try {
-          const rows = await fetchFinanceiroRowsForFilho(supabaseAdmin, fid, limNum);
-          const filtered = rows.filter(
-            (r: any) => String(r?.status || "").toLowerCase() !== "excluido"
-          );
-          return res.json({ data: filtered });
-        } catch (e: any) {
-          console.error("[SERVER] fetchFinanceiroRowsForFilho:", e?.message || e);
-          return res.status(500).json({ error: safeErrorMessage(e, "Erro ao listar financeiro") });
-        }
-      }
-
-      const effectiveTenant = await resolveFinanceiroTenantScope(
-        supabaseAdmin,
-        userId,
-        userRoleStr,
-        tenantIdRaw
-      );
-      if (!effectiveTenant) return res.status(403).json({ error: "Acesso negado" });
-
-      let query = supabaseAdmin.from('financeiro').select('*').order('data', { ascending: false });
-      query = query.or(`tenant_id.eq.${effectiveTenant},lider_id.eq.${effectiveTenant}`);
-
-      if (limit) {
-        query = query.limit(Number(limit));
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      const filtered = (data || []).filter(
-        (r: any) => String(r?.status || "").toLowerCase() !== "excluido"
-      );
-      console.log(
-        `[SERVER] GET /api/transactions ok. tenant=${effectiveTenant} rows=${filtered.length}`
-      );
-      res.json({ data: filtered });
-    } catch (error: any) {
-      console.error("[SERVER] Error fetching transactions:", error.message || error);
-      res.status(500).json({ error: safeErrorMessage(error, "Internal Server Error") });
-    }
-  });
+  registerTransactionReadRoute(app, { supabaseAdmin });
 
   registerManualFinanceRoutes(app, { supabaseAdmin });
 
@@ -4871,7 +4625,8 @@ async function startServer() {
         .eq("tenant_id", access.tenantId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      res.json({ data: data || [] });
+      const reader = await resolveLibraryReader(supabaseAdmin, access.user, access.tenantId);
+      res.json({ data: (data || []).filter(row => canReadLibraryMaterial(row, reader)).map(row => libraryMaterialResponse(row, reader)) });
     } catch (error: any) {
       console.error("[SERVER] Error fetching library:", error.message || error);
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao buscar biblioteca") });
@@ -4882,6 +4637,9 @@ async function startServer() {
   app.get("/api/notifications", async (req, res) => {
     const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.query.tenantId);
     if (!access) return;
+    if (!(await assertZeladorOrGlobalAdmin(supabaseAdmin, access.user, access.tenantId))) {
+      return res.status(403).json({ error: "Acesso restrito à zeladoria." });
+    }
     const { tipo, lida, limit } = req.query;
     try {
       let query = supabaseAdmin
@@ -4904,10 +4662,14 @@ async function startServer() {
   app.patch("/api/notifications/read-all", async (req, res) => {
     const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
     if (!access) return;
+    if (!(await assertZeladorOrGlobalAdmin(supabaseAdmin, access.user, access.tenantId))) {
+      return res.status(403).json({ error: "Acesso restrito à zeladoria." });
+    }
     try {
-      const { error } = await supabaseAdmin.from("notificacoes").update({ lida: true }).eq("tenant_id", access.tenantId).eq("lida", false);
+      const { data, error } = await supabaseAdmin.from("notificacoes").update({ lida: true }).eq("tenant_id", access.tenantId).eq("lida", false).select("id, lida");
       if (error) throw error;
-      res.json({ success: true });
+      if ((data || []).some((row: any) => row.lida !== true)) throw new Error("O banco não confirmou todas as leituras.");
+      res.json({ success: true, updated: data?.length || 0 });
     } catch (error: any) {
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao marcar notificações.") });
     }
@@ -4916,10 +4678,14 @@ async function startServer() {
   app.patch("/api/notifications/:id/read", async (req, res) => {
     const access = await requireTenantReadAccess(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
     if (!access) return;
+    if (!(await assertZeladorOrGlobalAdmin(supabaseAdmin, access.user, access.tenantId))) {
+      return res.status(403).json({ error: "Acesso restrito à zeladoria." });
+    }
     try {
-      const { data, error } = await supabaseAdmin.from("notificacoes").update({ lida: true }).eq("id", req.params.id).eq("tenant_id", access.tenantId).select("id").maybeSingle();
+      const { data, error } = await supabaseAdmin.from("notificacoes").update({ lida: true }).eq("id", req.params.id).eq("tenant_id", access.tenantId).select("id, lida").maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Notificação não encontrada." });
+      if (data.lida !== true) throw new Error("O banco não confirmou a leitura.");
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: safeErrorMessage(error, "Erro ao marcar notificação.") });

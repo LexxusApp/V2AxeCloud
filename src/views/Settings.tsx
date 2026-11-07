@@ -1,3 +1,4 @@
+import { SettingsPilotCoAdminPanel } from '../components/settings/SettingsPilotCoAdminPanel';
 import React, { useEffect, useState } from 'react';
 import { Loader2, MessageCircleMore, ShieldCheck, UserRound } from 'lucide-react';
 import { SettingsProfilePanel } from '../components/settings/SettingsProfilePanel';
@@ -15,6 +16,7 @@ import { authFetch } from '../lib/authenticatedFetch';
 import { performFastLogout } from '../lib/logout';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
 import '../settings-v6.css';
+import { SETTINGS_NAVIGATION_EVENT, type SettingsDestination } from '../lib/settingsNavigation';
 
 const SECTION_COPY: Record<SettingsSection, { title: string; description: string }> = {
   profile: {
@@ -49,7 +51,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
     const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:settings-section') : null;
     return requested === 'whatsapp' || requested === 'profile' ? requested : 'profile';
   });
-  const [initialWhatsAppView] = useState<'automacoes' | 'historico'>(() => {
+  const [initialWhatsAppView, setInitialWhatsAppView] = useState<'automacoes' | 'historico'>(() => {
     const requested = typeof window !== 'undefined' ? sessionStorage.getItem('axecloud:whatsapp-view') : null;
     return requested === 'historico' ? requested : 'automacoes';
   });
@@ -64,6 +66,16 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
 
   useEffect(() => {
     sessionStorage.removeItem('axecloud:settings-section');
+    const listener = (event: Event) => {
+      const destination = (event as CustomEvent<SettingsDestination>).detail;
+      if (!destination || !['profile','whatsapp'].includes(destination.section)) return;
+      setActiveSection(destination.section);
+      if (destination.view) setInitialWhatsAppView(destination.view);
+      sessionStorage.removeItem('axecloud:settings-section');
+      sessionStorage.removeItem('axecloud:whatsapp-view');
+    };
+    window.addEventListener(SETTINGS_NAVIGATION_EVENT, listener);
+    return () => window.removeEventListener(SETTINGS_NAVIGATION_EVENT, listener);
   }, []);
 
   useEffect(() => {
@@ -93,6 +105,12 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
     setLoading(true);
     try {
       if (!user) return;
+
+      if (tenantData?.is_co_admin) {
+        setProfile(null);
+        setError(null);
+        return;
+      }
 
       // Só `id` = usuário logado: `tenant_id` no estado pode ser líder/terreiro e não bater com a coluna
       // `tenant_id` da linha em `perfil_lider`, o que zerava o perfil ao voltar de outra aba.
@@ -171,7 +189,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
         <div className="settings-v6-workspace grid min-w-0 lg:grid-cols-[15rem_minmax(0,1fr)]">
           <aside className="settings-v6-rail border-b border-[#D8D0C4] bg-[#EFE8DA] p-3 sm:p-4 lg:border-b-0 lg:border-r lg:p-5">
             <SettingsSubNav active={activeSection} onChange={setActiveSection} />
-            <div className="settings-v6-rail-note mt-4 hidden rounded-2xl border border-[#D7C9AE] bg-[#FFF9ED] p-4 lg:block">
+            <div className="settings-v6-rail-note mt-4 hidden rounded-lg border border-[#D7C9AE] bg-[#FFF9ED] p-4 lg:block">
               <ShieldCheck className="h-5 w-5 text-[#17633B]" aria-hidden />
               <p className="mt-3 text-xs font-black text-[#29231A]">Sua casa protegida</p>
               <p className="mt-1 text-[11px] font-semibold leading-relaxed text-[#706658]">
@@ -201,13 +219,46 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                       {error}
                     </p>
                   )}
-                  <SettingsProfilePanel
-                    user={user}
-                    tenantId={tenantId}
-                    profile={profile}
-                    onProfileChange={setProfile}
-                    onRefresh={onRefresh}
-                  />
+                  {tenantData?.is_co_admin ? (
+                    <div className="overflow-hidden rounded-2xl border border-[#D9D0C3] bg-[#FFFDF8] shadow-[0_16px_36px_-30px_rgba(53,42,25,.7)]">
+                      <div className="bg-gradient-to-r from-[#173323] to-[#214B35] p-5 sm:p-6">
+                        <div className="flex items-start gap-3">
+                          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#F4C430]/20 bg-[#F4C430]/10 text-[#F4C430]">
+                            <ShieldCheck className="h-5 w-5" aria-hidden />
+                          </span>
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-[.16em] text-[#F4C430]">Acesso delegado</p>
+                            <h3 className="mt-1 text-base font-black text-white">Responsável pelo sistema</h3>
+                            <p className="mt-1 max-w-2xl text-xs font-semibold leading-relaxed text-[#D5E2D8]">
+                              Você pode operar as rotinas da casa com a permissão da zeladoria titular. Identidade da casa, assinatura e exclusão permanecem protegidas.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid gap-3 p-5 text-xs sm:grid-cols-3 sm:p-6">
+                        <div className="rounded-xl border border-[#D8E0D5] bg-[#F1F6F2] p-3.5">
+                          <p className="font-black text-[#17633B]">Pode administrar</p>
+                          <p className="mt-1 font-semibold leading-relaxed text-[#706658]">Cadastros, agenda, avisos e rotinas liberadas no painel.</p>
+                        </div>
+                        <div className="rounded-xl border border-[#E0D5BE] bg-[#FFF9ED] p-3.5">
+                          <p className="font-black text-[#8A6800]">Titularidade protegida</p>
+                          <p className="mt-1 font-semibold leading-relaxed text-[#706658]">Plano, cobrança e exclusão continuam exclusivos do zelador titular.</p>
+                        </div>
+                        <div className="rounded-xl border border-[#D8D0C4] bg-white p-3.5">
+                          <p className="font-black text-[#252019]">Seu acesso</p>
+                          <p className="mt-1 font-semibold leading-relaxed text-[#706658]">Pode ser revogado a qualquer momento pelo titular da casa.</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <SettingsProfilePanel
+                      user={user}
+                      tenantId={tenantId}
+                      profile={profile}
+                      onProfileChange={setProfile}
+                      onRefresh={onRefresh}
+                    />
+                  )}
                   <SettingsAccountCredentialsPanel
                     userEmail={accountEmail}
                     onEmailChanged={(email) => {
@@ -215,13 +266,21 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                       if (profile) setProfile({ ...profile, email });
                     }}
                   />
-                  <SettingsDangerZone
-                    onDeleteAccount={() => {
-                      setDeleteConfirmEmail('');
-                      setDeleteError(null);
-                      setDeleteModalOpen(true);
-                    }}
-                  />
+                  {tenantId === 'fad75b91-d2eb-4805-b5a3-c19e8a073bed' && !tenantData?.is_co_admin && (
+                    <SettingsPilotCoAdminPanel
+                      tenantId={tenantId}
+                      onNavigateChildren={() => setActiveTab('children')}
+                    />
+                  )}
+                  {!tenantData?.is_co_admin ? (
+                    <SettingsDangerZone
+                      onDeleteAccount={() => {
+                        setDeleteConfirmEmail('');
+                        setDeleteError(null);
+                        setDeleteModalOpen(true);
+                      }}
+                    />
+                  ) : null}
                 </>
               ) : (
                 <SettingsWhatsAppPanel initialView={initialWhatsAppView} />

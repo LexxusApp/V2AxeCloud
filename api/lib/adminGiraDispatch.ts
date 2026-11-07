@@ -1,3 +1,4 @@
+import { loadActiveTenantScopeIds } from "./activeTenantScope.js";
 /**
  * Disparo manual de aviso de gira pelo console admin (terreiro + evento + template).
  */
@@ -33,16 +34,22 @@ export type AdminGiraEventRow = {
 
 const TEMPLATE_OPTIONS: Omit<AdminGiraTemplateOption, "isDefault">[] = [
   {
-    id: "lembrete_botoes",
-    name: "aviso_gira_lembrete_botoes_axecloud",
-    label: "Lembrete com botões interativos (Confirmar / Não poderei ir)",
-    description: "Olá + nome + quando + terreiro + gira + horário + botões de presença rápida",
+    id: "lembrete_util",
+    name: "aviso_gira_lembrete_util_axecloud",
+    label: "Lembrete oficial da corrente (Utilidade)",
+    description: "Olá + nome + quando + terreiro + gira + horário (Utilidade sem bloqueio Meta)",
   },
   {
     id: "lembrete_membro",
     name: "aviso_gira_lembrete_membro_axecloud",
     label: "Lembrete humanizado padrão",
     description: "Olá + nome + quando + terreiro + gira + horário",
+  },
+  {
+    id: "lembrete_botoes",
+    name: "aviso_gira_lembrete_botoes_axecloud",
+    label: "Lembrete com botões interativos (Confirmar / Não poderei ir)",
+    description: "Olá + nome + quando + terreiro + gira + horário + botões de presença rápida",
   },
 ];
 
@@ -61,15 +68,20 @@ export async function listAdminGiraTenants(
   const limit = Math.min(Math.max(Number(opts?.limit) || 80, 1), 200);
   const q = String(opts?.q || "").trim().toLowerCase();
 
-  const { data: profiles, error } = await sb
-    .from("perfil_lider")
-    .select("id, nome_terreiro, email, deleted_at")
-    .is("deleted_at", null)
-    .order("nome_terreiro", { ascending: true })
-    .limit(400);
+  const [{ data: profiles, error }, activeIds] = await Promise.all([
+    sb
+      .from("perfil_lider")
+      .select("id, tenant_id, nome_terreiro, email, deleted_at, is_blocked")
+      .is("deleted_at", null)
+      .order("nome_terreiro", { ascending: true })
+      .limit(400),
+    loadActiveTenantScopeIds(sb),
+  ]);
   if (error) throw error;
 
-  let rows = (profiles || []).filter((p) => {
+  let rows = (profiles || [])
+    .filter((p) => activeIds.has(String(p.id || "")) || activeIds.has(String(p.tenant_id || "")))
+    .filter((p) => {
     if (!q) return true;
     const hay = `${p.nome_terreiro || ""} ${p.email || ""} ${p.id}`.toLowerCase();
     return hay.includes(q);
@@ -160,6 +172,7 @@ export async function sendAdminGiraDispatch(
     eventId: string;
     templateName?: string | null;
     onProgress?: (p: { sent: number; errors: number; eligible: number; index: number }) => void;
+    shouldCancel?: () => boolean;
   }
 ): Promise<{
   sent: number;
@@ -220,10 +233,11 @@ export async function sendAdminGiraDispatch(
     },
     {
       bypassFanoutCooldown: true,
-      notifyZeladorSummary: false,
+      notifyZeladorSummary: true,
       metaTemplateName: templateName,
       messageSuffix: `admin:${templateName}`,
       onProgress: input.onProgress,
+      shouldCancel: input.shouldCancel,
     }
   );
 
@@ -406,7 +420,8 @@ export async function retryAdminGiraDispatch(
 
 export type AdminGiraDispatchJob = {
   id: string;
-  phase: "queued" | "running" | "done" | "failed";
+  tenantId?: string;
+  phase: "queued" | "running" | "done" | "failed" | "cancelled";
   sent: number;
   errors: number;
   eligible: number;
@@ -417,9 +432,45 @@ export type AdminGiraDispatchJob = {
   error: string | null;
   startedAt: string;
   finishedAt: string | null;
+  cancelledAt?: string | null;
 };
 
 const giraDispatchJobs = new Map<string, AdminGiraDispatchJob>();
+const cancellationTokens = new Set<string>();
+
+export function isJobCancelled(jobId: string): boolean {
+  return cancellationTokens.has(String(jobId || "").trim());
+}
+
+export function cancelAdminGiraDispatchJob(jobId: string): { success: boolean; job: AdminGiraDispatchJob | null } {
+  pruneGiraJobs();
+  const id = String(jobId || "").trim();
+  const job = giraDispatchJobs.get(id);
+  if (!job) return { success: false, job: null };
+
+  cancellationTokens.add(id);
+  if (job.phase === "queued" || job.phase === "running") {
+    job.phase = "cancelled";
+    job.status = "cancelled";
+    job.error = "Disparo cancelado pelo operador.";
+    job.finishedAt = new Date().toISOString();
+    job.cancelledAt = new Date().toISOString();
+  }
+  return { success: true, job };
+}
+
+export function getActiveAdminGiraDispatchJob(tenantId?: string): AdminGiraDispatchJob | null {
+  pruneGiraJobs();
+  const tid = tenantId ? String(tenantId).trim() : null;
+  for (const job of Array.from(giraDispatchJobs.values()).reverse()) {
+    if (job.phase === "running" || job.phase === "queued") {
+      if (!tid || job.tenantId === tid) {
+        return job;
+      }
+    }
+  }
+  return null;
+}
 
 function pruneGiraJobs(now = Date.now()) {
   for (const [id, job] of giraDispatchJobs) {
@@ -481,6 +532,7 @@ export async function startAdminGiraDispatchJob(
 
   const job: AdminGiraDispatchJob = {
     id,
+    tenantId,
     phase: "queued",
     sent: 0,
     errors: 0,
@@ -514,20 +566,37 @@ export async function startAdminGiraDispatchJob(
           job.eligible = p.eligible;
           job.index = p.index;
         },
+        shouldCancel: () => isJobCancelled(id),
       });
-      job.sent = result.sent;
-      job.errors = result.errors;
-      job.eligible = result.eligible;
-      job.status = result.status;
-      job.templateName = result.templateName;
-      job.event = result.event;
-      job.phase = "done";
-      job.finishedAt = new Date().toISOString();
+      if (isJobCancelled(id)) {
+        job.phase = "cancelled";
+        job.status = "cancelled";
+        job.error = "Disparo cancelado pelo operador.";
+        job.finishedAt = new Date().toISOString();
+      } else {
+        job.sent = result.sent;
+        job.errors = result.errors;
+        job.eligible = result.eligible;
+        job.status = result.status;
+        job.templateName = result.templateName;
+        job.event = result.event;
+        job.phase = result.status === "cancelled" ? "cancelled" : "done";
+        job.finishedAt = new Date().toISOString();
+      }
     } catch (e) {
-      job.phase = "failed";
-      job.status = "failed";
-      job.error = e instanceof Error ? e.message : String(e);
-      job.finishedAt = new Date().toISOString();
+      if (isJobCancelled(id)) {
+        job.phase = "cancelled";
+        job.status = "cancelled";
+        job.error = "Disparo cancelado pelo operador.";
+        job.finishedAt = new Date().toISOString();
+      } else {
+        job.phase = "failed";
+        job.status = "failed";
+        job.error = e instanceof Error ? e.message : String(e);
+        job.finishedAt = new Date().toISOString();
+      }
+    } finally {
+      cancellationTokens.delete(id);
     }
   })();
 

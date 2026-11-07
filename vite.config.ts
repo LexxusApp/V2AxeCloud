@@ -10,6 +10,7 @@ import {seoHomeInject} from './scripts/vite-plugin-seo-inject';
 import {HOME_SEO} from './src/constants/seoHome';
 import {BRAND_NAME} from './src/constants/seoBrandKeywords';
 import {MARKETING_SITE_PATHS} from './src/lib/routes';
+import {shouldCacheStaticAsset} from './src/lib/serviceWorkerCachePolicy';
 
 /** Vite injeta crossorigin nos bundles; com CORP global isso quebrava script/style no Brave/Chrome. */
 function stripCrossoriginFromBuiltHtml(): Plugin {
@@ -126,7 +127,7 @@ export default defineConfig(() => {
         },
         workbox: {
           /** Bump ao mudar estratégia de cache — força precache/runtime novos e abandona caches antigos. */
-          cacheId: 'axecloud-v122',
+          cacheId: 'axecloud-v123',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           /** Sem fallback de navegação — evita no-response do Workbox em /dashboard e outras rotas do app. */
@@ -151,11 +152,10 @@ export default defineConfig(() => {
           /** Só assets (JS/CSS/fonts) — documentos HTML vão direto à rede sem interceptação do SW. */
           runtimeCaching: [
             {
-              urlPattern: ({ request, sameOrigin }) =>
-                sameOrigin && request.mode !== 'navigate' && request.destination !== 'image',
+              urlPattern: shouldCacheStaticAsset,
               handler: 'NetworkFirst',
               options: {
-                cacheName: 'axecloud-runtime-network-first-v122',
+                cacheName: 'axecloud-runtime-network-first-v123',
                 networkTimeoutSeconds: 12,
                 expiration: { maxEntries: 96, maxAgeSeconds: 6 * 3600 },
                 cacheableResponse: { statuses: [0, 200] },
@@ -191,9 +191,25 @@ export default defineConfig(() => {
     },
     server: {
       host: true,
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
+      proxy: {
+        '/api': {
+          target: 'https://axecloud.com.br',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+    preview: {
+      host: true,
+      port: 4173,
+      proxy: {
+        '/api': {
+          target: 'https://axecloud.com.br',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
   };
 });

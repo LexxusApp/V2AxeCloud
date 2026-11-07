@@ -10,7 +10,7 @@ export function AppDemoCard({ children, className }: { children: ReactNode; clas
 
 export function AppDemoTableShell({ children }: { children: ReactNode }) {
   return (
-    <div className="app-v5-table-shell overflow-hidden rounded-2xl border border-[#252C35] bg-[#151A21] shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
+    <div className="app-v5-table-shell overflow-hidden rounded-lg border border-[#252C35] bg-[#151A21] shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]">
       <div className="overflow-x-auto">{children}</div>
     </div>
   );

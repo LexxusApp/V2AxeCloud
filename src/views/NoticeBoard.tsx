@@ -209,7 +209,8 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
   async function fetchNotices() {
     setLoading(true);
     try {
-      const response = await authFetch(`/api/notices?tenantId=${tenantId || ''}`);
+      const url = tenantId ? `/api/notices?tenantId=${encodeURIComponent(tenantId)}` : '/api/notices';
+      const response = await authFetch(url);
       if (!response.ok) throw new Error('Failed to fetch notices');
       const { data } = await response.json();
       setNotices(data || []);

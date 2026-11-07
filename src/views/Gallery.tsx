@@ -20,12 +20,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
-import {
-  AppDemoCard,
-  AppDemoPanelHeader,
-  AppPrimaryButton,
-  appInputClass,
-} from '../components/ui/appDemoUi';
+import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass } from '../components/ui/appDemoUi';
+import { AxePageHeader, AxeMetricRail, AxeMetricCard, AxeButton, AxeCard } from '../components/shared/AxePageScaffold';
 import { MODAL_DLG_DONE, MODAL_DLG_IN, MODAL_DLG_OUT, MODAL_TW } from '../lib/modalMotion';
 import { confirmAction } from '../lib/confirmAction';
 import { authFetch } from '../lib/authenticatedFetch';
@@ -179,11 +175,11 @@ function AddAlbumModalPanel({
         aria-modal="true"
         aria-labelledby="add-album-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] flex max-h-[88dvh] w-full max-w-5xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
+        className="relative z-[101] flex max-h-[88dvh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F1E8D2]">
               <Camera className="h-5 w-5 text-[#8F7724]" aria-hidden />
             </div>
             <div className="min-w-0">
@@ -274,7 +270,7 @@ function AddAlbumModalPanel({
               </div>
             </div>
 
-            <div className="flex min-h-[10.5rem] flex-col space-y-3 rounded-2xl border border-[#E3DCCE] bg-[#F1ECE0] p-4 lg:min-h-0">
+            <div className="flex min-h-[10.5rem] flex-col space-y-3 rounded-lg border border-[#E3DCCE] bg-[#F1ECE0] p-4 lg:min-h-0">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#8F7724]">
                   Pré-visualização
@@ -729,7 +725,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
         layout
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="group relative flex h-full transform flex-col justify-between overflow-hidden rounded-2xl border border-[#252C35] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
+        className="group relative flex h-full transform flex-col justify-between overflow-hidden rounded-lg border border-[#252C35] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
       >
         <button
           type="button"
@@ -836,7 +832,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             setSelectedAlbumId(album.id);
           }
         }}
-        className="gallery-album-card group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[#252C35] bg-[#13171D] shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
+        className="gallery-album-card group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-lg border border-[#E5DECF] bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37] hover:shadow-xl"
       >
         <div className="relative aspect-video w-full overflow-hidden bg-black/40">
           {cover ? (
@@ -875,7 +871,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
             >
               {CATEGORY_LABEL[category]}
             </span>
-                </div>
+          </div>
 
           <div className="absolute bottom-2 right-2 rounded-lg border border-white/10 bg-black/65 px-2 py-1 text-[9px] font-black text-white backdrop-blur-sm">
             {album.media.length} arquivo{album.media.length === 1 ? '' : 's'}
@@ -894,44 +890,43 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
               title="Deletar álbum"
             >
               {deletingAlbumId === album.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              </button>
+            </button>
           )}
         </div>
 
-        <div className="flex flex-grow flex-col justify-between space-y-3.5 p-4">
+        <div className="flex flex-grow flex-col justify-between space-y-3.5 p-5">
           <div className="space-y-1.5">
-            <h6 className="font-display text-sm font-black leading-snug text-white transition-colors group-hover:text-[#FACC15]">
+            <h6 className="font-display text-sm font-black leading-snug text-[#171A16] transition-colors group-hover:text-amber-800">
               {album.name}
             </h6>
-            <p className="line-clamp-3 text-xs font-normal leading-relaxed text-[#5C5549]">
+            <p className="line-clamp-2 text-xs font-semibold leading-relaxed text-[#6B6355]">
               {album.description ||
                 'Memória com boas energias guardadas no mural do terreiro.'}
             </p>
           </div>
 
-          <div className="flex items-center justify-between gap-2.5 border-t border-[#1E242B]/80 pt-3 text-[9.5px]">
-            <div className="max-w-[60%] space-y-0.5 text-[#5C5549]">
-              <span className="block truncate font-black text-[#17130D]">Por: {author}</span>
-              <span className="block font-mono text-[9px] text-[#6E6659]">{formatMuralDate(album.created_at)}</span>
+          <div className="flex items-center justify-between gap-2.5 border-t border-[#F0EAE0] pt-3 text-[10px]">
+            <div className="max-w-[60%] space-y-0.5 text-[#7A7265]">
+              <span className="block truncate font-black text-[#171A16]">Por: {author}</span>
+              <span className="block font-mono text-[9px] text-[#9B9184]">{formatMuralDate(album.created_at)}</span>
             </div>
 
             <div
-              className="flex shrink-0 select-none items-center gap-1.5 rounded-xl border border-rose-500/10 bg-rose-950/20 px-2.5 py-1.5 font-bold text-rose-400"
+              className="flex shrink-0 select-none items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 font-bold text-rose-700"
               onClick={(e) => e.stopPropagation()}
               title={`${album.media.length} foto(s) · ${totalAxe} Axé no álbum`}
             >
-              <Heart className="h-3.5 w-3.5 fill-rose-500/20 text-rose-500" />
+              <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-600" />
               <span>{totalAxe} Axé</span>
             </div>
           </div>
-              </div>
+        </div>
       </motion.div>
     );
   };
 
   return (
     <AppPageShell>
-        <DataLoadError message={loadError} onRetry={() => void fetchGallery()} />
       <div className="gallery-v5-page">
       <div className="space-y-6 animate-fadeIn text-[#F1F5F9]">
         {toast && (
@@ -947,27 +942,29 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </div>
         )}
 
-        <AppDemoPanelHeader
-          title={selectedAlbum ? selectedAlbum.name : 'Galeria da casa'}
+        <AxePageHeader
+          theme="night"
+          kicker="MEMÓRIAS SAGRADAS & REGISTROS DO AXÉ"
+          title={selectedAlbum ? selectedAlbum.name : 'Galeria da Casa'}
           description={
             selectedAlbum
-              ? 'Veja as fotos e vídeos deste álbum.'
-              : 'Organize registros de giras, festas e momentos importantes em álbuns.'
+              ? (selectedAlbum.description || 'Fotografias e registros deste momento guardados na corrente.')
+              : 'Organize registros de giras, toques, festas de Orixá e celebrações em álbuns protegidos.'
           }
-          action={
+          actions={
             isAdmin && !selectedAlbumId ? (
-              <AppPrimaryButton
-                type="button"
+              <AxeButton
+                variant="primary"
                 onClick={() => setAddAlbumModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2"
               >
                 <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                Criar álbum
-              </AppPrimaryButton>
+                Criar Novo Álbum
+              </AxeButton>
             ) : null
           }
         />
 
+        <DataLoadError message={loadError} onRetry={() => void fetchGallery()} />
         {loading ? (
           <AppPanelLoading />
         ) : selectedAlbum ? (
@@ -1015,7 +1012,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
             <div className="app-media-masonry grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {selectedAlbum.media.length === 0 ? (
-                <div className="col-span-full rounded-3xl border border-[#1E242B] bg-[#0C0E12] p-12 text-center text-sm text-gray-500">
+                <div className="col-span-full rounded-lg border border-[#1E242B] bg-[#0C0E12] p-12 text-center text-sm text-gray-500">
                   Este álbum ainda não tem fotos.
                 </div>
               ) : (
@@ -1025,48 +1022,36 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="app-metric-rail gallery-archive-ribbon grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Álbuns</span>
-                  <p className="mt-2 text-2xl font-black text-[#F1F5F9]">{galleryStats.albums}</p>
-                  <p className="mt-1 text-[10px] text-[#64748B]">coleções publicadas</p>
-                </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                  <FolderOpen className="h-5 w-5" />
-                </div>
-              </AppDemoCard>
-              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Fotos</span>
-                  <p className="mt-2 text-2xl font-black text-cyan-300">{galleryStats.photos}</p>
-                  <p className="mt-1 text-[10px] text-[#64748B]">imagens guardadas</p>
-                </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/40 text-cyan-300">
-                  <Images className="h-5 w-5" />
-                </div>
-              </AppDemoCard>
-              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Vídeos</span>
-                  <p className="mt-2 text-2xl font-black text-violet-300">{galleryStats.videos}</p>
-                  <p className="mt-1 text-[10px] text-[#64748B]">registros em movimento</p>
-                </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl border border-violet-500/20 bg-violet-950/40 text-violet-300">
-                  <Film className="h-5 w-5" />
-                </div>
-              </AppDemoCard>
-              <AppDemoCard className="flex min-h-[104px] items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Axé recebido</span>
-                  <p className="mt-2 text-2xl font-black text-rose-300">{galleryStats.axe}</p>
-                  <p className="mt-1 text-[10px] text-[#64748B]">interações nas memórias</p>
-                </div>
-                <div className="grid h-10 w-10 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-300">
-                  <Heart className="h-5 w-5" />
-                </div>
-              </AppDemoCard>
-            </div>
+            <AxeMetricRail>
+              <AxeMetricCard
+                label="Álbuns Publicados"
+                value={galleryStats.albums}
+                icon={FolderOpen}
+                tone="neutral"
+                subtext="Coleções do terreiro"
+              />
+              <AxeMetricCard
+                label="Fotografias"
+                value={galleryStats.photos}
+                icon={Images}
+                tone="blue"
+                subtext="Imagens salvas na casa"
+              />
+              <AxeMetricCard
+                label="Vídeos da Corrente"
+                value={galleryStats.videos}
+                icon={Film}
+                tone="purple"
+                subtext="Momentos em movimento"
+              />
+              <AxeMetricCard
+                label="Vibrações de Axé"
+                value={galleryStats.axe}
+                icon={Heart}
+                tone="rose"
+                subtext="Corações compartilhados"
+              />
+            </AxeMetricRail>
 
             <AppDemoCard className="app-command-strip gallery-curator-bar space-y-4 p-4 sm:p-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1109,33 +1094,28 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
 
             <div className="app-gallery-ledger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {filteredAlbums.length === 0 ? (
-                <div
-                  className="app-demo-empty-preview col-span-full space-y-3 rounded-2xl border border-dashed border-[#303844] bg-[#11151A] px-6 py-14 text-center"
-                  data-preview="Exemplo de álbum · Gira de Xangô · 12 fotos"
-                >
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                    <Sparkles className="h-6 w-6" />
+                <div className="col-span-full rounded-lg border border-[#E5DECF] bg-white p-12 text-center shadow-xs">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-amber-500/10 text-amber-800 border border-amber-200">
+                    <Sparkles className="h-7 w-7" />
                   </div>
-                  <h6 className="font-display text-sm font-black text-white">
-                    {gallerySearch ? 'Nenhum álbum encontrado' : 'Sua galeria começa aqui'}
-                  </h6>
-                  <p className="mx-auto max-w-sm text-[11px] text-gray-500">
+                  <h4 className="mt-4 text-base font-black text-[#171A16]">
+                    {gallerySearch ? `Nenhum álbum encontrado para "${gallerySearch}"` : 'Sua Galeria Litúrgica'}
+                  </h4>
+                  <p className="mx-auto mt-1 max-w-md text-xs font-semibold leading-relaxed text-[#6B6355]">
                     {gallerySearch
-                      ? 'Tente outro nome ou escolha uma categoria diferente.'
-                      : isAdmin
-                        ? 'Crie um álbum para guardar fotos e vídeos de uma gira, festa ou momento especial.'
-                        : 'Ainda não há álbuns publicados nesta categoria.'}
+                      ? 'Tente outro nome ou alterne entre Giras, Festas e Memórias da Casa.'
+                      : 'Registre e eternize as imagens das giras, festas e trabalhos sagrados do terreiro.'}
                   </p>
-                  {isAdmin && !gallerySearch ? (
-                    <AppPrimaryButton
+                  {isAdmin && (
+                    <button
                       type="button"
                       onClick={() => setAddAlbumModalOpen(true)}
-                      className="mt-2 inline-flex items-center gap-2"
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] px-5 py-2.5 text-xs font-black text-[#0A160F] shadow-sm hover:brightness-105 active:scale-95 transition-all"
                     >
                       <Plus className="h-4 w-4" />
-                      Criar primeiro álbum
-                    </AppPrimaryButton>
-                  ) : null}
+                      Criar Novo Álbum de Fotos
+                    </button>
+                  )}
                 </div>
               ) : (
                 filteredAlbums.map((album) => renderAlbumCard(album))
@@ -1197,7 +1177,7 @@ export default function Gallery({ tenantData, userRole, isAdminGlobal }: Gallery
                 >
                   <X className="h-5 w-5" />
                 </button>
-                <div className="max-h-[85vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+                <div className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl">
                   {lightboxItem.media_type === 'video' ? (
                     <video
                       src={lightboxItem.public_url}

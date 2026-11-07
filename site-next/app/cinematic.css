@@ -307,5 +307,107 @@
     font-size: clamp(8px, 0.65vw, 11px);
     bottom: clamp(16px, 2vh, 28px);
   }
+
+
+  .cx-footer {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    align-items: center !important;
+    min-height: clamp(140px, 10vh, 165px) !important;
+    padding: clamp(36px, 3.5vw, 56px) clamp(32px, 4vw, 64px) !important;
+    gap: clamp(24px, 2.5vw, 40px) !important;
+    background: #0b0d0a !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  .cx-footer > .cx-brand,
+  .cx-footer .cx-brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    gap: clamp(8px, 0.8vw, 12px) !important;
+  }
+  .cx-footer .cx-brand-trident {
+    width: clamp(38px, 2.5vw, 46px) !important;
+    height: clamp(48px, 3.2vw, 58px) !important;
+  }
+  .cx-footer .cx-brand strong {
+    font-size: clamp(15px, 1.05vw, 18px) !important;
+  }
+  .cx-footer > p {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    font-size: clamp(13px, 0.9vw, 15px) !important;
+  }
+  .cx-footer-top,
+  .cx-footer > a:last-child {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+    align-self: center !important;
+    font-size: clamp(13px, 0.9vw, 15px) !important;
+    color: #8b8d84 !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+  }
+  .cx-footer-top:hover,
+  .cx-footer > a:last-child:hover {
+    color: #f4f0e4 !important;
+  }
+  .cx-footer > nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: clamp(22px, 2vw, 36px) !important;
+    padding-top: clamp(18px, 1.8vw, 26px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+  .cx-footer > nav a {
+    font-size: clamp(13px, 0.9vw, 15px) !important;
+    color: #8b8d84 !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+  }
+  .cx-footer > nav a:hover {
+    color: #f4f0e4 !important;
+  }
 }
 
+@media (max-width: 800px) {
+  .cx-footer {
+    grid-template-columns: 1fr auto !important;
+    padding: 28px 18px !important;
+    gap: 16px !important;
+  }
+  .cx-footer > .cx-brand,
+  .cx-footer .cx-brand {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  .cx-footer-top,
+  .cx-footer > a:last-child {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+  .cx-footer > p {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    text-align: left !important;
+  }
+  .cx-footer > nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+    justify-content: flex-start !important;
+    gap: 16px !important;
+    padding-top: 16px !important;
+  }
+}

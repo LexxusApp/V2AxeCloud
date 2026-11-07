@@ -406,19 +406,19 @@ export function ChatThread({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-2xl border bg-[#13171D] shadow-2xl',
+        'flex flex-col overflow-hidden rounded-lg border border-[#E6DFD3] bg-[#FAF7F2] shadow-[0_2px_8px_rgba(28,37,31,0.03)]',
         isFloating
           ? 'h-[min(72dvh,420px)] w-full border-white/12 bg-[#1A1F27] shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_64px_rgba(0,0,0,0.85)] ring-1 ring-primary/15'
           : 'border-[#1E242B]',
         !isFloating && 'h-full min-h-[480px]',
       )}
     >
-      <div className="flex items-center gap-3 border-b border-[#1E242B] bg-[#12161A] px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-[#E6DFD3] bg-white px-4 py-3">
         <button
           type="button"
           onClick={onBack}
           className={cn(
-            'rounded-lg p-2 text-[#94A3B8] hover:bg-white/5 hover:text-white',
+            'rounded-lg p-2 text-[#59655E] hover:bg-[#FAF7F2] hover:text-[#17251D]',
             !isFloating && 'lg:hidden',
           )}
           aria-label="Fechar conversa"
@@ -439,9 +439,9 @@ export function ChatThread({
           />
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="truncate font-display text-sm font-black text-white">{displayTitle}</h2>
+          <h2 className="truncate font-display text-sm font-black text-[#17251D]">{displayTitle}</h2>
           {conversation.peer?.cargo && (
-            <p className="truncate text-[10px] text-[#64748B]">{conversation.peer.cargo}</p>
+            <p className="truncate text-[10px] text-[#59655E]">{conversation.peer.cargo}</p>
           )}
         </div>
         <ChatAttachMenu
@@ -466,7 +466,7 @@ export function ChatThread({
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-[#1E242B] bg-[#12161A] p-3">
+      <div className="border-t border-[#E6DFD3] bg-white p-3">
         {uploading && (
           <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-wide text-primary">
             Enviando mídia...
@@ -484,7 +484,7 @@ export function ChatThread({
             }}
             placeholder="Digite sua mensagem..."
             rows={1}
-            className="max-h-28 min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5 text-sm text-white placeholder:text-[#64748B] focus:border-primary/50 focus:outline-none"
+            className="max-h-28 min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[#D8CDBA] bg-[#FAF7F2] px-3 py-2.5 text-sm text-[#17251D] placeholder:text-[#8A958E] focus:border-[#1F5942] focus:bg-white focus:outline-none"
             disabled={uploading}
           />
           <ChatAudioRecorder
@@ -496,7 +496,7 @@ export function ChatThread({
             onClick={sendText}
             disabled={!input.trim() || uploading}
             className={cn(
-              'flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-primary text-black transition-opacity',
+              'flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-[#1F5942] text-white hover:bg-[#184533] transition-colors',
               (!input.trim() || uploading) && 'opacity-40',
             )}
             aria-label="Enviar"

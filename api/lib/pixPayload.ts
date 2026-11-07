@@ -30,7 +30,7 @@ export function calculateCrc16(payload: string): string {
 export function buildPixPayload(
   config: PixPayloadConfig,
   valor: number,
-  txid = "AXECLOUD",
+  txid = "***",
   descricao = "MENSALIDADE"
 ): string {
   const chave = String(config.chave_pix || "").trim();
@@ -51,7 +51,7 @@ export function buildPixPayload(
     .slice(0, 15);
 
   const valorStr = valor > 0 ? valor.toFixed(2) : "";
-  const txidClean = (txid.replace(/[^a-zA-Z0-9]/g, "") || "AXECLOUD").slice(0, 25).padEnd(5, "0");
+  const txidClean = txid === "***" ? "***" : (txid.replace(/[^a-zA-Z0-9]/g, "") || "***").slice(0, 25);
   const descLimpa = descricao
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -69,7 +69,6 @@ export function buildPixPayload(
 
   const payloadSemCrc =
     "000201" +
-    "010212" +
     mai +
     "52040000" +
     "5303986" +

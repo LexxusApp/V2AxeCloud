@@ -354,10 +354,12 @@ export async function efiPixCreateImmediateCharge(
     raw: data,
   };
 }
-
 export async function efiPixGetCob(env: EfiPixEnv, txid: string): Promise<{
   status: string;
   paid: boolean;
+  copyPaste?: string;
+  createdAt?: string;
+  expirationSeconds?: number;
   raw: unknown;
 }> {
   const token = await efiPixGetAccessToken(env);
@@ -368,6 +370,18 @@ export async function efiPixGetCob(env: EfiPixEnv, txid: string): Promise<{
 
   const status = String(data?.status || "").toUpperCase();
   const paid = status === "CONCLUIDA";
+  const copyPaste = String(data?.pixCopiaECola || "").trim() || undefined;
+  const createdAt = String(data?.calendario?.criacao || "").trim() || undefined;
+  const expirationSeconds = Number(data?.calendario?.expiracao);
 
-  return { status, paid, raw: data };
+  return {
+    status,
+    paid,
+    copyPaste,
+    createdAt,
+    expirationSeconds: Number.isFinite(expirationSeconds) && expirationSeconds > 0
+      ? expirationSeconds
+      : undefined,
+    raw: data,
+  };
 }

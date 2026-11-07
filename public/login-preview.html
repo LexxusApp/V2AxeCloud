@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AxéCloud · Novo Login (Border Beam & Segmented Tabs)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070709;
+      --card-bg: rgba(18, 16, 14, 0.78);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --gold: #c48a00;
+      --gold-light: #fbbf24;
+      --gold-dark: #926400;
+      --text-main: #f5f5f7;
+      --text-muted: #a1a1aa;
+      --text-faint: #71717a;
+      --input-bg: rgba(255, 255, 255, 0.04);
+      --input-border: rgba(255, 255, 255, 0.1);
+      --input-focus: #c48a00;
+      --radius-card: 26px;
+      --radius-input: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #070709;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow-x: hidden;
+      padding: 24px 16px;
+    }
+
+    /* Imagem de Fundo em Alta Resolução (100% Qualidade Nativa) */
+    .bg-photo-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-photo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: high-quality;
+    }
+
+    .bg-photo-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0, 0, 0, 0.12) 0%, rgba(7, 7, 9, 0.68) 100%);
+      pointer-events: none;
+    }
+
+    /* Ambient Spotlight Background (21st.dev / Magic UI style) */
+    /* Ambient Atmosphere */
+    .ambient-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(200, 140, 20, 0.04) 0%, #070709 80%);
+    }
+
+    /* Subtle Sacred Geometry Grid */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, #000 20%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, #000 20%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Refined Background Watermark / Silhouette Container */
+    .bg-trident-silhouette {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -48%);
+      pointer-events: none;
+      z-index: 0;
+      width: clamp(480px, 45vw, 650px);
+      display: none; /* Default: Clean background without distraction */
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s ease;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 40%, transparent 92%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, #000 40%, transparent 92%);
+    }
+
+    .bg-trident-silhouette.active {
+      display: flex;
+    }
+
+    .bg-trident-silhouette img {
+      width: 100%;
+      max-height: 800px;
+      object-fit: contain;
+      transition: all 0.4s ease;
+    }
+
+    /* Video background removed - using crystal-clear photo */
+
+    /* Top Preview Control Bar (Axecloud Interactive Bar) */
+    .preview-bar {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(18, 18, 22, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 5px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      color: #d4d4d8;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .preview-bar .divider {
+      width: 1px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      margin: 0 2px;
+    }
+
+    .preview-bar span.pill {
+      background: rgba(196, 138, 0, 0.18);
+      color: #fbbf24;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+    }
+
+    .preview-btn {
+      background: transparent;
+      border: none;
+      color: #a1a1aa;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 9px;
+      border-radius: 9999px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .preview-btn.active, .preview-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    /* Main Container / Mobile Frame Switcher */
+    .viewport-wrapper {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 50px;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .viewport-wrapper.split-mode {
+      justify-content: flex-end;
+      max-width: 1280px;
+      margin: 50px auto 0;
+      padding-right: clamp(24px, 6vw, 84px);
+    }
+
+    .viewport-wrapper.mobile-mode {
+      max-width: 410px;
+      border: 10px solid #1c1917;
+      border-radius: 46px;
+      box-shadow: 0 35px 80px -10px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      background: #000;
+      padding: 8px;
+      position: relative;
+    }
+
+    .viewport-wrapper.mobile-mode::before {
+      content: '';
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 18px;
+      background: #1c1917;
+      border-radius: 12px;
+      z-index: 50;
+    }
+
+    /* THE BORDER BEAM CARD CONTAINER (High Performance 60 FPS) */
+    .login-card {
+      position: relative;
+      width: 100%;
+      max-width: 460px;
+      background: #12100e; /* Fundo sólido elegante: 0% de custo na CPU/GPU */
+      border: 1px solid rgba(229, 174, 18, 0.32);
+      border-radius: var(--radius-card);
+      padding: 38px 34px;
+      box-shadow: 
+        0 30px 80px -10px rgba(0, 0, 0, 0.95),
+        0 0 35px rgba(229, 174, 18, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      transform: translateZ(0);
+      transition: all 0.3s ease;
+    }
+
+    /* Versão com Blur (só ativada se solicitada) */
+    .login-card.with-blur {
+      background: rgba(16, 14, 12, 0.90);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* Borda Dourada Suave e Fluida (CSS puro sem mask-composite pesado) */
+    .login-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 15%;
+      right: 15%;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, #fbbf24, #d97706, transparent);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Magic UI / 21st.dev Border Beam Runner (Opcional - desativado por padrão para zero lag) */
+    .border-beam-track {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      padding: 1.5px;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      z-index: 1;
+      display: block; /* Border Beam Ativo 60 FPS */
+    }
+
+    .border-beam-track.active {
+      display: block;
+    }
+
+    .border-beam-runner {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, #fbbf24 10%, #d97706 40%, rgba(196, 138, 0, 0) 70%);
+      offset-path: rect(0 auto auto 0 round var(--radius-card));
+      animation: beam-run 8s linear infinite;
+      will-change: offset-distance, transform;
+      transform: translateZ(0);
+    }
+
+    @keyframes beam-run {
+      0% { offset-distance: 0%; }
+      100% { offset-distance: 100%; }
+    }
+
+    /* Inner Header */
+    .card-header {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      text-decoration: none;
+    }
+
+    .brand-mark img {
+      width: 38px;
+      height: 48px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 14px rgba(196, 138, 0, 0.45));
+    }
+
+    .brand-title {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .brand-title span {
+      color: var(--gold-light);
+      font-family: inherit;
+      font-weight: 800;
+      font-size: 24px;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      opacity: 0.9;
+    }
+
+    .card-headline {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .card-headline small {
+      display: block;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* SEGMENTED ROLE SWITCHER TABS (21st.dev Motion Tabs) */
+    .role-tabs-container {
+      position: relative;
+      z-index: 2;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 5px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-bottom: 26px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    .role-tab-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 8px;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+      z-index: 2;
+    }
+
+    .role-tab-btn .tab-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 2px;
+      transition: color 0.2s;
+    }
+
+    .role-tab-btn .tab-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    /* Active State with Golden Amber Glow Pill */
+    .role-tabs-container .active-pill {
+      position: absolute;
+      top: 5px;
+      bottom: 5px;
+      width: calc(50% - 6px);
+      left: 5px;
+      background: linear-gradient(135deg, rgba(196, 138, 0, 0.22) 0%, rgba(146, 100, 0, 0.12) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      box-shadow: 
+        0 4px 16px -2px rgba(196, 138, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .role-tabs-container.membro-active .active-pill {
+      transform: translateX(calc(100% + 2px));
+    }
+
+    .role-tab-btn.active {
+      color: #fff;
+    }
+
+    .role-tab-btn.active .tab-badge {
+      color: var(--gold-light);
+      opacity: 1;
+    }
+
+    /* FORMS & SLIDE TRANSITIONS */
+    .forms-wrapper {
+      position: relative;
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    .form-panel {
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .form-panel.hidden {
+      display: none;
+      opacity: 0;
+      transform: translateX(20px);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #d4d4d8;
+      margin-bottom: 7px;
+    }
+
+    .form-label .helper {
+      font-size: 11px;
+      color: var(--gold-light);
+      text-transform: none;
+      letter-spacing: normal;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .form-label .helper:hover {
+      text-decoration: underline;
+    }
+
+    .input-shell {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-shell input {
+      width: 100%;
+      height: 48px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-input);
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 0 16px 0 42px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-shell input::placeholder {
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .input-shell input:focus {
+      border-color: var(--gold);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 3px rgba(196, 138, 0, 0.18);
+    }
+
+    .input-shell .input-icon {
+      position: absolute;
+      left: 14px;
+      color: var(--text-faint);
+      pointer-events: none;
+      display: grid;
+      place-items: center;
+      transition: color 0.2s;
+    }
+
+    .input-shell input:focus ~ .input-icon {
+      color: var(--gold-light);
+    }
+
+    .input-shell .toggle-pwd {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-faint);
+      cursor: pointer;
+      padding: 4px;
+      display: grid;
+      place-items: center;
+      transition: color 0.2s;
+    }
+
+    .input-shell .toggle-pwd:hover {
+      color: #fff;
+    }
+
+    /* Micro-tag for Filho Member Matricula */
+    .matricula-badge {
+      position: absolute;
+      right: 12px;
+      background: rgba(196, 138, 0, 0.18);
+      color: #fbbf24;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      letter-spacing: 0.05em;
+    }
+
+    /* Remember me checkbox */
+    .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .remember-checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .remember-checkbox input {
+      accent-color: var(--gold);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    /* Primary Action Button (Shimmer & Depth) */
+    .btn-submit {
+      position: relative;
+      width: 100%;
+      height: 50px;
+      border-radius: var(--radius-input);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: linear-gradient(135deg, #c48a00 0%, #a27200 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      overflow: hidden;
+      box-shadow: 
+        0 8px 24px -4px rgba(196, 138, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: all 0.22s ease;
+    }
+
+    .btn-submit:hover {
+      background: linear-gradient(135deg, #d49500 0%, #b37e00 100%);
+      box-shadow: 
+        0 12px 30px -4px rgba(196, 138, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 12px -2px rgba(196, 138, 0, 0.4);
+    }
+
+    .btn-submit.membro-btn {
+      background: linear-gradient(135deg, #166534 0%, #14532d 100%);
+      box-shadow: 
+        0 8px 24px -4px rgba(22, 101, 52, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-submit.membro-btn:hover {
+      background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+      box-shadow: 0 12px 30px -4px rgba(22, 101, 52, 0.6);
+    }
+
+    /* Subtext & Security Badges */
+    .card-footer {
+      position: relative;
+      z-index: 2;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .security-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .security-badge svg {
+      width: 13px;
+      height: 13px;
+      color: #10b981;
+    }
+
+    .first-access-link {
+      font-size: 12px;
+      color: #a1a1aa;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .first-access-link strong {
+      color: var(--gold-light);
+    }
+
+    .first-access-link:hover {
+      color: #fff;
+    }
+
+    /* Simulation Alert Box */
+    .sim-alert {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .sim-alert.error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .sim-alert.success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light Spotlights & Subtle Silhouette Layer -->
+  <div class="ambient-glow"></div>
+  <div class="bg-grid"></div>
+
+  <!-- Imagem de Fundo em Alta Resolucao Nativa (100% Qualidade) -->
+  <div class="bg-photo-wrapper active" id="bgPhotoWrapper" aria-hidden="true">
+    <img src="/login-bg-trident.png" class="bg-photo-img" alt="Altar Mistico do Tridente Dourado" />
+    <div class="bg-photo-overlay"></div>
+  </div>
+
+  <div class="bg-trident-silhouette" id="bgTrident" aria-hidden="true">
+    <img id="bgTridentImg" src="/trident-silhouette-dark.png" alt="AxéCloud Trident Silhouette" />
+  </div>
+
+  <!-- Interactive Control Bar for Testing -->
+  <div class="preview-bar">
+    <span class="pill">AxéCloud</span>
+    <button class="preview-btn active" id="btnDesktop" onclick="setMode('desktop')">🖥️ Desktop</button>
+    <button class="preview-btn" id="btnMobile" onclick="setMode('mobile')">📱 Celular</button>
+    
+    <div class="divider"></div>
+    <span style="color: #a1a1aa; font-size: 10px; font-weight: 700; text-transform: uppercase;">Posição:</span>
+    <button class="preview-btn" id="btnPosSplit" onclick="setLayoutPos('split')">📐 Lateral (Ver Altar)</button>
+    <button class="preview-btn active" id="btnPosCenter" onclick="setLayoutPos('center')">🎯 Centralizado</button>
+
+    <div class="divider"></div>
+    <span style="color: #fbbf24; font-size: 10px; font-weight: 700; text-transform: uppercase;">Efeito:</span>
+    <span style="color: #34d399; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">✨ Border Beam 60 FPS</span>
+
+    <div class="divider"></div>
+    <button class="preview-btn" onclick="simulateSuccess()">🚀 Testar Login</button>
+  </div>
+
+  <div class="viewport-wrapper" id="viewport" id="viewport">
+    
+    <!-- MAIN CARD WITH BORDER BEAM -->
+    <div class="login-card">
+      
+      <!-- Magic UI / 21st.dev Border Beam Runner -->
+      <div class="border-beam-track active">
+        <div class="border-beam-runner"></div>
+      </div>
+
+      <!-- Card Header -->
+      <header class="card-header">
+        <a href="#" class="brand-mark">
+          <img src="/axecloud-trident.png" alt="AxéCloud Trident" />
+          <h1 class="brand-title">Axé<span>Cloud</span></h1>
+        </a>
+        <p class="card-subtitle">Acesso à sua Casa</p>
+        <h2 class="card-headline" id="cardHeadline">
+          Entrar como Zelador(a)
+          <small>Gestão financeira, membros e calendário do terreiro.</small>
+        </h2>
+      </header>
+
+      <!-- SEGMENTED TABS (ZELADOR VS FILHO DE SANTO) -->
+      <div class="role-tabs-container" id="tabsContainer">
+        <div class="active-pill"></div>
+
+        <button type="button" class="role-tab-btn active" id="tabZelador" onclick="switchRole('zelador')">
+          <span class="tab-badge">Gestão da Casa</span>
+          <span class="tab-name">Sou Zelador(a)</span>
+        </button>
+
+        <button type="button" class="role-tab-btn" id="tabMembro" onclick="switchRole('membro')">
+          <span class="tab-badge">Corrente da Casa</span>
+          <span class="tab-name">Sou Membro(a)</span>
+        </button>
+      </div>
+
+      <!-- Simulation Feedback Box -->
+      <div id="simAlert" class="sim-alert"></div>
+
+      <!-- FORMS WRAPPER -->
+      <div class="forms-wrapper">
+        
+        <!-- 1. FORMULÁRIO DO ZELADOR (EMAIL + SENHA) -->
+        <form id="formZelador" class="form-panel" onsubmit="handleLoginSubmit(event, 'zelador')">
+          <div class="form-group">
+            <label class="form-label">
+              <span>E-mail do Zelador</span>
+            </label>
+            <div class="input-shell">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <input type="email" id="emailInput" placeholder="seu-email@exemplo.com" value="lucas.19552000@gmail.com" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>Senha</span>
+              <a href="#" class="helper" onclick="alert('Redireciona para /esqueci-senha'); return false;">Esqueceu a senha?</a>
+            </label>
+            <div class="input-shell">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="pwdZelador" placeholder="••••••••••••" value="minhasenha123" required />
+              <button type="button" class="toggle-pwd" onclick="togglePassword('pwdZelador')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="remember-row">
+            <label class="remember-checkbox">
+              <input type="checkbox" checked />
+              <span>Lembrar meu e-mail</span>
+            </label>
+            <span style="color: #71717a; font-size: 11px;">Sessão segura</span>
+          </div>
+
+          <button type="submit" class="btn-submit" id="btnZeladorSubmit">
+            <span>Entrar na Zeladoria</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+
+        <!-- 2. FORMULÁRIO DO FILHO DE SANTO (MATRÍCULA + CPF) -->
+        <form id="formMembro" class="form-panel hidden" onsubmit="handleLoginSubmit(event, 'membro')">
+          <div class="form-group">
+            <label class="form-label">
+              <span>Registro / Matrícula</span>
+              <a href="#" class="helper" onclick="alert('Sua matrícula tem o formato AXC-2026-XXXX e foi enviada pelo WhatsApp no seu cadastro!'); return false;">Onde encontro?</a>
+            </label>
+            <div class="input-shell">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <input type="text" id="matriculaInput" placeholder="AXC-2026-CFDB" value="AXC-2026-CFDB" style="text-transform: uppercase; letter-spacing: 0.05em;" required />
+              <span class="matricula-badge">Filho de Santo</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span>Senha inicial</span>
+              <span style="font-size: 11px; color: #a1a1aa;">6 primeiros dígitos do CPF</span>
+            </label>
+            <div class="input-shell">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </span>
+              <input type="password" id="pwdMembro" placeholder="Ex: 123456" maxlength="11" value="123456" required />
+              <button type="button" class="toggle-pwd" onclick="togglePassword('pwdMembro')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="remember-row">
+            <span style="font-size: 11px; color: #a1a1aa;">Acesso exclusivo à sua corrente e avisos</span>
+            <span style="color: #fbbf24; font-size: 11px; font-weight: 600;">Sem e-mail</span>
+          </div>
+
+          <button type="submit" class="btn-submit membro-btn" id="btnMembroSubmit">
+            <span>Acessar Portal do Membro</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        </form>
+
+      </div>
+
+      <!-- Card Footer -->
+      <footer class="card-footer">
+        <div class="security-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Ambiente protegido · Dados isolados por casa</span>
+        </div>
+        <a href="#" class="first-access-link" onclick="alert('Dúvidas? Entre em contato pelo WhatsApp do suporte.'); return false;">
+          Primeiro acesso à plataforma? <strong>Fale com o suporte</strong>
+        </a>
+      </footer>
+
+    </div>
+
+  </div>
+
+  <script>
+    function switchRole(role) {
+      const tabs = document.getElementById('tabsContainer');
+      const tabZelador = document.getElementById('tabZelador');
+      const tabMembro = document.getElementById('tabMembro');
+      const formZelador = document.getElementById('formZelador');
+      const formMembro = document.getElementById('formMembro');
+      const cardHeadline = document.getElementById('cardHeadline');
+      const alertBox = document.getElementById('simAlert');
+      alertBox.style.display = 'none';
+
+      if (role === 'zelador') {
+        tabs.classList.remove('membro-active');
+        tabZelador.classList.add('active');
+        tabMembro.classList.remove('active');
+        formZelador.classList.remove('hidden');
+        formMembro.classList.add('hidden');
+        cardHeadline.innerHTML = `Entrar como Zelador(a)<small>Gestão financeira, membros e calendário do terreiro.</small>`;
+      } else {
+        tabs.classList.add('membro-active');
+        tabMembro.classList.add('active');
+        tabZelador.classList.remove('active');
+        formMembro.classList.remove('hidden');
+        formZelador.classList.add('hidden');
+        cardHeadline.innerHTML = `Entrar como Filho(a) de Santo<small>Acesse seus avisos, presença e obrigações da casa.</small>`;
+      }
+    }
+
+    function togglePassword(inputId) {
+      const input = document.getElementById(inputId);
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function setMode(mode) {
+      const vp = document.getElementById('viewport');
+      const btnDesk = document.getElementById('btnDesktop');
+      const btnMob = document.getElementById('btnMobile');
+
+      if (mode === 'mobile') {
+        vp.classList.add('mobile-mode');
+        btnMob.classList.add('active');
+        btnDesk.classList.remove('active');
+      } else {
+        vp.classList.remove('mobile-mode');
+        btnDesk.classList.add('active');
+        btnMob.classList.remove('active');
+      }
+    }
+
+    function setLayoutPos(pos) {
+      const vp = document.getElementById('viewport');
+      const btnSplit = document.getElementById('btnPosSplit');
+      const btnCenter = document.getElementById('btnPosCenter');
+      if (pos === 'split') {
+        vp.classList.add('split-mode');
+        if (btnSplit) btnSplit.classList.add('active');
+        if (btnCenter) btnCenter.classList.remove('active');
+      } else {
+        vp.classList.remove('split-mode');
+        if (btnCenter) btnCenter.classList.add('active');
+        if (btnSplit) btnSplit.classList.remove('active');
+      }
+    }
+
+    function togglePerformance(mode) {
+      const card = document.querySelector('.login-card');
+      const track = document.querySelector('.border-beam-track');
+      const btnUltra = document.getElementById('btnModeUltra');
+      const btnHeavy = document.getElementById('btnModeHeavy');
+
+      if (mode === 'ultra') {
+        card.classList.remove('with-blur');
+        track.classList.remove('active');
+        btnUltra.classList.add('active');
+        btnHeavy.classList.remove('active');
+      } else {
+        card.classList.add('with-blur');
+        track.classList.add('active');
+        btnHeavy.classList.add('active');
+        btnUltra.classList.remove('active');
+      }
+    }
+
+    function setBgSilhouette(type) {
+      const container = document.getElementById('bgTrident');
+      const img = document.getElementById('bgTridentImg');
+
+      if (type === 'none') {
+        container.classList.remove('active');
+      } else if (type === 'dark') {
+        img.src = '/trident-silhouette-dark.png';
+        img.style.opacity = '0.35';
+        img.style.filter = 'drop-shadow(0 0 40px rgba(0,0,0,0.9))';
+        container.classList.add('active');
+      } else if (type === 'stroke') {
+        img.src = '/trident-stroke.png';
+        img.style.opacity = '0.14';
+        img.style.filter = 'drop-shadow(0 0 20px rgba(255,255,255,0.05))';
+        container.classList.add('active');
+      }
+    }
+
+    function handleLoginSubmit(e, role) {
+      e.preventDefault();
+      const alertBox = document.getElementById('simAlert');
+      const btn = role === 'zelador' ? document.getElementById('btnZeladorSubmit') : document.getElementById('btnMembroSubmit');
+      
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `<span style="opacity: 0.8">Validando credenciais...</span>`;
+      btn.style.opacity = '0.85';
+
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.opacity = '1';
+        alertBox.className = 'sim-alert success';
+        alertBox.innerHTML = `✓ <strong>Autenticado com sucesso!</strong> Redirecionando para o painel de ${role === 'zelador' ? 'Zeladoria' : 'Membro'}...`;
+        alertBox.style.display = 'block';
+      }, 700);
+    }
+
+    function simulateSuccess() {
+      const isMembro = document.getElementById('tabsContainer').classList.contains('membro-active');
+      handleLoginSubmit({ preventDefault: () => {} }, isMembro ? 'membro' : 'zelador');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+begin;
+do $test$
+declare owner_id uuid:='fad75b91-d2eb-4805-b5a3-c19e8a073bed';member_auth uuid:='ab2eef13-604c-4c8f-9d14-f3da41cc5a81';
+ v_item uuid:=gen_random_uuid();initial_id uuid:=gen_random_uuid();move_id uuid:=gen_random_uuid();input jsonb;edited jsonb;after_move jsonb;result jsonb;movement jsonb;n int;
+begin
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);
+ execute 'set local role authenticated';
+ input:=jsonb_build_object('id',v_item,'name','VALIDACAO-'||v_item,'category','Rituais','unit','kg','quantity',1500,'minimum',0,'location','Armário de teste','notes','Preservar observação');
+ movement:=jsonb_build_object('id',initial_id,'itemId',v_item,'unit','kg','kind','initial','before',0,'after',1500,'note','Saldo inicial de teste');
+ result:=public.piloto_salvar_estoque(owner_id,v_item,input,null,movement);
+ if result->>'id'<>v_item::text or not exists(select 1 from public.almoxarifado where id=v_item and quantidade_atual=1500 and quantidade_minima=0) then raise exception 'Saldo fracionário ou mínimo zero não persistiu';end if;
+ result:=public.piloto_salvar_estoque(owner_id,v_item,input,null,movement);
+ if (result->>'replayed')::boolean is not true then raise exception 'Repetição duplicou o saldo inicial';end if;
+ edited:=input||jsonb_build_object('location','Prateleira nova');perform public.piloto_salvar_estoque(owner_id,v_item,edited,input,null);
+ after_move:=edited||jsonb_build_object('quantity',1000);
+ movement:=jsonb_build_object('id',move_id,'itemId',v_item,'unit','kg','kind','out','before',1500,'after',1000,'note','Uso na gira');
+ perform public.piloto_salvar_estoque(owner_id,v_item,after_move,edited,movement);
+ result:=public.piloto_salvar_estoque(owner_id,v_item,after_move,edited,movement);
+ if (result->>'replayed')::boolean is not true then raise exception 'Repetição do movimento não foi identificada';end if;
+ select count(*) into n from public.piloto_estoque_movimentos where item_ref=v_item;
+ if n<>2 then raise exception 'Histórico perdeu ou duplicou movimento';end if;
+ begin perform public.piloto_salvar_estoque(owner_id,v_item,input,edited,null);raise exception 'Saldo mudou sem movimento';exception when unique_violation then null;end;
+ begin perform public.piloto_salvar_estoque(owner_id,v_item,after_move||'{"unit":"un.","quantity":500}'::jsonb,after_move,null);raise exception 'Unidade inteira aceitou fração';exception when invalid_parameter_value then null;end;
+ result:=public.piloto_salvar_estoque(owner_id,v_item,null,after_move,null);
+ if (result->>'archived')::boolean is not true then raise exception 'Remoção não preservou o item arquivado';end if;
+ result:=public.piloto_salvar_estoque(owner_id,v_item,after_move,null,null);
+ if (result->>'archived')::boolean is not false then raise exception 'Restauração não confirmou';end if;
+ if not exists(select 1 from public.piloto_estoque_itens where item_id=v_item and unidade='kg' and escala=1000 and localizacao='Prateleira nova' and observacoes='Preservar observação' and not arquivado) then raise exception 'Metadados não foram preservados';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',member_auth,'role','authenticated')::text,true);
+ select count(*) into n from public.piloto_estoque_movimentos;if n<>0 then raise exception 'Histórico exposto ao membro';end if;
+ select count(*) into n from public.piloto_estoque_itens;if n<>0 then raise exception 'Observações expostas ao membro';end if;
+ begin perform public.piloto_salvar_estoque(owner_id,v_item,after_move,null,null);raise exception 'Membro alterou estoque';exception when insufficient_privilege then null;end;
+ if has_function_privilege('anon','public.piloto_salvar_estoque(uuid,uuid,jsonb,jsonb,jsonb)','EXECUTE') then raise exception 'Operação exposta a anônimos';end if;
+ execute 'reset role';
+end $test$;
+rollback;
+select 'passed' as pilot_inventory_database_validation, 'all business fixtures rolled back' as persistence;

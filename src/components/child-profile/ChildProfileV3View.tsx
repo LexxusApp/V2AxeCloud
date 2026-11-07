@@ -1,3 +1,5 @@
+import { supabase } from '../../lib/supabase';
+import { showHouseToast } from '../../lib/houseToast';
 import React, { useState } from 'react';
 import {
   ArrowLeft,
@@ -11,7 +13,6 @@ import {
   Loader2,
   Lock,
   Pencil,
-  Phone,
   Plus,
   ShieldCheck,
   Trash2,
@@ -26,6 +27,7 @@ import {
 import MemberProfileHeader from './MemberProfileHeader';
 import { cn } from '../../lib/utils';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { confirmAction } from '../../lib/confirmAction';
 import { formatFilhoMatricula } from '../../../lib/filhoMatricula';
 
 export type ChildProfileTab = 'info' | 'history' | 'finance' | 'notes';
@@ -41,6 +43,7 @@ export type ZeladorNoteItem = {
 type ChildProfileV3ViewProps = {
   child: Record<string, unknown>;
   isSelfView: boolean;
+  tenantData?: any;
   activeTab: ChildProfileTab;
   onTabChange: (tab: ChildProfileTab) => void;
   onBack: () => void;
@@ -111,14 +114,14 @@ function InfoField({ label, value, icon: Icon }: { label: string; value: string;
   const filled = value && value !== EMPTY;
   return (
     <div className="space-y-1">
-      <span className="flex items-center gap-1.5 text-xs font-bold text-[#8E9AAA]">
-        {Icon ? <Icon className="h-3 w-3 text-[#FACC15]" /> : null}
+      <span className="flex items-center gap-1.5 text-xs font-bold text-zinc-300">
+        {Icon ? <Icon className="h-3 w-3 text-amber-400" /> : null}
         {label}
       </span>
       <span
         className={cn(
           'block text-sm font-extrabold leading-relaxed',
-          filled ? 'text-[#F1F5F9]' : 'italic font-normal text-gray-500',
+          filled ? 'text-zinc-100' : 'italic font-medium text-zinc-400',
         )}
       >
         {filled ? value : EMPTY}
@@ -134,6 +137,7 @@ export function ChildProfileV3View({
   onTabChange,
   onBack,
   onEditOpen,
+  tenantData,
   hasDebt,
   valorMensalidade,
   childObligations,
@@ -159,6 +163,68 @@ export function ChildProfileV3View({
 }: ChildProfileV3ViewProps) {
   const [openingPdfUrl, setOpeningPdfUrl] = useState<string | null>(null);
   const [showCpf, setShowCpf] = useState(false);
+  const PILOT_TEST_TENANT_ID = 'fad75b91-d2eb-4805-b5a3-c19e8a073bed';
+  const isPilotTenant = tenantData?.tenant_id === PILOT_TEST_TENANT_ID;
+  const canManageDelegatedAccess = isPilotTenant && !tenantData?.is_co_admin;
+  const [isCoAdmin, setIsCoAdmin] = useState(false);
+  const [coAdminLoading, setCoAdminLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (!canManageDelegatedAccess || isSelfView || !child?.id) return;
+    let active = true;
+    async function checkCoAdmin() {
+      try {
+        const { data } = await supabase
+          .from('piloto_coadministradores')
+          .select('ativo')
+          .eq('tenant_id', PILOT_TEST_TENANT_ID)
+          .eq('filho_id', String(child.id))
+          .eq('ativo', true)
+          .maybeSingle();
+        if (active) setIsCoAdmin(!!data?.ativo);
+      } catch {
+        // noop
+      }
+    }
+    checkCoAdmin();
+    return () => { active = false; };
+  }, [canManageDelegatedAccess, isSelfView, child?.id]);
+
+  async function handleToggleCoAdmin() {
+    if (!canManageDelegatedAccess || isSelfView || !child?.id) return;
+    const nextState = !isCoAdmin;
+    const confirmed = await confirmAction({
+      title: nextState ? 'Conceder acesso de gestão?' : 'Revogar acesso de gestão?',
+      description: nextState
+        ? `${nome} poderá administrar as rotinas da casa pelo painel. Assinatura, cobrança do AxéCloud e exclusão da casa continuarão exclusivas da zeladoria titular.`
+        : `${nome} voltará ao espaço comum de membro e deixará de acessar o painel administrativo. Nenhum dado será apagado.`,
+      confirmLabel: nextState ? 'Conceder acesso' : 'Revogar acesso',
+      cancelLabel: 'Cancelar',
+      tone: nextState ? 'primary' : 'danger',
+    });
+    if (!confirmed) return;
+
+    setCoAdminLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('piloto_definir_coadministrador', {
+        p_tenant: PILOT_TEST_TENANT_ID,
+        p_filho_id: child.id,
+        p_ativo: nextState,
+      });
+      if (error) throw error;
+      setIsCoAdmin(nextState);
+      showHouseToast(
+        nextState
+          ? `Co-Administrador definido: ${nome} agora possui acesso de gestão.`
+          : `Co-Administração revogada: ${nome} retornou ao acesso comum.`,
+        'success'
+      );
+    } catch (err: any) {
+      showHouseToast(err?.message || 'Erro ao atualizar co-administração', 'error');
+    } finally {
+      setCoAdminLoading(false);
+    }
+  }
   const nome = String(child.nome || 'Filho de Santo');
   const cargo = String(child.cargo || 'Filho de Santo');
   const orixaFrente = String(child.orixa_frente || '');
@@ -242,32 +308,32 @@ export function ChildProfileV3View({
             value: cpf && contato ? 'Cadastro completo' : 'Revisar cadastro',
             detail: cpf && contato ? 'dados essenciais informados' : 'há informações ausentes',
             icon: cpf && contato ? ShieldCheck : AlertCircle,
-            color: cpf && contato ? 'text-emerald-300' : 'text-amber-300',
-            bg: cpf && contato ? 'border-emerald-400/20 bg-emerald-400/10' : 'border-amber-400/20 bg-amber-400/10',
+            color: cpf && contato ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300',
+            bg: cpf && contato ? 'border-emerald-500/30 bg-emerald-500/15' : 'border-amber-500/30 bg-amber-500/15',
           },
           {
             label: 'Mensalidade',
             value: hasDebt ? 'Pendente' : 'Em dia',
             detail: `valor mensal R$ ${valorMensalidade.toFixed(2).replace('.', ',')}`,
             icon: Coins,
-            color: hasDebt ? 'text-rose-300' : 'text-emerald-300',
-            bg: hasDebt ? 'border-rose-400/20 bg-rose-400/10' : 'border-emerald-400/20 bg-emerald-400/10',
+            color: hasDebt ? 'text-rose-700 dark:text-rose-300' : 'text-emerald-700 dark:text-emerald-300',
+            bg: hasDebt ? 'border-rose-500/30 bg-rose-500/15' : 'border-emerald-500/30 bg-emerald-500/15',
           },
           {
             label: 'Tempo de casa',
             value: anosDeCasa == null ? 'Não informado' : `${anosDeCasa} ${anosDeCasa === 1 ? 'ano' : 'anos'}`,
             detail: child.data_entrada ? `desde ${formatDate(child.data_entrada)}` : 'adicione a data de entrada',
             icon: Clock,
-            color: 'text-sky-300',
-            bg: 'border-sky-400/20 bg-sky-400/10',
+            color: 'text-sky-700 dark:text-sky-300',
+            bg: 'border-sky-500/30 bg-sky-500/15',
           },
           {
             label: 'Próxima obrigação',
             value: nextObligation?.titulo || 'Não agendada',
             detail: nextObligation?.data ? formatDate(nextObligation.data) : 'nenhuma obrigação pendente',
             icon: Calendar,
-            color: 'text-violet-300',
-            bg: 'border-violet-400/20 bg-violet-400/10',
+            color: 'text-violet-700 dark:text-violet-300',
+            bg: 'border-violet-500/30 bg-violet-500/15',
           },
         ].map((item) => {
           const Icon = item.icon;
@@ -276,9 +342,9 @@ export function ChildProfileV3View({
               <div className={cn('grid h-9 w-9 place-items-center rounded-xl border', item.bg)}>
                 <Icon className={cn('h-4 w-4', item.color)} />
               </div>
-              <p className="mt-3 text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">{item.label}</p>
-              <p className="mt-1 truncate text-sm font-black text-white">{item.value}</p>
-              <p className="mt-1 truncate text-xs font-semibold text-[#64748B]">{item.detail}</p>
+              <p className="child-summary-label mt-3 text-xs font-black uppercase tracking-[0.1em] text-zinc-400">{item.label}</p>
+              <p className="child-summary-value mt-1 truncate text-sm font-black text-white">{item.value}</p>
+              <p className="child-summary-detail mt-1 truncate text-xs font-bold text-zinc-300">{item.detail}</p>
             </div>
           );
         })}
@@ -297,13 +363,13 @@ export function ChildProfileV3View({
               onClick={() => onTabChange(tab.id)}
               className={cn(
                 'relative flex min-w-[calc(50%-0.25rem)] flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border-b-2 px-3 py-3 text-xs font-bold transition-all touch-manipulation sm:min-w-0 sm:shrink-0 sm:px-5 sm:text-sm',
-                active ? 'border-[#FACC15] bg-[#FACC15]/10 font-black text-[#FACC15]' : 'border-transparent text-[#94A3B8] hover:bg-white/5 hover:text-white',
+                active ? 'border-amber-400 bg-amber-400/15 font-black text-amber-300' : 'border-transparent text-zinc-300 hover:bg-white/10 hover:text-white',
                 locked && !active && 'opacity-50',
               )}
             >
               <Icon className="h-3.5 w-3.5" />
               {tab.label}
-              {locked && <Lock className="h-3 w-3 text-[#FACC15]" />}
+              {locked && <Lock className="h-3 w-3 text-amber-400" />}
             </button>
           );
         })}
@@ -321,33 +387,33 @@ export function ChildProfileV3View({
                       <Crown className="h-4 w-4 text-[#FACC15]" />
                       Coroa Espiritual e Sacerdócio
                     </h4>
-                    <span className="hidden font-mono text-xs text-gray-500 sm:block">Registro {registro}</span>
+                    <span className="hidden rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 font-mono text-xs font-bold text-amber-300 sm:block">Registro {registro}</span>
                   </div>
                   <div className="grid grid-cols-1 gap-3 pt-5 sm:grid-cols-2">
                     <div className="group relative overflow-hidden rounded-xl border border-[#2B3545] bg-gradient-to-br from-[#1E2530] to-[#12161E] p-4">
                       <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-xs font-bold text-amber-500">
                         1º
                       </div>
-                      <span className="mb-1 block text-xs font-bold text-[#94A3B8]">Orixá de frente</span>
-                      <span className="block font-display text-lg font-black tracking-tight text-[#FACC15]">
+                      <span className="mb-1 block text-xs font-bold text-zinc-300">Orixá de frente</span>
+                      <span className="block font-display text-lg font-black tracking-tight text-amber-300">
                         {orixaFrente || EMPTY}
                       </span>
-                      <span className="mt-2 block text-xs font-medium leading-relaxed text-gray-500">Informação litúrgica principal do cadastro.</span>
+                      <span className="mt-2 block text-xs font-semibold leading-relaxed text-zinc-300">Informação litúrgica principal do cadastro.</span>
                     </div>
                     <div className="group relative overflow-hidden rounded-xl border border-[#2B3545] bg-gradient-to-br from-[#1E2530] to-[#12161E] p-4">
                       <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-rose-500/10 text-xs font-bold text-[#FACC15]">
                         2º
                       </div>
-                      <span className="mb-1 block text-xs font-bold text-[#94A3B8]">Orixá adjuntó</span>
+                      <span className="mb-1 block text-xs font-bold text-zinc-300">Orixá adjuntó</span>
                       <span
                         className={cn(
                           'block font-display text-lg font-black',
-                          adjunto && adjunto !== EMPTY ? 'text-white' : 'font-normal italic text-gray-500',
+                          adjunto && adjunto !== EMPTY ? 'text-white' : 'font-semibold italic text-zinc-400',
                         )}
                       >
                         {adjunto || EMPTY}
                       </span>
-                      <span className="mt-2 block text-xs font-medium leading-relaxed text-gray-500">Informação complementar do cadastro litúrgico.</span>
+                      <span className="mt-2 block text-xs font-semibold leading-relaxed text-zinc-300">Informação complementar do cadastro litúrgico.</span>
                     </div>
                     <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A]/65 p-4">
                       <InfoField label="Data de Entrada Oficial" value={formatDate(child.data_entrada)} icon={Calendar} />
@@ -368,11 +434,11 @@ export function ChildProfileV3View({
                   <div className="space-y-4">
                     <InfoField label="Nascimento" value={formatDate(child.data_nascimento)} />
                     <div className="space-y-1">
-                      <span className="block text-xs font-bold text-[#8E9AAA]">CPF registrado</span>
+                      <span className="block text-xs font-bold text-zinc-300">CPF registrado</span>
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-extrabold text-[#F1F5F9]">{showCpf ? cpf || EMPTY : maskedCpf}</span>
                         {cpf ? (
-                          <button type="button" onClick={() => setShowCpf((value) => !value)} className="grid h-8 w-8 place-items-center rounded-lg text-[#7F8B9C] hover:bg-white/5 hover:text-white" aria-label={showCpf ? 'Ocultar CPF' : 'Revelar CPF'}>
+                          <button type="button" onClick={() => setShowCpf((value) => !value)} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-300 hover:bg-white/10 hover:text-white" aria-label={showCpf ? 'Ocultar CPF' : 'Revelar CPF'}>
                             {showCpf ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         ) : null}
@@ -380,14 +446,77 @@ export function ChildProfileV3View({
                     </div>
                     <InfoField label="Localização / Residência" value={endereco || EMPTY} />
                     <InfoField label="WhatsApp de Contato" value={contato || EMPTY} />
+                    <div className="space-y-1">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-zinc-300">
+                        E-mail de Acesso
+                      </span>
+                      {String((child as any)?.email || '').trim() ? (
+                        <span className="inline-block rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-sm font-extrabold text-amber-200">
+                          {String((child as any)?.email)}
+                        </span>
+                      ) : (
+                        <span className="block text-sm font-medium italic text-zinc-400">
+                          {EMPTY}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {!isSelfView && userId && (
                   <div className="space-y-1.5 border-t border-[#222B36] pt-4">
-                    <span className="block text-[8px] font-bold uppercase tracking-widest text-gray-500">Token de Vínculo de Usuário</span>
-                    <span className="block select-all break-all rounded-lg border border-[#1E242B] bg-[#0D0F12] p-2 font-mono text-[9px] font-semibold leading-none text-[#94A3B8]">
+                    <span className="block text-[9px] font-black uppercase tracking-widest text-zinc-300">Token de Vínculo de Usuário</span>
+                    <span className="block select-all break-all rounded-lg border border-[#2B3545] bg-[#0A0D12] p-2.5 font-mono text-[10px] font-bold leading-normal text-zinc-200">
                       {userId}
                     </span>
+                  </div>
+                )}
+                {canManageDelegatedAccess && !isSelfView && (
+                  <div className="overflow-hidden rounded-xl border border-[#D8D0C4] bg-[#FFFDF8]">
+                    <div className="flex flex-col gap-3 border-b border-[#E3DBCF] bg-[#F4F7F2] p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#173323] text-[#F4C430]">
+                          <Crown className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <span className="block text-[9px] font-black uppercase tracking-[.14em] text-[#9A7600]">
+                            Acesso de gestão
+                          </span>
+                          <p className="mt-0.5 text-sm font-black text-[#252019]">Responsável pelo sistema</p>
+                        </div>
+                      </div>
+                      {isCoAdmin ? (
+                        <span className="self-start rounded-full border border-[#C7DDCD] bg-[#EFF7F1] px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#17633B] sm:self-auto">
+                          Acesso ativo
+                        </span>
+                      ) : (
+                        <span className="self-start rounded-full border border-[#DDD4C7] bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#706658] sm:self-auto">
+                          Acesso comum
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <p className="text-xs font-semibold leading-relaxed text-[#706658]">
+                        Autorize este membro a ajudar na administração da casa. Ele poderá operar as rotinas do painel, enquanto assinatura, cobrança do AxéCloud e exclusão permanecem exclusivas da zeladoria titular.
+                      </p>
+                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#E0D5BE] bg-[#FFF9ED] px-3 py-2.5 text-[10px] font-bold leading-relaxed text-[#66552A]">
+                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#17633B]" />
+                        O acesso pode ser revogado a qualquer momento sem remover o cadastro do membro.
+                      </div>
+                      <button
+                        type="button"
+                        disabled={coAdminLoading}
+                        onClick={() => void handleToggleCoAdmin()}
+                        className={cn(
+                          'mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-black transition-all touch-manipulation disabled:cursor-not-allowed disabled:opacity-50',
+                          isCoAdmin
+                            ? 'border border-[#E6C9C3] bg-[#FFF6F4] text-[#A54434] hover:bg-[#FCE9E5]'
+                            : 'border border-[#173323] bg-[#173323] text-white hover:bg-[#22543A]',
+                        )}
+                      >
+                        {coAdminLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {isCoAdmin ? 'Revogar acesso de gestão' : 'Conceder acesso de gestão'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -400,21 +529,21 @@ export function ChildProfileV3View({
               </h4>
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-4">
                 <div className="space-y-2 md:col-span-3">
-                  <span className="block text-xs font-bold text-amber-400">
+                  <span className="block text-xs font-extrabold text-amber-300">
                     Restrições espirituais registradas
                   </span>
                   <p
                     className={cn(
                       'text-sm leading-relaxed',
-                      quizilas ? 'font-medium text-gray-300' : 'italic text-gray-500',
+                      quizilas ? 'font-semibold text-zinc-100' : 'italic font-medium text-zinc-400',
                     )}
                   >
                     {quizilas || 'Nenhuma restrição registrada de preceito para o Filho de Santo.'}
                   </p>
                 </div>
-                <div className="flex h-full flex-col justify-center space-y-1 rounded-xl border border-amber-500/20 bg-amber-950/20 p-4 text-center">
-                  <span className="block text-xs font-black uppercase tracking-wider text-[#FACC15]">Atenção no Congá</span>
-                  <span className="block text-xs font-medium leading-relaxed text-gray-400">Respeitar as restrições registradas nas atividades da casa.</span>
+                <div className="flex h-full flex-col justify-center space-y-1 rounded-xl border border-amber-500/35 bg-amber-950/30 p-4 text-center">
+                  <span className="block text-xs font-black uppercase tracking-wider text-amber-300">Atenção no Congá</span>
+                  <span className="block text-xs font-semibold leading-relaxed text-zinc-300">Respeitar as restrições registradas nas atividades da casa.</span>
                 </div>
               </div>
             </div>
@@ -429,7 +558,7 @@ export function ChildProfileV3View({
                   <Flame className="h-4 w-4 text-[#FACC15]" />
                   Evolução & Deveres Litúrgicos
                 </h4>
-                <p className="mt-1 text-xs font-light text-[#94A3B8]">
+                <p className="mt-1 text-xs font-medium text-zinc-300">
                   Controle cronológico sacerdotal de obrigações sacramentais periódicas e confirmações internas.
                 </p>
               </div>
@@ -446,7 +575,7 @@ export function ChildProfileV3View({
             </div>
 
             {childObligations.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#1E242B] bg-[#12161A] p-10 text-center text-xs italic text-gray-500">
+              <div className="rounded-2xl border border-dashed border-[#2B3545] bg-[#12161A] p-10 text-center text-xs italic font-medium text-zinc-400">
                 Nenhum registro de obrigação encontrado.
               </div>
             ) : (
@@ -460,7 +589,7 @@ export function ChildProfileV3View({
                       <div
                         className={cn(
                           'absolute -left-[41px] top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 bg-[#13171D] transition-colors',
-                          done ? 'border-[#FACC15] text-[#FACC15]' : 'border-[#222B36] text-gray-700',
+                          done ? 'border-[#FACC15] text-[#FACC15]' : 'border-[#2B3545] text-zinc-400',
                         )}
                       >
                         {done ? <Check className="h-3 w-3 font-bold" /> : <Clock className="h-3 w-3" />}
@@ -470,13 +599,13 @@ export function ChildProfileV3View({
                           <h5 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white">
                             {ob.titulo || 'Obrigação'}
                           </h5>
-                          <p className="text-xs font-medium text-gray-500">
+                          <p className="text-xs font-bold text-zinc-300">
                             {ob.data
                               ? `Registrada para: ${new Date(ob.data).toLocaleDateString('pt-BR')}`
                               : 'Aguardando data na corrente.'}
                           </p>
                           {ob.descricao ? (
-                            <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-400">{ob.descricao}</p>
+                            <p className="whitespace-pre-wrap text-xs leading-relaxed text-zinc-200">{ob.descricao}</p>
                           ) : null}
                           {ob.pdfViewUrl ? (
                             <button
@@ -499,7 +628,7 @@ export function ChildProfileV3View({
                                 type="button"
                                 onClick={() => onReplaceObligationPdf(eventId)}
                                 disabled={pdfBusy}
-                                className="inline-flex items-center gap-1 rounded-lg border border-[#1E242B] bg-[#13171D] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#94A3B8] transition hover:border-[#FACC15]/30 hover:text-[#FACC15] disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-lg border border-[#2B3545] bg-[#13171D] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-zinc-300 transition hover:border-[#FACC15]/30 hover:text-[#FACC15] disabled:opacity-50"
                               >
                                 {pdfBusy ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -515,7 +644,7 @@ export function ChildProfileV3View({
                                   type="button"
                                   onClick={() => onRemoveObligationPdf(eventId)}
                                   disabled={pdfBusy}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-950/20 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-red-400 transition hover:border-red-500/40 hover:text-red-300 disabled:opacity-50"
+                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-950/30 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-red-300 transition hover:border-red-500/50 hover:text-red-200 disabled:opacity-50"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                   Remover PDF
@@ -528,8 +657,8 @@ export function ChildProfileV3View({
                           className={cn(
                             'rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-wider',
                             done
-                              ? 'border-amber-500/30 bg-amber-950/40 text-[#FACC15]'
-                              : 'border-[#1E242B] bg-[#181C21] text-gray-600',
+                              ? 'border-amber-500/40 bg-amber-950/60 text-[#FACC15]'
+                              : 'border-[#2B3545] bg-[#181C21] text-zinc-300 font-bold',
                           )}
                         >
                           {done ? 'Concluído' : 'Pendente'}
@@ -547,38 +676,38 @@ export function ChildProfileV3View({
           <div className="space-y-6 rounded-2xl border border-[#1E242B] bg-[#13171D] p-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-4.5">
-                <span className="block text-xs font-bold text-gray-500">Mensalidade fixa</span>
+                <span className="block text-xs font-bold text-zinc-400">Mensalidade fixa</span>
                 <span className="block font-display text-xl font-black text-[#FACC15]">
                   R$ {valorMensalidade.toFixed(2).replace('.', ',')}
                 </span>
-                <span className="block text-xs font-semibold text-emerald-400">Configuração financeira ativa</span>
+                <span className="block text-xs font-bold text-emerald-400">Configuração financeira ativa</span>
               </div>
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-4.5">
-                <span className="block text-xs font-bold text-gray-500">Situação atual</span>
+                <span className="block text-xs font-bold text-zinc-400">Situação atual</span>
                 <span className={cn('block font-display text-xl font-black', hasDebt ? 'text-red-400' : 'text-emerald-400')}>
                   {hasDebt ? 'Pendente' : 'Em Dia'}
                 </span>
-                <span className="block text-xs font-semibold text-gray-500">Status da contribuição</span>
+                <span className="block text-xs font-semibold text-zinc-300">Status da contribuição</span>
               </div>
               <div className="space-y-1 rounded-xl border border-[#1E242B] bg-[#12161A] p-4.5">
-                <span className="block text-xs font-bold text-gray-500">Regularização</span>
+                <span className="block text-xs font-bold text-zinc-400">Regularização</span>
                 <span className="block font-display text-xl font-black text-white">{hasDebt ? 'Necessária' : 'Não requerida'}</span>
-                <span className="block text-xs font-semibold text-gray-400">
+                <span className="block text-xs font-semibold text-zinc-300">
                   {hasDebt ? 'Há parcelas em aberto' : 'Contribuição regularizada'}
                 </span>
               </div>
             </div>
 
             {hasDebt && isSelfView && (
-              <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-5 text-sm text-gray-300">
+              <div className="rounded-xl border border-red-500/30 bg-red-950/30 p-5 text-sm font-medium text-zinc-200">
                 Para manter o equilíbrio e as atividades do terreiro, regularize sua mensalidade com o Zelador ou pelo portal de pagamentos.
               </div>
             )}
 
-            <div className="flex items-start gap-2 rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-sm leading-relaxed text-gray-400">
+            <div className="flex items-start gap-2 rounded-xl border border-[#2B3545] bg-[#12161A] p-4 text-sm leading-relaxed text-zinc-200">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#FACC15]" />
               <span>
-                <strong>Aviso Litúrgico de Tesouraria:</strong> O caixa da casa destina-se à aquisição de insumos comunitários de giras (velas, ervas, defumadores, flores e reformas estruturais). Filhos de santo com mensalidades pendentes devem contatar a Zeladoria diretamente.
+                <strong className="font-extrabold text-white">Aviso Litúrgico de Tesouraria:</strong> O caixa da casa destina-se à aquisição de insumos comunitários de giras (velas, ervas, defumadores, flores e reformas estruturais). Filhos de santo com mensalidades pendentes devem contatar a Zeladoria diretamente.
               </span>
             </div>
           </div>
@@ -592,7 +721,7 @@ export function ChildProfileV3View({
                   <FileText className="h-4 w-4 text-[#FACC15]" />
                   Diário de Conduta e Apontamentos do Sacerdote
                 </h4>
-                <p className="mt-1 text-xs font-light text-[#94A3B8]">
+                <p className="mt-1 text-xs font-medium text-zinc-300">
                   Notas confidenciais sobre caridade, toques, comportamentos em gira e desenvolvimento mediúnico — apenas o Zelador acessa.
                 </p>
               </div>
@@ -609,7 +738,7 @@ export function ChildProfileV3View({
             </div>
 
             {sortedZeladorNotes.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#1E242B] bg-[#12161A] p-10 text-center text-xs italic text-gray-500">
+              <div className="rounded-2xl border border-dashed border-[#2B3545] bg-[#12161A] p-10 text-center text-xs italic font-medium text-zinc-400">
                 {isSelfView
                   ? `Nenhuma consideração pastoral registrada para ${nome}.`
                   : `Nenhuma consideração pastoral registrada. Crie a primeira nota sobre o desenvolvimento espiritual deste filho.`}
@@ -624,13 +753,13 @@ export function ChildProfileV3View({
                     className="group relative w-full cursor-pointer space-y-2 overflow-hidden rounded-xl border border-[#1E242B] bg-[#12161A] p-4 text-left transition-all hover:border-[#FACC15]/25"
                   >
                     <div className="absolute bottom-0 left-0 top-0 w-[3px] bg-[#FACC15]" />
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-zinc-400">
                       <span className="font-extrabold uppercase tracking-wider text-[#FACC15]">{note.title || 'Sem título'}</span>
-                      <span>{formatNoteDate(note.updatedAt)}</span>
+                      <span className="font-bold text-zinc-300">{formatNoteDate(note.updatedAt)}</span>
                     </div>
-                    <p className="line-clamp-3 text-sm font-medium leading-relaxed text-gray-300">{note.content}</p>
+                    <p className="line-clamp-3 text-sm font-medium leading-relaxed text-zinc-200">{note.content}</p>
                     {!isSelfView && (
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-gray-600 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100">
                         Clique para editar
                       </span>
                     )}
@@ -650,7 +779,7 @@ export function ChildProfileV3View({
           <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[#1E242B] bg-[#13171D] p-16 text-center">
             <Lock className="h-10 w-10 text-[#FACC15]" />
             <p className="text-sm font-bold text-white">Notas do Zelador disponíveis no plano Pro</p>
-            <p className="max-w-md text-xs text-gray-500">Faça upgrade para registrar apontamentos confidenciais sobre o desenvolvimento espiritual dos filhos de santo.</p>
+            <p className="max-w-md text-xs font-medium text-zinc-400">Faça upgrade para registrar apontamentos confidenciais sobre o desenvolvimento espiritual dos filhos de santo.</p>
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
+  Coffee,
   Flame,
   HandHeart,
   Home,
@@ -25,6 +26,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { showAtendimentosModule } from '../lib/tradicaoModules';
+import { isCantinaEnabled } from '../lib/cantinaFeature';
 
 export type AppNavItem = {
   id: string;
@@ -37,7 +39,13 @@ export type AppNavItem = {
 export const ZELADOR_CASA_CHILD_IDS = ['children', 'obligations', 'calendar', 'frequencia', 'mural', 'chat'] as const;
 
 /** Sub-rotas do menu «Financeiro» (zelador). */
-export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-configs'] as const;
+export const ZELADOR_FINANCIAL_CHILD_IDS = ['financial', 'financial-mensalidades', 'financial-cantina', 'financial-configs'] as const;
+
+export const CANTINA_NAV_ITEM: AppNavItem = {
+  id: 'financial-cantina',
+  label: 'Cantina',
+  icon: Coffee,
+};
 export const ZELADOR_MANAGEMENT_CHILD_IDS = [
   'reports', 'patrimony', 'documents', 'consulentes', 'atendimento-agenda',
   'journey', 'liturgical', 'development', 'camarinha',
@@ -47,6 +55,21 @@ export const ZELADOR_FINANCIAL_ITEMS: AppNavItem[] = [
   { id: 'financial', label: 'Visão geral', icon: PieChart },
   { id: 'financial-mensalidades', label: 'Mensalidades', icon: Wallet },
   { id: 'financial-configs', label: 'Configurações Pix', icon: Smartphone },
+];
+
+export function buildZeladorFinancialItems(tenantId?: string | null, userEmail?: string | null): AppNavItem[] {
+  if (isCantinaEnabled({ tenant_id: tenantId, email: userEmail }, userEmail)) {
+    return [
+      { id: 'financial', label: 'Visão geral', icon: PieChart },
+      { id: 'financial-mensalidades', label: 'Mensalidades', icon: Wallet },
+      CANTINA_NAV_ITEM,
+      { id: 'financial-configs', label: 'Configurações Pix', icon: Smartphone },
+    ];
+  }
+  return ZELADOR_FINANCIAL_ITEMS;
+}
+
+const _discardExtraBracket = [
 ];
 
 export const ZELADOR_MANAGEMENT_ITEMS: AppNavItem[] = [
@@ -89,7 +112,7 @@ export function navItemPlanFeature(itemId: string): string {
   return itemId;
 }
 
-export type FinancialSubview = 'overview' | 'mensalidades' | 'configs';
+export type FinancialSubview = 'overview' | 'mensalidades' | 'cantina' | 'configs';
 
 export function isFinancialNavTab(tab: string): boolean {
   return tab === 'financial' || tab.startsWith('financial-');
@@ -97,6 +120,7 @@ export function isFinancialNavTab(tab: string): boolean {
 
 export function financialSubviewFromTab(tab: string): FinancialSubview {
   if (tab === 'financial-mensalidades') return 'mensalidades';
+  if (tab === 'financial-cantina') return 'cantina';
   if (tab === 'financial-configs') return 'configs';
   return 'overview';
 }
@@ -133,7 +157,7 @@ export function buildZeladorNavItems(tradicao?: string | null): AppNavItem[] {
 }
 
 /** Menu do zelador com grupos «Casa» e «Financeiro» para caber sem scroll horizontal. */
-export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntry[] {
+export function buildZeladorNavEntries(tradicao?: string | null, tenantId?: string | null, userEmail?: string | null): ZeladorNavEntry[] {
   const items = buildZeladorNavItems(tradicao);
   const casaSet = new Set<string>(ZELADOR_CASA_CHILD_IDS);
   const managementSet = new Set<string>(ZELADOR_MANAGEMENT_CHILD_IDS);
@@ -170,7 +194,7 @@ export function buildZeladorNavEntries(tradicao?: string | null): ZeladorNavEntr
         type: 'financial',
         label: 'Financeiro',
         icon: PieChart,
-        items: ZELADOR_FINANCIAL_ITEMS,
+        items: buildZeladorFinancialItems(tenantId, userEmail),
       });
       continue;
     }

@@ -19,6 +19,6 @@ export const appLabelClass =
   'app-v5-label mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#94A3B8]';
 
 export const appPanelClass =
-  'app-v5-panel rounded-2xl border border-[#252C35] bg-[#151A21] shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]';
+  'app-v5-panel rounded-lg border border-[#252C35] bg-[#151A21] shadow-[0_18px_44px_-34px_rgba(0,0,0,0.9)]';
 
 export const appCardClass = `${appPanelClass} p-5 sm:p-6`;

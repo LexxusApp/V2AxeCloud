@@ -1,3 +1,4 @@
+import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -7,22 +8,32 @@ import {
   Check,
   ChevronRight,
   CircleDot,
+  Crown,
   Fingerprint,
   Loader2,
   Lock,
   MessageCircle,
   MoreVertical,
   Plus,
-  Search,
   Send,
   Sparkles,
   Trash2,
+  UserPlus,
   UserRoundCheck,
   Users,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Avatar from '../Avatar';
 import { childHasAppAccess, type Child } from '../../views/Children';
+import {
+  AxeBadge,
+  AxeButton,
+  AxeEmptyState,
+  AxeFilterBar,
+  AxeMetricCard,
+  AxeMetricRail,
+  AxePageHeader,
+} from '../shared/AxePageScaffold';
 
 type SortMode = 'nome' | 'entrada' | 'aniversario';
 
@@ -30,6 +41,7 @@ type Props = {
   childrenData: Child[];
   filteredChildren: Child[];
   pendingChildIds: Set<string>;
+  financialState: 'loading' | 'error' | 'ready';
   incompleteChildren: number;
   withoutAccessCount: number;
   birthdaysThisMonth: number;
@@ -54,7 +66,13 @@ type Props = {
   onDelete: (id: string, name: string) => void;
 };
 
-const STATUS_OPTIONS = ['Todos', 'Ativo', 'Pendente', 'Inativo', 'Sem acesso'];
+const STATUS_OPTIONS = [
+  { id: 'Todos', label: 'Todos' },
+  { id: 'Ativo', label: 'Ativos' },
+  { id: 'Pendente', label: 'Pendentes' },
+  { id: 'Inativo', label: 'Inativos' },
+  { id: 'Sem acesso', label: 'Sem app' },
+];
 
 function formatDate(value?: string | null) {
   if (!value) return 'Não informada';
@@ -85,6 +103,7 @@ export default function ChildrenCurrentExperience({
   childrenData,
   filteredChildren,
   pendingChildIds,
+  financialState,
   incompleteChildren,
   withoutAccessCount,
   birthdaysThisMonth,
@@ -116,190 +135,173 @@ export default function ChildrenCurrentExperience({
     const scoreDelta = attentionScore(b, pendingChildIds) - attentionScore(a, pendingChildIds);
     return scoreDelta || a.nome.localeCompare(b.nome, 'pt-BR');
   });
-  const usage = Math.min(100, Math.round((childrenData.length / Math.max(1, childLimit)) * 100));
+  const cargosCount = childrenData.filter(
+    (child) => child.cargo && child.cargo !== 'Filho de Santo' && child.cargo !== 'Membro'
+  ).length;
 
   return (
-    <div className="current-map">
-      <section className="current-map__hero">
-        <div className="current-map__watermark" aria-hidden>
-          {String(activeCount).padStart(2, '0')}
-        </div>
-        <div className="relative z-10 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <div className="current-map__eyebrow">
-              <span className="current-map__live-dot" />
-              Mapa vivo da corrente
-            </div>
-            <h1 className="mt-4 max-w-xl font-display text-4xl font-black leading-[0.98] text-white sm:text-5xl">
-              Pessoas, vínculos e cuidado em uma só visão.
-            </h1>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#9AA6B7]">
-              Veja quem forma a casa, quem ainda não entrou no app e entre em cada história sem perder o
-              contexto da corrente.
-            </p>
-          </div>
-          <div className="current-map__hero-actions">
-            <div className="flex flex-col items-stretch gap-2 sm:items-end">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={onAdd}
-                  disabled={isLimitReached}
-                  className="current-map__primary-action"
-                >
-                  {isLimitReached ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4 stroke-[2.5]" />}
-                  {isLimitReached
-                    ? 'Limite atingido'
-                    : childrenData.length === 0
-                    ? 'Cadastrar primeiro filho'
-                    : 'Cadastrar filho'}
-                </button>
-
-                {childrenData.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={onResendAll}
-                    disabled={resendingWelcome}
-                    className="current-map__secondary-action"
-                  >
-                    {resendingWelcome ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MessageCircle className="h-4 w-4" />
-                    )}
-                    {resendingWelcome ? 'Enviando acessos…' : 'Enviar acessos'}
-                  </button>
-                )}
-              </div>
-
-              <p className="max-w-[22rem] text-[11px] font-medium leading-snug text-[#8E9AAA] sm:text-right">
-                {childrenData.length > 0
-                  ? withoutAccessCount > 0
-                    ? `${withoutAccessCount} ainda não ${withoutAccessCount === 1 ? 'entrou' : 'entraram'} · Registro + 6 dígitos do CPF`
-                    : 'Entram com Registro + 6 dígitos do CPF'
-                  : 'Entram no app com Registro da Casa + 6 dígitos do CPF'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="current-map__pulse">
-          <div><strong>{activeCount}</strong><span>ativos na corrente</span></div>
-          <div><strong>{withoutAccessCount}</strong><span>ainda sem app</span></div>
-          <div><strong>{peopleNeedingAttention.length}</strong><span>pedem atenção</span></div>
-          <div className="current-map__capacity">
-            <span>Plano {planName} · {childrenData.length} de {childLimit}</span>
-            <span className="current-map__capacity-track"><span style={{ width: `${usage}%` }} /></span>
-          </div>
-        </div>
-      </section>
-
-      <section className="current-map__command" aria-label="Localizar pessoas na corrente">
-        <div className="current-map__search">
-          <Search className="h-4 w-4" aria-hidden />
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Encontre uma pessoa, cargo ou telefone..."
-          />
-          {searchTerm ? <button type="button" onClick={() => onSearchChange('')}>Limpar</button> : null}
-        </div>
-        <div className="current-map__filters">
-          {STATUS_OPTIONS.map((status) => (
-            <button
-              key={status}
+    <div className="space-y-6">
+      {/* 1. Unified Header */}
+      <AxePageHeader
+        kicker="Corrente · Mapa de Membros"
+        title="Filhos de Santo"
+        description="Pessoas, vínculos e cuidado em uma só visão. Acompanhe a corrente viva da casa e envie dados de acesso com um clique."
+        actions={
+          <>
+            {childrenData.length > 0 && (
+              <AxeButton
+                type="button"
+                variant="secondary"
+                onClick={onResendAll}
+                disabled={resendingWelcome}
+                icon={MessageCircle}
+                loading={resendingWelcome}
+              >
+                {resendingWelcome ? 'Enviando acessos…' : 'Enviar acessos'}
+              </AxeButton>
+            )}
+            <AxeButton
               type="button"
-              onClick={() => onStatusChange(status)}
-              className={cn(filterStatus === status && 'is-active')}
+              variant="primary"
+              onClick={onAdd}
+              disabled={isLimitReached}
+              icon={isLimitReached ? Lock : Plus}
             >
-              {status}
-            </button>
-          ))}
-        </div>
-        <label className="current-map__sort">
-          <span>Ordem</span>
-          <select value={sortBy} onChange={(event) => onSortChange(event.target.value as SortMode)}>
-            <option value="nome">Nome</option>
-            <option value="entrada">Entrada na casa</option>
-            <option value="aniversario">Aniversário</option>
-          </select>
-        </label>
-      </section>
+              {isLimitReached
+                ? 'Limite atingido'
+                : childrenData.length === 0
+                ? 'Cadastrar primeiro filho'
+                : 'Cadastrar filho'}
+            </AxeButton>
+          </>
+        }
+      />
 
-      <div className="current-map__workspace">
-        <section className="current-map__people" aria-labelledby="current-map-title">
-          <div className="current-map__section-heading">
-            <div>
-              <p className="current-map__section-kicker">A corrente</p>
-              <h2 id="current-map-title">
-                {filteredChildren.length === childrenData.length
-                  ? `${childrenData.length} pessoas conectadas`
-                  : `${filteredChildren.length} resultados`}
-              </h2>
-            </div>
-            <div className="current-map__legend">
-              <span><i className="bg-emerald-400" /> Em dia</span>
-              <span><i className="bg-amber-400" /> Sem app</span>
-              <span><i className="bg-rose-400" /> Atenção</span>
-            </div>
-          </div>
+      {/* 2. Unified KPI Rail */}
+      <AxeMetricRail>
+        <AxeMetricCard
+          label="Ativos na corrente"
+          value={activeCount}
+          icon={Users}
+          tone="emerald"
+          subtext={`${childrenData.length} no total`}
+        />
+        <AxeMetricCard
+          label="Ainda sem app"
+          value={withoutAccessCount}
+          icon={Send}
+          tone="amber"
+          subtext="precisam de acesso"
+        />
+        <AxeMetricCard
+          label="Pedem atenção"
+          value={financialState === 'ready' ? peopleNeedingAttention.length : financialState === 'loading' ? '…' : '—'}
+          icon={AlertCircle}
+          tone="rose"
+          subtext={financialState === 'ready' ? `${pendingChildIds.size} financeiro` : financialState === 'loading' ? 'Carregando financeiro…' : 'Financeiro indisponível'}
+        />
+        <AxeMetricCard
+          label="Hierarquia & Cargos"
+          value={cargosCount}
+          icon={Crown}
+          tone="purple"
+          subtext="Ogãs, Ekedis e Linhagem"
+        />
+      </AxeMetricRail>
 
-          {orderedMap.length ? (
-            <motion.div layout className="current-map__grid">
+      {/* 3. Unified Filter & Search Bar */}
+      <AxeFilterBar
+        search={{
+          value: searchTerm,
+          onChange: onSearchChange,
+          placeholder: 'Buscar por nome, cargo ou telefone...',
+        }}
+        filterTabs={{
+          current: filterStatus,
+          options: STATUS_OPTIONS,
+          onChange: onStatusChange,
+        }}
+        sort={{
+          value: sortBy,
+          options: [
+            { id: 'nome', label: 'Nome' },
+            { id: 'entrada', label: 'Entrada na casa' },
+            { id: 'aniversario', label: 'Aniversário' },
+          ],
+          onChange: (val) => onSortChange(val as SortMode),
+          label: 'Ordem',
+        }}
+      />
+
+      {/* 4. Workspace: Grid of Members + Attention Radar */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        {/* Members Column */}
+        <section className="lg:col-span-8 xl:col-span-8 min-w-0" aria-label="Lista de membros">
+          {orderedMap.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <AnimatePresence mode="popLayout">
                 {orderedMap.map((child, index) => {
                   const pending = pendingChildIds.has(child.id);
                   const incomplete = childNeedsData(child);
                   const birthday = isBirthdayThisMonth(child);
                   const noAccess = !childHasAppAccess(child);
-                  const score = attentionScore(child, pendingChildIds);
                   const isBusy = deletingId === child.id || sendingCredentialsId === child.id;
                   const isMenuOpen = openActionsId === child.id;
+
                   return (
                     <motion.article
                       layout
                       key={child.id}
-                      initial={{ opacity: 0, y: 16 }}
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ delay: Math.min(index * 0.035, 0.24) }}
-                      className={cn('current-person', score > 0 && 'has-signal', index === 0 && score > 0 && 'is-focus')}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                      className={cn(
+                        'group relative flex flex-col justify-between rounded-2xl border border-[#E6DFD3] bg-white p-4 shadow-[0_2px_8px_rgba(28,37,31,0.03)] transition-all duration-200 hover:border-[#D8CDBA] hover:shadow-[0_4px_16px_rgba(28,37,31,0.06)]',
+                        noAccess && 'border-amber-200/80 bg-[#FFFDF8]',
+                      )}
                     >
-                      <button type="button" className="current-person__main" onClick={() => onPreview(child.id)}>
-                        <span className="current-person__index">{String(index + 1).padStart(2, '0')}</span>
-                        <span className="current-person__portrait">
-                          <Avatar src={child.foto_url} name={child.nome} shape="circle" textSize="text-base" className="h-full w-full" />
-                          <i className={cn(child.status === 'Ativo' ? 'is-online' : 'is-away')} />
-                        </span>
-                        <span className="current-person__identity">
-                          <span className="current-person__role">{child.cargo || 'Função não informada'}</span>
-                          <strong>{child.nome}</strong>
-                          <span className="current-person__lineage">
-                            <Sparkles className="h-3 w-3" /> {child.orixa_frente || 'Orixá não informado'}
-                          </span>
-                        </span>
-                        <ArrowUpRight className="current-person__open h-4 w-4" />
-                      </button>
+                      {/* Top row: Avatar + Identity + Action Trigger */}
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="relative cursor-pointer shrink-0"
+                          onClick={() => onPreview(child.id)}
+                        >
+                          <Avatar
+                            src={child.foto_url}
+                            name={child.nome}
+                            shape="circle"
+                            textSize="text-sm"
+                            className="h-12 w-12 border-2 border-white shadow-xs"
+                          />
+                          <span
+                            className={cn(
+                              'absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white',
+                              child.status === 'Ativo' ? 'bg-emerald-500' : 'bg-stone-400',
+                            )}
+                          />
+                        </div>
 
-                      <div className="current-person__signals">
-                        {noAccess ? (
-                          <span className="is-access"><Send className="h-3 w-3" /> Ainda não entrou</span>
-                        ) : (
-                          <span className="is-ok"><UserRoundCheck className="h-3 w-3" /> Já entrou</span>
-                        )}
-                        {pending ? (
-                          <span className="is-critical"><AlertCircle className="h-3 w-3" /> Mensalidade</span>
-                        ) : (
-                          <span className="is-ok"><Check className="h-3 w-3" /> Financeiro em dia</span>
-                        )}
-                        {incomplete ? <span className="is-warning"><Fingerprint className="h-3 w-3" /> Completar dados</span> : null}
-                        {birthday ? <span className="is-birthday"><Cake className="h-3 w-3" /> Aniversário</span> : null}
-                      </div>
+                        <div
+                          className="min-w-0 flex-1 cursor-pointer"
+                          onClick={() => onPreview(child.id)}
+                        >
+                          <h3 className="truncate font-display text-base font-black text-[#17251D] group-hover:text-[#1F5942] transition-colors">
+                            {child.nome}
+                          </h3>
+                          <p className="mt-0.5 truncate text-xs font-bold text-[#59655E]">
+                            {child.cargo || 'Função não informada'}
+                          </p>
+                          {child.orixa_frente && (
+                            <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-[#B88728] truncate">
+                              <Sparkles className="h-3 w-3 shrink-0" />
+                              {child.orixa_frente}
+                            </p>
+                          )}
+                        </div>
 
-                      <div className="current-person__footer">
-                        <span><CalendarDays className="h-3.5 w-3.5" /> Na casa desde {formatDate(child.data_entrada)}</span>
-                        <div className="relative" data-child-actions-root>
+                        {/* Dropdown Menu */}
+                        <div className="relative shrink-0" data-child-actions-root>
                           <button
                             type="button"
                             disabled={isBusy}
@@ -307,100 +309,316 @@ export default function ChildrenCurrentExperience({
                               event.stopPropagation();
                               onActionsChange(isMenuOpen ? null : child.id);
                             }}
-                            className="current-person__more"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#E6DFD3] bg-white text-[#59655E] hover:border-[#D8CDBA] hover:text-[#17251D] transition-colors"
                             aria-label={`Ações para ${child.nome}`}
                             aria-expanded={isMenuOpen}
                           >
-                            {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+                            {isBusy ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-[#1F5942]" />
+                            ) : (
+                              <MoreVertical className="h-4 w-4" />
+                            )}
                           </button>
+
                           <AnimatePresence>
-                            {isMenuOpen ? (
+                            {isMenuOpen && (
                               <motion.div
-                                initial={{ opacity: 0, y: -5, scale: 0.96 }}
+                                initial={{ opacity: 0, y: -4, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                                className="current-person__menu"
+                                exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                                className="absolute right-0 top-10 z-30 w-48 overflow-hidden rounded-xl border border-[#E6DFD3] bg-white py-1 shadow-lg"
                                 role="menu"
                               >
-                                <button type="button" disabled={isBusy} onClick={() => onSendCredentials(child.id, child.nome)} role="menuitem">
-                                  {sendingCredentialsId === child.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                                  {sendingCredentialsId === child.id ? 'Enviando…' : 'Enviar acesso'}
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => {
+                                    onActionsChange(null);
+                                    onSendCredentials(child.id, child.nome);
+                                  }}
+                                  role="menuitem"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-[#1F5942] hover:bg-[#E8F5EE] transition-colors"
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                  Enviar acesso WhatsApp
                                 </button>
-                                <p className="current-person__menu-hint" role="note">
-                                  Registro + 6 dígitos do CPF
-                                </p>
-                                <button type="button" disabled={isBusy} onClick={() => onDelete(child.id, child.nome)} role="menuitem" className="is-danger">
-                                  {deletingId === child.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                  {deletingId === child.id ? 'Excluindo…' : 'Excluir cadastro'}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onActionsChange(null);
+                                    onPreview(child.id);
+                                  }}
+                                  role="menuitem"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-[#17251D] hover:bg-[#FAF7F2] transition-colors"
+                                >
+                                  <ArrowUpRight className="h-3.5 w-3.5" />
+                                  Ver perfil completo
+                                </button>
+                                <div className="my-1 border-t border-[#E6DFD3]" />
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => {
+                                    onActionsChange(null);
+                                    onDelete(child.id, child.nome);
+                                  }}
+                                  role="menuitem"
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Excluir cadastro
                                 </button>
                               </motion.div>
-                            ) : null}
+                            )}
                           </AnimatePresence>
                         </div>
+                      </div>
+
+                      {/* Signals / Badges */}
+                      <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
+                        {noAccess ? (
+                          <AxeBadge variant="amber" icon={Send}>
+                            Sem app
+                          </AxeBadge>
+                        ) : (
+                          <AxeBadge variant="emerald" icon={UserRoundCheck}>
+                            No app
+                          </AxeBadge>
+                        )}
+
+                        {pending ? (
+                          <AxeBadge variant="rose" icon={AlertCircle}>
+                            Mensalidade
+                          </AxeBadge>
+                        ) : (
+                          <AxeBadge variant="stone" icon={Check}>
+                            Em dia
+                          </AxeBadge>
+                        )}
+
+                        {incomplete && (
+                          <AxeBadge variant="amber" icon={Fingerprint}>
+                            Completar dados
+                          </AxeBadge>
+                        )}
+
+                        {birthday && (
+                          <AxeBadge variant="purple" icon={Cake}>
+                            Aniversário
+                          </AxeBadge>
+                        )}
+                      </div>
+
+                      {/* Footer: Date & Preview link */}
+                      <div className="mt-3.5 flex items-center justify-between border-t border-[#F0EBE1] pt-2.5 text-[11px] font-semibold text-[#8A958E]">
+                        <span className="flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5 text-[#59655E]" />
+                          Desde {formatDate(child.data_entrada)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onPreview(child.id)}
+                          className="font-bold text-[#1F5942] hover:underline"
+                        >
+                          Ver perfil →
+                        </button>
                       </div>
                     </motion.article>
                   );
                 })}
               </AnimatePresence>
-            </motion.div>
-          ) : (
-            <div className="current-map__empty">
-              <span><Users className="h-7 w-7" /></span>
-              <h3>{childrenData.length ? 'Ninguém encontrado neste recorte' : 'A corrente começa aqui'}</h3>
-              <p>{childrenData.length ? 'Mude os filtros ou pesquise por outro nome.' : 'Cadastre o primeiro filho de santo para formar o mapa vivo da casa.'}</p>
-              {!childrenData.length && !isLimitReached ? (
-                <button type="button" onClick={onAdd}><Plus className="h-4 w-4 stroke-[2.5]" /> Cadastrar primeiro filho</button>
-              ) : null}
             </div>
+          ) : !childrenData.length ? (
+            <div className="space-y-5">
+              {/* Main Welcome Hero */}
+              <div className="relative overflow-hidden rounded-3xl border border-[#D4AF37]/35 bg-gradient-to-br from-white via-[#FCFAF5] to-[#F7EFE1] p-6 sm:p-8 shadow-[0_4px_24px_rgba(28,37,31,0.05)]">
+                <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-gradient-to-br from-[#D4AF37]/20 to-[#1F5942]/20 blur-2xl" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E5AE12]/15 border border-[#E5AE12]/40 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#8F630E] mb-3">
+                    <span>✦</span>
+                    <span>Fundação da Casa & Linhagem</span>
+                  </div>
+                  <h3 className="font-display text-2xl font-black text-[#17251D] sm:text-3xl">
+                    Inicie o Mapa Vivo da sua Corrente
+                  </h3>
+                  <p className="mt-2 max-w-2xl text-xs sm:text-sm font-medium text-[#59655E] leading-relaxed">
+                    Cadastre cada médium da casa com orixás de cabeça, cargos litúrgicos, obrigações de santo e envie credenciais automáticas no WhatsApp com 1 clique.
+                  </p>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <AxeButton
+                      onClick={onAdd}
+                      icon={Plus}
+                      variant="primary"
+                      size="lg"
+                    >
+                      Cadastrar primeiro filho
+                    </AxeButton>
+                    <AxeButton
+                      onClick={onAdd}
+                      icon={Sparkles}
+                      variant="gold"
+                      size="lg"
+                    >
+                      Conhecer recursos litúrgicos
+                    </AxeButton>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Steps Ritual Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="rounded-2xl border border-[#A8DEC0] bg-gradient-to-br from-white to-[#F0FAF4] p-4 sm:p-5 shadow-xs">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F5EE] border border-[#B7E2CB] text-[#1F5942]">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <strong className="mt-3 block font-display text-sm font-black text-[#17251D]">
+                    1. Cadastro & Orixás
+                  </strong>
+                  <p className="mt-1 text-xs font-medium text-[#59655E] leading-relaxed">
+                    Nome civil, nome de santo, orixás de frente/juntó e iniciação.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#F8DC9B] bg-gradient-to-br from-white to-[#FFF9EB] p-4 sm:p-5 shadow-xs">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FEF7E6] border border-[#FBE3B5] text-[#8F630E]">
+                    <Crown className="h-5 w-5" />
+                  </div>
+                  <strong className="mt-3 block font-display text-sm font-black text-[#17251D]">
+                    2. Hierarquia & Cargos
+                  </strong>
+                  <p className="mt-1 text-xs font-medium text-[#59655E] leading-relaxed">
+                    Ogãs, Ekedis, Padrinhos espirituais e Médiuns de Coroa.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#BDD9EC] bg-gradient-to-br from-white to-[#F0F7FC] p-4 sm:p-5 shadow-xs">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF5FA] border border-[#CDE3F1] text-[#1E567B]">
+                    <Send className="h-5 w-5" />
+                  </div>
+                  <strong className="mt-3 block font-display text-sm font-black text-[#17251D]">
+                    3. Acesso WhatsApp
+                  </strong>
+                  <p className="mt-1 text-xs font-medium text-[#59655E] leading-relaxed">
+                    Dispare o acesso do filho no WhatsApp sem senhas complexas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <AxeEmptyState
+              icon={Users}
+              title="Nenhum filho encontrado neste filtro"
+              description="Tente ajustar os filtros ou pesquise por outro nome na barra de busca acima."
+            />
           )}
         </section>
 
-        <aside className="current-radar" aria-labelledby="current-radar-title">
-          <div className="current-radar__heading">
-            <span><CircleDot className="h-4 w-4" /></span>
-            <div><p>Radar da casa</p><h2 id="current-radar-title">Sinais que importam agora</h2></div>
-          </div>
-          <div className="current-radar__summary">
-            <div><strong>{withoutAccessCount}</strong><span>sem app</span></div>
-            <div><strong>{pendingChildIds.size}</strong><span>financeiro</span></div>
-            <div><strong>{incompleteChildren}</strong><span>cadastro</span></div>
-          </div>
-          <div className="current-radar__stream">
-            {peopleNeedingAttention.slice(0, 6).map((child) => {
-              const pending = pendingChildIds.has(child.id);
-              const incomplete = childNeedsData(child);
-              const noAccess = !childHasAppAccess(child);
-              const signal = noAccess
-                ? 'Ainda não entrou no app'
-                : pending
+        {/* Radar Sidebar */}
+        <aside className="lg:col-span-4 xl:col-span-4 space-y-4" aria-label="Radar da casa">
+          <div className="rounded-2xl border border-[#E6DFD3] bg-white p-5 shadow-[0_2px_8px_rgba(28,37,31,0.03)]">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1F5942]/10 text-[#1F5942]">
+                <CircleDot className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B88728]">
+                  Radar da casa
+                </p>
+                <h2 className="font-display text-base font-black text-[#17251D]">
+                  Sinais que importam agora
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-[#FAF7F2] p-2.5 text-center">
+              <div>
+                <strong className="block font-display text-lg font-black text-[#8F630E] tabular-nums">
+                  {withoutAccessCount}
+                </strong>
+                <span className="text-[10px] font-bold text-[#59655E]">Sem app</span>
+              </div>
+              <div className="border-x border-[#E6DFD3]">
+                <strong className="block font-display text-lg font-black text-[#9E2A1C] tabular-nums">
+                  {financialState === 'ready' ? pendingChildIds.size : financialState === 'loading' ? '…' : '—'}
+                </strong>
+                <span className="text-[10px] font-bold text-[#59655E]">Financeiro</span>
+              </div>
+              <div>
+                <strong className="block font-display text-lg font-black text-[#1F5942] tabular-nums">
+                  {incompleteChildren}
+                </strong>
+                <span className="text-[10px] font-bold text-[#59655E]">Cadastro</span>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {peopleNeedingAttention.slice(0, 6).map((child) => {
+                const pending = pendingChildIds.has(child.id);
+                const incomplete = childNeedsData(child);
+                const noAccess = !childHasAppAccess(child);
+                const signal = noAccess
+                  ? 'Ainda não entrou no app'
+                  : pending
                   ? 'Mensalidade pendente'
                   : incomplete
-                    ? 'Cadastro incompleto'
-                    : 'Aniversário neste mês';
-              return (
-                <button type="button" key={child.id} onClick={() => onPreview(child.id)}>
-                  <span className={cn('current-radar__node', (pending || noAccess) && 'is-critical')}>
-                    <Avatar src={child.foto_url} name={child.nome} shape="circle" textSize="text-[9px]" className="h-full w-full" />
-                  </span>
-                  <span className="min-w-0 flex-1"><strong>{child.nome}</strong><small>{signal}</small></span>
-                  <ChevronRight className="h-4 w-4 text-[#556174]" />
-                </button>
-              );
-            })}
-            {!peopleNeedingAttention.length ? (
-              <div className="current-radar__clear">
-                <span><UserRoundCheck className="h-5 w-5" /></span>
-                <strong>Corrente em harmonia</strong>
-                <p>Nenhuma pendência importante detectada.</p>
-              </div>
-            ) : null}
-          </div>
-          <div className="current-radar__note">
-            <Fingerprint className="h-4 w-4" />
-            <p>
-              O radar prioriza quem ainda não entrou no app, depois financeiro, cadastro e datas.
-              Login do membro: Registro + 6 dígitos do CPF.
-            </p>
+                  ? 'Cadastro incompleto'
+                  : 'Aniversário neste mês';
+
+                return (
+                  <button
+                    type="button"
+                    key={child.id}
+                    onClick={() => onPreview(child.id)}
+                    className="flex w-full items-center gap-2.5 rounded-xl border border-[#F0EBE1] bg-[#FAF7F2]/50 p-2.5 text-left transition-all hover:border-[#D8CDBA] hover:bg-white"
+                  >
+                    <Avatar
+                      src={child.foto_url}
+                      name={child.nome}
+                      shape="circle"
+                      textSize="text-[10px]"
+                      className="h-8 w-8 shrink-0 border border-white"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-black text-[#17251D]">{child.nome}</p>
+                      <p
+                        className={cn(
+                          'truncate text-[10px] font-bold',
+                          noAccess
+                            ? 'text-[#8F630E]'
+                            : pending
+                            ? 'text-[#9E2A1C]'
+                            : 'text-[#59655E]',
+                        )}
+                      >
+                        {signal}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[#8A958E]" />
+                  </button>
+                );
+              })}
+
+              {financialState === 'ready' && !peopleNeedingAttention.length && (
+                <div className="rounded-xl border border-[#C6E7D5] bg-[#E8F5EE]/60 p-4 text-center">
+                  <UserRoundCheck className="mx-auto h-6 w-6 text-[#1F5942]" />
+                  <strong className="mt-2 block font-display text-sm font-black text-[#17251D]">
+                    Corrente em harmonia
+                  </strong>
+                  <p className="mt-1 text-xs text-[#59655E]">
+                    Nenhuma pendência importante detectada.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#FAF7F2] p-3 text-[11px] leading-relaxed text-[#59655E]">
+              <Fingerprint className="mt-0.5 h-4 w-4 shrink-0 text-[#1F5942]" />
+              <span>
+                Login do membro: <strong>WhatsApp, E-mail ou Registro + 6 dígitos do CPF</strong>.
+              </span>
+            </div>
           </div>
         </aside>
       </div>

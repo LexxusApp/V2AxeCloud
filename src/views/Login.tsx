@@ -134,6 +134,17 @@ function isZeladorLoginModeParam(raw: string | null): boolean {
   return v === 'zelador' || v === 'lider' || v === 'admin' || v === 'pai' || v === 'mae';
 }
 
+function normalizeLoginPhone(input: string): string {
+  let digits = input.replace(/\D/g, '');
+  if (digits.startsWith('55') && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith('0') && digits.length >= 11) {
+    digits = digits.replace(/^0+/, '');
+  }
+  return digits;
+}
+
 export default function Login() {
   const bootMode = (() => {
     if (typeof window === 'undefined') return 'zelador' as LoginRole;
@@ -432,7 +443,8 @@ export default function Login() {
         const inputTrimmed = childId.trim();
         const isEmailInput = inputTrimmed.includes('@');
         const digitsOnly = inputTrimmed.replace(/\D/g, '');
-        const isPhoneInput = digitsOnly.length >= 8 && digitsOnly.length <= 13 && !inputTrimmed.toUpperCase().startsWith('AXC-');
+        const normPhone = normalizeLoginPhone(inputTrimmed);
+        const isPhoneInput = !isEmailInput && normPhone.length >= 8 && digitsOnly.length <= 16 && !inputTrimmed.toUpperCase().startsWith('AXC-');
 
         if (!isEmailInput && !isPhoneInput && !isValidFilhoLoginId(inputTrimmed)) {
           throw new Error('Informe seu E-mail, WhatsApp ou Registro (ex.: AXC-2021-B2CA).');
@@ -441,9 +453,9 @@ export default function Login() {
           throw new Error('Digite os 6 primeiros dígitos do seu CPF.');
         }
 
-        const loginPayloadId = isEmailInput || isPhoneInput
+        const loginPayloadId = isEmailInput
           ? inputTrimmed
-          : (normalizeFilhoLoginIdInput(inputTrimmed) || inputTrimmed);
+          : (isPhoneInput ? normPhone : (normalizeFilhoLoginIdInput(inputTrimmed) || inputTrimmed));
 
         const response = await fetch('/api/auth/filho-login', {
           method: 'POST',

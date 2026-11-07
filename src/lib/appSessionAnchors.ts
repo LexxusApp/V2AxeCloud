@@ -15,7 +15,7 @@ export const FILHO_ALLOWED_TABS = new Set([
 const ZELADOR_DEEP_LINK_TABS = new Set([
   'dashboard', 'children', 'obligations', 'calendar', 'frequencia', 'mural', 'chat',
   'gallery', 'inventory', 'library', 'store', 'radar', 'subscription', 'settings',
-  'suporte', 'financial', 'financial-mensalidades', 'financial-configs', 'reports',
+  'suporte', 'financial', 'financial-mensalidades', 'financial-cantina', 'financial-configs', 'reports',
   'patrimony', 'documents', 'consulentes', 'atendimento-agenda', 'journey',
   'liturgical', 'development', 'camarinha',
 ]);

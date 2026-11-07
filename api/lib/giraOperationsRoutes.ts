@@ -318,7 +318,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
 
   // Participações do filho logado (calendário)
   app.get("/api/v1/participacoes", async (req: Request, res: Response) => {
-    const access = await requireTenantReadAccess(sb, req, res, req.query.tenantId);
+    const access = await requireTenantReadAccess(sb, req, res, req.query.tenantId, { allowMissingTenant: true });
     if (!access) return;
     try {
       const role = String(access.user.user_metadata?.role || "").toLowerCase();
@@ -330,7 +330,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         if (!filho) return res.json({ data: [] });
         filhoId = filho.id;
       } else if (!filhoId) {
-        return res.status(400).json({ error: "filhoId required" });
+        return res.json({ data: [] });
       }
 
       const leaderId = await resolveLeader(access.tenantId);

@@ -118,8 +118,10 @@ export default async function handler(req: any, res: any) {
     if (!sb) return sendJson(res, 503, { error: "Supabase não configurado." });
     try {
       const { reconcileExpiredTenantAccess } = await import("./lib/subscriptionAccessReconcile.js");
+      const { reconcilePendingEfiPixPayments } = await import("./lib/pendingPixReconcile.js");
       const subscriptionAccess = await reconcileExpiredTenantAccess(sb);
-      return sendJson(res, 200, { ok: true, subscriptionAccess });
+      const pendingPix = await reconcilePendingEfiPixPayments(sb);
+      return sendJson(res, 200, { ok: true, subscriptionAccess, pendingPix });
     } catch (error) {
       console.error("[CRON] subscription-access:", error);
       return sendJson(res, 500, { error: safeErrorMessage(error, "Erro ao atualizar acessos vencidos") });

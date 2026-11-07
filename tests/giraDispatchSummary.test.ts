@@ -16,7 +16,7 @@ describe("buildResumoDisparoGiraText", () => {
     );
   });
 
-  it("confirma sucesso total", () => {
+  it("confirma sucesso total em linhas separadas", () => {
     const text = buildResumoDisparoGiraText({
       enviados: 30,
       entregues: 30,
@@ -24,20 +24,26 @@ describe("buildResumoDisparoGiraText", () => {
       pendentes: 0,
       eligible: 30,
     });
-    assert.match(text, /Enviados: 30/);
-    assert.match(text, /Entregues: 30/);
-    assert.match(text, /Todos os membros elegiveis receberam o aviso/);
+    assert.match(text, /✅ 30 médiuns receberam com sucesso/);
   });
 
-  it("informa falhas parciais", () => {
+  it("informa falhas com quebra de linha e formato visual", () => {
     const text = buildResumoDisparoGiraText({
-      enviados: 30,
-      entregues: 27,
+      enviados: 28,
+      entregues: 25,
       falhas: 3,
       pendentes: 0,
-      eligible: 30,
+      eligible: 28,
+      failedMembers: [
+        { nome: "Ogã Juniel", telefone: "5582999811036" },
+        { nome: "Kely D' Oxum", telefone: "5535991459837" },
+        { nome: "Brenda D'Òṣún", telefone: "5535991531203" },
+      ],
     });
-    assert.match(text, /Falhas: 3/);
-    assert.match(text, /3 avisos nao foram entregues/);
+    assert.match(text, /✅ 25 médiuns receberam com sucesso/);
+    assert.match(text, /⚠️ 3 números falharam/);
+    assert.match(text, /• Ogã Juniel \(82 99981-1036\)/);
+    assert.match(text, /• Kely D' Oxum \(35 99145-9837\)/);
+    assert.match(text, /• Brenda D'Òṣún \(35 99153-1203\)/);
   });
 });

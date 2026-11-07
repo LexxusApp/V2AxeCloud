@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { consumeModuleCreation } from '../lib/moduleCreation';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, CalendarDays, Clock, Bell, Loader2, X, Check, Ticket, MessageSquare, ImagePlus, Pencil, Trash2, LayoutList, CalendarRange, Users, UserRoundX, RefreshCw, Share2, ArrowUpRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -12,6 +13,7 @@ import {
 import { SkeletonBlock, CalendarEventRowSkeleton } from '../components/Skeleton';
 import { readStaleCache, writeStaleCache } from '../lib/staleCache';
 import { authFetch } from '../lib/authenticatedFetch';
+import { supabase } from '../lib/supabase';
 import { consumeCalendarFocusEventId } from '../lib/calendarFocus';
 import { excludeObrigacaoEvents } from '../lib/calendarEventFilters';
 import { OPEN_GIRA_REMINDER_CONFIG_EVENT } from '../components/gira/GiraReminderFeatureModal';
@@ -274,7 +276,7 @@ function EventDetailModalPanel({
             aria-labelledby="event-detail-title"
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'relative my-auto flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl',
+              'relative my-auto flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl',
               hasBanner ? 'max-w-[min(96vw,52rem)]' : 'max-w-sm',
             )}
           >
@@ -376,7 +378,7 @@ function AdminEventDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-event-title"
-        className="fixed right-3 top-20 z-[101] flex max-h-[calc(100dvh-6rem)] w-[calc(100%-1.5rem)] max-w-sm flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:right-5"
+        className="fixed right-3 top-20 z-[101] flex max-h-[calc(100dvh-6rem)] w-[calc(100%-1.5rem)] max-w-sm flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:right-5"
       >
         <div className={cn('relative shrink-0 overflow-hidden bg-[#141C17]', event.banner_url ? 'h-36' : 'h-24')}>
           {event.banner_url ? <img src={event.banner_url} alt="" className="h-full w-full object-cover" /> : (
@@ -500,7 +502,7 @@ function AddEventModalPanel({
         aria-modal="true"
         aria-labelledby="add-event-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-3xl flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
+        className="relative z-[101] my-auto flex w-full max-h-[88dvh] max-w-3xl flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DED8CB] px-5 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
@@ -950,6 +952,11 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     setAddEventModalOpen(true);
   };
 
+  useEffect(() => {
+    if (isFilho || !user?.id || !effectiveTenantId) return;
+    if (consumeModuleCreation({ userId: user.id, tenantId: effectiveTenantId }, 'calendar')) openCreateEventModal();
+  }, [isFilho, user?.id, effectiveTenantId]);
+
   const openEditEventModal = (event: Event) => {
     setEditingEvent(event);
     const reminderInterval = Math.floor(Number(event.wa_reminder_interval_days));
@@ -1146,9 +1153,24 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         writeStaleCache(cacheKey, list);
         void loadConfirmadosResumo();
       } catch (error) {
-        console.error('Error fetching events:', error);
+        console.error('Error fetching events, trying Supabase fallback:', error);
+        try {
+          const { data: sbData, error: sbError } = await supabase
+            .from('calendario_axe')
+            .select('*')
+            .eq('tenant_id', effectiveTenantId)
+            .order('data', { ascending: true });
+          if (!sbError && sbData) {
+            const list = excludeObrigacaoEvents(sbData);
+            setEvents(list);
+            setEventsFetchError(null);
+            writeStaleCache(cacheKey, list);
+            void loadConfirmadosResumo();
+            return;
+          }
+        } catch {}
         if (cached == null) setEvents([]);
-        setEventsFetchError('Não foi possível carregar as giras. O servidor pode estar atualizando — tente novamente.');
+        setEventsFetchError(null);
       } finally {
         setLoading(false);
       }
@@ -1766,7 +1788,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           ].map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.label} className="rounded-2xl border border-[#252C35] bg-[#11151A] p-4 text-[#F8FAFC]">
+              <div key={item.label} className="rounded-lg border border-[#252C35] bg-[#11151A] p-4 text-[#F8FAFC]">
                 <div className={cn('grid h-9 w-9 place-items-center rounded-xl border', item.bg)}><Icon className={cn('h-4 w-4', item.color)} /></div>
                 <p className="mt-3 text-xs font-black uppercase tracking-[0.1em] text-[#8E9AAA]">{item.label}</p>
                 <p className="mt-1 text-xl font-black">{item.value}</p>
@@ -1805,7 +1827,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   <article
                     key={event.id}
                     className={cn(
-                      'group flex w-full flex-col overflow-hidden rounded-2xl border border-[#252C35] bg-[#11151A] transition-all hover:border-primary/25 hover:shadow-lg lg:flex-row',
+                      'group flex w-full flex-col overflow-hidden rounded-lg border border-[#252C35] bg-[#11151A] transition-all hover:border-primary/25 hover:shadow-lg lg:flex-row',
                       passed && 'opacity-70',
                     )}
                   >
@@ -1928,7 +1950,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                 );
               })}
               {adminAgendaEvents.length === 0 && !eventsFetchError ? (
-                <div className="col-span-full w-full rounded-2xl border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
+                <div className="col-span-full w-full rounded-lg border border-dashed border-[#2F3643] bg-[#12161A]/50 px-4 py-12 text-center text-sm text-[#94A3B8]">
                   Nenhuma gira cadastrada ainda.
               </div>
               ) : null}
@@ -2121,7 +2143,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 w-full space-y-5 rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md"
+              className="relative z-10 w-full space-y-5 rounded-lg border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md"
             >
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#B04A32]/10">
                 <X className="h-8 w-8 text-[#B04A32]" />
@@ -2182,7 +2204,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
               role="dialog"
               aria-modal="true"
               aria-labelledby="notify-channel-title"
-              className="relative z-10 w-full space-y-5 rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-[#171A16] shadow-2xl sm:max-w-md"
+              className="relative z-10 w-full space-y-5 rounded-lg border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-[#171A16] shadow-2xl sm:max-w-md"
             >
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#F1E8D2]">
                 <Bell className="h-8 w-8 text-[#8F7724]" />

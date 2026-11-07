@@ -92,15 +92,35 @@ export function SettingsSubNav({ active, onChange }: SettingsSubNavProps) {
 
 export function SettingsTabHeader() {
   return (
-    <div className="settings-tab-header border-b border-white/10 bg-[#10281B] px-5 py-6 text-white sm:px-7 sm:py-7">
-      <div className="flex max-w-3xl items-start gap-4">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#F4C430] text-[#173323]">
-          <Settings className="h-5 w-5" aria-hidden />
+    <div className="settings-tab-header relative overflow-hidden border-b border-[#D4AF37]/35 bg-gradient-to-br from-[#09150E] via-[#0F261B] to-[#173A2A] px-6 py-7 text-white sm:px-8 sm:py-8">
+      {/* Background ambient glow */}
+      <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gradient-to-br from-[#D4AF37]/20 via-[#1F5942]/30 to-transparent blur-3xl" />
+      <svg
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-28 w-full opacity-40 mix-blend-screen"
+        viewBox="0 0 1200 130"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M-20 95 Q 260 25 560 70 T 1220 45"
+          stroke="#F2CE55"
+          strokeWidth="2.2"
+          fill="none"
+        />
+      </svg>
+      <div className="relative z-10 flex max-w-3xl items-start gap-4">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#D4AF37]/50 bg-[#17251D] text-[#F6C94C] shadow-sm">
+          <Settings className="h-6 w-6" aria-hidden />
         </span>
         <div>
-          <h1 className="font-display text-2xl font-black tracking-tight text-white sm:text-3xl">Configurações</h1>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-white/65">
-            Gerencie a identidade da casa, a segurança da conta e os avisos pelo WhatsApp.
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E5AE12]/20 border border-[#E5AE12]/45 px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#F6C94C]">
+              ✦ GESTÃO ADMINISTRATIVA DO TERREIRO ✦
+            </span>
+          </div>
+          <h1 className="font-display text-2xl font-black tracking-tight text-white sm:text-3xl">Configurações da Casa</h1>
+          <p className="mt-1.5 text-xs sm:text-sm font-medium leading-relaxed text-[#D2E2D7]">
+            Gerencie a identidade do terreiro, brasão da casa, credenciais de acesso e automações do canal oficial do WhatsApp.
           </p>
         </div>
       </div>

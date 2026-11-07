@@ -7,6 +7,21 @@ import { cn } from '../../lib/utils';
 import { resolveChildWhatsAppPhone } from '../../lib/whatsappPhone';
 import BodyPortal from '../BodyPortal';
 
+
+const CARGO_PRESETS = [
+  'Abiã',
+  'Iyawó',
+  'Ekeji',
+  'Ogã',
+  'Babalaô',
+  'Cambono',
+  'Curimbeiro',
+  'Mãe Pequena',
+  'Pai Pequeno',
+  'Médium de Desenvolvimento',
+  'Filho de Santo',
+];
+
 const ORIXAS = ['Oxalá', 'Iemanjá', 'Ogum', 'Oxóssi', 'Xangô', 'Iansã', 'Oxum', 'Nanã', 'Obaluaê', 'Exu', 'Pombagira'];
 
 const paperLabelClass =
@@ -41,6 +56,11 @@ export function ChildProfileEditModal({
   showDelete,
 }: ChildProfileEditModalProps) {
   if (!open) return null;
+
+  const currentCargo = String(editData.cargo || '');
+  const [isCustomCargo, setIsCustomCargo] = React.useState(
+    Boolean(currentCargo && !CARGO_PRESETS.includes(currentCargo))
+  );
 
   const quizilasValue = Array.isArray(editData.quizilas)
     ? editData.quizilas.join(', ')
@@ -140,7 +160,7 @@ export function ChildProfileEditModal({
                   11 dígitos liberam o comprovante automático. Os 6 primeiros continuam sendo a senha de acesso.
                 </p>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-2 sm:col-span-2">
                 <label className={fieldLabel}>WhatsApp</label>
                 <input
                   type="tel"
@@ -151,6 +171,20 @@ export function ChildProfileEditModal({
                 />
               </div>
 
+              <div className="col-span-2 sm:col-span-2">
+                <label className={fieldLabel}>E-mail (acesso ao portal)</label>
+                <input
+                  type="email"
+                  value={String(editData.email || '')}
+                  onChange={(e) => onChange('email', e.target.value.trim().toLowerCase())}
+                  placeholder="filho@exemplo.com"
+                  className={fieldInput}
+                />
+                <p className="mt-1 text-[10px] text-[#8A8070]">
+                  Permite ao filho entrar no portal usando o próprio e-mail pessoal.
+                </p>
+              </div>
+
               <div className="col-span-2 sm:col-span-4">
                 <label className={fieldLabel}>Endereço</label>
                 <input
@@ -159,6 +193,55 @@ export function ChildProfileEditModal({
                   onChange={(e) => onChange('endereco', e.target.value)}
                   className={fieldInput}
                 />
+              </div>
+
+              <div className="col-span-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <label className={fieldLabel}>Cargo</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomCargo((prev) => !prev)}
+                    className="text-[9px] font-bold text-[#8F7724] hover:text-[#17251D] cursor-pointer"
+                  >
+                    {isCustomCargo ? 'Escolher da lista' : 'Digitar outro'}
+                  </button>
+                </div>
+                {isCustomCargo ? (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={fieldInput}
+                      list="edit-cargos-sugestoes"
+                      value={currentCargo}
+                      onChange={(e) => onChange('cargo', e.target.value)}
+                      placeholder="Ex: Cambono, Pai Pequeno..."
+                    />
+                    <datalist id="edit-cargos-sugestoes">
+                      {CARGO_PRESETS.map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                  </div>
+                ) : (
+                  <select
+                    className={cn(fieldInput, '[&>option]:bg-white')}
+                    value={CARGO_PRESETS.includes(currentCargo) ? currentCargo : (currentCargo ? '__custom__' : '')}
+                    onChange={(e) => {
+                      if (e.target.value === '__custom__') {
+                        setIsCustomCargo(true);
+                        onChange('cargo', '');
+                      } else {
+                        onChange('cargo', e.target.value);
+                      }
+                    }}
+                  >
+                    <option value="">Selecione…</option>
+                    {CARGO_PRESETS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                    <option value="__custom__">✏️ Outro (digitar cargo...)</option>
+                  </select>
+                )}
               </div>
 
               <div className="col-span-2">
@@ -212,8 +295,31 @@ export function ChildProfileEditModal({
                   value={quizilasValue}
                   onChange={(e) => onChange('quizilas', e.target.value)}
                   placeholder="Separe por vírgula"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className={fieldLabel}>Limite Cantina / Loja (R$)</label>
+                <input
+                  type="number"
+                  step="10"
+                  min="0"
+                  value={Number(editData.limite_lojinha !== undefined && editData.limite_lojinha !== null ? editData.limite_lojinha : 100)}
+                  onChange={(e) => onChange('limite_lojinha', Number(e.target.value))}
                   className={fieldInput}
                 />
+              </div>
+
+              <div className="col-span-2 flex items-center pt-4">
+                <label className="flex items-center gap-2 text-xs font-bold text-[#171A16] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!editData.bloquear_fiado_loja}
+                    onChange={(e) => onChange('bloquear_fiado_loja', e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>Bloquear compras a prazo</span>
+                </label>
               </div>
             </div>
           </div>

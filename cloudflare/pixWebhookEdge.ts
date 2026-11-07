@@ -1,5 +1,32 @@
 import { createClient } from "@supabase/supabase-js";
 
+export function isPixActivationAlreadyApplied(lastChargeId: unknown, txid: string): boolean {
+  return String(lastChargeId || "").trim() === `pix:${txid}`;
+}
+
+const EFI_PIX_WEBHOOK_IPS = new Set(["34.193.116.226"]);
+
+function constantTimeTextEqual(left: string, right: string): boolean {
+  if (!left || left.length !== right.length) return false;
+  let diff = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    diff |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return diff === 0;
+}
+
+export function isTrustedEfiPixWebhook(input: {
+  sourceIp?: string | null;
+  expectedSecret?: string | null;
+  suppliedSecret?: string | null;
+}): boolean {
+  const sourceIp = String(input.sourceIp || "").trim();
+  if (EFI_PIX_WEBHOOK_IPS.has(sourceIp)) return true;
+  const expected = String(input.expectedSecret || "").trim();
+  const supplied = String(input.suppliedSecret || "").trim();
+  return !!expected && constantTimeTextEqual(expected, supplied);
+}
+
 export async function handlePixWebhookEdge(
   rawBody: string,
   url: URL,
@@ -8,7 +35,11 @@ export async function handlePixWebhookEdge(
     SUPABASE_SERVICE_ROLE_KEY?: string;
     VITE_SUPABASE_URL?: string;
     [k: string]: unknown;
-  }
+  },
+  requestSecurity?: {
+    sourceIp?: string | null;
+    suppliedSecret?: string | null;
+  },
 ): Promise<Response | null> {
   const isEfiWebhook =
     url.pathname === "/api/webhooks/efi" ||
@@ -34,6 +65,18 @@ export async function handlePixWebhookEdge(
 
   const pixList = body.pix as Array<Record<string, unknown>>;
 
+  if (!isTrustedEfiPixWebhook({
+    sourceIp: requestSecurity?.sourceIp,
+    expectedSecret: String(env.EFI_WEBHOOK_SECRET || ""),
+    suppliedSecret: requestSecurity?.suppliedSecret,
+  })) {
+    console.warn("[pix-edge] Webhook Pix recusado: origem não autenticada");
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: { "x-axecloud-runtime": "cloudflare-edge-pix" },
+    });
+  }
+
   // Handshake ou probe de validação do webhook da Efí (ex: array vazio [])
   if (pixList.length === 0) {
     return new Response("OK", {
@@ -46,7 +89,10 @@ export async function handlePixWebhookEdge(
   const serviceKey = String(env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!supabaseUrl || !serviceKey) {
     console.error("[pix-edge] Supabase credentials ausentes");
-    return new Response("OK", { status: 200 }); // Retorna 200 para a Efí não re-tentar indefinidamente
+    return new Response("Temporarily unavailable", {
+      status: 503,
+      headers: { "Retry-After": "60", "x-axecloud-runtime": "cloudflare-edge-pix" },
+    });
   }
 
   const sb = createClient(supabaseUrl, serviceKey, {
@@ -54,6 +100,7 @@ export async function handlePixWebhookEdge(
   });
 
   const now = new Date().toISOString();
+  let processingFailed = false;
 
   for (const pixItem of pixList) {
     const txid = String(pixItem?.txid || "").trim();
@@ -61,19 +108,47 @@ export async function handlePixWebhookEdge(
 
     console.log(`[pix-edge] Processando PIX txid=${txid}`);
 
-    const { data: sub, error: subError } = await sb
+    let { data: sub, error: subError } = await sb
       .from("subscriptions")
-      .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, efi_pix_txid, efi_charge_id")
+      .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, efi_pix_txid, efi_charge_id, last_activated_charge_id")
       .or(`efi_pix_txid.eq.${txid},efi_charge_id.eq.pix:${txid}`)
       .maybeSingle();
 
     if (subError) {
       console.error("[pix-edge] Erro ao buscar assinatura:", subError.message);
+      processingFailed = true;
       continue;
     }
 
     if (!sub) {
+      const { data: event } = await sb
+        .from("payment_webhook_events")
+        .select("tenant_id")
+        .eq("provider", "efi_pix")
+        .eq("charge_id", txid)
+        .not("tenant_id", "is", null)
+        .order("occurred_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (event?.tenant_id) {
+        const fallback = await sb
+          .from("subscriptions")
+          .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, efi_pix_txid, efi_charge_id, last_activated_charge_id")
+          .eq("id", event.tenant_id)
+          .maybeSingle();
+        sub = fallback.data;
+        subError = fallback.error;
+      }
+    }
+
+    if (subError || !sub) {
       console.warn(`[pix-edge] Assinatura não localizada para txid=${txid}`);
+      processingFailed = true;
+      continue;
+    }
+
+    if (isPixActivationAlreadyApplied(sub.last_activated_charge_id, txid)) {
+      console.log(`[pix-edge] PIX já aplicado; ignorando repetição txid=${txid}`);
       continue;
     }
 
@@ -104,6 +179,8 @@ export async function handlePixWebhookEdge(
 
     if (updateSubErr) {
       console.error("[pix-edge] Falha ao atualizar assinatura:", updateSubErr.message);
+      processingFailed = true;
+      continue;
     } else {
       console.log(`[pix-edge] Assinatura ativada até ${expiresAt} para tenant=${sub.id}`);
     }
@@ -290,8 +367,8 @@ export async function handlePixWebhookEdge(
     }
   }
 
-  return new Response("OK", {
-    status: 200,
+  return new Response(processingFailed ? "Retry" : "OK", {
+    status: processingFailed ? 503 : 200,
     headers: { "Content-Type": "text/plain; charset=utf-8", "x-axecloud-runtime": "cloudflare-edge-pix" },
   });
 }

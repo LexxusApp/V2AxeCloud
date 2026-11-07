@@ -29,6 +29,7 @@ phone_id = env.get("WA_PHONE_NUMBER_ID")
 sb_url = env.get("VITE_SUPABASE_URL")
 sb_key = env.get("SUPABASE_SERVICE_ROLE_KEY")
 TEMPLATE_NAME = "galeria_memoria_100gb_axecloud"
+MEDIA_ID = "2455329178291729"
 
 headers_sb = {
     "apikey": sb_key,
@@ -46,9 +47,14 @@ def normalize_phone(phone_str):
         digits = "55" + digits
     if len(digits) == 13 and digits.startswith("55"):
         return digits
+    if len(digits) == 12 and digits.startswith("55"):
+        # Se falta o 9 no celular (55 + 2 dígitos DDD + 8 dígitos)
+        return digits[:4] + "9" + digits[4:]
     return digits if len(digits) >= 12 else None
 
 def send_template(phone, nome_zelador, nome_terreiro):
+    clean_zelador = " ".join(str(nome_zelador or "Zelador(a)").split())[:60]
+    clean_terreiro = " ".join(str(nome_terreiro or "Terreiro").split())[:80]
     url = f"https://graph.facebook.com/v21.0/{phone_id}/messages"
     payload = {
         "messaging_product": "whatsapp",
@@ -60,10 +66,21 @@ def send_template(phone, nome_zelador, nome_terreiro):
             "language": {"code": "pt_BR"},
             "components": [
                 {
+                    "type": "header",
+                    "parameters": [
+                        {
+                            "type": "image",
+                            "image": {
+                                "id": MEDIA_ID
+                            }
+                        }
+                    ]
+                },
+                {
                     "type": "body",
                     "parameters": [
-                        {"type": "text", "text": str(nome_zelador or "Zelador").strip()[:60]},
-                        {"type": "text", "text": str(nome_terreiro or "Terreiro").strip()[:80]}
+                        {"type": "text", "text": clean_zelador},
+                        {"type": "text", "text": clean_terreiro}
                     ]
                 }
             ]
@@ -92,7 +109,7 @@ def log_whatsapp(tenant_id, phone, msg_id, status, error=None):
         "tipo": "aviso_galeria_100gb",
         "mensagem": f"Template: {TEMPLATE_NAME} | Status: {status} | Error: {error or 'None'}",
         "status": status,
-        "meta_message_id": msg_id
+        "external_id": msg_id
     }
     req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers_sb)
     try:
@@ -101,7 +118,11 @@ def log_whatsapp(tenant_id, phone, msg_id, status, error=None):
         print(f"Erro ao salvar log: {e}", file=sys.stderr)
 
 def main(dry_run=True):
-    print(f"=== INICIANDO COMUNICADO GALERIA 100 GB (dry_run={dry_run}) ===")
+    mode = "DRY-RUN (Simulação)" if dry_run else "LIVE (DISPARO REAL EM PRODUÇÃO)"
+    print(f"\n=======================================================")
+    print(f"  COMUNICADO AXÉCLOUD 100 GB GALERIA — {mode}")
+    print(f"=======================================================\n")
+
     req = urllib.request.Request(
         f"{sb_url}/rest/v1/perfil_lider?select=id,cargo,nome_terreiro,email,whatsapp,whatsapp_publico,is_blocked,deleted_at",
         headers=headers_sb
@@ -115,7 +136,7 @@ def main(dry_run=True):
 
     seen_phones = set()
 
-    for leader in leaders:
+    for idx, leader in enumerate(leaders, 1):
         if leader.get("deleted_at"):
             skipped_count += 1
             continue
@@ -132,22 +153,25 @@ def main(dry_run=True):
         tenant_id = leader.get("id")
 
         if dry_run:
-            print(f"[DRY-RUN] Enviaria para: {cargo} | {nome_terreiro} | Tel: {phone}")
+            print(f"[{sent_count+1}] [DRY-RUN] -> {cargo} | {nome_terreiro} | Tel: {phone}")
             sent_count += 1
         else:
+            print(f"[{sent_count+error_count+1}/{len(leaders)}] Enviando para {cargo} ({nome_terreiro}) - {phone}...", end=" ", flush=True)
             ok, res = send_template(phone, cargo, nome_terreiro)
             if ok:
-                print(f"[ENVIADO] {cargo} ({nome_terreiro}) -> {phone} [MsgID: {res}]")
+                print(f"OK! [MsgID: {res}]")
                 log_whatsapp(tenant_id, phone, res, "sent")
                 sent_count += 1
             else:
-                print(f"[ERRO] {cargo} ({nome_terreiro}) -> {phone} [Erro: {res}]")
+                print(f"FALHOU! [Erro: {res}]")
                 log_whatsapp(tenant_id, phone, None, "failed", error=str(res))
                 error_count += 1
-            time.sleep(0.5)  # Respeita o rate limit da Meta Cloud API
+            time.sleep(0.6)  # Respeita o rate limit da Meta Cloud API
 
-    print(f"\n=== RESUMO: Enviados: {sent_count} | Pulados: {skipped_count} | Erros: {error_count} ===")
+    print(f"\n=======================================================")
+    print(f"  RESUMO FINAL: Enviados: {sent_count} | Pulados: {skipped_count} | Erros: {error_count}")
+    print(f"=======================================================\n")
 
 if __name__ == "__main__":
-    is_dry = "--live" not in sys.argv
-    main(dry_run=is_dry)
+    is_live = "--live" in sys.argv
+    main(dry_run=not is_live)

@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs';
 
 const worker = readFileSync('cloudflare/app-shell-worker.js', 'utf8');
 const config = readFileSync('wrangler.app-production.jsonc', 'utf8');
-const app = readFileSync('src/App.tsx', 'utf8');
+const app = [
+  readFileSync('src/App.tsx', 'utf8'),
+  readFileSync('src/components/app/AppViewRouter.tsx', 'utf8'),
+].join('\n');
 
 test('worker preserva links antigos do painel e do cadastro', () => {
   for (const [path, tab] of [
@@ -46,11 +49,11 @@ test('painel aceita links diretos para todos os módulos da zeladoria', () => {
     'development',
     'camarinha',
   ]) {
-    assert.match(app, new RegExp(`'${tab}'`));
+    assert.match(app, new RegExp(`["']${tab}["']`));
   }
   assert.match(app, /normalizeZeladorDeepLinkTab\(tab\)/);
-  assert.match(app, /tab === 'atendimentos' \? 'consulentes'/);
+  assert.match(app, /tab === ["']atendimentos["'] \? ["']consulentes["']/);
   assert.match(app, /const initialTab = isFilhoAuth/);
   assert.match(app, /normalizeZeladorDeepLinkTab\(requestedTab\)/);
-  assert.doesNotMatch(app, /setActiveTab\(isFilhoAuth \? 'profile' : 'dashboard'\)/);
+  assert.doesNotMatch(app, /setActiveTab\(isFilhoAuth \? ["']profile["'] : ["']dashboard["']\)/);
 });

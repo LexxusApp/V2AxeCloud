@@ -106,7 +106,14 @@ function registerProductionServiceWorker() {
 }
 
 function bootstrapApp() {
-  if (import.meta.env.PROD && isCanonicalAppOrigin()) {
+  const isLocal = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '0.0.0.0' ||
+    window.location.hostname.includes('localhost')
+  );
+
+  if (import.meta.env.PROD && isCanonicalAppOrigin() && !isLocal) {
     reconcileStaleAppliedBuild();
     initPwaInstallController();
     registerProductionServiceWorker();
@@ -131,7 +138,7 @@ function bootstrapApp() {
   document.getElementById('axecloud-boot')?.remove();
   cleanBrowserUrl();
 
-  if (import.meta.env.PROD && isCanonicalAppOrigin()) {
+  if (import.meta.env.PROD && isCanonicalAppOrigin() && !isLocal) {
     startBuildVersionPolling();
   }
 

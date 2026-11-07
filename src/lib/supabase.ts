@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getRuntimeSupabaseAnonKey, getRuntimeSupabaseUrl } from './runtimeConfig';
+import { installRealtimePageLifecycle } from './realtimePageLifecycle';
 
 // --- Supabase React StrictMode Lock Warning/Error Mitigation ---
 // React StrictMode double-mounts components in development, causing Supabase GoTrue to
@@ -22,12 +23,13 @@ console.warn = (...args) => {
   if (msg && msg.includes('width(-1) and height(-1) of chart')) {
     return;
   }
-  // Falha benigna ao fechar Realtime antes do handshake (StrictMode / troca de rota)
+  // Falha benigna ao fechar Realtime antes do handshake (StrictMode / troca de rota / BFCache)
   if (
     msg &&
-    msg.includes('WebSocket connection to') &&
-    msg.includes('supabase.co') &&
-    (msg.includes('failed') || msg.includes('closed before the connection is established'))
+    (msg.includes('Back-Forward Cache') ||
+      (msg.includes('WebSocket connection to') &&
+        msg.includes('supabase.co') &&
+        (msg.includes('failed') || msg.includes('closed before the connection is established'))))
   ) {
     return;
   }
@@ -45,9 +47,10 @@ console.error = (...args) => {
   }
   if (
     msg &&
-    msg.includes('WebSocket connection to') &&
-    msg.includes('supabase.co') &&
-    (msg.includes('failed') || msg.includes('closed before the connection is established'))
+    (msg.includes('Back-Forward Cache') ||
+      (msg.includes('WebSocket connection to') &&
+        msg.includes('supabase.co') &&
+        (msg.includes('failed') || msg.includes('closed before the connection is established'))))
   ) {
     return;
   }
@@ -327,6 +330,12 @@ export const supabase: SupabaseClient =
 
 if (typeof globalThis !== 'undefined') {
   globalForSupabase.__AXECLOUD_SUPABASE__ = supabase;
+}
+
+if (typeof window !== 'undefined') {
+  const lifecycleWindow = window as Window & { __axeRealtimeLifecycleCleanup?: () => void };
+  lifecycleWindow.__axeRealtimeLifecycleCleanup?.();
+  lifecycleWindow.__axeRealtimeLifecycleCleanup = installRealtimePageLifecycle(supabase.realtime, window);
 }
 
 /** Abas em segundo plano pausam timers do browser — religa auto-refresh e renova token perto do fim ao voltar. */

@@ -1,3 +1,9 @@
+function isLocalhost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h.includes('localhost');
+}
+
 import { useEffect, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { checkRemoteBuildVersion } from '../lib/buildVersionPoll';
@@ -33,6 +39,7 @@ function isDismissedRecently(): boolean {
 }
 
 function shouldShowBanner(): boolean {
+  if (isLocalhost()) return false;
   const remote = getPendingRemoteBuildId();
   return (
     !shouldSuppressPwaUpdatePrompt(remote) &&
@@ -54,6 +61,7 @@ export function PwaUpdateBanner() {
   useEffect(() => {
     if (!canMount) return;
 
+    if (isLocalhost()) return;
     void checkRemoteBuildVersion().then((found) => {
       if (found && !isDismissedRecently() && !shouldSuppressPwaUpdatePrompt()) {
         setVisible(true);

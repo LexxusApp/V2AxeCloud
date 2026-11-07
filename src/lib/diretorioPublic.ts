@@ -1,4 +1,5 @@
 import type { GiraScheduleItem } from '../../lib/giraSchedule';
+import type { PilotRadarPublic } from './pilotRadarPublic';
 
 export type DiretorioEstabelecimentoTipo = 'terreiro' | 'loja';
 
@@ -30,7 +31,8 @@ export type DiretorioTerreiro = {
   indexable?: boolean;
   perfilUrl: string | null;
   cidadeUrl: string | null;
-  horariosGira?: GiraScheduleItem[];
+  horariosGira?: (GiraScheduleItem & {horarioFim?:string})[];
+  pilotRadar?: PilotRadarPublic;
 };
 
 export type DiretorioBairroGroup = {

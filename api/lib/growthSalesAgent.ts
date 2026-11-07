@@ -64,7 +64,7 @@ export async function handleGrowthInboundAutoReply(
       const { data: leader } = await sb
         .from("perfil_lider")
         .select("id, nome_terreiro")
-        .or(`whatsapp.ilike.%${digits}%,telefone.ilike.%${digits}%`)
+        .or(`phone_normalized.ilike.%${digits}%,telefone.ilike.%${digits}%`)
         .limit(1)
         .maybeSingle();
       if (leader) {
@@ -76,7 +76,7 @@ export async function handleGrowthInboundAutoReply(
     const { data: lead } = await sb
       .from("prospecting_leads")
       .select("id, name, phone, city, state, status, directory_id")
-      .or(`phone.ilike.%${digits}%,whatsapp.ilike.%${digits}%`)
+      .or(`phone.ilike.%${digits}%,phone_normalized.ilike.%${digits}%`)
       .limit(1)
       .maybeSingle();
 
@@ -213,16 +213,35 @@ export async function handleGrowthInboundAutoReply(
 
         // Disparar template oficial de boas-vindas da Meta (registrando em whatsapp_logs)
         try {
-          const { sendWelcomeMessage } = await import("./welcomeMessage.js");
-          await sendWelcomeMessage({
-            nome_zelador: zeladorNome,
-            nome_terreiro: terreiroNome,
-            email: rawEmail,
-            msisdn: input.phone,
-            senha: tempPassword,
-            tenantId: userId,
-            sb,
-          });
+          const {
+            dispatchZeladorWelcomeWhatsApp,
+            loadWelcomeMessageConfig,
+            normalizeBrazilMsisdn,
+            renderWelcomeMessage,
+          } = await import("./welcomeMessage.js");
+          const cfg = await loadWelcomeMessageConfig(sb);
+          const msisdn = normalizeBrazilMsisdn(input.phone);
+          if (cfg.enabled && msisdn) {
+            const freeText = renderWelcomeMessage(cfg.template, {
+              nome_zelador: zeladorNome,
+              nome_terreiro: terreiroNome,
+              email: rawEmail,
+              senha: tempPassword,
+              site: cfg.loginUrl,
+              assinatura: cfg.signature,
+            });
+            await dispatchZeladorWelcomeWhatsApp({
+              nome_zelador: zeladorNome,
+              nome_terreiro: terreiroNome,
+              email: rawEmail,
+              msisdn,
+              senha: tempPassword,
+              site: cfg.loginUrl,
+              freeText,
+              tenantId: userId,
+              sb,
+            });
+          }
         } catch (welcomeErr) {
           console.warn("[GROWTH AI] falha ao disparar template de boas-vindas:", welcomeErr);
         }

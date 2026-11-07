@@ -1,0 +1,37 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { shouldCacheStaticAsset } from '../src/lib/serviceWorkerCachePolicy';
+import { installRealtimePageLifecycle } from '../src/lib/realtimePageLifecycle';
+test('service worker caches static files, never navigation, API, auth or writes',()=>{
+  const base={request:{method:'GET',mode:'cors',destination:'script',headers:new Headers(),cache:'default'},url:new URL('https://axecloud.com.br/assets/app.js'),sameOrigin:true} as Parameters<typeof shouldCacheStaticAsset>[0];
+  assert.equal(shouldCacheStaticAsset(base),true);
+  for(const destination of ['style','font','worker'])assert.equal(shouldCacheStaticAsset({...base,request:{...base.request,destination:destination as RequestDestination}}),true);
+  for(const pathname of ['/api/tenant-info','/api/v1/dashboard/core','/api/children','/webhook/whatsapp'])assert.equal(shouldCacheStaticAsset({...base,url:new URL(pathname,base.url)}),false);
+  for(const destination of ['','document','image'])assert.equal(shouldCacheStaticAsset({...base,request:{...base.request,destination:destination as RequestDestination}}),false);
+  assert.equal(shouldCacheStaticAsset({...base,request:{...base.request,mode:'navigate'}}),false);
+  assert.equal(shouldCacheStaticAsset({...base,request:{...base.request,method:'POST'}}),false);
+  assert.equal(shouldCacheStaticAsset({...base,request:{...base.request,cache:'no-store'}}),false);
+  assert.equal(shouldCacheStaticAsset({...base,request:{...base.request,headers:new Headers({Authorization:'Bearer private'})}}),false);
+  assert.equal(shouldCacheStaticAsset({...base,sameOrigin:false}),false);
+});
+test('BFCache closes and restores realtime transport once without removing channel registrations',()=>{
+  const events=new EventTarget(),doc=Object.assign(new EventTarget(),{visibilityState:'visible'}),nav={onLine:true};
+  const target=Object.assign(events,{document:doc,navigator:nav}) as unknown as Window;
+  const channels=[{}];let disconnects=0,connects=0;
+  const cleanup=installRealtimePageLifecycle({getChannels:()=>channels,disconnect:()=>{disconnects++;},connect:()=>{connects++;}},target);
+  events.dispatchEvent(new Event('pageshow'));assert.equal(connects,0);
+  events.dispatchEvent(new Event('pagehide'));assert.equal(disconnects,1);assert.equal(channels.length,1);
+  events.dispatchEvent(new Event('pageshow'));events.dispatchEvent(new Event('pageshow'));assert.equal(connects,1);
+  events.dispatchEvent(new Event('pagehide'));nav.onLine=false;events.dispatchEvent(new Event('pageshow'));assert.equal(connects,1);
+  nav.onLine=true;events.dispatchEvent(new Event('online'));assert.equal(connects,2);
+  cleanup();events.dispatchEvent(new Event('pagehide'));assert.equal(disconnects,2);
+});
+test('realtime resumes when a cached hidden page becomes visible; empty channels stay disconnected',()=>{
+  const events=new EventTarget(),doc=Object.assign(new EventTarget(),{visibilityState:'visible'});
+  const target=Object.assign(events,{document:doc,navigator:{onLine:true}}) as unknown as Window;
+  const channels=[{}];let connections=0;
+  installRealtimePageLifecycle({getChannels:()=>channels,disconnect:()=>{},connect:()=>{connections++;}},target);
+  events.dispatchEvent(new Event('pagehide'));doc.visibilityState='hidden';events.dispatchEvent(new Event('pageshow'));assert.equal(connections,0);
+  doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));assert.equal(connections,1);
+  events.dispatchEvent(new Event('pagehide'));channels.length=0;events.dispatchEvent(new Event('pageshow'));assert.equal(connections,1);
+});

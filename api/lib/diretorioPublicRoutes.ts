@@ -23,7 +23,7 @@ import { resolveDiretorioTipo } from "../../lib/diretorioTipo.js";
 import { isDiretorioListingIndexable, isDiretorioListingPublishable } from "../../lib/diretorioQuality.js";
 import { cachedJson } from "./ttlCache.js";
 import { normalizeGiraSchedule } from "../../lib/giraSchedule.js";
-import { resolveDiretorioPublicWhatsapp } from "../../lib/diretorioWhatsapp.js";
+import { resolveDiretorioPublicWhatsapp, resolveDiretorioWhatsapp } from "../../lib/diretorioWhatsapp.js";
 
 type Deps = { supabaseAdmin: SupabaseClient };
 
@@ -175,7 +175,7 @@ function mapRow(row: Record<string, unknown>) {
     latitude: hasCoords ? latitude : null,
     longitude: hasCoords ? longitude : null,
     coordinateSource: hasCoords ? String(row.coordinate_source || "google_maps_url") : null,
-    verificada: Boolean(row.verified_at),
+    verificada: Boolean(row.verified_at || row.claimed_by_tenant_id),
     gerenciada: Boolean(row.claimed_by_tenant_id),
     criadaEm: row.created_at ? String(row.created_at) : null,
     indexable: isDiretorioListingIndexable(row),
@@ -592,7 +592,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         if (ownerId) {
           const { data: ownerProfile, error: ownerProfileError } = await sb
             .from("perfil_lider")
-            .select("tradicao, descricao_publica")
+            .select("tradicao, descricao_publica, whatsapp, whatsapp_publico")
             .eq("id", ownerId)
             .is("deleted_at", null)
             .maybeSingle();
@@ -604,6 +604,17 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
             }
             if (!publicItem.descricao && ownerProfile.descricao_publica) {
               publicItem.descricao = String(ownerProfile.descricao_publica).trim();
+            }
+            const leaderWa = ownerProfile.whatsapp_publico || ownerProfile.whatsapp;
+            if (leaderWa && !publicItem.whatsapp) {
+              const normalized = resolveDiretorioWhatsapp(leaderWa, null);
+              if (normalized) {
+                publicItem.whatsapp = normalized;
+                publicItem.hasWhatsapp = true;
+              }
+            }
+            if (leaderWa && !publicItem.telefone) {
+              publicItem.telefone = String(leaderWa);
             }
           }
         }

@@ -28,6 +28,8 @@ type ProfileRow = {
 
 type FinanceRow = {
   id?: string | null;
+  tenant_id?: string | null;
+  lider_id?: string | null;
   status?: string | null;
   descricao?: string | null;
   data?: string | null;
@@ -46,6 +48,7 @@ export type AdminMensalidadeRecipient = {
   valorFmt: string;
   vencimento: string;
   vencimentoBr: string;
+  isOverdue: boolean;
   sentToday: boolean;
 };
 
@@ -105,24 +108,60 @@ function financialNotificationsEnabled(metadata: unknown): boolean {
 }
 
 export async function listAdminMensalidadeTenants(sb: SupabaseClient) {
-  const [{ data, error }, activeIds] = await Promise.all([
+  const calendar = todayParts();
+  const [{ data, error }, activeIds, { data: financeData }] = await Promise.all([
     sb
       .from("perfil_lider")
       .select("id, tenant_id, nome_terreiro, email, deleted_at, is_blocked")
       .is("deleted_at", null)
       .order("nome_terreiro", { ascending: true }),
     loadActiveTenantScopeIds(sb),
+    sb
+      .from("financeiro")
+      .select("id, status, descricao, data, filho_id, tenant_id, lider_id")
+      .eq("categoria", "Mensalidade")
+      .gte("data", calendar.monthStart)
+      .lte("data", calendar.monthEnd),
   ]);
   if (error) throw error;
 
-  const tenants = ((data || []) as ProfileRow[])
-    .filter((row) => activeIds.has(String(row.id || "")) || activeIds.has(String(row.tenant_id || "")))
-    .map((row) => ({
-      id: String(row.tenant_id || row.id || ""),
-      nomeTerreiro: String(row.nome_terreiro || "Terreiro"),
-      email: row.email ? String(row.email) : null,
-    }))
-    .filter((row) => row.id);
+  const rawProfiles = ((data || []) as ProfileRow[])
+    .filter((row) => activeIds.has(String(row.id || "")) || activeIds.has(String(row.tenant_id || "")));
+
+  const profileByAnyId = new Map<string, ProfileRow>();
+  for (const p of rawProfiles) {
+    if (p.id) profileByAnyId.set(String(p.id), p);
+    if (p.tenant_id) profileByAnyId.set(String(p.tenant_id), p);
+  }
+
+  const pendingByCanonicalId = new Map<string, Set<string>>();
+  for (const row of (financeData || []) as FinanceRow[]) {
+    if (!isUnpaid(row)) continue;
+    const p = profileByAnyId.get(String(row.tenant_id || "")) || profileByAnyId.get(String(row.lider_id || ""));
+    if (!p) continue;
+    const cid = String(p.tenant_id || p.id || "");
+    if (!cid) continue;
+    if (!pendingByCanonicalId.has(cid)) pendingByCanonicalId.set(cid, new Set());
+    const fid = rowFilhoId(row) || String(row.id || "");
+    pendingByCanonicalId.get(cid)!.add(fid);
+  }
+
+  const tenants = rawProfiles
+    .map((row) => {
+      const cid = String(row.tenant_id || row.id || "");
+      const pendingCount = pendingByCanonicalId.get(cid)?.size || 0;
+      return {
+        id: cid,
+        nomeTerreiro: String(row.nome_terreiro || "Terreiro"),
+        email: row.email ? String(row.email) : null,
+        pendingCount,
+      };
+    })
+    .filter((row) => row.id)
+    .sort((a, b) => {
+      if (b.pendingCount !== a.pendingCount) return b.pendingCount - a.pendingCount;
+      return a.nomeTerreiro.localeCompare(b.nomeTerreiro, "pt-BR");
+    });
 
   return { tenants, metaConfigured: isMetaCloudDirectConfigured() };
 }
@@ -168,7 +207,7 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
     .from("whatsapp_logs")
     .select("filho_id")
     .eq("tenant_id", tenantId)
-    .eq("tipo", "cobranca_mensalidade")
+    .in("tipo", ["cobranca_mensalidade", "mensalidade_vencida"])
     .gte("created_at", `${calendar.ymd}T00:00:00-03:00`);
   const sentTodayIds = new Set((sentLogs || []).map((row) => String(row.filho_id || "")).filter(Boolean));
 
@@ -190,6 +229,7 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
     }
     const valor = Number(pending.valor || 0);
     const dueYmd = String(pending.data_vencimento || pending.data || "").slice(0, 10);
+    const isOverdue = Boolean(dueYmd && dueYmd < calendar.ymd);
     recipients.push({
       financeiroId: pending.id || undefined,
       filhoId,
@@ -200,11 +240,15 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
       valorFmt: formatBrl(valor),
       vencimento: dueYmd,
       vencimentoBr: dueYmd ? format(parseISO(dueYmd), "dd/MM/yyyy") : "—",
+      isOverdue,
       sentToday: sentTodayIds.has(filhoId),
     });
   }
 
-  recipients.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  recipients.sort((a, b) => {
+    if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+    return a.nome.localeCompare(b.nome, "pt-BR");
+  });
   const sendable = recipients.filter((recipient) => !recipient.sentToday);
   const cappedRecipients = sendable.slice(0, MAX_MANUAL_RECIPIENTS);
   const config = configResult.data as { templates?: unknown; metadata?: unknown } | null;
@@ -217,6 +261,7 @@ export async function previewAdminMensalidadeDispatch(sb: SupabaseClient, tenant
     mesExtenso: calendar.mesExtenso,
     pending: pendingByChild.size,
     eligible: recipients.length,
+    overdueCount: recipients.filter((r) => r.isOverdue).length,
     withoutPhone,
     alreadySentToday: recipients.length - sendable.length,
     sendable: cappedRecipients.length,
@@ -242,6 +287,7 @@ export async function sendAdminMensalidadeDispatch(
     return { sent: 0, failed: 0, skipped: preview.alreadySentToday, results: [] };
   }
 
+  const calendar = todayParts();
   let sent = 0;
   let failed = 0;
   let reviewSkipped = 0;
@@ -252,6 +298,8 @@ export async function sendAdminMensalidadeDispatch(
         tenant_id: preview.tenantId,
         lider_id: preview.leaderId,
       });
+      const isOverdue = Boolean(target.vencimento && target.vencimento < calendar.ymd);
+      const tipo = isOverdue ? "mensalidade_vencida" : "cobranca_mensalidade";
       const variables = {
         nome_filho: target.nome,
         nome_terreiro: preview.nomeTerreiro,
@@ -261,12 +309,12 @@ export async function sendAdminMensalidadeDispatch(
         valor_mensalidade: target.valorFmt,
         data_vencimento: target.vencimentoBr,
       };
-      const message = buildWhatsAppMessage(preview.templates, "cobranca_mensalidade", variables);
+      const message = buildWhatsAppMessage(preview.templates, tipo, variables);
       if(target.financeiroId&&!(await withoutReceiptReviews(sb,[{id:target.financeiroId}])).length){reviewSkipped++;continue;}
       await logAndSendWhatsApp(sb, {
         tenantId: preview.tenantId,
         filhoId: target.filhoId,
-        tipo: "cobranca_mensalidade",
+        tipo,
         phone: target.phone,
         message,
         nomeMembro: target.nome,

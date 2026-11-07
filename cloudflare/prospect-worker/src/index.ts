@@ -931,7 +931,8 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
       day: '2-digit',
     }).format(now);
     // Prospecção autônoma ativa em horário comercial
-    const isProspectingPaused = false;
+    // Prospecção autônoma desativada pela administração (foco em retenção dos terreiros ativos)
+    const isProspectingPaused = true;
 
     // 1. Descoberta de terreiros roda a cada 4 horas (00, 04, 08, 12, 16, 20 UTC)
     if (!isProspectingPaused && utcHours % 4 === 0) {
@@ -955,8 +956,9 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
       );
     }
 
-    // 2. Follow-up humanizado para leads que não responderam há 2+ horas (roda a cada hora)
-    ctx.waitUntil(
+    // 2. Follow-up para leads (pausado junto com a prospecção)
+    if (!isProspectingPaused) {
+      ctx.waitUntil(
       (async () => {
         try {
           console.log('[Cron:FollowUp] Verificando conversas para re-engajamento humanizado...');
@@ -968,6 +970,7 @@ Ou se preferir, me manda aqui seu e-mail e o nome da casa que eu já gero seu ac
         }
       })(),
     );
+    }
 
     // 3. Disparo autônomo de novos contatos qualificados com template e imagem (dentro do horário comercial)
     if (!isProspectingPaused) {

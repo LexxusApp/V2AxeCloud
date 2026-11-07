@@ -40,7 +40,8 @@ test('admin oferece ranking acumulado e separa procura vinda do Google', () => {
   assert.match(directory, /registraCliquePerfil/);
   assert.match(directory, /axecloud_directory_attribution/);
   assert.match(profile, /google-view/);
-  assert.match(profile, /registrarVisitaGoogle/);
+  assert.match(profile, /const registrarVisita =/);
+  assert.match(profile, /origem\.google \? "google-view" : "profile-click"/);
   assert.match(profile, /whatsapp-click/);
   assert.match(profile, /Conheci o \$\{texto\(nome/);
   assert.match(reactProfile, /directory-profile-whatsapp/);

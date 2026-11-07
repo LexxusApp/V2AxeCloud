@@ -45,9 +45,15 @@ test('todas as ações do perfil usam a política de contato e números não rei
 test("reconhece celular brasileiro válido na base antiga", () => {
   assert.equal(resolveDiretorioWhatsapp(null, "(11) 99999-0000"), "5511999990000");
   assert.equal(resolveDiretorioWhatsapp(null, "+55 21 98888-7777"), "5521988887777");
+  // Suporte a números com 0 no DDD (ex: 011915128744 da Tenda OCA Cabocla Jacira)
+  assert.equal(resolveDiretorioWhatsapp(null, "011915128744"), "5511915128744");
+  assert.equal(resolveDiretorioWhatsapp(null, "(011) 91512-8744"), "5511915128744");
+  assert.equal(resolveDiretorioWhatsapp(null, "021991753227"), "5521991753227");
+  assert.equal(resolveDiretorioWhatsapp(null, "014991860227"), "5514991860227");
 });
 
 test("não apresenta telefone fixo antigo como WhatsApp confirmado", () => {
   assert.equal(resolveDiretorioWhatsapp(null, "(11) 3123-4567"), null);
+  assert.equal(resolveDiretorioWhatsapp(null, "01131234567"), null);
   assert.equal(resolveDiretorioWhatsapp(null, "número indisponível"), null);
 });

@@ -5,6 +5,7 @@ const LEGACY_DASHBOARD_TABS = new Map([
   ['/obligations', 'obligations'],
   ['/financial', 'financial'],
   ['/financial-mensalidades', 'financial-mensalidades'],
+  ['/financial-cantina', 'financial-cantina'],
   ['/financial-configs', 'financial-configs'],
   ['/calendar', 'calendar'],
   ['/frequencia', 'frequencia'],

@@ -1,3 +1,4 @@
+import { downloadLibraryDocument } from '../lib/libraryDownload';
 import DataLoadError from '../components/DataLoadError';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
@@ -26,10 +27,11 @@ import { hasPlanAccess } from '../constants/plans';
 import CommentSection from '../components/CommentSection';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AppDemoCard, AppDemoPanelHeader, AppPrimaryButton, appInputClass } from '../components/ui/appDemoUi';
+import { AxePageHeader, AxeMetricRail, AxeMetricCard, AxeButton, AxeCard } from '../components/shared/AxePageScaffold';
 import BodyPortal from '../components/BodyPortal';
 import { confirmAction } from '../lib/confirmAction';
 import { LibraryCardSkeleton } from '../components/Skeleton';
-import { clearStaleCacheKey, readStaleCache, writeStaleCache } from '../lib/staleCache';
+import { clearStaleCacheKey } from '../lib/staleCache';
 import { resolveTenantIdForFinance } from '../lib/tenantCache';
 import { showHouseToast } from '../lib/houseToast';
 import { FundamentosAcervo } from '../components/library/FundamentosAcervo';
@@ -55,6 +57,8 @@ export interface Material {
   created_at: string;
   tenant_id: string;
   storage_path?: string;
+  visibilidade?: 'casa' | 'individual';
+  destinatarios?: string[];
 }
 
 const CATEGORIES = ['Cantigas', 'História', 'Ervas', 'Orixás', 'Fundamentos'];
@@ -64,11 +68,13 @@ function PdfCover({
   url,
   storagePath,
   tenantId,
+  categoria,
   compact,
 }: {
   url: string;
   storagePath?: string;
   tenantId?: string;
+  categoria?: string;
   compact?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -85,13 +91,14 @@ function PdfCover({
 
         const sources: { url: string; httpHeaders?: Record<string, string> }[] = [];
         const token = await getAccessToken();
-        if (storagePath && tenantId && token) {
+        if (storagePath) {
+          if (!tenantId || !token) throw Error('Sessão necessária para abrir o material.');
           sources.push({
             url: `/api/v1/library/pdf-proxy?path=${encodeURIComponent(storagePath)}&tenantId=${encodeURIComponent(tenantId)}`,
             httpHeaders: { Authorization: `Bearer ${token}` },
           });
         }
-        sources.push({ url });
+        if (!storagePath && url) sources.push({ url });
         let pdf: any = null;
         let lastError: unknown = null;
         for (const source of sources) {
@@ -117,27 +124,23 @@ function PdfCover({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // Renderiza em resolução maior para melhor qualidade, CSS escala depois
         const TARGET_WIDTH = 400;
         const viewport = page.getViewport({ scale: 1 });
         const scale = TARGET_WIDTH / viewport.width;
         const scaled = page.getViewport({ scale });
 
-        // Atributos do canvas controlam a resolução real de renderização
         canvas.width = Math.floor(scaled.width);
         canvas.height = Math.floor(scaled.height);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) { setStatus('error'); return; }
 
-        // Fundo branco explícito (para PDFs transparentes)
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         await page.render({ canvas, canvasContext: ctx, viewport: scaled }).promise;
         if (!cancelled) setStatus('loaded');
       } catch (err) {
-        console.warn('[PdfCover] Erro ao renderizar capa:', err);
         if (!cancelled) setStatus('error');
       }
     }
@@ -147,30 +150,42 @@ function PdfCover({
   }, [url, storagePath, tenantId]);
 
   return (
-    <div className={`relative w-full overflow-hidden bg-[#12161A] ${compact ? 'pdf-cover-compact' : 'pdf-cover-normal'}`}>
-      {/* Spinner enquanto processa */}
-      {status === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 text-primary/40 animate-spin" />
-        </div>
-      )}
-
-      {/* Fallback de erro */}
+    <div className={cn(
+      'relative w-full overflow-hidden border-b border-[#E5DECF] transition-colors',
+      compact ? 'h-32' : 'h-44 sm:h-48',
+      'bg-gradient-to-br from-[#0F261B] via-[#163828] to-[#0A1A12]'
+    )}>
+      {/* Visual litúrgico da encadernação do documento */}
       {status === 'error' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/5 to-transparent">
-          <FileText className="w-14 h-14 text-primary/25" />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-[#64748B]">PDF</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          {/* Textura decorativa sagrada */}
+          <div className="pointer-events-none absolute inset-2 rounded-xl border border-[#D4AF37]/30" />
+          <div className="pointer-events-none absolute inset-3 rounded-lg border border-white/10" />
+
+          <div className="relative mb-2 flex h-12 w-12 items-center justify-center rounded-lg border border-[#D4AF37]/40 bg-[#D4AF37]/15 text-[#F2CE55] shadow-inner">
+            <BookOpen className="h-6 w-6" />
+          </div>
+
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#F2CE55]">
+            {categoria || 'Doutrina & Axé'}
+          </span>
+          <span className="mt-0.5 text-[9px] font-semibold text-emerald-100/70">
+            Apostila & Documento Oficial
+          </span>
         </div>
       )}
 
-      {/* Canvas: 100% de largura via CSS, altura natural — container clipa em 200px */}
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#FAF8F5]">
+          <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin" />
+        </div>
+      )}
+
+      {/* Canvas da 1ª página se renderizada */}
       <canvas
         ref={canvasRef}
-        className={status === 'loaded' ? 'pdf-canvas block' : 'pdf-canvas hidden'}
+        className={status === 'loaded' ? 'pdf-canvas block w-full h-full object-cover' : 'pdf-canvas hidden'}
       />
-
-      {/* Gradiente inferior */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#13171D]/95" />
     </div>
   );
 }
@@ -188,18 +203,36 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [libraryMode, setLibraryMode] = useState<'estudos' | 'fundamentos'>('estudos');
+  const [recipientOptions, setRecipientOptions] = useState<Array<{ id: string; nome: string }>>([]);
+  const [recipientError, setRecipientError] = useState('');
+  const [privateAudienceAvailable, setPrivateAudienceAvailable] = useState(false);
+  const materialRequest = useRef(0);
+  const uploadLock = useRef(false);
 
   const [newMaterial, setNewMaterial] = useState({
     titulo: '',
     categoria: 'Cantigas',
-    file: null as File | null
+    file: null as File | null,
+    visibilidade: 'casa' as 'casa' | 'individual',
+    destinatarios: [] as string[],
   });
 
   const effectiveTenantId =
     resolveTenantIdForFinance(tenantData?.tenant_id, user.id, userRole === 'filho') ||
     (userRole !== 'filho' ? tenantData?.tenant_id || user.id : '');
 
+  useEffect(() => {
+    if (!isUploadModalOpen || !isAdmin || !effectiveTenantId) return;
+    const controller = new AbortController();
+    setRecipientError('');
+    void authFetch(`/api/children?tenantId=${encodeURIComponent(effectiveTenantId)}&userRole=admin`, { signal: controller.signal })
+      .then(async response => { if (!response.ok) throw Error('Não foi possível carregar os filhos. Feche e reabra este formulário para tentar novamente.'); const result = await response.json(); if (!Array.isArray(result.data)) throw Error('Lista de filhos inválida.'); if (!controller.signal.aborted) setRecipientOptions(result.data.map((child: { id: string; nome: string }) => ({ id: child.id, nome: child.nome }))); })
+      .catch(error => { if (!controller.signal.aborted) setRecipientError(error.message); });
+    return () => controller.abort();
+  }, [isUploadModalOpen, isAdmin, effectiveTenantId]);
+
   const fetchMaterials = async () => {
+    const request = ++materialRequest.current;
     setLoadError(null);
     if (!effectiveTenantId) {
       setMaterials([]);
@@ -209,34 +242,35 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
     // A versão anterior armazenava PDFs de demonstração neste cache.
     clearStaleCacheKey(`library_mats_${effectiveTenantId}`);
-    const cacheKey = `library_mats_real_${effectiveTenantId}`;
-    const cached = readStaleCache<Material[]>(cacheKey);
-    if (cached != null) {
-      setMaterials(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
+    clearStaleCacheKey(`library_mats_real_${effectiveTenantId}`);
+    setLoading(true);
 
     try {
       const res = await authFetch(`/api/v1/library/materials?tenantId=${encodeURIComponent(effectiveTenantId)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { data } = await res.json();
+      const { data, capabilities } = await res.json();
       if (!Array.isArray(data)) throw new Error('Resposta de materiais inválida');
+      if (request !== materialRequest.current) return;
+      setPrivateAudienceAvailable(capabilities?.individualAudience === true && capabilities?.authenticatedDownloads === true);
       setMaterials(data);
-      writeStaleCache(cacheKey, data);
     } catch (error) {
+      if (request !== materialRequest.current) return;
       console.warn('Error fetching materials:', error);
       setMaterials([]);
       setLoadError('Não foi possível carregar a biblioteca da casa. Tente novamente.');
     } finally {
-      setLoading(false);
+      if (request === materialRequest.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    setMaterials([]);
+    setSelectedMaterial(null);
+    setRecipientOptions([]);
+    setPrivateAudienceAvailable(false);
+    setIsUploadModalOpen(false);
+    void fetchMaterials();
     if (effectiveTenantId) {
-      void fetchMaterials();
 
       if (isAdmin) {
         supabase
@@ -249,10 +283,12 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
           });
       }
     }
+    return () => { materialRequest.current++; };
   }, [effectiveTenantId, user.id, userRole, isAdmin]);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadLock.current) return;
 
     if (!newMaterial.file) {
       showHouseToast('Selecione um arquivo PDF.', 'error');
@@ -267,11 +303,21 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       showHouseToast('Terreiro não identificado. Recarregue a página.', 'error');
       return;
     }
+    if (newMaterial.visibilidade === 'individual' && (!newMaterial.destinatarios.length || recipientError)) {
+      showHouseToast(recipientError || 'Selecione quem poderá ler este material privado.', 'error');
+      return;
+    }
+    if (newMaterial.visibilidade === 'individual' && !privateAudienceAvailable) {
+      showHouseToast('O envio privado está indisponível. Reabra a biblioteca e tente novamente mais tarde.', 'error');
+      return;
+    }
 
     try {
+      uploadLock.current = true;
       setUploading(true);
       
       const file = newMaterial.file;
+      if (file.size > 50 * 1024 * 1024 || await file.slice(0, 5).text() !== '%PDF-') throw Error('Escolha um PDF válido de até 50 MB.');
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
 
@@ -289,13 +335,17 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
           fileName,
           contentType: file.type,
           categoria: newMaterial.categoria,
-          tenantId: effectiveTenantId
+          tenantId: effectiveTenantId,
+          audienceVersion: 1,
         })
       });
 
       const uploadUrlResult = await uploadUrlResponse.json();
       if (!uploadUrlResponse.ok) {
         throw new Error(uploadUrlResult.error || 'Erro ao preparar upload');
+      }
+      if (newMaterial.visibilidade === 'individual' && uploadUrlResult.audienceVersion !== 1) {
+        throw Error('O envio privado está indisponível. O arquivo não foi enviado. Tente novamente mais tarde.');
       }
 
       const { error: uploadError } = await supabase.storage
@@ -317,7 +367,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
           storagePath: uploadUrlResult.path,
           titulo: newMaterial.titulo,
           categoria: newMaterial.categoria,
-          tenantId: effectiveTenantId
+          tenantId: effectiveTenantId,
+          visibilidade: newMaterial.visibilidade,
+          destinatarios: newMaterial.visibilidade === 'individual' ? newMaterial.destinatarios : [],
         })
       });
 
@@ -327,13 +379,14 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
       }
 
       setIsUploadModalOpen(false);
-      setNewMaterial({ titulo: '', categoria: 'Cantigas', file: null });
+      setNewMaterial({ titulo: '', categoria: 'Cantigas', file: null, visibilidade: 'casa', destinatarios: [] });
       fetchMaterials();
-      showHouseToast('Material publicado na biblioteca');
+      showHouseToast(newMaterial.visibilidade === 'individual' ? 'Material privado disponível para os filhos selecionados' : 'Material publicado na biblioteca');
     } catch (error: any) {
       console.error('Error uploading material:', error);
       showHouseToast(`Erro ao publicar material: ${error.message || 'tente novamente'}`, 'error');
     } finally {
+      uploadLock.current = false;
       setUploading(false);
     }
   };
@@ -389,7 +442,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
 
   const openMaterial = (m: Material) => {
     if (embedded) {
-      window.open(m.arquivo_url, '_blank', 'noopener,noreferrer');
+      void downloadLibraryDocument(m, effectiveTenantId);
     } else {
       setSelectedMaterial(m);
     }
@@ -398,7 +451,6 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
   if (!embedded && libraryMode === 'fundamentos') {
     return (
       <AppPageShell>
-        <DataLoadError message={loadError} onRetry={() => void fetchMaterials()} />
         <FundamentosAcervo
           tenantId={effectiveTenantId}
           isAdmin={isAdmin}
@@ -459,7 +511,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               </div>
               
               <button 
-                onClick={() => window.open(selectedMaterial.arquivo_url, '_blank')}
+                onClick={() => void downloadLibraryDocument(selectedMaterial, effectiveTenantId)}
                 className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-black text-[#080A0D] transition hover:bg-[#fde047] sm:w-auto md:px-6"
               >
                 <Download className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
@@ -468,7 +520,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
             </div>
 
             {/* PDF Viewer */}
-            <AppDemoCard className="relative w-full min-w-0 max-w-full h-[75vh] min-h-[520px] sm:h-[82vh] sm:min-h-[660px] max-h-[1050px] overflow-hidden p-0 rounded-2xl border border-[#D8D1C4] bg-[#1A1F26] shadow-md flex flex-col">
+            <AppDemoCard className="relative w-full min-w-0 max-w-full h-[75vh] min-h-[520px] sm:h-[82vh] sm:min-h-[660px] max-h-[1050px] overflow-hidden p-0 rounded-lg border border-[#D8D1C4] bg-[#1A1F26] shadow-md flex flex-col">
               <AuthenticatedPdfFrame
                 title={selectedMaterial.titulo}
                 url={selectedMaterial.arquivo_url}
@@ -512,36 +564,35 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                 </button>
               </div>
             ) : (
-              <AppDemoPanelHeader
-                title="Biblioteca de estudos"
-                description="Organize apostilas, cantigas e fundamentos em um acervo acessível para a casa."
-                action={
+              <AxePageHeader
+                theme="liturgical"
+                kicker="SABERES ANCESTRAIS & DOUTRINA DO TERREIRO"
+                title="Biblioteca de Estudos"
+                description="Organize apostilas, cantigas, rezas e fundamentos em um acervo sagrado e acessível para a corrente."
+                actions={
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => setLibraryMode('fundamentos')}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#BFA437]/30 bg-[#172018] px-3 py-2 text-xs font-bold text-[#E8D15E] transition hover:-translate-y-0.5 hover:border-[#BFA437]/60"
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#D4AF37]/50 bg-black/40 backdrop-blur-md px-4 py-2.5 text-xs font-black text-amber-200 transition hover:bg-black/60 hover:text-white hover:border-[#D4AF37]"
                     >
                       <BookOpen className="h-4 w-4" />
-                      Acervo restrito
+                      Acervo Restrito
                     </button>
-                  {isAdmin ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsUploadModalOpen(true)}
-                      className={cn(
-                        'inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]',
-                        !hasPlanAccess(tenantData?.plan, 'library') && 'opacity-50',
-                      )}
-                    >
-                      {!hasPlanAccess(tenantData?.plan, 'library') ? (
-                        <Lock className="h-4 w-4" />
-                      ) : (
-                        <Plus className="h-4 w-4" />
-                      )}
-                      Adicionar material
-                    </button>
-                  ) : null}
+                    {isAdmin ? (
+                      <AxeButton
+                        variant="primary"
+                        onClick={() => setIsUploadModalOpen(true)}
+                        className={cn(!hasPlanAccess(tenantData?.plan, 'library') && 'opacity-50')}
+                      >
+                        {!hasPlanAccess(tenantData?.plan, 'library') ? (
+                          <Lock className="h-4 w-4" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        Adicionar Material
+                      </AxeButton>
+                    ) : null}
                   </div>
                 }
               />
@@ -552,74 +603,68 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               embedded && 'max-w-none flex min-h-0 flex-col space-y-3 px-0 pb-0 sm:space-y-3 sm:px-0 sm:pb-0 md:px-0 lg:px-0 lg:pb-0'
             )}>
               {!embedded ? (
-                <div className="library-reading-room grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Materiais</span>
-                      <p className="mt-2 text-2xl font-black text-white">{libraryStats.total}</p>
-                      <p className="mt-1 text-[10px] font-medium text-amber-200/90">PDFs disponíveis</p>
-                    </div>
-                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                      <Files className="h-5 w-5" />
-                    </div>
-                  </AppDemoCard>
-                  <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Categorias</span>
-                      <p className="mt-2 text-2xl font-black text-cyan-300">{libraryStats.categories}</p>
-                      <p className="mt-1 text-[10px] font-medium text-amber-200/90">áreas de estudo</p>
-                    </div>
-                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-950/40 text-cyan-300">
-                      <Tags className="h-5 w-5" />
-                    </div>
-                  </AppDemoCard>
-                  <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Novos no mês</span>
-                      <p className="mt-2 text-2xl font-black text-violet-300">{libraryStats.recent}</p>
-                      <p className="mt-1 text-[10px] font-medium text-amber-200/90">adições recentes</p>
-                    </div>
-                    <div className="grid h-10 w-10 place-items-center rounded-xl border border-violet-500/20 bg-violet-950/40 text-violet-300">
-                      <CalendarDays className="h-5 w-5" />
-                    </div>
-                  </AppDemoCard>
-                </div>
+                <AxeMetricRail className="grid grid-cols-1 sm:grid-cols-3">
+                  <AxeMetricCard
+                    label="Materiais de Estudo"
+                    value={libraryStats.total}
+                    icon={Files}
+                    tone="emerald"
+                    subtext="PDFs e apostilas disponíveis"
+                  />
+                  <AxeMetricCard
+                    label="Categorias Litúrgicas"
+                    value={libraryStats.categories}
+                    icon={Tags}
+                    tone="blue"
+                    subtext="Áreas de aprendizado da casa"
+                  />
+                  <AxeMetricCard
+                    label="Novos no Mês"
+                    value={libraryStats.recent}
+                    icon={CalendarDays}
+                    tone="purple"
+                    subtext="Adições recentes ao acervo"
+                  />
+                </AxeMetricRail>
               ) : null}
 
               {/* Search & Filters */}
             <div className={cn(
               'flex min-w-0 max-w-full flex-col gap-4',
-              !embedded && 'library-catalog rounded-2xl border border-[#252C35] bg-[#13171D] p-4 sm:p-5',
+              !embedded && 'library-catalog rounded-lg border border-[#E5DECF] bg-white p-5 shadow-sm',
               embedded && 'shrink-0 gap-2 sm:gap-2',
             )}>
               {!embedded ? (
                 <div>
-                  <h3 className="text-sm font-black text-[#F1F5F9]">Explorar acervo</h3>
-                  <p className="mt-1 text-xs text-[#64748B]">
-                    {filteredMaterials.length} de {materials.length} material{materials.length === 1 ? '' : 's'}
+                  <h3 className="text-sm font-black text-[#1C2024]">Explorar acervo de estudos</h3>
+                  <p className="mt-0.5 text-xs text-[#7C8691]">
+                    {filteredMaterials.length} de {materials.length} material{materials.length === 1 ? '' : 's'} catalogados
                   </p>
                 </div>
               ) : null}
               <div className="relative min-w-0 flex-1 group">
-                <Search className={cn('absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] transition-colors group-focus-within:text-primary sm:left-3.5', embedded && 'left-3 h-3.5 w-3.5')} />
+                <Search className={cn('absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8] transition-colors group-focus-within:text-[#D4AF37] sm:left-3.5', embedded && 'left-3 h-3.5 w-3.5')} />
                 <input 
                   type="text"
-                  placeholder="Buscar material..."
+                  placeholder="Buscar apostila, ponto ou fundamento..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={cn(appInputClass, 'pl-10 sm:pl-10', embedded && 'py-2 text-xs')}
+                  className={cn(
+                    'w-full rounded-lg border border-[#E5DECF] bg-[#FAF8F5] py-2.5 pl-10 text-xs font-semibold text-[#1C2024] placeholder:text-[#94A3B8] transition focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20',
+                    embedded && 'py-2 text-xs'
+                  )}
                 />
               </div>
               <div className={cn(
                 'flex min-h-[40px] min-w-0 w-full max-w-full flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-                !embedded && 'border-t border-[#252B33] pt-4',
-                embedded && 'min-h-[36px] rounded-xl border border-[#1E242B] bg-[#12161A] p-1'
+                !embedded && 'border-t border-[#E5DECF] pt-3.5',
+                embedded && 'min-h-[36px] rounded-xl border border-[#E5DECF] bg-[#FAF8F5] p-1'
               )}>
                 <button 
                   onClick={() => setSelectedCategory(null)}
                   className={cn(
-                    'shrink-0 rounded-xl border px-3 py-2 text-[10px] font-black transition-all whitespace-nowrap',
-                    !selectedCategory ? 'border-primary bg-primary text-[#080A0D] shadow-sm' : 'border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-[#F1F5F9]',
+                    'shrink-0 rounded-xl border px-3.5 py-1.5 text-[10px] font-black transition-all whitespace-nowrap',
+                    !selectedCategory ? 'border-[#0F261B] bg-[#0F261B] text-[#F3E5AB] shadow-sm' : 'border-[#E5DECF] bg-[#FAF8F5] text-[#555E68] hover:border-[#D4AF37] hover:text-[#1C2024]',
                     embedded && 'px-2.5 py-1.5 text-[10px]'
                   )}
                 >
@@ -630,8 +675,8 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
                     className={cn(
-                      'shrink-0 rounded-xl border px-3 py-2 text-[10px] font-black transition-all whitespace-nowrap',
-                      selectedCategory === cat ? 'border-primary bg-primary text-[#080A0D] shadow-sm' : 'border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-[#F1F5F9]',
+                      'shrink-0 rounded-xl border px-3.5 py-1.5 text-[10px] font-black transition-all whitespace-nowrap',
+                      selectedCategory === cat ? 'border-[#0F261B] bg-[#0F261B] text-[#F3E5AB] shadow-sm' : 'border-[#E5DECF] bg-[#FAF8F5] text-[#555E68] hover:border-[#D4AF37] hover:text-[#1C2024]',
                       embedded && 'px-2.5 py-1.5 text-[10px]'
                     )}
                   >
@@ -658,9 +703,9 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                     key={material.id}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="library-book-card group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#252C35] bg-[#13171D] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
+                    className="library-book-card group relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-[#E5DECF] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37]/60 hover:shadow-xl"
                   >
-                    {/* Capa do PDF */}
+                    {/* Capa do PDF com visual litúrgico sagrado */}
                     <div
                       className="cursor-pointer"
                       onClick={() => openMaterial(material)}
@@ -669,38 +714,39 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                         url={material.arquivo_url}
                         storagePath={material.storage_path}
                         tenantId={material.tenant_id}
+                        categoria={material.categoria}
                         compact={embedded}
                       />
                     </div>
 
                     {/* Badge de categoria — sobrepõe a miniatura */}
-                    <span className="absolute right-2 top-2 z-10 rounded-md border border-primary/25 bg-[#13171D]/90 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary backdrop-blur-sm">
+                    <span className="absolute right-3 top-3 z-10 rounded-lg border border-[#D4AF37]/40 bg-[#0F261B]/85 px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#F2CE55] backdrop-blur-md shadow-sm">
                       {material.categoria}
                     </span>
 
-                    <div className={cn('flex flex-1 flex-col gap-2 p-3', embedded && 'gap-1 p-2')}>
+                    <div className={cn('flex flex-1 flex-col gap-2 p-4', embedded && 'gap-1 p-2')}>
                       <div className="min-w-0">
                         <h3
                           className={cn(
-                            'line-clamp-2 cursor-pointer text-sm font-black leading-snug text-[#F1F5F9] transition-colors group-hover:text-primary',
+                            'line-clamp-2 cursor-pointer text-sm font-black leading-snug text-[#1C2024] transition-colors group-hover:text-[#D4AF37]',
                             embedded && 'text-[10px] leading-tight'
                           )}
                           onClick={() => openMaterial(material)}
                         >
                           {material.titulo}
                         </h3>
-                        <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-[#64748B]">
+                        <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-[#7C8691]">
                           {new Date(material.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
 
-                      <div className="mt-auto flex min-w-0 items-center gap-1.5">
+                      <div className="mt-auto flex min-w-0 items-center gap-1.5 pt-1">
                         <button
                           type="button"
                           onClick={() => openMaterial(material)}
-                          className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#1E242B] bg-[#12161A] py-2 text-[10px] font-bold text-[#F1F5F9] transition hover:border-primary/40"
+                          className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E5DECF] bg-[#FAF8F5] py-2 text-[10px] font-bold text-[#1C2024] transition hover:border-[#D4AF37] hover:bg-[#FFFDF9]"
                         >
-                          <FileText className="h-3 w-3 shrink-0" />
+                          <FileText className="h-3.5 w-3.5 shrink-0 text-[#D4AF37]" />
                           <span className="truncate">{embedded ? 'Abrir PDF' : 'Abrir material'}</span>
                         </button>
                         {isAdmin && (
@@ -708,7 +754,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                             onClick={() => handleDelete(material.id, (material as any).storage_path)}
                             disabled={deletingMaterialId !== null}
                             aria-busy={deletingMaterialId === material.id}
-                            className="shrink-0 rounded-xl border border-rose-500/30 bg-rose-950/40 p-2 text-rose-300 transition hover:bg-rose-950/60 disabled:cursor-wait disabled:opacity-55"
+                            className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100 disabled:cursor-wait disabled:opacity-55"
                             aria-label={`Excluir ${material.titulo}`}
                           >
                             {deletingMaterialId === material.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
@@ -721,37 +767,35 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               </div>
             ) : (
               embedded ? (
-                <div className="rounded-xl border border-dashed border-[#2F3643] bg-[#12161A] py-10 px-4 text-center">
-                  <BookOpen className="mx-auto mb-2 h-8 w-8 text-primary/40" />
-                  <h3 className="text-sm font-bold text-[#F1F5F9]">Nenhum material encontrado</h3>
-                  <p className="mt-1 text-xs text-[#94A3B8]">Tente ajustar a busca ou veja a biblioteca completa.</p>
+                <div className="rounded-lg border border-dashed border-[#E5DECF] bg-[#FAF8F5] py-10 px-4 text-center">
+                  <BookOpen className="mx-auto mb-2 h-8 w-8 text-[#D4AF37]" />
+                  <h3 className="text-sm font-bold text-[#1C2024]">Nenhum material encontrado</h3>
+                  <p className="mt-1 text-xs text-[#7C8691]">Tente ajustar a busca ou veja a biblioteca completa.</p>
                 </div>
               ) : (
-              <AppDemoCard className="app-demo-empty-preview library-empty-preview border-dashed py-14 text-center">
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                  <BookOpen className="h-6 w-6" />
+              <div className="col-span-full rounded-lg border border-[#E5DECF] bg-white p-12 text-center shadow-xs">
+                  <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-amber-500/10 text-amber-800 border border-amber-200">
+                    <BookOpen className="h-7 w-7" />
+                  </div>
+                  <h4 className="mt-4 text-base font-black text-[#171A16]">
+                    {searchQuery ? `Nenhum material encontrado para "${searchQuery}"` : 'Biblioteca de Fundamentos'}
+                  </h4>
+                  <p className="mx-auto mt-1 max-w-md text-xs font-semibold leading-relaxed text-[#6B6355]">
+                    {searchQuery
+                      ? 'Tente outro termo ou selecione uma categoria diferente no acervo.'
+                      : 'Adicione apostilas e textos sagrados para fortalecer os estudos da corrente.'}
+                  </p>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsUploadModalOpen(true)}
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] px-5 py-2.5 text-xs font-black text-[#0A160F] shadow-sm hover:brightness-105 active:scale-95 transition-all"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Publicar Apostila no Acervo
+                    </button>
+                  )}
                 </div>
-                <h3 className="mt-3 text-sm font-black text-[#17130D]">
-                  {searchQuery ? 'Nenhum material encontrado' : 'A biblioteca começa aqui'}
-                </h3>
-                <p className="mx-auto mt-1 max-w-sm text-xs font-semibold text-[#665F55]">
-                  {searchQuery
-                    ? 'Tente outro termo ou escolha uma categoria diferente.'
-                    : isAdmin
-                      ? 'Adicione o primeiro PDF para disponibilizar estudos à casa.'
-                      : 'Ainda não há materiais publicados nesta categoria.'}
-                </p>
-                {isAdmin && materials.length === 0 ? (
-                  <AppPrimaryButton
-                    type="button"
-                    onClick={() => setIsUploadModalOpen(true)}
-                    className="mt-4 inline-flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar primeiro material
-                  </AppPrimaryButton>
-                ) : null}
-              </AppDemoCard>
               )
             )}
           </div>
@@ -774,7 +818,7 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
@@ -807,6 +851,13 @@ export default function Library({ user, userRole, tenantData, isAdminGlobal, set
                   </select>
                 </div>
 
+                <fieldset className="space-y-3 rounded-xl border border-[#D8D2C4] p-4" disabled={uploading}>
+                  <legend className="px-1 text-sm font-semibold">Quem pode ler este PDF?</legend>
+                  <label className="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="library-audience" checked={newMaterial.visibilidade === 'casa'} onChange={() => setNewMaterial(previous => ({ ...previous, visibilidade: 'casa', destinatarios: [] }))}/>Toda a corrente da casa</label>
+                  <label className="flex min-h-11 items-center gap-3 text-sm"><input type="radio" name="library-audience" disabled={!privateAudienceAvailable} checked={newMaterial.visibilidade === 'individual'} onChange={() => setNewMaterial(previous => ({ ...previous, visibilidade: 'individual' }))}/>Privado para filhos específicos</label>
+                  {!privateAudienceAvailable && <p className="text-sm text-[#626f65]">Envio privado indisponível no momento. Tente novamente mais tarde.</p>}
+                  {newMaterial.visibilidade === 'individual' && <div className="space-y-2"><p className="text-sm text-[#5b675c]">Apenas a gestão e os filhos selecionados poderão abrir o arquivo.</p>{recipientError ? <p role="alert" className="text-sm text-red-800">{recipientError}</p> : !recipientOptions.length ? <p role="status" className="text-sm">Nenhum filho disponível. Confira os cadastros da casa.</p> : <div className="max-h-48 overflow-y-auto rounded-lg bg-white px-3">{recipientOptions.map(child => <label key={child.id} className="flex min-h-11 items-center gap-3 border-b border-[#E1E7DC] py-2 text-sm last:border-0"><input type="checkbox" checked={newMaterial.destinatarios.includes(child.id)} onChange={event => setNewMaterial(previous => ({ ...previous, destinatarios: event.target.checked ? [...previous.destinatarios, child.id] : previous.destinatarios.filter(id => id !== child.id) }))}/>{child.nome}</label>)}</div>}</div>}
+                </fieldset>
                 <div className="space-y-1.5">
                   <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">Arquivo PDF</label>
                   <div className="relative">

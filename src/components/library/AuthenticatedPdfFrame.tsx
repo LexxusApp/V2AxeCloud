@@ -1,3 +1,4 @@
+import { downloadLibraryDocument, libraryStoragePath } from '../../lib/libraryDownload';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   FileText,
@@ -13,6 +14,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 
 type Props = {
   title: string;
@@ -23,55 +25,47 @@ type Props = {
 };
 
 export function extractLibraryStoragePath(rawUrl: string): string | null {
-  const value = String(rawUrl || '').trim();
-  if (!value) return null;
-  try {
-    const parsed = new URL(value, window.location.origin);
-    if (parsed.pathname === '/api/v1/library/pdf-proxy') {
-      return parsed.searchParams.get('path');
-    }
-    const marker = '/storage/v1/object/public/biblioteca_estudos/';
-    const index = parsed.pathname.indexOf(marker);
-    return index >= 0 ? decodeURIComponent(parsed.pathname.slice(index + marker.length)) : null;
-  } catch {
-    return null;
-  }
+  return libraryStoragePath(rawUrl);
 }
 
 function PdfCanvas({
-  pdf,
+  page,
   pageNumber,
   title,
   zoom,
   containerWidth,
+  baseWidth,
+  baseHeight,
 }: {
-  pdf: any;
+  page: any;
   pageNumber: number;
   title: string;
   zoom: number;
   containerWidth: number;
+  baseWidth: number;
+  baseHeight: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
+  const safeWidth = Math.max(240, containerWidth - 48);
+  const displayWidth = Math.max(240, Math.floor(safeWidth * zoom));
+  const displayHeight = Math.max(1, Math.floor(displayWidth * (baseHeight / baseWidth)));
 
   useEffect(() => {
     let cancelled = false;
     let renderTask: { cancel: () => void; promise: Promise<unknown> } | null = null;
+    setFailed(false);
     void (async () => {
       try {
-        const page = await pdf.getPage(pageNumber);
         if (cancelled || !canvasRef.current) return;
-        const base = page.getViewport({ scale: 1 });
         const dpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2.5);
-        const safeWidth = Math.max(300, (containerWidth || 800) - 24);
-        const displayWidth = Math.max(280, Math.floor(safeWidth * zoom));
         const renderWidth = Math.max(displayWidth, Math.floor(displayWidth * dpr));
-        const viewport = page.getViewport({ scale: renderWidth / base.width });
+        const viewport = page.getViewport({ scale: renderWidth / baseWidth });
         const canvas = canvasRef.current;
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
         canvas.style.width = `${displayWidth}px`;
-        canvas.style.height = 'auto';
+        canvas.style.height = `${displayHeight}px`;
 
         const context = canvas.getContext('2d');
         if (!context) throw new Error('Canvas indisponível');
@@ -90,7 +84,7 @@ function PdfCanvas({
       cancelled = true;
       renderTask?.cancel();
     };
-  }, [pdf, pageNumber, zoom, containerWidth]);
+  }, [page, pageNumber, displayWidth, displayHeight, baseWidth]);
 
   if (failed) {
     return (
@@ -103,7 +97,8 @@ function PdfCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="block bg-white shadow-md rounded-sm transition-all"
+      className="block max-w-none bg-white shadow-md rounded-sm"
+      style={{ width: `${displayWidth}px`, height: `${displayHeight}px` }}
       aria-label={`${title}, página ${pageNumber}`}
     />
   );
@@ -111,11 +106,12 @@ function PdfCanvas({
 
 export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, className }: Props) {
   const [pdf, setPdf] = useState<any>(null);
+  const [pages, setPages] = useState<Array<{ page: any; width: number; height: number }>>([]);
   const [error, setError] = useState(false);
   const [zoom, setZoom] = useState<number>(1.0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [containerWidth, setContainerWidth] = useState<number>(800);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -123,16 +119,27 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
 
   // Observa largura do container para redimensionamento responsivo
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const updateWidth = () => {
-      if (el) setContainerWidth(el.clientWidth);
+    const container = containerRef.current;
+    const measureTarget = scrollAreaRef.current || container;
+    if (!container || !measureTarget) return;
+    let animationFrame = 0;
+    setContainerWidth(0);
+    const scheduleWidth = (reportedWidth?: number) => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        if (!measureTarget.isConnected) return;
+        const measured = Math.max(0, Math.round(reportedWidth || measureTarget.getBoundingClientRect().width));
+        setContainerWidth((current) => current > 0 && Math.abs(current - measured) < 12 ? current : measured);
+      });
     };
-    updateWidth();
-    const observer = new ResizeObserver(() => updateWidth());
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [isFullscreen]);
+    scheduleWidth();
+    const observer = new ResizeObserver((entries) => scheduleWidth(entries[0]?.contentRect.width));
+    observer.observe(measureTarget);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+    };
+  }, [isFullscreen, pdf]);
 
   // Tecla ESC para sair da tela cheia
   useEffect(() => {
@@ -185,14 +192,16 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
 
   useEffect(() => {
     let cancelled = false;
-    let loadingTask: { destroy: () => Promise<void>; promise: Promise<any> } | null = null;
-    let document: { destroy: () => Promise<void> } | null = null;
+    let loadingTask: PDFDocumentLoadingTask | null = null;
+    let document: PDFDocumentProxy | null = null;
 
     void (async () => {
       setPdf(null);
+      setPages([]);
       setError(false);
       try {
         const path = storagePath || extractLibraryStoragePath(url);
+        if (path && !tenantId) throw Error('Reabra a biblioteca para identificar sua casa.');
         const response = path && tenantId
           ? await authFetch(`/api/v1/library/pdf-proxy?path=${encodeURIComponent(path)}&tenantId=${encodeURIComponent(tenantId)}`)
           : await fetch(url, { cache: 'no-store' });
@@ -204,7 +213,17 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
         loadingTask = pdfjs.getDocument({ data, disableRange: true, disableStream: true });
         document = await loadingTask.promise;
-        if (!cancelled) setPdf(document);
+        const loadedPages = await Promise.all(
+          Array.from({ length: document.numPages }, async (_, index) => {
+            const page = await document!.getPage(index + 1);
+            const viewport = page.getViewport({ scale: 1 });
+            return { page, width: viewport.width, height: viewport.height };
+          }),
+        );
+        if (!cancelled) {
+          setPages(loadedPages);
+          setPdf(document);
+        }
       } catch (loadError) {
         if (!cancelled) {
           console.error('[AuthenticatedPdfFrame] Falha ao carregar PDF:', loadError);
@@ -216,8 +235,13 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
     return () => {
       cancelled = true;
       setPdf(null);
-      void loadingTask?.destroy().catch(() => undefined);
-      void document?.destroy().catch(() => undefined);
+      setPages([]);
+      if (loadingTask && typeof loadingTask.destroy === 'function') { try { void loadingTask.destroy().catch(() => undefined); } catch {} }
+      if (document && typeof (document as any).destroy === 'function') {
+        void (document as any).destroy().catch(() => undefined);
+      } else if (document && typeof (document as any).cleanup === 'function') {
+        try { (document as any).cleanup(); } catch {}
+      }
     };
   }, [storagePath, tenantId, url]);
 
@@ -360,13 +384,13 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
           )}
 
           {/* Abrir original / Baixar */}
-          {url && !isFullscreen && (
+          {(url || storagePath) && !isFullscreen && (
             <button
               type="button"
-              onClick={() => window.open(url, '_blank')}
+              onClick={() => void downloadLibraryDocument({ arquivo_url: url, storage_path: storagePath, titulo: title }, tenantId)}
               className="hidden md:inline-flex p-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-[#1A202A] border border-transparent hover:border-[#2B3442] transition"
-              title="Abrir arquivo em nova aba"
-              aria-label="Abrir arquivo em nova aba"
+              title="Baixar PDF"
+              aria-label="Baixar PDF"
             >
               <Download className="h-3.5 w-3.5" />
             </button>
@@ -379,12 +403,18 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
         ref={scrollAreaRef}
         onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-auto bg-[#181C23] p-3 sm:p-5 touch-pan-x touch-pan-y"
+        aria-busy={containerWidth <= 0}
       >
         <div
-          className="mx-auto flex flex-col items-center gap-4 transition-all duration-150"
+          className="mx-auto flex flex-col items-center gap-4"
           style={{ width: zoom > 1 ? `${Math.round(zoom * 100)}%` : '100%', minWidth: 'min-content' }}
         >
-          {Array.from({ length: pdf.numPages }, (_, index) => {
+          {containerWidth <= 0 ? (
+            <div className="flex min-h-72 w-full items-center justify-center gap-3 text-sm font-bold text-[#94A3B8]" role="status">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+              Ajustando o documento à tela…
+            </div>
+          ) : pages.map(({ page, width, height }, index) => {
             const pageNum = index + 1;
             return (
               <div
@@ -396,11 +426,13 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
                 className="group relative overflow-hidden rounded-md bg-white shadow-2xl border border-[#29303D]"
               >
                 <PdfCanvas
-                  pdf={pdf}
+                  page={page}
                   pageNumber={pageNum}
                   title={title}
                   zoom={zoom}
                   containerWidth={containerWidth}
+                  baseWidth={width}
+                  baseHeight={height}
                 />
                 <div className="absolute bottom-2 right-2 rounded bg-black/60 px-2 py-0.5 text-[9px] font-bold text-white opacity-40 group-hover:opacity-100 transition-opacity pointer-events-none">
                   {pageNum}

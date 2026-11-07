@@ -33,6 +33,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
 
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [amountLabel, setAmountLabel] = useState('');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [pixAvailable, setPixAvailable] = useState(true);
   const [initLoading, setInitLoading] = useState(true);
 
@@ -53,11 +54,11 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     return !!body.active;
   }, [tenantId]);
 
-  const createPixCharge = useCallback(async (uid: string) => {
+  const createPixCharge = useCallback(async (uid: string, cycle: 'monthly' | 'annual') => {
     const res = await authFetch('/api/v1/checkout/efi/pix', {
       method: 'POST',
       headers: await authHeaders(),
-      body: JSON.stringify({ tenantId: uid }),
+      body: JSON.stringify({ tenantId: uid, purpose: 'renewal', billingCycle: cycle }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Não foi possível gerar o PIX.');
@@ -93,13 +94,17 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
         if (cancelled) return;
         setTenantId(uid);
 
-        const [cfgRes, ctxRes] = await Promise.all([
-          authFetch('/api/v1/checkout/efi/config', { cache: 'no-store' }),
-          authFetch(`/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(uid)}`, {
-            cache: 'no-store',
-            headers: await authHeaders(),
-          }),
-        ]);
+        const ctxRes = await authFetch(
+          `/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(uid)}`,
+          { cache: 'no-store', headers: await authHeaders() }
+        );
+        const ctx = await ctxRes.json().catch(() => ({}));
+        const currentCycle: 'monthly' | 'annual' = ctx?.billingCycle === 'annual' ? 'annual' : 'monthly';
+        setBillingCycle(currentCycle);
+        const cfgRes = await authFetch(
+          `/api/v1/checkout/efi/config?billingCycle=${encodeURIComponent(currentCycle)}`,
+          { cache: 'no-store' }
+        );
 
         const cfg = await cfgRes.json().catch(() => ({}));
         if (!cfgRes.ok) throw new Error(cfg.error || 'Pagamento indisponível no momento.');
@@ -109,7 +114,6 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
         setAmountLabel(String(cfg.amountLabel || '').trim());
 
         if (ctxRes.ok) {
-          const ctx = await ctxRes.json();
           if (cancelled) return;
           // Só recarrega se o onboarding (que considera expires_at) confirmar acesso real.
           if (ctx.active) {
@@ -130,7 +134,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
         if (!available) return;
 
         // Gera QR automaticamente — API usa nome do perfil se não houver pagador.
-        const charge = await createPixCharge(uid);
+        const charge = await createPixCharge(uid, currentCycle);
         if (cancelled || !charge) return;
         setPixTxid(charge.txid);
         setPixCopy(charge.copyPaste);
@@ -190,7 +194,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
     setPixTxid(null);
     setPixCopy(null);
     try {
-      const charge = await createPixCharge(tenantId);
+      const charge = await createPixCharge(tenantId, billingCycle);
       if (!charge) return;
       setPixTxid(charge.txid);
       setPixCopy(charge.copyPaste);
@@ -267,7 +271,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
             <p className="mb-5 text-sm font-medium leading-relaxed text-gray-400">
               {isPending
                 ? 'Escaneie o QR Code ou copie o Pix. Assim que o pagamento for confirmado, o painel libera automaticamente.'
-                : 'Seu período de teste gratuito terminou. Pague via Pix para continuar gerenciando seu terreiro.'}
+                : 'Sua assinatura venceu. Pague via Pix para renovar o plano; o painel será liberado automaticamente após a confirmação.'}
               {amountLabel ? (
                 <span className="mt-2 block text-primary font-bold">
                   Valor: {amountLabel}
@@ -293,7 +297,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
             ) : pixQr ? (
               <div className="mb-5 space-y-4">
                 <p className="text-sm text-gray-400">
-                  Escaneie o QR Code ou copie o Pix. Validade: 1 hora.
+                  Escaneie o QR Code ou copie o Pix. Validade: 24 horas.
                 </p>
                 <img
                   src={pixQr}

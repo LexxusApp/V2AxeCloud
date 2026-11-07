@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "axecloud-photo-sweep",
+  "main": "cloudflare/photo-sweep-worker/src/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "browser": {
+    "binding": "MYBROWSER"
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "workflows": [
+    {
+      "name": "photo-sweep-workflow",
+      "binding": "PHOTO_SWEEP_WORKFLOW",
+      "class_name": "PhotoSweepWorkflow"
+    }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://vlaojhfwhqmwudqsumpi.supabase.co"
+  }
+}

@@ -35,7 +35,7 @@ for (const screen of screens) {
       const realRow = { id: 'real-db-record', tenant_id: 'tenant-real', item: 'Cadastro da casa', quantidade_atual: 7, quantidade_minima: 2, nome: 'Produto real', media: [{ id: 'foto-real' }] };
       const payload = { [screen.field]: scenario === 'real' ? [realRow] : [] };
       const run = screenFunction(screen.file, screen.fn, {
-        tenantId: 'tenant-real', effectiveTenantId: 'tenant-real',
+        tenantId: 'tenant-real', effectiveTenantId: 'tenant-real', materialRequest:{current:0},setPrivateAudienceAvailable() {},
         setLoading: (value: boolean) => { loading = value; },
         setLoadError: (value: unknown) => { error = value; },
         [screen.setter]: (value: unknown) => { rows = value; },
@@ -63,14 +63,14 @@ test('Biblioteca ignora o cache antigo que podia conter PDFs fictícios', async 
   const read: string[] = [];
   let materials: unknown;
   const run = screenFunction('src/views/Library.tsx', 'fetchMaterials', {
-    effectiveTenantId: 'tenant-real', setLoadError() {}, setLoading() {},
+    effectiveTenantId: 'tenant-real', materialRequest:{current:0},setPrivateAudienceAvailable() {},setLoadError() {}, setLoading() {},
     setMaterials: (rows: unknown) => { materials = rows; },
     clearStaleCacheKey: (key: string) => { cleared.push(key); },
     readStaleCache: (key: string) => { read.push(key); return null; },
     writeStaleCache() {}, authFetch: async () => Response.json({ data: [] }),
   });
   await run();
-  assert.deepEqual(cleared, ['library_mats_tenant-real']);
+  assert.deepEqual(cleared, ['library_mats_tenant-real','library_mats_real_tenant-real']);
   assert.ok(read.every(key => key !== 'library_mats_tenant-real'));
   assert.deepEqual(materials, []);
 });

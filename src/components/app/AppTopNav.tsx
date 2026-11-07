@@ -35,7 +35,7 @@ import Avatar from '../Avatar';
 import { AxeCloudEmblem } from '../AxeCloudLogoMark';
 import NotificationPanel from '../NotificationPanel';
 
-type AppTopNavProps = {
+export type AppTopNavProps = {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   userRole: 'admin' | 'filho';
@@ -492,12 +492,12 @@ export default function AppTopNav({
 
   const navItems = useMemo(
     () => (userRole === 'filho' ? FILHO_NAV : buildZeladorNavItems(tenantData?.tradicao)),
-    [userRole, tenantData?.tradicao],
+    [userRole, tenantData?.tradicao, tenantData?.tenant_id, userEmail],
   );
 
   const zeladorEntries = useMemo(
-    () => (userRole === 'filho' ? null : buildZeladorNavEntries(tenantData?.tradicao)),
-    [userRole, tenantData?.tradicao],
+    () => (userRole === 'filho' ? null : buildZeladorNavEntries(tenantData?.tradicao, tenantData?.tenant_id, userEmail)),
+    [userRole, tenantData?.tradicao, tenantData?.tenant_id, userEmail],
   );
   const mobileDockItems = useMemo(() => {
     const ids =

@@ -39,7 +39,9 @@ export function ChatContactRow({
       onClick={handleClick}
       className={cn(
         'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
-        canChat ? 'hover:bg-white/5' : 'cursor-pointer opacity-80 hover:bg-white/[0.03]',
+        canChat
+          ? 'hover:bg-[#FAF7F2]'
+          : 'cursor-pointer opacity-80 hover:bg-[#FAF7F2]/60',
         disabled && canChat && 'disabled:opacity-50',
       )}
     >
@@ -48,25 +50,25 @@ export function ChatContactRow({
         name={contact.nome}
         shape="circle"
         textSize={avatarSize === 'sm' ? 'text-[10px]' : 'text-xs'}
-        className={cn('shrink-0', avatarClass)}
+        className={cn('shrink-0 border border-[#E6DFD3]', avatarClass)}
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-white">{contact.nome}</p>
+        <p className="truncate text-sm font-bold text-[#17251D]">{contact.nome}</p>
         {canChat ? (
           contact.cargo ? (
-            <p className="truncate text-[10px] text-[#64748B]">{contact.cargo}</p>
+            <p className="truncate text-[10px] text-[#59655E]">{contact.cargo}</p>
           ) : null
         ) : (
-          <p className="truncate text-[10px] font-semibold text-amber-400/90">
+          <p className="truncate text-[10px] font-semibold text-[#8F630E]">
             Sem login no app
             {contact.matricula ? ` · ${contact.matricula}` : ''}
           </p>
         )}
       </div>
       {!canChat ? (
-        <Lock className="h-4 w-4 shrink-0 text-[#64748B]" aria-hidden />
+        <Lock className="h-4 w-4 shrink-0 text-[#8A958E]" aria-hidden />
       ) : unread > 0 ? (
-        <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-black text-black">
+        <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[#1F5942] px-1.5 text-[10px] font-black text-white">
           {unread > 99 ? '99+' : unread}
         </span>
       ) : null}

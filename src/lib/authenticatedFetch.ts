@@ -5,6 +5,7 @@ import {
   supabase,
 } from "./supabase";
 import { reportFeatureFailureClient, type ClientFeatureType } from "./telemetryClient";
+import { beginAppOperation } from './appOperations';
 
 function classifyFeatureFromUrl(url: string): ClientFeatureType {
   const p = url.toLowerCase();
@@ -65,34 +66,41 @@ export async function authHeaders(extra?: HeadersInit, explicitToken?: string | 
 export async function authFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
-  explicitToken?: string | null
+  explicitToken?: string | null,
+  transport: typeof fetch = fetch,
 ): Promise<Response> {
+  const method = init.method || (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET');
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+  const finish = beginAppOperation(method, url);
+  try {
+    return await performAuthenticatedFetch(input, init, explicitToken, transport);
+  } finally {
+    finish();
+  }
+}
+
+async function performAuthenticatedFetch(input: RequestInfo | URL, init: RequestInit, explicitToken?: string | null, transport: typeof fetch = fetch): Promise<Response> {
   const headers = await authHeaders(init.headers, explicitToken);
-  let response = await fetch(input, { ...init, headers });
+  let response = await transport(input, { ...init, headers });
 
   const trackFailureIfNeeded = (res: Response) => {
     if (res.status >= 400 && res.status !== 401 && res.status !== 404) {
       const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
       if (!urlStr.includes("/telemetry/failure")) {
         const method = (init.method || "GET").toUpperCase();
-        res.clone().json().then((json) => {
-          const errMsg = json?.error || json?.message || `HTTP ${res.status}`;
-          void reportFeatureFailureClient({
-            feature: classifyFeatureFromUrl(urlStr),
-            action: `${method} ${urlStr}`.slice(0, 120),
-            error: errMsg,
-            httpStatus: res.status,
-            metadata: { method, url: urlStr },
-          });
-        }).catch(() => {
-          void reportFeatureFailureClient({
-            feature: classifyFeatureFromUrl(urlStr),
-            action: `${method} ${urlStr}`.slice(0, 120),
-            error: `HTTP ${res.status}`,
-            httpStatus: res.status,
-            metadata: { method, url: urlStr },
-          });
-        });
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          res.clone().json().then((json) => {
+            const errMsg = json?.error || json?.message || `HTTP ${res.status}`;
+            void reportFeatureFailureClient({
+              feature: classifyFeatureFromUrl(urlStr),
+              action: `${method} ${urlStr}`.slice(0, 120),
+              error: errMsg,
+              httpStatus: res.status,
+              metadata: { method, url: urlStr },
+            });
+          }).catch(() => {});
+        }
       }
     }
   };
@@ -120,7 +128,7 @@ export async function authFetch(
   }
 
   const retryHeaders = await authHeaders(init.headers, freshToken);
-  response = await fetch(input, { ...init, headers: retryHeaders });
+  response = await transport(input, { ...init, headers: retryHeaders });
   if (response.status === 401) {
     notifySessionExpired("auth_fetch_retry_401");
   } else {

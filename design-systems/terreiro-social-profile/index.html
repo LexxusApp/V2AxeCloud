@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Mockup do novo perfil público social para terreiros no AxéCloud." />
+  <title>Mockup do perfil público | AxéCloud</title>
+  <link rel="stylesheet" href="./assets/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="AxéCloud, página inicial"><img src="./assets/axecloud-lockup.svg" alt="AxéCloud" /></a>
+    <nav class="desktop-nav" id="primary-nav" aria-label="Navegação principal"><a href="#">Terreiros</a><a href="#">Eventos</a><a href="#">Conteúdo</a><a href="#">Por quê?</a></nav>
+    <div class="header-actions">
+      <a class="text-action" href="#">Entrar</a><a class="header-cta" href="#">Testar grátis</a>
+      <button class="menu-button" type="button" aria-label="Abrir menu" aria-controls="primary-nav" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="prototype-note" role="note">Mockup com conteúdo ilustrativo</div>
+
+  <main id="conteudo">
+    <section class="profile-shell" aria-labelledby="house-name">
+      <div class="cover-photo" role="img" aria-label="Altar da casa de axé">
+        <div class="cover-shade"></div>
+        <a class="back-link" href="#">Voltar ao mapa</a>
+        <div class="cover-stamp"><img src="./assets/axecloud-trident.png" alt="" /><span>Perfil oficial no AxéCloud</span></div>
+      </div>
+      <div class="identity-panel">
+        <div class="avatar" aria-hidden="true"><img src="./assets/terreiro-photo.webp" alt="" /></div>
+        <div class="identity-copy">
+          <div class="title-line"><h1 id="house-name">Ilê Axé Caminho das Águas</h1><span class="verified-badge" title="Perfil reivindicado e verificado">Verificado</span></div>
+          <p class="location">Campinas, SP · Umbanda e Candomblé</p>
+          <p class="profile-intro">Uma casa de acolhimento, tradição e cuidado. Giras abertas, atendimentos fraternos e atividades para a comunidade.</p>
+        </div>
+        <div class="profile-actions" aria-label="Ações do perfil">
+          <a class="button button-whatsapp" href="#contato"><img src="./assets/whatsapp.svg" alt="" />Falar no WhatsApp</a>
+          <a class="button button-secondary" href="#localizacao">Como chegar</a>
+          <button class="button button-quiet" type="button">Compartilhar</button>
+        </div>
+      </div>
+      <div class="trust-strip" aria-label="Informações rápidas">
+        <div><strong>Perfil atualizado</strong><span>pela própria casa</span></div>
+        <div><strong>Visitas com confirmação</strong><span>consulte a agenda antes de ir</span></div>
+        <div><strong>Contato protegido</strong><span>o número não fica exposto</span></div>
+      </div>
+      <nav class="profile-tabs" aria-label="Seções do perfil" role="tablist">
+        <button class="profile-tab is-active" id="tab-visao-geral" type="button" role="tab" aria-controls="panel-visao-geral" aria-selected="true" tabindex="0" data-tab="visao-geral">Visão geral</button>
+        <button class="profile-tab" id="tab-agenda" type="button" role="tab" aria-controls="panel-agenda" aria-selected="false" tabindex="-1" data-tab="agenda">Agenda</button>
+        <button class="profile-tab" id="tab-publicacoes" type="button" role="tab" aria-controls="panel-publicacoes" aria-selected="false" tabindex="-1" data-tab="publicacoes">Publicações</button>
+        <button class="profile-tab" id="tab-fotos" type="button" role="tab" aria-controls="panel-fotos" aria-selected="false" tabindex="-1" data-tab="fotos">Fotos</button>
+        <button class="profile-tab" id="tab-informacoes" type="button" role="tab" aria-controls="panel-informacoes" aria-selected="false" tabindex="-1" data-tab="informacoes">Informações</button>
+      </nav>
+    </section>
+
+    <section class="tab-panel is-active" id="panel-visao-geral" aria-labelledby="tab-visao-geral" data-panel="visao-geral" role="tabpanel">
+      <div class="content-layout">
+        <div class="main-column">
+          <article class="event-feature">
+            <div class="section-heading"><div><span class="section-kicker">Próxima atividade</span><h2>Gira de Caboclos</h2></div><span class="status-pill">Aberta ao público</span></div>
+            <div class="event-body">
+              <time class="date-block" datetime="2026-09-26T19:00"><span>Sáb</span><strong>26</strong><small>Set</small></time>
+              <div class="event-details">
+                <p class="event-time">19h · Chegada recomendada até 18h30</p>
+                <p>Atendimento espiritual por ordem de chegada. Confirme com a casa antes de sair.</p>
+                <div class="event-actions"><a class="button button-dark" href="#contato">Confirmar com a casa</a><a class="inline-link" href="#agenda">Ver agenda completa</a></div>
+              </div>
+            </div>
+          </article>
+
+          <section class="feed-section" aria-labelledby="feed-title">
+            <div class="section-heading feed-heading"><div><span class="section-kicker">Novidades da casa</span><h2 id="feed-title">Publicações recentes</h2></div><a class="inline-link" href="#publicacoes">Ver todas</a></div>
+            <article class="feed-post">
+              <header class="post-header">
+                <div class="post-avatar" aria-hidden="true"><img src="./assets/terreiro-photo.webp" alt="" /></div>
+                <div><strong>Ilê Axé Caminho das Águas</strong><span>Hoje, 10h32 · Comunicado oficial</span></div>
+                <span class="post-mark">Fixado</span>
+              </header>
+              <div class="post-copy"><h3>Nossa casa estará aberta neste sábado</h3><p>Receberemos a comunidade para a gira de Caboclos. Venha com roupa confortável e, se possível, branca ou em tons claros. A entrada é gratuita.</p></div>
+              <div class="post-image" role="img" aria-label="Detalhes do altar e flores da casa"></div>
+              <footer class="post-footer"><span>Informação publicada pela casa</span><button type="button">Compartilhar</button></footer>
+            </article>
+            <article class="feed-post compact-post">
+              <header class="post-header"><div class="post-avatar post-avatar-gold" aria-hidden="true"><img src="./assets/axecloud-trident.png" alt="" /></div><div><strong>Sobre o atendimento</strong><span>Atualizado há 3 dias</span></div></header>
+              <div class="post-copy"><p>O atendimento fraterno acontece após as giras abertas. Não realizamos cobrança e não é necessário agendar individualmente.</p></div>
+              <footer class="post-footer"><span>Orientação aos visitantes</span><a href="#informacoes">Ler informações da casa</a></footer>
+            </article>
+          </section>
+        </div>
+
+        <aside class="side-column" aria-label="Informações da casa">
+          <section class="side-section about-section">
+            <div class="section-heading"><h2>Sobre a casa</h2><span class="profile-complete">Perfil completo</span></div>
+            <p>Somos uma comunidade religiosa dedicada ao acolhimento, à caridade e à preservação dos saberes de matriz africana. Nosso espaço recebe visitantes com respeito e orientação.</p>
+            <dl class="profile-facts"><div><dt>Dirigente</dt><dd>Mãe Celina de Oxum</dd></div><div><dt>Tradição</dt><dd>Umbanda e Candomblé</dd></div><div><dt>Casa fundada em</dt><dd>2008</dd></div></dl>
+            <a class="inline-link" href="#informacoes">Conhecer a história completa</a>
+          </section>
+          <section class="side-section visitor-section">
+            <div class="section-heading"><h2>Antes de visitar</h2></div>
+            <ul class="visitor-list"><li><span>01</span> Confirme dia e horário pelo WhatsApp.</li><li><span>02</span> Prefira roupas claras e confortáveis.</li><li><span>03</span> Chegue com 30 minutos de antecedência.</li></ul>
+          </section>
+          <section class="side-section gallery-section" id="fotos">
+            <div class="section-heading"><h2>Fotos da casa</h2><a class="inline-link" href="#fotos">Ver 18 fotos</a></div>
+            <div class="mini-gallery"><div class="gallery-photo gallery-photo-a" role="img" aria-label="Altar da casa"></div><div class="gallery-photo gallery-photo-b" role="img" aria-label="Flores e elementos do altar"></div><div class="gallery-photo gallery-photo-c" role="img" aria-label="Detalhe do espaço religioso"></div></div>
+          </section>
+          <section class="side-section location-section" id="localizacao">
+            <div class="section-heading"><h2>Localização</h2></div>
+            <p>Parque São Quirino, Campinas, SP</p><p class="muted-copy">O endereço completo aparece ao abrir a rota.</p>
+            <a class="button button-secondary button-full" href="#">Abrir rota no Google Maps</a>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="tab-panel placeholder-panel" id="panel-agenda" aria-labelledby="tab-agenda" data-panel="agenda" role="tabpanel" hidden><h2>Agenda da casa</h2><p>Giras, atendimentos e atividades organizados por data.</p></section>
+    <section class="tab-panel placeholder-panel" id="panel-publicacoes" aria-labelledby="tab-publicacoes" data-panel="publicacoes" role="tabpanel" hidden><h2>Publicações da casa</h2><p>Comunicados oficiais, orientações e registros da comunidade.</p></section>
+    <section class="tab-panel placeholder-panel" id="panel-fotos" aria-labelledby="tab-fotos" data-panel="fotos" role="tabpanel" hidden><h2>Galeria da casa</h2><p>Fotos publicadas pelo terreiro com contexto e data.</p></section>
+    <section class="tab-panel placeholder-panel" id="panel-informacoes" aria-labelledby="tab-informacoes" data-panel="informacoes" role="tabpanel" hidden><h2>Informações para visitantes</h2><p>Contato, acessibilidade, regras da casa e formas de atendimento.</p></section>
+
+    <section class="owner-callout" aria-labelledby="owner-title">
+      <div><span class="section-kicker">Para dirigentes e zeladores</span><h2 id="owner-title">Sua casa também pode ter uma presença oficial no AxéCloud.</h2><p>Publique a agenda, fotos, comunicados e informações de visita em um perfil administrado pela própria comunidade.</p></div>
+      <a class="button button-gold" href="#">Criar perfil da minha casa</a>
+    </section>
+  </main>
+  <footer class="site-footer"><img src="./assets/axecloud-lockup.svg" alt="AxéCloud" /><p>Diretório público de terreiros e sistema de gestão para casas de axé.</p><a href="#">Privacidade</a></footer>
+  <script src="./assets/app.js"></script>
+</body>
+</html>

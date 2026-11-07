@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, forwardRef, useImperativeHandle, type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -66,7 +66,16 @@ type CycleDetail = Cycle & {
   participantes: Participant[];
 };
 
-type Props = { tenantId: string; variant?: 'default' | 'dashboard-art' };
+export type PreceitoCommandCenterHandle = {
+  openWizard: () => void;
+  openDetail: (cycle?: any) => void;
+};
+
+type Props = {
+  tenantId: string;
+  variant?: 'default' | 'dashboard-art' | 'hidden' | 'modern-dashboard';
+  onActiveCycleChange?: (active: Cycle | null, loading: boolean, error?: string) => void;
+};
 
 const nowLocalInput = () => {
   const date = new Date();
@@ -105,7 +114,10 @@ function daysLeft(end: string) {
   return Math.max(0, Math.ceil((new Date(end).getTime() - Date.now()) / 86_400_000));
 }
 
-export default function PreceitoCommandCenter({ tenantId, variant = 'default' }: Props) {
+const PreceitoCommandCenter = forwardRef<PreceitoCommandCenterHandle, Props>(function PreceitoCommandCenter(
+  { tenantId, variant = 'default', onActiveCycleChange }: Props,
+  ref
+) {
   const [cycles, setCycles] = useState<Cycle[]>([]);
   const [children, setChildren] = useState<ChildOption[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
@@ -163,6 +175,19 @@ export default function PreceitoCommandCenter({ tenantId, variant = 'default' }:
     const excluded = new Set(form.filhos_excluidos);
     return activeChildren.filter((child) => !excluded.has(child.id)).length;
   }, [children, form.cargos_alvo, form.filhos_alvo, form.filhos_excluidos, form.publico_alvo]);
+
+  useImperativeHandle(ref, () => ({
+    openWizard: () => openWizard(),
+    openDetail: (cycle?: any) => {
+      const targetCycle = cycle || active;
+      if (targetCycle) void openDetail(targetCycle);
+      else openWizard();
+    },
+  }));
+
+  useEffect(() => {
+    onActiveCycleChange?.(active, loading, error);
+  }, [active, loading, error, onActiveCycleChange]);
 
   const openWizard = () => {
     setForm(initialForm());
@@ -259,7 +284,16 @@ export default function PreceitoCommandCenter({ tenantId, variant = 'default' }:
 
   return (
     <>
-      {variant === 'dashboard-art' ? (
+      {variant === 'hidden' ? null : variant === 'modern-dashboard' ? (
+        <section className={cn('d-preceito', active && 'is-active')} aria-labelledby="d-preceito-title" aria-busy={loading || busy}>
+          <span className="d-flame"><Flame size={28}/></span>
+          <div className="d-preceito-copy"><div><h2 id="d-preceito-title">Preceito da corrente</h2><span className="d-status neutral">{loading ? 'Consultando…' : error ? 'Conferir' : active ? 'Ciclo ativo' : 'Em repouso'}</span></div>
+            <h3>{loading ? 'Consultando os cuidados da casa…' : error ? 'Não foi possível consultar o preceito.' : active ? 'A corrente está em preceito.' : 'A corrente está em repouso.'}</h3>
+            <p role={error ? 'alert' : undefined}>{error || (active ? `${active.titulo} · ${active.counts.cientes} de ${active.counts.total} pessoas cientes.` : 'Nenhum ciclo ativo. Inicie os cuidados quando a casa estiver pronta para o próximo movimento.')}</p>
+          </div>
+          <button type="button" className="d-action secondary" disabled={loading || busy} onClick={() => error ? void load() : active ? void openDetail(active) : openWizard()}><Flame size={17}/>{error ? 'Tentar novamente' : active ? 'Gerenciar ciclo' : 'Iniciar preceito'}<ArrowRight size={16}/></button>
+        </section>
+      ) : variant === 'dashboard-art' ? (
         <section
           className={cn('preceito-command-art preceito-brasa', active ? 'is-active' : 'is-resting')}
           aria-labelledby="preceito-command-art-title"
@@ -583,4 +617,6 @@ export default function PreceitoCommandCenter({ tenantId, variant = 'default' }:
       </BodyPortal>
     </>
   );
-}
+});
+
+export default PreceitoCommandCenter;

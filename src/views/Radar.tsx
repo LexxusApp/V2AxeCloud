@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Eye, MapPinned, Radio, Sparkles, TrendingUp, Search, MessageCircle } from 'lucide-react';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { ClaimedDirectoryProfileSettings } from '../components/settings/ClaimedDirectoryProfileSettings';
@@ -28,7 +28,7 @@ type RadarSummary = {
 
 function Metric({ icon: Icon, label, value, detail }: { icon: typeof Eye; label: string; value: number | string; detail: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-sm">
+    <div className="rounded-lg border border-white/10 bg-white/[0.055] p-4 backdrop-blur-sm">
       <div className="flex items-center justify-between gap-3">
         <span className="grid h-9 w-9 place-items-center rounded-xl border border-[#E5AE12]/25 bg-[#E5AE12]/10 text-[#F2C441]"><Icon className="h-4 w-4" /></span>
         <strong className="text-2xl font-black tracking-tight text-white">{value}</strong>
@@ -40,16 +40,21 @@ function Metric({ icon: Icon, label, value, detail }: { icon: typeof Eye; label:
 }
 
 export default function Radar() {
-  const [summary, setSummary] = useState<RadarSummary | null>(null);
-
-  useEffect(() => {
-    void authFetch('/api/v1/settings/directory-profile')
-      .then(async (response) => {
-        const json = await response.json().catch(() => ({}));
-        if (response.ok) setSummary(json);
-      })
-      .catch(() => undefined);
+  const [summary, setSummary] = useState<RadarSummary>({ profile: null });
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState('');
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true); setSummaryError('');
+    try {
+      const response = await authFetch('/api/v1/settings/directory-profile');
+      const json = await response.json();
+      if (!response.ok) throw Error(json.error || 'Não foi possível consultar o perfil e as visitas.');
+      setSummary(json);
+    } catch (error) { setSummaryError(error instanceof Error ? error.message : 'Não foi possível consultar o Radar.'); }
+    finally { setSummaryLoading(false); }
   }, []);
+  useEffect(() => { void loadSummary(); }, [loadSummary]);
+  const metric = (value?: number) => summaryLoading || summaryError ? '—' : value ?? 0;
 
   const profile = summary?.profile;
   const metrics = summary?.metrics;
@@ -58,14 +63,15 @@ export default function Radar() {
 
   return (
     <AppPageShell>
-      <div className="overflow-hidden rounded-[2rem] border border-[#D3C9B7] bg-[#F6F0E4] shadow-[0_30px_90px_-58px_rgba(20,43,31,.8)]">
+      {summaryError && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><span>{summaryError} Os indicadores estão indisponíveis.</span><button type="button" className="min-h-11 underline" onClick={() => void loadSummary()}>Tentar novamente</button></div>}
+      <div className="overflow-hidden rounded-lg border border-[#D3C9B7] bg-[#F6F0E4] shadow-[0_30px_90px_-58px_rgba(20,43,31,.8)]">
         <header className="relative overflow-hidden bg-[#0D241A] px-5 py-7 text-white sm:px-8 sm:py-9">
           <div className="pointer-events-none absolute -right-24 -top-44 h-[34rem] w-[34rem] rounded-full border border-[#E5AE12]/10" />
           <div className="pointer-events-none absolute -right-8 -top-28 h-[25rem] w-[25rem] rounded-full border border-[#E5AE12]/10" />
           <div className="relative grid gap-7 lg:grid-cols-[1.15fr_.85fr] lg:items-end">
             <div>
-              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#F2C441]"><Radio className="h-4 w-4" /> Presença pública da casa</p>
-              <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.045em] sm:text-4xl">Radar</h1>
+              <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#F2C441]"><Radio className="h-4 w-4" /> ✦ RADAR AXÉCLOUD · FAROL DA COMUNIDADE ✦</p>
+              <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.045em] sm:text-4xl">Radar do Terreiro</h1>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-relaxed text-white/58">
                 Controle como sua casa aparece no mapa, confirme a localização, apresente atendimentos e acompanhe quem está encontrando o terreiro.
               </p>
@@ -80,16 +86,16 @@ export default function Radar() {
             </div>
             <div>
               <div className="grid grid-cols-3 gap-2.5">
-                <Metric icon={Eye} label="7 dias" value={metrics?.views7 || 0} detail="Aberturas recentes" />
-                <Metric icon={TrendingUp} label="30 dias" value={metrics?.views30 || 0} detail="Interesse no período" />
-                <Metric icon={MapPinned} label="Total" value={metrics?.viewsTotal || 0} detail="Visitas ao perfil" />
+                <Metric icon={Eye} label="7 dias" value={metric(metrics?.views7)} detail="Aberturas recentes" />
+                <Metric icon={TrendingUp} label="30 dias" value={metric(metrics?.views30)} detail="Interesse no período" />
+                <Metric icon={MapPinned} label="Total" value={metric(metrics?.viewsTotal)} detail="Visitas ao perfil" />
               </div>
               <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-[11px] text-white/80">
-                <span className="flex items-center gap-1"><MapPinned className="h-3 w-3 text-[#F2C441]" /> <strong>{metrics?.directoryClicks30 || 0}</strong> Mapa</span>
+                <span className="flex items-center gap-1"><MapPinned className="h-3 w-3 text-[#F2C441]" /> <strong>{metric(metrics?.directoryClicks30)}</strong> Mapa</span>
                 <span className="text-white/20">•</span>
-                <span className="flex items-center gap-1"><Search className="h-3 w-3 text-sky-400" /> <strong>{metrics?.googleViews30 || 0}</strong> Google</span>
+                <span className="flex items-center gap-1"><Search className="h-3 w-3 text-sky-400" /> <strong>{metric(metrics?.googleViews30)}</strong> Google</span>
                 <span className="text-white/20">•</span>
-                <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-emerald-400" /> <strong>{metrics?.whatsappClicks30 || 0}</strong> WhatsApp</span>
+                <span className="flex items-center gap-1"><MessageCircle className="h-3 w-3 text-emerald-400" /> <strong>{metric(metrics?.whatsappClicks30)}</strong> WhatsApp</span>
               </div>
             </div>
           </div>
@@ -106,16 +112,10 @@ export default function Radar() {
         </div>
 
         <div className="space-y-6 p-4 sm:p-6">
-          {summary ? (
-            <>
-              <ClaimedDirectoryProfileSettings />
-              <DirectoryPublicProfileSettings />
-              <TerreiroPublicacoesSettings />
-              <TerreiroServicosSettings />
-            </>
-          ) : (
-            <div className="grid min-h-56 place-items-center rounded-2xl border border-[#D8CFBF] bg-[#FFF9EE] text-sm font-black text-[#746A5B]">Preparando o Radar da casa…</div>
-          )}
+          <ClaimedDirectoryProfileSettings />
+          <DirectoryPublicProfileSettings />
+          <TerreiroPublicacoesSettings />
+          <TerreiroServicosSettings />
         </div>
       </div>
     </AppPageShell>

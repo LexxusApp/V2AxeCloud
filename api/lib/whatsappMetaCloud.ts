@@ -11,10 +11,10 @@ const DEFAULT_LANGUAGE = "pt_BR";
 const DEFAULT_TEMPLATE = "aviso_geral_axecloud";
 /** Convidados (RSVP): corpo 5 vars + 2 botões URL dinâmicos */
 const CONVITE_EVENTO_TEMPLATE = "convite_evento_axecloud";
-/** Membros / corrente: aviso humanizado de gira com botões rápidos (aprovado na Meta) */
-const AVISO_GIRA_TEMPLATE = "aviso_gira_lembrete_botoes_axecloud";
+/** Membros / corrente: aviso humanizado de gira (Utilidade aprovado na Meta sem saturação) */
+const AVISO_GIRA_TEMPLATE = "aviso_gira_lembrete_util_axecloud";
 /** Lembrete humanizado de gira para membros da corrente (com ou sem botões) */
-const AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE = "aviso_gira_lembrete_botoes_axecloud";
+const AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE = "aviso_gira_lembrete_util_axecloud";
 /** Mural de avisos: novo comunicado publicado pelo zelador */
 const MURAL_AVISO_TEMPLATE = "mural_aviso_axecloud";
 /** Lembrete automático/manual de mensalidade pendente (cron semanal; fallback Meta) */
@@ -25,6 +25,11 @@ const MENSALIDADE_DISPONIVEL_TEMPLATE = "mensalidade_disponivel_axecloud";
 const MENSALIDADE_VENCE_HOJE_TEMPLATE = "mensalidade_vence_hoje_axecloud";
 /** Cobrança manual no painel financeiro */
 const COBRANCA_MENSALIDADE_TEMPLATE = "cobranca_mensalidade_axecloud";
+/** Cobrança de consumo na cantina / lojinha */
+const COBRANCA_CANTINA_TEMPLATE = "cobranca_cantina_axecloud";
+const COBRANCA_LOJINHA_TEMPLATE = "cobranca_lojinha_axecloud";
+/** Aviso pós-vencimento: mensalidade vencida com lembrete de regularização */
+const MENSALIDADE_VENCIDA_TEMPLATE = "mensalidade_vencida_axecloud";
 /** Confirmação após pagamento registrado */
 const MENSALIDADE_CONFIRMADA_TEMPLATE = "mensalidade_confirmada_axecloud";
 /** Alerta de estoque crítico para o zelador */
@@ -217,6 +222,24 @@ export function resolveMetaTemplateName(tipo: string): string {
       COBRANCA_MENSALIDADE_TEMPLATE
     );
   }
+  if (normalized === "cobranca_cantina") {
+    return (
+      String(process.env.WA_META_TEMPLATE_COBRANCA_CANTINA || "").trim() ||
+      COBRANCA_CANTINA_TEMPLATE
+    );
+  }
+  if (normalized === "cobranca_lojinha") {
+    return (
+      String(process.env.WA_META_TEMPLATE_COBRANCA_LOJINHA || "").trim() ||
+      COBRANCA_LOJINHA_TEMPLATE
+    );
+  }
+  if (normalized === "mensalidade_vencida") {
+    return (
+      String(process.env.WA_META_TEMPLATE_MENSALIDADE_VENCIDA || "").trim() ||
+      MENSALIDADE_VENCIDA_TEMPLATE
+    );
+  }
   if (normalized === "mensalidade_confirmada") {
     return (
       String(process.env.WA_META_TEMPLATE_MENSALIDADE_CONFIRMADA || "").trim() ||
@@ -287,7 +310,8 @@ export function isAvisoGiraLembreteMembroTemplate(
   return (
     name === AVISO_GIRA_LEMBRETE_MEMBRO_TEMPLATE ||
     name.includes("lembrete_membro") ||
-    name.includes("lembrete_botoes")
+    name.includes("lembrete_botoes") ||
+    name.includes("lembrete_util")
   );
 }
 
@@ -372,6 +396,9 @@ export function resolveTransmissaoFollowUpDelayMs(): number {
 
 const META_UTILITY_TEMPLATE_TIPOS = new Set([
   "cobranca_mensalidade",
+  "cobranca_cantina",
+  "cobranca_lojinha",
+  "mensalidade_vencida",
   "mensalidade_confirmada",
   "financeiro",
   "mensalidade_pendente",
@@ -441,8 +468,16 @@ function textParam(value: string, max = 256): { type: "text"; text: string } {
   return { type: "text", text: text || "-" };
 }
 
-/** Meta rejeita quebras de linha e espaços extras nas variáveis de template. */
-export function sanitizeTemplateParam(value: string): string {
+/** Meta rejeita espaços extras nas variáveis de template; preserva quebras de linha quando permitido (multilinha). */
+export function sanitizeTemplateParam(value: string, preserveNewlines = false): string {
+  if (preserveNewlines) {
+    return String(value || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/[ \t]{2,}/g, " ")
+      .trim();
+  }
   return String(value || "")
     .replace(/[\r\n\t]+/g, " ")
     .replace(/\s{2,}/g, " ")
@@ -595,10 +630,16 @@ export function buildContaAtivaComponents(
 ): MetaTemplateComponent[] {
   const v = variables || {};
   const registro = String(v.filho_login_id || "").trim();
+  const email = String(v.email_filho || "").trim();
   const templateName = resolveMetaTemplateName("dados_acesso");
 
   if (templateName === CONTA_MEMBRO_CADASTRO_TEMPLATE) {
-    const credencialText = `Registro: ${registro || "—"} · Senha: 6 primeiros dígitos do CPF · Link: https://axecloud.com.br/entrar?modo=filho`;
+    const loginDetail = email
+      ? `Login: seu E-mail (${email}), WhatsApp ou Registro (${registro || "—"})`
+      : `Login: seu WhatsApp ou Registro (${registro || "—"})`;
+    const rawCpf = String(v.codigo_cpf || v.cpf_prefix || v.cpf || v.senha_acesso || "").replace(/\D/g, "");
+    const senhaValue = rawCpf.length >= 6 ? rawCpf.slice(0, 6) : (v.senha ? String(v.senha).trim() : "6 primeiros dígitos do CPF");
+    const credencialText = `${loginDetail} · Senha: ${senhaValue} · Link: https://axecloud.com.br/entrar?modo=filho`;
     return [
       {
         type: "body",
@@ -612,7 +653,10 @@ export function buildContaAtivaComponents(
   }
 
   if (templateName === CONTA_MEMBRO_PORTAL_TEMPLATE) {
-    const credencialText = `Seu registro é ${registro || "—"}. A chave de entrada são os 6 primeiros dígitos do seu CPF.`;
+    const loginDetail = email
+      ? `Seu login é seu E-mail (${email}), WhatsApp ou Registro (${registro || "—"}).`
+      : `Seu login é seu WhatsApp ou registro ${registro || "—"}.`;
+    const credencialText = `${loginDetail} A chave de entrada são os 6 primeiros dígitos do seu CPF.`;
     return [
       {
         type: "body",
@@ -926,6 +970,53 @@ export function buildCobrancaMensalidadeComponents(
 }
 
 /**
+ * cobranca_cantina_axecloud / cobranca_lojinha_axecloud — corpo: {{1}} médium, {{2}} terreiro, {{3}} valor em aberto, {{4}} chave pix
+ */
+export function buildCobrancaCantinaComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  const valor = String(v.valor || v.saldo_pendente || "0,00");
+  const chavePix = String(v.chave_pix || v.chavePix || "Consulte o zelador");
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+        textParam(valor),
+        textParam(chavePix),
+      ],
+    },
+  ];
+}
+
+/**
+ * mensalidade_vencida_axecloud — corpo: {{1}} filho, {{2}} mês/ano, {{3}} valor, {{4}} terreiro, {{5}} data_vencimento
+ */
+export function buildMensalidadeVencidaComponents(
+  nomeMembro: string,
+  nomeTerreiro: string,
+  variables?: Record<string, string | number>
+): MetaTemplateComponent[] {
+  const v = variables || {};
+  return [
+    {
+      type: "body",
+      parameters: [
+        textParam(String(v.nome_filho || nomeMembro || "Membro")),
+        textParam(String(v.mes_ano || v.competencia || "—")),
+        textParam(String(v.valor || v.valor_mensalidade || "—")),
+        textParam(String(v.nome_terreiro || nomeTerreiro || "Terreiro")),
+        textParam(String(v.data_vencimento || "—")),
+      ],
+    },
+  ];
+}
+
+/**
  * mensalidade_confirmada_axecloud — corpo: {{1}} filho, {{2}} competência, {{3}} valor, {{4}} terreiro
  */
 export function buildMensalidadeConfirmadaComponents(
@@ -1032,13 +1123,15 @@ export function buildResumoDisparoGiraComponents(opts: {
   evento_rotulo: string;
   resumo: string;
 }): MetaTemplateComponent[] {
+  const multilineText =
+    sanitizeTemplateParam(String(opts.resumo || "Sem dados"), true).slice(0, 950) || "-";
   return [
     {
       type: "body",
       parameters: [
         textParam(String(opts.nome_zelador || "Zelador")),
         textParam(String(opts.evento_rotulo || "Gira/Evento")),
-        textParam(String(opts.resumo || "Sem dados"), 900),
+        { type: "text", text: multilineText },
       ],
     },
   ];
@@ -1049,6 +1142,32 @@ export function resolveResumoDisparoGiraTemplateName(): string {
     String(process.env.WA_META_TEMPLATE_RESUMO_DISPARO_GIRA || "").trim() ||
     RESUMO_DISPARO_GIRA_TEMPLATE
   );
+}
+
+export function resolveFalhaAcessoMembroZeladorTemplateName(): string {
+  const custom = String(process.env.META_WA_TEMPLATE_FALHA_ACESSO_ZELADOR || "").trim();
+  if (custom) return custom;
+  return "conta_membro_aviso_zelador_axc";
+}
+
+export function buildFalhaAcessoMembroZeladorComponents(opts: {
+  nome_zelador: string;
+  nome_filho: string;
+  whatsapp_cadastro: string;
+  registro: string;
+  senha: string;
+  dados_manuais: string;
+}): MetaTemplateComponent[] {
+  return [
+    {
+      type: "body",
+      parameters: [
+        { type: "text", text: sanitizeTemplateParam(opts.nome_zelador || "Zelador(a)") },
+        { type: "text", text: sanitizeTemplateParam(opts.nome_filho || "Membro") },
+        { type: "text", text: sanitizeTemplateParam(opts.dados_manuais || "Verifique no painel") },
+      ],
+    },
+  ];
 }
 
 /**
@@ -1288,8 +1407,14 @@ export function buildMetaTemplateComponentsForTipo(
     }
     return buildMensalidadeCompetenciaComponents(nomeMembro, nomeTerreiro, variables);
   }
+  if (t === "mensalidade_vencida") {
+    return buildMensalidadeVencidaComponents(nomeMembro, nomeTerreiro, variables);
+  }
   if (t === "cobranca_mensalidade") {
     return buildCobrancaMensalidadeComponents(nomeMembro, nomeTerreiro, variables);
+  }
+  if (t === "cobranca_cantina" || t === "cobranca_lojinha") {
+    return buildCobrancaCantinaComponents(nomeMembro, nomeTerreiro, variables);
   }
   if (t === "mensalidade_confirmada") {
     return buildMensalidadeConfirmadaComponents(nomeMembro, nomeTerreiro, variables);

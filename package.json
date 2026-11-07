@@ -32,6 +32,7 @@
     "preview:marketing:production": "node scripts/preview-marketing-production.mjs",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit && npm run check:architecture",
+    "lint:release": "tsc -p tsconfig.release.json && npm run check:architecture",
     "check:architecture": "node scripts/check-architecture-budgets.mjs",
     "test": "tsx --test tests/*.test.ts",
     "test:financeiro": "tsx --test tests/financeiroInvariants.test.ts"
@@ -80,6 +81,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "^1.4.0",
     "@tailwindcss/vite": "^4.2.4",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",

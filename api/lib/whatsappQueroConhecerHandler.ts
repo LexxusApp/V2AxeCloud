@@ -204,7 +204,8 @@ export async function handleAutoProvisionInbound(
 
   // 3. Verifica se o usuário já existe no Supabase Auth
   const { data: existingUsers } = await sb.auth.admin.listUsers();
-  const alreadyUser = existingUsers?.users?.find(
+  const users = (existingUsers?.users || []) as Array<{ id: string; email?: string }>;
+  const alreadyUser = users.find(
     (u) => u.email?.toLowerCase() === email.toLowerCase()
   );
 

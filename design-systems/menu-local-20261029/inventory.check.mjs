@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import { applyStockMovement, demoInventory, parseStockAmount, stockNeed, stockStatus } from './inventory.ts';
+
+assert.equal(parseStockAmount('1,125', 'kg'), 1125);
+assert.equal(parseStockAmount('0.001', 'm'), 1);
+assert.equal(parseStockAmount('1,5', 'un.'), null);
+assert.equal(parseStockAmount('0', 'un.'), 0);
+for (const invalid of ['', '-1', '1e3', '1.000,5', '1,2345', 'NaN', '1000001']) assert.equal(parseStockAmount(invalid, 'kg'), null);
+const coffee = demoInventory.items.find(item => item.id === 'cafe');
+assert.equal(applyStockMovement(coffee, 'out', 2000), null, 'Cannot consume more than available.');
+assert.equal(applyStockMovement(coffee, 'in', 0), null);
+assert.equal(applyStockMovement(coffee, 'adjust', 1500), null, 'No-op counts do not produce movements.');
+const first = applyStockMovement(coffee, 'out', parseStockAmount('0,125', 'kg'));
+assert.equal(first, 1375);
+const final = applyStockMovement({ ...coffee, quantity: first }, 'in', parseStockAmount('0,025', 'kg'));
+assert.equal(final, 1400, 'Fractional operations remain exact in thousandths.');
+assert.equal(applyStockMovement(coffee, 'adjust', 0), 0);
+assert.equal(coffee.quantity, 1500, 'Calculations never mutate the current item.');
+assert.equal(stockNeed({ ...coffee, quantity: 500 }), 500);
+assert.equal(stockStatus({ ...coffee, quantity: 1000 }), 'ok');
+assert.equal(stockStatus({ ...coffee, quantity: 0, minimum: 0 }), 'out');
+assert.equal(applyStockMovement({ ...coffee, unit: 'un.' }, 'in', 500), null);
+assert.equal(applyStockMovement({ ...coffee, quantity: 1_000_000_000 }, 'in', 1), null);
+assert.equal(demoInventory.items.filter(item => stockNeed(item) > 0).length, 3);
+console.log('Inventory checks passed: fractions, limits, zero, replenishment and immutable calculations.');

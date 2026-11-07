@@ -349,6 +349,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://axecloud.com.br/anuncios/atelie-fios-de-encantaria</loc>
+    <lastmod>2026-11-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://axecloud.com.br/conteudo/calendario-liturgico</loc>
     <lastmod>2026-10-01</lastmod>
     <changefreq>yearly</changefreq>

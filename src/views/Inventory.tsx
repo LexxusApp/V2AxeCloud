@@ -26,13 +26,8 @@ import { confirmAction } from '../lib/confirmAction';
 import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../lib/modalMotion';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
-import {
-  AppDemoCard,
-  AppDemoPanelHeader,
-  AppDemoTableShell,
-  AppPrimaryButton,
-  appInputClass,
-} from '../components/ui/appDemoUi';
+import { AppDemoCard, AppDemoPanelHeader, AppDemoTableShell, AppPrimaryButton, appInputClass } from '../components/ui/appDemoUi';
+import { AxePageHeader, AxeMetricRail, AxeMetricCard, AxeButton, AxeCard } from '../components/shared/AxePageScaffold';
 
 interface Product {
   id: string;
@@ -318,7 +313,6 @@ export default function Inventory({
   if (loading && products.length === 0) {
     return (
       <AppPageShell>
-        <DataLoadError message={loadError} onRetry={() => void fetchInventory()} />
         <AppPanelLoading />
       </AppPageShell>
     );
@@ -326,32 +320,30 @@ export default function Inventory({
 
   return (
     <AppPageShell>
-        <DataLoadError message={loadError} onRetry={() => void fetchInventory()} />
       <div className="inventory-v5-page">
-      <AppDemoPanelHeader
-        title="Almoxarifado"
-        description="Gestão de estoque e insumos de axé."
-        action={
+      <DataLoadError message={loadError} onRetry={() => void fetchInventory()} />
+      <AxePageHeader
+        theme="liturgical"
+        kicker="ZELADORIA DE INSUMOS & ERVAS SAGRADAS"
+        title="Almoxarifado do Terreiro"
+        description="Gestão de estoque, ervas, velas e insumos litúrgicos com avisos de reposição e lista de compras rápida."
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin ? (
-              <button
-                type="button"
-                onClick={openNewItemModal}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-[#080A0D] transition hover:bg-[#fde047]"
-              >
+              <AxeButton variant="primary" onClick={openNewItemModal}>
                 <Plus className="h-4 w-4" />
-                Novo item
-              </button>
+                Novo Item
+              </AxeButton>
             ) : null}
             <button
               type="button"
               onClick={() => setIsShoppingListOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#D8D1C4] bg-white px-3 py-2 text-xs font-bold text-[#11151A] transition hover:border-[#11151A]"
+              className="inline-flex items-center gap-2 rounded-lg border border-[#D4AF37]/45 bg-black/40 backdrop-blur-md px-4 py-2.5 text-xs font-black text-amber-200 transition hover:bg-black/60 hover:text-white hover:border-[#D4AF37]"
             >
               <ShoppingCart className="h-4 w-4" />
-              Lista de compras
+              Lista de Compras
               {lowStockItems.length > 0 ? (
-                <span className="rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-[#080A0D]">
+                <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-amber-950">
                   {lowStockItems.length}
                 </span>
               ) : null}
@@ -362,105 +354,91 @@ export default function Inventory({
 
       <div className="space-y-5">
 
-        <div className="inventory-pulse-board grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Itens cadastrados</span>
-              <p className="mt-2 text-2xl font-black text-white">{products.length}</p>
-              <p className="mt-1 text-[10px] font-medium text-slate-300">{totalUnits} unidades no total</p>
-            </div>
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-              <Boxes className="h-5 w-5" />
-            </div>
-          </AppDemoCard>
-          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Estoque em dia</span>
-              <p className="mt-2 text-2xl font-black text-emerald-400">{healthyStockItems.length}</p>
-              <p className="mt-1 text-[10px] font-medium text-slate-300">acima do mínimo</p>
-            </div>
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-          </AppDemoCard>
-          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Estoque baixo</span>
-              <p className="mt-2 text-2xl font-black text-amber-300">
-                {Math.max(0, lowStockItems.length - outOfStockItems.length)}
-              </p>
-              <p className="mt-1 text-[10px] font-medium text-slate-300">pedem reposição</p>
-            </div>
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-amber-500/20 bg-amber-950/40 text-amber-300">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-          </AppDemoCard>
-          <AppDemoCard className="flex min-h-[108px] items-center justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Esgotados</span>
-              <p className="mt-2 text-2xl font-black text-rose-400">{outOfStockItems.length}</p>
-              <p className="mt-1 text-[10px] font-medium text-slate-300">reposição urgente</p>
-            </div>
-            <div className="grid h-10 w-10 place-items-center rounded-xl border border-rose-500/20 bg-rose-950/40 text-rose-400">
-              <XCircle className="h-5 w-5" />
-            </div>
-          </AppDemoCard>
-        </div>
+        <AxeMetricRail>
+          <AxeMetricCard
+            label="Itens Cadastrados"
+            value={products.length}
+            icon={Boxes}
+            tone="neutral"
+            subtext={`${totalUnits} unidades totais`}
+          />
+          <AxeMetricCard
+            label="Estoque em Dia"
+            value={healthyStockItems.length}
+            icon={CheckCircle2}
+            tone="emerald"
+            subtext="Acima do mínimo ritual"
+          />
+          <AxeMetricCard
+            label="Pedem Reposição"
+            value={Math.max(0, lowStockItems.length - outOfStockItems.length)}
+            icon={AlertTriangle}
+            tone="amber"
+            subtext="Atenção antes da gira"
+          />
+          <AxeMetricCard
+            label="Esgotados"
+            value={outOfStockItems.length}
+            icon={XCircle}
+            tone="rose"
+            subtext="Reposição urgente necessária"
+          />
+        </AxeMetricRail>
 
-        <AppDemoCard className="inventory-command-deck space-y-4 p-4 sm:p-5">
+        <div className="rounded-lg border border-[#E5DECF] bg-white p-4 sm:p-5 shadow-xs space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h3 className="text-sm font-black text-[#F1F5F9]">Controle de itens</h3>
-              <p className="mt-1 text-xs text-[#64748B]">
-                {filteredProducts.length} de {products.length} item{products.length === 1 ? '' : 's'}
+              <h3 className="text-sm font-black text-[#171A16]">Prateleiras do Almoxarifado</h3>
+              <p className="mt-1 text-xs text-[#7A7265]">
+                {filteredProducts.length} de {products.length} insumo{products.length === 1 ? '' : 's'} catalogado{products.length === 1 ? '' : 's'}
               </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative min-w-0 sm:w-72">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9B9184]" />
                 <input
                   type="search"
-                  placeholder="Buscar item"
+                  placeholder="Buscar insumo, erva, vela…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={cn(appInputClass, 'pl-9')}
+                  className="w-full rounded-xl border border-[#D8D2C4] bg-[#FAF8F5] pl-9 pr-3 py-2 text-xs font-bold text-[#171A16] placeholder:text-[#9B9184] focus:border-[#D4AF37] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
                 />
               </div>
               <div className="relative sm:w-44">
-                <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+                <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9B9184]" />
                 <select
                   value={statusFilter}
                   onChange={(event) =>
                     setStatusFilter(event.target.value as 'todos' | 'em_dia' | 'baixo' | 'esgotado')
                   }
-                  className={cn(appInputClass, 'pl-9')}
+                  className="w-full rounded-xl border border-[#D8D2C4] bg-[#FAF8F5] pl-9 pr-3 py-2 text-xs font-bold text-[#171A16] focus:border-[#D4AF37] focus:bg-white focus:outline-none"
                   aria-label="Filtrar por situação do estoque"
                 >
                   <option value="todos">Todos os status</option>
                   <option value="em_dia">Em dia</option>
-                  <option value="baixo">Estoque baixo</option>
+                  <option value="baixo">Pedem reposição</option>
                   <option value="esgotado">Esgotados</option>
                 </select>
               </div>
             </div>
           </div>
-          <div className="flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap gap-2 overflow-x-auto overscroll-x-contain border-t border-[#252B33] pt-4 touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-h-[44px] min-w-0 w-full max-w-full flex-nowrap gap-2 overflow-x-auto overscroll-x-contain border-t border-[#F0EAE0] pt-3 touch-pan-x no-scrollbar">
             {visibleCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={cn(
-                  'shrink-0 rounded-xl border px-3 py-2 text-[10px] font-black transition-all whitespace-nowrap sm:px-4',
+                  'shrink-0 rounded-xl border px-3.5 py-1.5 text-xs font-black transition-all whitespace-nowrap',
                   activeCategory === cat
-                    ? "border-primary bg-primary text-[#080A0D]"
-                    : "border-[#303844] bg-[#12161A] text-[#94A3B8] hover:border-[#4B5563] hover:text-white"
+                    ? "border-[#D4AF37] bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] text-[#0A160F] shadow-xs"
+                    : "border-[#D8D2C4] bg-white text-[#4A4235] hover:border-[#171A16] hover:bg-[#FAF8F5]"
                 )}
               >
                 {cat}
               </button>
             ))}
           </div>
-        </AppDemoCard>
+        </div>
 
         {filteredProducts.length > 0 ? (
           <>
@@ -473,7 +451,7 @@ export default function Inventory({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.03 }}
-                    className="rounded-2xl border border-[#252C35] bg-[#13171D] p-4"
+                    className="rounded-lg border border-[#252C35] bg-[#13171D] p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -621,23 +599,28 @@ export default function Inventory({
             </div>
           </>
         ) : (
-          <div
-            className="app-demo-empty-preview rounded-2xl border border-dashed border-[#303844] bg-[#11151A] px-6 py-14 text-center"
-            data-preview="Exemplo de item · Velas brancas · 24 unidades em estoque"
-          >
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-              <Package className="h-6 w-6" />
+          <div className="col-span-full rounded-lg border border-[#E5DECF] bg-white p-12 text-center shadow-xs">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-amber-500/10 text-amber-800 border border-amber-200">
+              <Package className="h-7 w-7" />
             </div>
-            <h3 className="mt-3 text-sm font-black text-white">Nenhum item encontrado</h3>
-            <p className="mx-auto mt-1 max-w-sm text-xs font-medium text-slate-300">
-              Ajuste a busca ou os filtros. Se o almoxarifado estiver vazio, cadastre o primeiro item.
+            <h3 className="mt-4 text-base font-black text-[#171A16]">
+              {searchTerm ? `Nenhum insumo encontrado para "${searchTerm}"` : 'Almoxarifado Litúrgico'}
+            </h3>
+            <p className="mx-auto mt-1 max-w-md text-xs font-semibold leading-relaxed text-[#6B6355]">
+              {searchTerm
+                ? 'Tente outro termo ou limpe os filtros de categoria e situação.'
+                : 'Cadastre insumos sagrados, ervas de banho, velas e quartinhas da casa.'}
             </p>
-            {isAdmin && products.length === 0 ? (
-              <AppPrimaryButton type="button" onClick={openNewItemModal} className="mt-4 inline-flex items-center gap-2">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={openNewItemModal}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E5BE42] px-5 py-2.5 text-xs font-black text-[#0A160F] shadow-sm hover:brightness-105 active:scale-95 transition-all"
+              >
                 <Plus className="h-4 w-4" />
-                Cadastrar primeiro item
-              </AppPrimaryButton>
-            ) : null}
+                Cadastrar Novo Insumo Litúrgico
+              </button>
+            )}
           </div>
         )}
 
@@ -656,7 +639,7 @@ export default function Inventory({
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
@@ -760,11 +743,11 @@ export default function Inventory({
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl sm:max-w-lg"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-[#DED8CB] px-5 py-4 sm:px-6">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#F1E8D2]">
+                  <div className="shrink-0 flex h-10 w-10 items-center justify-center rounded-lg bg-[#F1E8D2]">
                     <ShoppingCart className="h-5 w-5 text-[#8F7724]" />
                   </div>
                   <div className="min-w-0">
@@ -778,20 +761,20 @@ export default function Inventory({
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <div className="rounded-2xl border border-[#E3DCCE] bg-white p-4 font-mono text-sm leading-relaxed text-[#4A463E] whitespace-pre-wrap sm:p-6">
+                <div className="rounded-lg border border-[#E3DCCE] bg-white p-4 font-mono text-sm leading-relaxed text-[#4A463E] whitespace-pre-wrap sm:p-6">
                   {generateShoppingListText()}
                 </div>
               </div>
 
               <div className="flex shrink-0 gap-3 border-t border-[#DED8CB] bg-white/70 px-5 py-4 sm:px-6">
                 <button onClick={copyToClipboard}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#D8D2C4] bg-white py-3 font-black text-[#4A463E] transition-all hover:bg-[#F5F0E5]">
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#D8D2C4] bg-white py-3 font-black text-[#4A463E] transition-all hover:bg-[#F5F0E5]">
                   {copied ? <CheckCircle2 className="h-5 w-5 text-[#3F7258]" /> : <Copy className="h-5 w-5" />}
                   <span className="text-sm">{copied ? 'Copiado!' : 'Copiar'}</span>
                 </button>
                 <a href={`https://wa.me/?text=${encodeURIComponent(generateShoppingListText())}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#17251D] py-3 font-black text-[#FFFAF0] shadow-lg transition-all hover:scale-[1.02] hover:bg-[#20342A]">
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#17251D] py-3 font-black text-[#FFFAF0] shadow-lg transition-all hover:scale-[1.02] hover:bg-[#20342A]">
                   <MessageSquare className="h-5 w-5" />
                   <span className="text-sm">WhatsApp</span>
                 </a>

@@ -7,14 +7,13 @@ function resolveOpsAlertPhones(): string[] {
     process.env.AUTOPOST_WHATSAPP_TO,
   ]
     .map((v) => String(v || "").trim())
-    .find(Boolean);
-  if (!raw) return [];
+    .find(Boolean) || "5511920033501";
   const out: string[] = [];
   for (const part of raw.split(/[,;\s]+/)) {
     const msisdn = normalizeBrazilMsisdn(part);
     if (msisdn && !out.includes(msisdn)) out.push(msisdn);
   }
-  return out;
+  return out.length ? out : ["5511920033501"];
 }
 
 function packLegacyAlertLine(parts: Array<string | null | undefined>, max = 900): string {
@@ -47,8 +46,8 @@ export async function notifyOpsNewTerreiro(opts: {
     return { sent: 0, skipped: "no-ops-phone" };
   }
 
-  const terreiro = String(opts.nome_terreiro || "Terreiro").trim().slice(0, 80);
-  const zelador = String(opts.nome_zelador || "").trim().slice(0, 60);
+  const terreiro = String(opts.nome_terreiro || "Terreiro").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, 80);
+  const zelador = String(opts.nome_zelador || "").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, 60);
   const email = String(opts.email || "").trim().toLowerCase().slice(0, 120);
   const waCadastro = normalizeBrazilMsisdn(opts.whatsapp || "") || "sem WA";
   const origem = opts.source === "admin-create"

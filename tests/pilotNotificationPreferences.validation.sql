@@ -1,0 +1,33 @@
+begin;
+do $test$
+declare owner_id uuid:='fad75b91-d2eb-4805-b5a3-c19e8a073bed';child_id uuid:='3666b777-1066-4eb7-a0c3-f63c2e01ae90';e uuid:=gen_random_uuid();f uuid:=gen_random_uuid();request_id uuid:=gen_random_uuid();before_state jsonb;after_state jsonb;r jsonb;original_templates jsonb;original_giras boolean;
+begin
+ select public.piloto_ler_preferencias_whatsapp(metadata),templates,coalesce((metadata->'preferences'->>'notifGiras')::boolean,true) into before_state,original_templates,original_giras from public.whatsapp_config where tenant_id=owner_id;
+ before_state:=coalesce(before_state,public.piloto_ler_preferencias_whatsapp('{}'));original_templates:=coalesce(original_templates,'{}'::jsonb);original_giras:=coalesce(original_giras,true);
+ insert into public.calendario_axe(id,tenant_id,lider_id,titulo,data,hora,tipo,status_confirmacao,wa_reminder_interval_days) values(e,owner_id,owner_id,'VALIDACAO-CODEX-ROLLBACK','2099-01-01','20:00','Gira','Confirmado',3);
+ insert into public.financeiro(id,tenant_id,lider_id,filho_id,descricao,valor,data,tipo,categoria,status) values(f,owner_id,owner_id,child_id,'VALIDACAO-CODEX-ROLLBACK',1,current_date,'entrada','Cantina','pendente');
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);execute 'set local role authenticated';
+ after_state:=before_state||jsonb_build_object('days',4,'sameDay',true,'cantina',true,'obligations',true);
+ r:=public.piloto_configurar_whatsapp(owner_id,after_state,before_state);if r->'preferences' is distinct from after_state then raise exception 'Preferências não confirmadas';end if;
+ if not exists(select 1 from public.calendario_axe where id=e and wa_reminder_interval_days=4 and wa_reminder_mode='quantidade' and wa_reminder_count=2 and wa_reminder_window_start_days=4 and wa_reminder_window_end_days=0) then raise exception 'Antecedência e aviso no dia não agendados';end if;
+ if original_templates is distinct from (select templates from public.whatsapp_config where tenant_id=owner_id) then raise exception 'Preferências alteraram modelos do canal';end if;
+ if original_giras is distinct from (select coalesce((metadata->'preferences'->>'notifGiras')::boolean,true) from public.whatsapp_config where tenant_id=owner_id) then raise exception 'Preferências alteraram autorização dos avisos existentes';end if;
+ r:=public.piloto_configurar_whatsapp(owner_id,after_state,before_state);if r->>'replayed'<>'true' then raise exception 'Repetição de preferência não é segura';end if;
+ begin perform public.piloto_configurar_whatsapp(owner_id,before_state,before_state);raise exception 'Alteração antiga substituiu preferências novas';exception when unique_violation then null;end;
+ perform public.piloto_agendar_lembrete_gira(owner_id,e,false);
+ if exists(select 1 from public.calendario_axe where id=e and wa_reminder_interval_days is not null) then raise exception 'Lembrete permaneceu ativo';end if;
+ perform public.piloto_agendar_lembrete_gira(owner_id,e,true);
+ r:=public.piloto_iniciar_aviso_cantina(owner_id,f,request_id);if r->>'send'<>'true' or r->>'member_id'<>child_id::text then raise exception 'Aviso não foi vinculado à comanda e ao membro';end if;
+ r:=public.piloto_iniciar_aviso_cantina(owner_id,f,gen_random_uuid());if r->>'send'<>'false' then raise exception 'Aviso repetido foi autorizado';end if;
+ r:=public.piloto_finalizar_aviso_cantina(owner_id,f,request_id,null,'Resposta incerta de teste');if r->>'state'<>'incerto' then raise exception 'Falha foi tratada como enviada';end if;
+ r:=public.piloto_iniciar_aviso_cantina(owner_id,f,gen_random_uuid());if r->>'send'<>'false' then raise exception 'Resposta incerta gerou reenvio automático';end if;
+ perform public.piloto_configurar_whatsapp(owner_id,after_state||'{"sameDay":false,"cantina":false}',after_state);
+ if not exists(select 1 from public.calendario_axe where id=e and wa_reminder_mode='antes' and wa_reminder_interval_days=4) then raise exception 'Aviso único não foi agendado';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub','ab2eef13-604c-4c8f-9d14-f3da41cc5a81','role','authenticated')::text,true);
+ begin perform public.piloto_configurar_whatsapp(owner_id,before_state,after_state);raise exception 'Membro alterou configurações do canal';exception when insufficient_privilege then null;end;
+ begin perform public.piloto_iniciar_aviso_cantina(owner_id,f,gen_random_uuid());raise exception 'Membro iniciou disparo da casa';exception when insufficient_privilege then null;end;
+ if exists(select 1 from public.piloto_avisos_cantina) then raise exception 'Auditoria exposta ao membro';end if;
+ execute 'reset role';
+end $test$;
+rollback;
+select 'passed' as pilot_notification_preferences_validation,'all preferences and fixtures rolled back; no external sends' as persistence;

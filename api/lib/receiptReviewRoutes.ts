@@ -87,18 +87,28 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
   app.post('/api/v1/financeiro/validar-comprovante',comprovanteVisionRateLimit,async(req,res)=>{
     let uploadedPath:string|null=null;let registered=false;
     try{
-      const ctx=await access(req,res);if(!ctx)return;if(!ctx.child?.id)fail('Somente o membro pode enviar o próprio comprovante.',403);
+      const ctx=await access(req,res);if(!ctx)return;
       const body=req.body||{},v2=body.workflow==='manual_review_v1';
       let financeiroId=String(body.financeiro_id||'').trim();let finance:any;
+      if(financeiroId){
+        if(!UUID.test(financeiroId))fail('Mensalidade inválida.');
+        const {data,error}=await sb.from('financeiro').select('*').eq('id',financeiroId).maybeSingle();if(error)throw error;finance=data;
+      }
+      if(!ctx.child?.id){
+        const isZelador = await assertZeladorTenantAccess(sb, ctx.user.id, ctx.tenant);
+        const debtFilhoId = finance ? filhoId(finance) : String(body.filho_id||body.filhoId||'').trim();
+        if(isZelador && debtFilhoId && UUID.test(debtFilhoId)){
+          const {data:cData}=await sb.from('filhos_de_santo').select('id,nome,cpf,user_id,tenant_id,lider_id,email').eq('id',debtFilhoId).maybeSingle();
+          if(cData) ctx.child=cData;
+        }
+      }
+      if(!ctx.child?.id)fail('Somente o membro pode enviar o próprio comprovante.',403);
       if(!financeiroId){
         const refs=[ctx.tenant,ctx.child.tenant_id,ctx.child.lider_id].filter(Boolean);
         const {data,error}=await sb.from('financeiro').select('*').eq('categoria','Mensalidade').or([...new Set(refs)].flatMap(id=>[`tenant_id.eq.${id}`,`lider_id.eq.${id}`]).join(','));
         if(error)throw error;const eligible=(data||[]).filter(r=>filhoId(r)===String(ctx.child.id).toLowerCase()&&pending(r));
         if(eligible.length!==1)fail('Escolha a mensalidade e atualize a página antes de enviar o comprovante.',409);
         finance=eligible[0];financeiroId=finance.id;
-      }else{
-        if(!UUID.test(financeiroId))fail('Mensalidade inválida.');
-        const {data,error}=await sb.from('financeiro').select('*').eq('id',financeiroId).maybeSingle();if(error)throw error;finance=data;
       }
       const refs=new Set([ctx.tenant,ctx.child.tenant_id,ctx.child.lider_id]);
       if(!finance||finance.categoria!=='Mensalidade'||filhoId(finance)!==String(ctx.child.id).toLowerCase()||(!refs.has(finance.tenant_id)&&!refs.has(finance.lider_id)))fail('Mensalidade não encontrada para este membro.',404);

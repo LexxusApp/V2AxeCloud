@@ -24,6 +24,16 @@ axecloud-deploy*.tgz
 .deploy-out.txt
 tmp-*.json
 
+# Build artifacts, logs e evidências visuais locais
+artifacts/
+/*.png
+/*.jpg
+/*.txt
+.tmp*
+.codex*
+*.log
+
+
 # Aplicativo Android nativo versionado neste repositório
 /android/.gradle/
 /android/.idea/

@@ -9,6 +9,7 @@ function withAutoFooter(body: string): string {
 export type WhatsAppTemplateType =
   | 'dados_acesso'
   | 'cobranca_mensalidade'
+  | 'mensalidade_vencida'
   | 'mensalidade_disponivel'
   | 'financeiro'
   | 'mensalidade_pendente'
@@ -25,9 +26,12 @@ export type WhatsAppTemplateType =
 export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = {
   dados_acesso: withAutoFooter(
     'Olá, {{nome_filho}}! Sua conta no AxéCloud de {{nome_terreiro}} está ativa.\n\n' +
-      '🔐 *Acesso:*\nRegistro: {{filho_login_id}}\nSenha: {{senha_acesso}} (6 primeiros dígitos do CPF)\nEntrar: {{login_url}}\n\n' +
+      '🔐 *Seus Dados de Acesso:*\n• Login: Seu E-mail cadastrado, WhatsApp ou Registro ({{filho_login_id}})\n• Senha: {{senha_acesso}} (6 primeiros dígitos do seu CPF)\n• Entrar: {{login_url}}\n\n' +
       'No app: giras, mensalidade, obrigações, recados e chat com a casa.\n' +
       'Guia: https://axecloud.com.br/instrucoes/membro',
+  ),
+  mensalidade_vencida: withAutoFooter(
+    'Olá, {{nome_filho}}! Passando para lembrar que a sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} do {{nome_terreiro}} venceu em {{data_vencimento}} e consta em aberto.\n\nCaso já tenha regularizado, por favor entre em contato com o zelador para dar baixa. Axé!',
   ),
   cobranca_mensalidade: withAutoFooter(
     'Olá, {{nome_filho}}! Lembrete privado da mensalidade de {{mes_ano}} (R$ {{valor}}) no {{nome_terreiro}}. Sua contribuição fortalece a casa — qualquer dúvida, fale com a diretoria. Axé!',

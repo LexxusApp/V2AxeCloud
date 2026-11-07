@@ -1,45 +1,26 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
   Eye,
   EyeOff,
   KeyRound,
   Loader2,
   Lock,
+  Mail,
   Phone,
   RotateCcw,
-  User,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ROUTES } from '../lib/routes';
 import { navigateTo } from '../lib/navigation';
-import { AuthScreenBackground } from '../components/AuthScreenBackground';
+import { navigateToMarketingDocument } from '../lib/purgeServiceWorker';
 import { SITE_TITLE } from '../constants/seoBrandKeywords';
-import { BRAND_LOGO_ALT, BRAND_LOGO_HEIGHT, BRAND_LOGO_LIGHT_SRC, BRAND_LOGO_LOGIN_CLASS, BRAND_LOGO_WIDTH } from '../constants/brandLogo';
 import { humanizePasswordPolicyError, PASSWORD_HINT_PT, validateStrongPassword } from '../../lib/passwordPolicy';
-
-const fontLogin =
-  "[font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]";
-
-const AUTH_MODAL_CARD = cn(
-  'relative w-full overflow-hidden rounded-xl border border-primary/20 bg-card',
-  'shadow-[0_0_50px_rgba(212,175,55,0.1)]',
-  'p-5 pt-3 sm:p-6 sm:pt-4'
-);
-
-const AUTH_MODAL_RADIUS = 'rounded-lg';
-
-const fieldShell = cn(
-  'w-full h-[38px] pl-[42px] pr-3 text-sm font-bold leading-none text-white placeholder:text-gray-500',
-  'border border-white/10 bg-background',
-  AUTH_MODAL_RADIUS,
-  'outline-none transition-all focus:border-primary/50',
-  '[@media(max-height:700px)]:h-[34px]'
-);
-
-const labelClass = 'block text-[10px] font-black uppercase tracking-widest text-gray-500';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -69,8 +50,9 @@ export default function ForgotPassword() {
       setError('Informe o e-mail de login cadastrado.');
       return;
     }
-    if (!whatsapp.replace(/\D/g, '').match(/^\d{10,13}$/)) {
-      setError('Informe o WhatsApp cadastrado no terreiro, com DDD.');
+    const rawDigits = whatsapp.replace(/\D/g, '');
+    if (!rawDigits.match(/^\d{10,13}$/)) {
+      setError('Informe o WhatsApp cadastrado no terreiro com DDD.');
       return;
     }
 
@@ -79,7 +61,7 @@ export default function ForgotPassword() {
       const res = await fetch('/api/v1/auth/forgot-password/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ loginEmail, whatsapp }),
+        body: JSON.stringify({ loginEmail, whatsapp: rawDigits }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Falha ao solicitar código.');
@@ -101,8 +83,9 @@ export default function ForgotPassword() {
     setInfo(null);
 
     const loginEmail = email.trim().toLowerCase();
-    if (!loginEmail || !code.trim() || !newPassword || !confirmPassword) {
-      setError('Preencha e-mail, código e nova senha.');
+    const cleanCode = code.trim();
+    if (!loginEmail || !cleanCode || !newPassword || !confirmPassword) {
+      setError('Preencha o código e a nova senha.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -122,8 +105,8 @@ export default function ForgotPassword() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           loginEmail,
-          whatsapp,
-          code,
+          whatsapp: whatsapp.replace(/\D/g, ''),
+          code: cleanCode,
           newPassword,
           confirmPassword,
         }),
@@ -140,201 +123,307 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div
-      className={cn(
-        'relative isolate flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-4 antialiased text-white backdrop-blur-2xl sm:px-6 sm:py-5',
-        fontLogin
-      )}
-    >
-      <AuthScreenBackground variant="dark" className="fixed inset-0" />
+    <div className="axe-login-page-v2">
+      {/* Background Altar Photo in Crystal Clear Quality */}
+      <div className="axe-login-bg-photo" aria-hidden="true">
+        <img src="/login-bg-trident.png" alt="" />
+        <div className="axe-login-bg-overlay" />
+      </div>
 
+      {/* Ambient Lighting & Sacred Geometry Grid */}
+      <div className="axe-login-ambient-glow" aria-hidden="true" />
+      <div className="axe-login-bg-grid" aria-hidden="true" />
+
+      {/* Quick back shortcut button */}
       <a
         href={ROUTES.login}
-        className="absolute left-[max(1rem,env(safe-area-inset-left))] top-[max(1.5rem,env(safe-area-inset-top))] z-20 inline-flex items-center gap-1.5 text-xs font-semibold text-primary/90 transition-colors hover:text-primary [text-shadow:0_2px_10px_rgba(0,0,0,0.85)]"
+        className="fixed left-4 top-4 z-30 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/50 px-3.5 py-2 text-xs font-bold text-zinc-300 shadow-lg backdrop-blur-md transition-all hover:border-amber-500/40 hover:bg-black/75 hover:text-white"
       >
-        <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Voltar ao login
+        <ArrowLeft className="h-3.5 w-3.5 text-amber-400" />
+        <span>Voltar ao login</span>
       </a>
 
+      {/* Main Card with High Performance Border Beam */}
       <motion.div
-        initial={false}
+        initial={{ opacity: 0, y: 14, scale: 0.99 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="relative z-10 my-auto w-full max-w-[22rem] py-2 sm:max-w-md sm:py-0"
+        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+        className="axe-login-card"
       >
-        <div className={cn(AUTH_MODAL_CARD, 'space-y-4')}>
-          <header className="space-y-2.5 text-center">
-            <div className="flex justify-center">
-              <img
-                src={BRAND_LOGO_LIGHT_SRC}
-                alt={BRAND_LOGO_ALT}
-                width={BRAND_LOGO_WIDTH}
-                height={BRAND_LOGO_HEIGHT}
-                decoding="async"
-                className={BRAND_LOGO_LOGIN_CLASS}
-              />
-            </div>
-            <h1 className="text-lg font-black text-white">Recuperar senha</h1>
-            <p className="sr-only">{SITE_TITLE} — recuperação via WhatsApp</p>
-            <p className="text-[13px] leading-snug text-gray-400">
-              O e-mail de login pode ser fictício. Enviamos um código no WhatsApp cadastrado no terreiro.
-            </p>
-          </header>
+        {/* Magic UI / 21st.dev Golden Border Beam Runner */}
+        <div className="border-beam-track" aria-hidden="true">
+          <div className="border-beam-runner" />
+        </div>
 
-          {error && (
-            <div className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-950/30 px-4 py-3 text-red-300">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={2} />
-              <p className="text-[0.8125rem] font-bold leading-snug">{error}</p>
-            </div>
-          )}
+        {/* Card Header */}
+        <header className="axe-login-header">
+          <a
+            href={ROUTES.home}
+            onClick={(event) => {
+              event.preventDefault();
+              void navigateToMarketingDocument(ROUTES.home);
+            }}
+            className="axe-login-brand"
+          >
+            <img src="/axecloud-trident.png" alt="AxéCloud" width="38" height="48" />
+            <span className="axe-login-brand-title">
+              Axé<span>Cloud</span>
+            </span>
+          </a>
+          <p className="axe-login-subtitle">Recuperação de Acesso</p>
+          <h1 className="axe-login-headline">
+            {step === 'request' ? 'Recuperar sua senha' : 'Criar nova senha'}
+            <small>
+              {step === 'request'
+                ? 'Informe seus dados cadastrados para receber um código de validação no WhatsApp.'
+                : 'Digite o código recebido no WhatsApp e defina sua nova senha de acesso.'}
+            </small>
+          </h1>
+        </header>
 
-          {info && (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/25 px-4 py-3 text-[0.8125rem] font-bold leading-snug text-emerald-300">
-              {info}
-            </div>
-          )}
+        {/* Alert Feedback Messages */}
+        {error && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-950/40 p-3.5 text-red-200">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <p className="flex-1 text-xs font-semibold leading-relaxed">{error}</p>
+          </div>
+        )}
 
+        {info && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-500/35 bg-emerald-950/40 p-3.5 text-emerald-200">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+            <p className="flex-1 text-xs font-semibold leading-relaxed">{info}</p>
+          </div>
+        )}
+
+        {/* Dynamic Step Content */}
+        <AnimatePresence mode="wait">
           {step === 'request' ? (
-            <form onSubmit={(e) => void handleRequestCode(e)} className="space-y-[8px]">
-              <div className="space-y-[5px]">
-                <label className={labelClass}>E-mail de login</label>
-                <div className="relative">
-                  <User
-                    className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                    strokeWidth={1.5}
-                  />
+            /* STEP 1: SOLICITAR CÓDIGO */
+            <motion.form
+              key="step-request"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              transition={{ duration: 0.24 }}
+              onSubmit={(e) => void handleRequestCode(e)}
+              className="space-y-4"
+            >
+              {/* E-mail Field */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                  E-mail de Login
+                </label>
+                <div className="axe-login-input-shell">
+                  <Mail className="input-icon h-4 w-4" />
                   <input
-                    type="text"
-                    inputMode="email"
-                    autoComplete="username"
+                    type="email"
                     required
+                    autoComplete="username"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@login.com"
-                    className={fieldShell}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="seu-email@exemplo.com"
                   />
                 </div>
               </div>
 
-              <div className="space-y-[5px]">
-                <label className={labelClass}>WhatsApp do terreiro</label>
-                <div className="relative">
-                  <Phone
-                    className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                    strokeWidth={1.5}
-                  />
+              {/* WhatsApp Field */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                    WhatsApp do Terreiro
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-400">Com DDD</span>
+                </div>
+                <div className="axe-login-input-shell">
+                  <Phone className="input-icon h-4 w-4" />
                   <input
                     type="tel"
                     inputMode="numeric"
                     autoComplete="tel"
                     required
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
+                    onChange={(e) => {
+                      setWhatsapp(e.target.value);
+                      if (error) setError(null);
+                    }}
                     placeholder="(11) 99999-9999"
-                    className={fieldShell}
                   />
                 </div>
+                <p className="text-[11px] leading-snug text-zinc-400">
+                  Enviaremos uma mensagem segura com o código de 6 dígitos.
+                </p>
               </div>
 
+              {/* Action Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black uppercase tracking-wider text-black shadow-[0_4px_16px_rgba(212,175,55,0.25)] transition-all hover:bg-[#e09b1f] hover:shadow-[0_6px_20px_rgba(212,175,55,0.35)] active:scale-[0.99] disabled:opacity-50"
+                className="btn-submit-zelador mt-2"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin text-black" strokeWidth={2.5} /> : null}
-                {loading ? 'Enviando…' : 'Enviar código no WhatsApp'}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Enviar código no WhatsApp</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
-            </form>
+            </motion.form>
           ) : (
-            <form onSubmit={(e) => void handleConfirm(e)} className="space-y-[8px]">
-              <div className="space-y-[5px]">
-                <label className={labelClass}>Código de 6 dígitos</label>
-                <div className="relative">
-                  <KeyRound
-                    className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                    strokeWidth={1.5}
-                  />
+            /* STEP 2: DIGITAR CÓDIGO E NOVA SENHA */
+            <motion.form
+              key="step-confirm"
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              transition={{ duration: 0.24 }}
+              onSubmit={(e) => void handleConfirm(e)}
+              className="space-y-4"
+            >
+              {/* Back to Edit Header */}
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-xs">
+                <span className="truncate font-semibold text-zinc-300">{email}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('request');
+                    setCode('');
+                    setError(null);
+                    setInfo(null);
+                  }}
+                  className="font-bold text-amber-400 hover:text-amber-300"
+                >
+                  Alterar dados
+                </button>
+              </div>
+
+              {/* 6 Digits Code */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                    Código de 6 dígitos
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-400">Recebido via WhatsApp</span>
+                </div>
+                <div className="axe-login-input-shell">
+                  <KeyRound className="input-icon h-4 w-4" />
                   <input
                     type="text"
                     inputMode="numeric"
                     maxLength={6}
                     required
+                    autoComplete="one-time-code"
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) => {
+                      setCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      if (error) setError(null);
+                    }}
                     placeholder="000000"
-                    className={cn(fieldShell, 'tracking-[0.3em]')}
+                    style={{ letterSpacing: '0.25em', fontWeight: 700 }}
                   />
                 </div>
               </div>
 
-              <div className="space-y-[5px]">
-                <label className={labelClass}>Nova senha</label>
-                <div className="relative">
-                  <Lock
-                    className="pointer-events-none absolute left-[14px] top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-primary"
-                    strokeWidth={1.5}
-                  />
+              {/* New Password */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                  Nova Senha
+                </label>
+                <div className="axe-login-input-shell">
+                  <Lock className="input-icon h-4 w-4" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     required
                     minLength={8}
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Ex.: Axé@2026"
-                    className={cn(fieldShell, 'pr-12')}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="Mínimo 8 caracteres"
+                    style={{ paddingRight: '44px' }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-gray-500"
                     aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    className="toggle-pwd"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="text-[10px] leading-relaxed text-gray-500">{PASSWORD_HINT_PT}</p>
+                <p className="text-[11px] leading-relaxed text-zinc-400">{PASSWORD_HINT_PT}</p>
               </div>
 
-              <div className="space-y-[5px]">
-                <label className={labelClass}>Confirmar nova senha</label>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repita a nova senha"
-                  className={cn(fieldShell, 'pl-3')}
-                />
+              {/* Confirm New Password */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                  Confirmar Nova Senha
+                </label>
+                <div className="axe-login-input-shell">
+                  <KeyRound className="input-icon h-4 w-4" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder="Digite a nova senha novamente"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2.5 pt-3 sm:flex-row sm:items-center sm:gap-3">
+              {/* Buttons Row */}
+              <div className="space-y-2.5 pt-1">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="order-1 flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black uppercase tracking-wider text-black shadow-[0_4px_16px_rgba(212,175,55,0.25)] transition-all hover:bg-[#e09b1f] hover:shadow-[0_6px_20px_rgba(212,175,55,0.35)] active:scale-[0.99] disabled:opacity-50 sm:order-2"
+                  className="btn-submit-zelador"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin text-black" strokeWidth={2.5} /> : null}
-                  {loading ? 'Salvando…' : 'Salvar nova senha'}
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Salvar nova senha e entrar</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
+
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={() => {
-                    setStep('request');
-                    setCode('');
-                    setInfo(null);
-                  }}
-                  className="order-2 flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-gray-300 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white active:scale-[0.99] disabled:opacity-50 sm:order-1"
+                  onClick={(e) => void handleRequestCode(e)}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-bold text-zinc-300 transition-all hover:border-amber-500/30 hover:bg-white/[0.06] hover:text-white active:scale-[0.99] disabled:opacity-50"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 text-gray-400" />
-                  Reenviar código
+                  <RotateCcw className="h-3.5 w-3.5 text-amber-400" />
+                  Reenviar código no WhatsApp
                 </button>
               </div>
-            </form>
+            </motion.form>
           )}
-        </div>
+        </AnimatePresence>
+
+        {/* Footer Navigation */}
+        <footer className="mt-6 border-t border-white/[0.08] pt-4 text-center">
+          <a
+            href={ROUTES.login}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 transition-colors hover:text-amber-300"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Lembrou da senha? Fazer login</span>
+          </a>
+        </footer>
       </motion.div>
     </div>
   );

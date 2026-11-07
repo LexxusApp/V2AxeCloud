@@ -29,7 +29,7 @@ type WaLogUi = {
   mensagem: string;
   data: string;
   tipo: WaLogTipo;
-  status: 'Enviado' | 'Falha' | 'Parcial' | 'Entregue' | 'Lido' | 'Aceito pela Meta';
+  status: 'Enviando' | 'Enviado' | 'Falha' | 'Parcial' | 'Entregue' | 'Lido';
 };
 
 type WaPreferences = {
@@ -133,6 +133,7 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
     return requested === 'historico' ? requested : 'automacoes';
   });
   const [connected, setConnected] = useState(false);
+  useEffect(() => { if (initialView) setWaView(initialView); }, [initialView]);
   const [channelMessage, setChannelMessage] = useState('');
   const [preferences, setPreferences] = useState<WaPreferences>(DEFAULT_PREFS);
   const [logs, setLogs] = useState<WaLogUi[]>([]);
@@ -199,13 +200,13 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
             status:
               st === 'failed' || st === 'falha'
                 ? 'Falha'
-                : st === 'partial'
-                  ? 'Parcial'
+                : st === 'queued' || st === 'sending' || st === 'processando'
+                  ? 'Enviando'
                   : st === 'delivered' || st === 'entregue'
                     ? 'Entregue'
                     : st === 'read' || st === 'lido'
                       ? 'Lido'
-                      : 'Aceito pela Meta',
+                      : 'Enviado',
           };
         }),
       );
@@ -271,7 +272,7 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
   const visibleLogs = filteredLogs.slice(0, MAX_VISIBLE_LOGS);
   const hiddenLogsCount = Math.max(filteredLogs.length - visibleLogs.length, 0);
   const failedLogsCount = logs.filter((log) => log.status === 'Falha' || log.status === 'Parcial').length;
-  const deliveredLogsCount = logs.filter((log) => log.status === 'Entregue' || log.status === 'Lido').length;
+  const deliveredLogsCount = logs.filter((log) => log.status === 'Entregue' || log.status === 'Lido' || log.status === 'Enviado').length;
   const readLogsCount = logs.filter((log) => log.status === 'Lido').length;
   const enabledAutomations = Object.values(preferences).filter(Boolean).length;
 
@@ -459,7 +460,7 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                 <span>Sincronizando com Giras, Financeiro e Altar Virtual:</span>
                 <span className="flex shrink-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-[#15803D]">
                   <WaLiveDot active={connected} className="h-2 w-2" />
-                  {connected ? 'Webhook Online' : 'Aguardando canal'}
+                  {connected ? 'Webhook Online' : 'Conectando canal'}
                 </span>
               </div>
             </div>
@@ -623,15 +624,17 @@ export function SettingsWhatsAppPanel({ initialView }: SettingsWhatsAppPanelProp
                       &quot;{log.mensagem}&quot;
                     </p>
                     <div className="flex items-center justify-between border-t border-[#E5DDD0] pt-2 text-[10px]">
-                      <span className="font-black text-[#3D352A]">Status Gateway:</span>
+                      <span className="font-black text-[#3D352A]">Status:</span>
                       <span
                         className={`flex items-center gap-1 font-black ${
                           log.status === 'Falha'
                             ? 'text-[#B91C1C]'
-                            : 'text-[#047857]'
+                            : log.status === 'Enviando'
+                              ? 'text-amber-700'
+                              : 'text-[#047857]'
                         }`}
                       >
-                        {log.status === 'Falha' ? '✗' : '✓'} {log.status}
+                        {log.status === 'Falha' ? '✗' : log.status === 'Enviando' ? '◌' : '✓'} {log.status}
                       </span>
                     </div>
                   </div>

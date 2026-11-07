@@ -1,0 +1,655 @@
+{
+  "scope": "Prévia local; contratos de informações comparados às fontes do sistema atual, sem validação de API/produção.",
+  "modalCount": 57,
+  "modals": [
+    {
+      "file": "AttendancePage.tsx",
+      "line": 56,
+      "title": "Concluir chamada na prévia?",
+      "labels": [],
+      "controls": [
+        "Revisar",
+        "Confirmar chamada"
+      ]
+    },
+    {
+      "file": "CantinaPage.tsx",
+      "line": 79,
+      "title": "{editProductId ? 'Editar item do cardápio' : 'Novo item do cardápio'}",
+      "labels": [
+        "Nome do item",
+        "Preço (R$)",
+        "Ilustração",
+        "Categoria do item",
+        "Etiqueta (opcional)"
+      ],
+      "controls": [
+        "{editProductId ? 'Salvar item' : 'Adicionar ao cardápio'}"
+      ]
+    },
+    {
+      "file": "CantinaPage.tsx",
+      "line": 80,
+      "title": "Limite da caderneta",
+      "labels": [
+        "Limite de consumo (R$)",
+        "Bloquear novos consumos na caderneta"
+      ],
+      "controls": [
+        "Salvar limite"
+      ]
+    },
+    {
+      "file": "CantinaPage.tsx",
+      "line": 81,
+      "title": "Prévia do aviso da cantina",
+      "labels": [],
+      "controls": [
+        "Concluir prévia"
+      ]
+    },
+    {
+      "file": "CantinaPage.tsx",
+      "line": 82,
+      "title": "{settlement ? 'Acertar a caderneta' : confirmation === 'credit' ? 'Anotar consumo' : 'Confirmar recebimento'}",
+      "labels": [],
+      "controls": [
+        "Cancelar",
+        "{confirmation === 'credit' ? 'Confirmar anotação' : 'Confirmar recebimento'}"
+      ]
+    },
+    {
+      "file": "DashboardPage.tsx",
+      "line": 133,
+      "title": "{detail === 'whatsapp' ? 'WhatsApp da casa' : detail === 'radar' ? 'Presença no Radar' : detail === 'attendance' ? 'Presenças da próxima gira' : 'Uma foto para a sua casa'}",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "FinancialEntryDialog.tsx",
+      "line": 42,
+      "title": "{initialCharge ? 'Editar mensalidade' : editingCash ? 'Editar lançamento' : 'Novo lançamento'}",
+      "labels": [
+        "Descrição do lançamento *",
+        "Categoria *",
+        "Valor {isMonthly ? 'base ' : ''} (R$) *",
+        "{draft.interestMode === 'percent' ? 'Taxa de juros / multa (%)' : 'Juros / multa (R$)'}",
+        "{isMonthly ? 'Vencimento da mensalidade *' : 'Data do movimento *'} {isMonthly && <small>A referência vem desta data: {validFinancialDate(draft.dueDate) ? monthlyLabel(draft.dueDate.slice(0, 7)) : 'informe o vencimento'}. Pode ser de um mês antigo.</small>}",
+        "Vincular membro {isMonthly ? '*' : '(opcional)'}",
+        "Data do recebimento *"
+      ],
+      "controls": [
+        "{kind === 'income' ? 'Entrada (receita)' : 'Saída (despesa)'}",
+        "Pendente (cobrar membro)",
+        "Quitada (já paga)",
+        "{label}",
+        "Salvar lançamento"
+      ]
+    },
+    {
+      "file": "GalleryPage.tsx",
+      "line": 107,
+      "title": "{editor?.kind === 'edit' ? 'Editar álbum' : editor?.kind === 'add' ? 'Adicionar registros' : 'Criar álbum'}",
+      "labels": [
+        "Nome do álbum",
+        "Categoria",
+        "Descrição"
+      ],
+      "controls": [
+        "Selecionar arquivos locais",
+        "Usar imagens de exemplo",
+        "{editor.kind === 'new' ? 'Criar álbum na prévia' : 'Salvar na prévia'}"
+      ]
+    },
+    {
+      "file": "GalleryPage.tsx",
+      "line": 108,
+      "title": "Editar registro",
+      "labels": [
+        "Título do registro",
+        "Legenda"
+      ],
+      "controls": [
+        "Salvar legenda"
+      ]
+    },
+    {
+      "file": "GalleryPage.tsx",
+      "line": 109,
+      "title": "Remover este álbum da prévia?",
+      "labels": [],
+      "controls": [
+        "Cancelar",
+        "Remover da prévia"
+      ]
+    },
+    {
+      "file": "GalleryPage.tsx",
+      "line": 110,
+      "title": "{currentMedia.title}",
+      "labels": [],
+      "controls": [
+        "{currentMedia.liked ? 'Meu Axé' : 'Dar Axé'}",
+        "Recarregar arquivo"
+      ]
+    },
+    {
+      "file": "GirasPage.tsx",
+      "line": 107,
+      "title": "{giras.some(g => g.id === editor?.id) ? 'Editar gira' : 'Criar gira'}",
+      "labels": [
+        "Nome do encontro *",
+        "Tipo",
+        "Situação",
+        "Data *",
+        "Horário de Brasília *",
+        "Limite de vagas para atendimento",
+        "Destacar este encontro na agenda",
+        "Lembrete da gira (preferência local, sem envio)",
+        "Local *",
+        "Orientações da zeladoria"
+      ],
+      "controls": [
+        "Salvar na prévia"
+      ]
+    },
+    {
+      "file": "InventoryPage.tsx",
+      "line": 96,
+      "title": "{editor?.existing ? 'Editar cadastro do item' : 'Novo item do estoque'}",
+      "labels": [
+        "Nome do item",
+        "Categoria",
+        "Unidade",
+        "{editor.existing ? 'Saldo atual' : 'Quantidade inicial'}",
+        "Quantidade mínima",
+        "Localização",
+        "Observações"
+      ],
+      "controls": [
+        "{editor.existing ? 'Salvar cadastro na prévia' : 'Cadastrar na prévia'}"
+      ]
+    },
+    {
+      "file": "InventoryPage.tsx",
+      "line": 97,
+      "title": "Movimentar estoque",
+      "labels": [
+        "Item",
+        "{move.kind === 'adjust' ? 'Saldo contado' : 'Quantidade'} ( {movingItem?.unit} )",
+        "Motivo da movimentação"
+      ],
+      "controls": [
+        "{String(label)}",
+        "Confirmar movimentação na prévia"
+      ]
+    },
+    {
+      "file": "InventoryPage.tsx",
+      "line": 98,
+      "title": "{detail?.name || 'Detalhes do item'}",
+      "labels": [],
+      "controls": [
+        "Movimentar item",
+        "Editar cadastro",
+        "Remover item da prévia"
+      ]
+    },
+    {
+      "file": "InventoryPage.tsx",
+      "line": 99,
+      "title": "Remover este item da prévia?",
+      "labels": [],
+      "controls": [
+        "Cancelar",
+        "Remover da prévia"
+      ]
+    },
+    {
+      "file": "InventoryPage.tsx",
+      "line": 100,
+      "title": "Lista de reposição",
+      "labels": [
+        "Itens para repor"
+      ],
+      "controls": [
+        "{copied ? <Check size={16} /> : <Copy size={16} />} {copied ? 'Lista copiada' : 'Copiar lista'}"
+      ]
+    },
+    {
+      "file": "LibraryPage.tsx",
+      "line": 96,
+      "title": "{state.materials.some(material => material.id === editor?.id) ? 'Editar material e acesso' : 'Adicionar material'}",
+      "labels": [
+        "Título do material",
+        "Assunto",
+        "Filho que terá acesso",
+        "Descrição"
+      ],
+      "controls": [
+        "{editor.attachment ? 'Trocar PDF' : 'Selecionar PDF'}",
+        "Usar PDF de exemplo",
+        "Salvar material na prévia"
+      ]
+    },
+    {
+      "file": "LibraryPage.tsx",
+      "line": 97,
+      "title": "Confirmar mudança de acesso",
+      "labels": [],
+      "controls": [
+        "Voltar à edição",
+        "Confirmar alteração de acesso"
+      ]
+    },
+    {
+      "file": "LibraryPage.tsx",
+      "line": 98,
+      "title": "Remover material da prévia?",
+      "labels": [],
+      "controls": [
+        "Cancelar",
+        "Remover da prévia"
+      ]
+    },
+    {
+      "file": "LibraryPage.tsx",
+      "line": 99,
+      "title": "Testar acesso de um filho",
+      "labels": [
+        "Filho para visualizar"
+      ],
+      "controls": [
+        "Abrir prévia do filho"
+      ]
+    },
+    {
+      "file": "LibraryPage.tsx",
+      "line": 100,
+      "title": "{reader.title}",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "main.tsx",
+      "line": 246,
+      "title": "Menu da casa",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "main.tsx",
+      "line": 247,
+      "title": "Buscar no sistema",
+      "labels": [],
+      "controls": [
+        "{i.label}"
+      ]
+    },
+    {
+      "file": "main.tsx",
+      "line": 248,
+      "title": "Notificações",
+      "labels": [],
+      "controls": [
+        "Marcar todas como lidas",
+        "{n.title} {n.description} {n.time}"
+      ]
+    },
+    {
+      "file": "main.tsx",
+      "line": 249,
+      "title": "Novo movimento",
+      "labels": [],
+      "controls": [
+        "{a.title} {a.desc}"
+      ]
+    },
+    {
+      "file": "main.tsx",
+      "line": 250,
+      "title": "{preceito ? 'Preceito ativo' : 'Iniciar um novo ciclo'}",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "main.tsx",
+      "line": 251,
+      "title": "Uma prévia para experimentar",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "MemberFinance.tsx",
+      "line": 19,
+      "title": "{`Financeiro de ${name.split(' ')[0]}`}",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "MembersPage.tsx",
+      "line": 155,
+      "title": "{members.some(m => m.id === editor?.id) ? 'Editar perfil' : 'Novo membro'}",
+      "labels": [
+        "Nome completo *",
+        "CPF (opcional)",
+        "Situação do membro",
+        "Cargo / função",
+        "Data de entrada",
+        "Nascimento",
+        "E-mail",
+        "Telefone / WhatsApp",
+        "Cidade e estado",
+        "Orixá de frente",
+        "Orixá adjuntó",
+        "Data de feitura",
+        "Quizilas e cuidados"
+      ],
+      "controls": [
+        "Salvar na prévia"
+      ]
+    },
+    {
+      "file": "MembersPage.tsx",
+      "line": 164,
+      "title": "Acesso do membro",
+      "labels": [],
+      "controls": [
+        "Entendi"
+      ]
+    },
+    {
+      "file": "MessagesPage.tsx",
+      "line": 108,
+      "title": "Nova conversa",
+      "labels": [
+        "Nome do grupo"
+      ],
+      "controls": [
+        "Individual",
+        "Grupo",
+        "{m.initials} {m.name} {m.hasApp ? m.role : 'Sem acesso ao app neste exemplo'} {m.hasApp && <ArrowRight size={15} />}",
+        "Criar grupo na prévia ( {groupMembers.length} )"
+      ]
+    },
+    {
+      "file": "MessagesPage.tsx",
+      "line": 109,
+      "title": "Detalhes da conversa",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "MonthlyPage.tsx",
+      "line": 40,
+      "title": "Confirmar recebimento",
+      "labels": [
+        "Data do recebimento"
+      ],
+      "controls": [
+        "Cancelar",
+        "Confirmar baixa"
+      ]
+    },
+    {
+      "file": "MonthlyPage.tsx",
+      "line": 41,
+      "title": "Desfazer recebimento?",
+      "labels": [],
+      "controls": [
+        "Manter baixa",
+        "Desfazer baixa"
+      ]
+    },
+    {
+      "file": "MonthlyPage.tsx",
+      "line": 42,
+      "title": "Prévia do lembrete",
+      "labels": [],
+      "controls": [
+        "Concluir prévia"
+      ]
+    },
+    {
+      "file": "NoticesPage.tsx",
+      "line": 52,
+      "title": "{editor?.status === 'published' ? 'Editar comunicado' : 'Preparar comunicado'}",
+      "labels": [
+        "Título",
+        "Categoria",
+        "Expiração (opcional)",
+        "WhatsApp da corrente (preferência local, sem envio)",
+        "Mensagem",
+        "Público",
+        "{m.name}",
+        "Vincular a uma gira"
+      ],
+      "controls": [
+        "{editor.status === 'published' ? 'Salvar alterações' : 'Salvar rascunho'}",
+        "Publicar na prévia"
+      ]
+    },
+    {
+      "file": "NoticesPage.tsx",
+      "line": 53,
+      "title": "Prévia para o membro",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "ObligationsPage.tsx",
+      "line": 52,
+      "title": "{editor && items.some(i => i.id === editor.id) ? 'Editar compromisso' : 'Novo compromisso'}",
+      "labels": [
+        "Título",
+        "Membro",
+        "Data",
+        "Horário de Brasília",
+        "Orientações",
+        "Lembrar o membro (preferência local, sem envio)"
+      ],
+      "controls": [
+        "Salvar compromisso"
+      ]
+    },
+    {
+      "file": "ObligationsPage.tsx",
+      "line": 53,
+      "title": "{target?.done ? 'Reabrir acompanhamento?' : 'Concluir acompanhamento?'}",
+      "labels": [],
+      "controls": [
+        "Cancelar",
+        "Confirmar {target?.done ? 'reabertura' : 'conclusão'}"
+      ]
+    },
+    {
+      "file": "RadarPage.tsx",
+      "line": 34,
+      "title": "{state.published?'Ocultar perfil de teste?':'Exibir perfil de teste?'}",
+      "labels": [],
+      "controls": [
+        "Voltar",
+        "Confirmar visibilidade"
+      ]
+    },
+    {
+      "file": "RadarPage.tsx",
+      "line": 35,
+      "title": "Descartar alterações do perfil?",
+      "labels": [],
+      "controls": [
+        "Continuar editando",
+        "Descartar edição"
+      ]
+    },
+    {
+      "file": "RadarPage.tsx",
+      "line": 36,
+      "title": "Atendimento público",
+      "labels": [
+        "Nome do atendimento",
+        "Descrição",
+        "Duração em minutos",
+        "Disponível para visitantes"
+      ],
+      "controls": [
+        "Salvar atendimento"
+      ]
+    },
+    {
+      "file": "RadarPage.tsx",
+      "line": 37,
+      "title": "Texto do perfil público",
+      "labels": [
+        "Título da publicação",
+        "Conteúdo"
+      ],
+      "controls": [
+        "Salvar texto"
+      ]
+    },
+    {
+      "file": "RadarPage.tsx",
+      "line": 38,
+      "title": "Alterar publicação no perfil?",
+      "labels": [],
+      "controls": [
+        "Voltar",
+        "Confirmar na prévia"
+      ]
+    },
+    {
+      "file": "RadarVisitor.tsx",
+      "line": 10,
+      "title": "Prévia do perfil público",
+      "labels": [],
+      "controls": [
+        "{state.portrait?<RadarPicture media={state.portrait} alt={`Foto de perfil de ${state.publicName}`}/>:<Landmark size={35}/>}",
+        "{m.illustrative&&<small>Ilustração · IA</small>}"
+      ]
+    },
+    {
+      "file": "RadarVisitor.tsx",
+      "line": 14,
+      "title": "Imagem inteira",
+      "labels": [],
+      "controls": []
+    },
+    {
+      "file": "SettingsPage.tsx",
+      "line": 25,
+      "title": "{confirm==='access'?'Recuperar acesso ao sistema':confirm==='reset'?'Reiniciar estas configurações?':confirm==='connect'?'Simular conexão do WhatsApp?':'Desconectar o canal de teste?'}",
+      "labels": [],
+      "controls": [
+        "Abrir suporte",
+        "Voltar",
+        "Confirmar na prévia"
+      ]
+    },
+    {
+      "file": "StorePage.tsx",
+      "line": 76,
+      "title": "{state.products.some(p => p.id === draft?.id) ? 'Editar produto' : 'Novo produto'}",
+      "labels": [
+        "Nome do produto",
+        "Descrição",
+        "Categoria",
+        "Preço (R$)",
+        "Disponível para venda",
+        "Alerta de estoque mínimo",
+        "Imagem de demonstração"
+      ],
+      "controls": [
+        "Salvar produto na prévia"
+      ]
+    },
+    {
+      "file": "StorePage.tsx",
+      "line": 78,
+      "title": "{review ? 'Confira seu pedido' : 'Sua sacola'}",
+      "labels": [
+        "Destinatário"
+      ],
+      "controls": [
+        "Remover",
+        "Confirmar pedido de teste",
+        "Voltar para ajustar",
+        "Revisar pedido"
+      ]
+    },
+    {
+      "file": "StorePage.tsx",
+      "line": 79,
+      "title": "{pendingAction ? actionText[pendingAction.action] : 'Pedido'}",
+      "labels": [],
+      "controls": [
+        "Voltar",
+        "Confirmar na prévia"
+      ]
+    },
+    {
+      "file": "SubscriptionPage.tsx",
+      "line": 16,
+      "title": "{confirm==='renew'?'Revisar renovação de teste':confirm==='cancel'?'Encerrar ao fim do período?':'Manter a continuidade?'}",
+      "labels": [],
+      "controls": [
+        "Voltar",
+        "Confirmar simulação"
+      ]
+    },
+    {
+      "file": "SubscriptionPage.tsx",
+      "line": 17,
+      "title": "Simular recebimento da assinatura?",
+      "labels": [],
+      "controls": [
+        "Voltar",
+        "Confirmar pagamento de teste"
+      ]
+    },
+    {
+      "file": "SupportPage.tsx",
+      "line": 26,
+      "title": "{item?.title||'Orientação'}",
+      "labels": [],
+      "controls": [
+        "{item.action}"
+      ]
+    },
+    {
+      "file": "SupportPage.tsx",
+      "line": 27,
+      "title": "Organizar um pedido de ajuda",
+      "labels": [
+        "Zelador(a) / responsável",
+        "Nome do terreiro",
+        "WhatsApp para retorno",
+        "Categoria do pedido",
+        "Assunto",
+        "O que aconteceu?"
+      ],
+      "controls": [
+        "Registrar pedido local"
+      ]
+    },
+    {
+      "file": "SupportPage.tsx",
+      "line": 28,
+      "title": "{selected?.subject||'Pedido de ajuda'}",
+      "labels": [
+        "Complementar descrição"
+      ],
+      "controls": [
+        "Adicionar complemento local",
+        "{selected.status==='open'?'Encerrar pedido na prévia':'Reabrir pedido na prévia'}"
+      ]
+    },
+    {
+      "file": "WorkflowUI.tsx",
+      "line": 8,
+      "title": "{title}",
+      "labels": [],
+      "controls": []
+    }
+  ]
+}

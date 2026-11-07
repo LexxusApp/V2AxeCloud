@@ -183,6 +183,35 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         linkedChild.tenant_id ||
         linkedChild.lider_id ||
         "";
+      const PILOT_TEST_TENANT_ID = "fad75b91-d2eb-4805-b5a3-c19e8a073bed";
+      if (resolvedTenantId === PILOT_TEST_TENANT_ID) {
+        const { data: coAdmin } = await sb
+          .from("piloto_coadministradores")
+          .select("ativo, cargo_delegado")
+          .eq("tenant_id", PILOT_TEST_TENANT_ID)
+          .eq("filho_id", linkedChild.id)
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (coAdmin?.ativo) {
+          res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+          return res.json({
+            nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
+            cargo: coAdmin.cargo_delegado || "Co-Administrador",
+            role: "admin",
+            is_co_admin: true,
+            is_admin_global: false,
+            tenant_id: resolvedTenantId,
+            plan: filhoPlanSlug,
+            status: leaderActive ? "active" : leaderSub.data?.status || "inactive",
+            expires_at: leaderSub.data?.expires_at || null,
+            billing_cycle: leaderSub.data?.billing_cycle || "monthly",
+            foto_url: leaderProfile.data?.foto_url || null,
+            tradicao: leaderProfile.data?.tradicao || "mista",
+          });
+        }
+      }
+
       res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",

@@ -1,6 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { isCantinaEnabled } from '../../lib/cantinaFeature';
+import { showHouseToast } from '../../lib/houseToast';
 import './berry-dashboard.css';
+
+function formatExpirationDate(expiresAt?: string | null): string | null {
+  if (!expiresAt) return null;
+  try {
+    const dateOnly = String(expiresAt).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const date = dateOnly
+      ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12)
+      : new Date(expiresAt);
+    if (!Number.isFinite(date.getTime())) return null;
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return null;
+  }
+}
 
 interface BerryAppShellProps {
   activeTab: string;
@@ -11,6 +30,9 @@ interface BerryAppShellProps {
   zeladorNome?: string;
   userEmail?: string | null;
   tenantId?: string | null;
+  fotoUrl?: string | null;
+  expiresAt?: string | null;
+  planName?: string | null;
   onLogout: () => void;
   children: React.ReactNode;
 }
@@ -24,6 +46,9 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
   zeladorNome = 'Zeladoria Geral',
   userEmail,
   tenantId,
+  fotoUrl,
+  expiresAt,
+  planName,
   onLogout,
   children,
 }) => {
@@ -31,14 +56,74 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
   const isFinanceiroActive = ['financial', 'financial-mensalidades', 'financial-cantina', 'financial-configs'].includes(activeTab);
 
   // Submenus iniciam recolhidos na Dashboard e só abrem se a rota ativa pertencer ao grupo
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1024 : false));
+
+  const handleNav = (tab: string, subview?: string) => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      setSidebarCollapsed(true);
+    }
+    setActiveTab(tab, subview);
+  };
   const [casaExpanded, setCasaExpanded] = useState(() => isCasaActive);
   const [financeiroExpanded, setFinanceiroExpanded] = useState(() => isFinanceiroActive);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [popoverSearch, setPopoverSearch] = useState('');
-  const [waAlertsEnabled, setWaAlertsEnabled] = useState(true);
-  const [dndEnabled, setDndEnabled] = useState(false);
+  const [waAlertsEnabled, setWaAlertsEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const stored = localStorage.getItem('axecloud:wa_alerts_enabled');
+      return stored !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const [dndEnabled, setDndEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('axecloud:dnd_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [photoError, setPhotoError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleWaAlerts = (checked: boolean) => {
+    setWaAlertsEnabled(checked);
+    try {
+      localStorage.setItem('axecloud:wa_alerts_enabled', checked ? 'true' : 'false');
+      window.dispatchEvent(new CustomEvent('axecloud:wa-alerts-toggled', { detail: { enabled: checked } }));
+    } catch {
+      // noop
+    }
+    if (checked) {
+      showHouseToast('Avisos no WhatsApp ativados: convocações e alertas ligados.', 'success');
+    } else {
+      showHouseToast('Avisos no WhatsApp pausados temporariamente.', 'info');
+    }
+  };
+
+  const handleToggleDnd = (checked: boolean) => {
+    setDndEnabled(checked);
+    try {
+      localStorage.setItem('axecloud:dnd_enabled', checked ? 'true' : 'false');
+      if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('data-axecloud-dnd', checked ? 'true' : 'false');
+      }
+      window.dispatchEvent(new CustomEvent('axecloud:dnd-toggled', { detail: { enabled: checked } }));
+    } catch {
+      // noop
+    }
+    if (checked) {
+      showHouseToast('Modo Silencioso ativado: notificações e alertas sonoros pausados.', 'info');
+    } else {
+      showHouseToast('Modo Silencioso desativado: alertas normais restaurados.', 'success');
+    }
+  };
+
+  useEffect(() => {
+    setPhotoError(false);
+  }, [fotoUrl]);
 
   // Se o usuário navegar para uma rota interna do grupo, expande automaticamente
   useEffect(() => {
@@ -73,7 +158,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
         <div className="topbar-left">
           <a
             href="#dashboard"
-            onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}
+            onClick={(e) => { e.preventDefault(); handleNav('dashboard'); }}
             className="topbar-brand-link"
             title="AxéCloud — Gestão para Terreiros"
           >
@@ -109,7 +194,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
         </div>
 
         <div className="topbar-right">
-          <button className="topbar-btn notification" title="Notificações e avisos" type="button" onClick={() => setActiveTab('mural')}>
+          <button className="topbar-btn notification" title="Notificações e avisos" type="button" onClick={() => handleNav('mural')}>
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
@@ -128,9 +213,18 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
               title="Perfil e Configurações da Casa"
             >
               <div className="profile-avatar-wrap">
-                <span className="text-xs font-bold text-amber-500">
-                  {(zeladorNome || terreiroNome).slice(0, 2).toUpperCase()}
-                </span>
+                {fotoUrl && !photoError ? (
+                  <img
+                    src={fotoUrl}
+                    alt={zeladorNome || terreiroNome}
+                    className="profile-avatar-img"
+                    onError={() => setPhotoError(true)}
+                  />
+                ) : (
+                  <span className="text-xs font-bold text-amber-500">
+                    {(zeladorNome || terreiroNome).slice(0, 2).toUpperCase()}
+                  </span>
+                )}
               </div>
               <svg className="profile-gear-icon" xmlns="http://www.w3.org/2000/svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -142,9 +236,25 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
             {profileDropdownOpen && (
               <div className="berry-profile-dropdown show" id="profile-dropdown" style={{ display: 'flex' }}>
                 {/* 1. Header do Usuário */}
-                <div className="popover-user-header">
-                  <div className="popover-greeting">Olá, <strong>{zeladorNome || terreiroNome}</strong></div>
-                  <div className="popover-role">{userRole} · AxéCloud</div>
+                <div className="popover-user-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="profile-avatar-wrap" style={{ width: 44, height: 44, minWidth: 44 }}>
+                    {fotoUrl && !photoError ? (
+                      <img
+                        src={fotoUrl}
+                        alt={zeladorNome || terreiroNome}
+                        className="profile-avatar-img"
+                        onError={() => setPhotoError(true)}
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-amber-500">
+                        {(zeladorNome || terreiroNome).slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="popover-greeting">Olá, <strong>{zeladorNome || terreiroNome}</strong></div>
+                    <div className="popover-role">{userRole} · AxéCloud</div>
+                  </div>
                 </div>
 
                 {/* 2. Campo de busca interno */}
@@ -164,19 +274,23 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
                 {/* 3. Card de Assinatura (Estilo Berry Upgrade Card) */}
                 <div className="popover-plan-card">
-                  <div className="plan-card-floating-badge" title="Status Pro">
+                  <div className="plan-card-floating-badge" title="Status Premium">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                     </svg>
                   </div>
-                  <div className="plan-card-title">Plano AxéCloud Pro</div>
-                  <div className="plan-card-desc">Terreiro verificado no Radar com WhatsApp oficial ativo.</div>
+                  <div className="plan-card-title">Plano Premium</div>
+                  <div className="plan-card-desc">
+                    {expiresAt && formatExpirationDate(expiresAt)
+                      ? `Expira em ${formatExpirationDate(expiresAt)}`
+                      : 'Assinatura ativa na sua zeladoria'}
+                  </div>
                   <button
                     className="btn-plan-action"
                     type="button"
-                    onClick={() => { setProfileDropdownOpen(false); setActiveTab('subscription'); }}
+                    onClick={() => { setProfileDropdownOpen(false); handleNav('subscription'); }}
                   >
-                    Gerenciar Plano
+                    Gerenciar Assinatura
                   </button>
                 </div>
 
@@ -184,22 +298,22 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 <div className="popover-toggles-card">
                   <div className="toggle-row">
                     <span className="toggle-label">Avisos no WhatsApp</span>
-                    <label className="berry-switch" title="Ativar ou pausar avisos automáticos">
+                    <label className="berry-switch" title="Ativar ou pausar avisos automáticos no WhatsApp">
                       <input
                         type="checkbox"
                         checked={waAlertsEnabled}
-                        onChange={(e) => setWaAlertsEnabled(e.target.checked)}
+                        onChange={(e) => handleToggleWaAlerts(e.target.checked)}
                       />
                       <span className="switch-slider" />
                     </label>
                   </div>
                   <div className="toggle-row">
                     <span className="toggle-label">Modo Silencioso (DND)</span>
-                    <label className="berry-switch" title="Silenciar notificações temporariamente">
+                    <label className="berry-switch" title="Silenciar notificações e alertas sonoros">
                       <input
                         type="checkbox"
                         checked={dndEnabled}
-                        onChange={(e) => setDndEnabled(e.target.checked)}
+                        onChange={(e) => handleToggleDnd(e.target.checked)}
                       />
                       <span className="switch-slider" />
                     </label>
@@ -212,7 +326,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                     <button
                       className="popover-menu-item"
                       type="button"
-                      onClick={() => { setProfileDropdownOpen(false); setActiveTab('settings'); }}
+                      onClick={() => { setProfileDropdownOpen(false); handleNav('settings'); }}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -226,7 +340,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                     <button
                       className="popover-menu-item"
                       type="button"
-                      onClick={() => { setProfileDropdownOpen(false); setActiveTab('radar'); }}
+                      onClick={() => { setProfileDropdownOpen(false); handleNav('radar'); }}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M19 10c0 3.976-7 10-7 10s-7-6.024-7-10a7 7 0 0 1 14 0Z" />
@@ -241,7 +355,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                     <button
                       className="popover-menu-item"
                       type="button"
-                      onClick={() => { setProfileDropdownOpen(false); setActiveTab('suporte'); }}
+                      onClick={() => { setProfileDropdownOpen(false); handleNav('suporte'); }}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
@@ -275,6 +389,13 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
       {/* 2. APP WORKSPACE (MENU LATERAL + CORPO) */}
       <div className="app-workspace">
+        {!sidebarCollapsed && (
+          <div
+            className="mobile-sidebar-backdrop md:hidden"
+            aria-hidden="true"
+            onClick={() => setSidebarCollapsed(true)}
+          />
+        )}
         
         {/* SIDEBAR */}
         <aside className="app-sidebar">
@@ -283,7 +404,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
             
             <a
               href="#dashboard"
-              onClick={(e) => { e.preventDefault(); setActiveTab('dashboard'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('dashboard'); }}
               className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
               title="Início"
             >
@@ -316,7 +437,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
               <div className="nav-group-subitems">
                 <a
                   href="#children"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('children'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('children'); }}
                   className={`nav-sub-item ${activeTab === 'children' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -326,7 +447,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 </a>
                 <a
                   href="#obligations"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('obligations'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('obligations'); }}
                   className={`nav-sub-item ${activeTab === 'obligations' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -336,7 +457,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 </a>
                 <a
                   href="#calendar"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('calendar'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('calendar'); }}
                   className={`nav-sub-item ${activeTab === 'calendar' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -346,7 +467,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 </a>
                 <a
                   href="#frequencia"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('frequencia'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('frequencia'); }}
                   className={`nav-sub-item ${activeTab === 'frequencia' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -356,7 +477,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 </a>
                 <a
                   href="#mural"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('mural'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('mural'); }}
                   className={`nav-sub-item ${activeTab === 'mural' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -366,7 +487,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 </a>
                 <a
                   href="#chat"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('chat'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('chat'); }}
                   className={`nav-sub-item ${activeTab === 'chat' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -399,7 +520,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 {/* 1. Visão Geral */}
                 <a
                   href="#financial"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('financial'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('financial'); }}
                   className={`nav-sub-item ${activeTab === 'financial' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -411,7 +532,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 {/* 2. Mensalidades */}
                 <a
                   href="#financial-mensalidades"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('financial-mensalidades'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('financial-mensalidades'); }}
                   className={`nav-sub-item ${activeTab === 'financial-mensalidades' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -424,7 +545,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 {cantinaEnabled && (
                   <a
                     href="#financial-cantina"
-                    onClick={(e) => { e.preventDefault(); setActiveTab('financial-cantina'); }}
+                    onClick={(e) => { e.preventDefault(); handleNav('financial-cantina'); }}
                     className={`nav-sub-item ${activeTab === 'financial-cantina' ? 'active' : ''}`}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -440,7 +561,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
                 {/* 4. Configurações Pix */}
                 <a
                   href="#financial-configs"
-                  onClick={(e) => { e.preventDefault(); setActiveTab('financial-configs'); }}
+                  onClick={(e) => { e.preventDefault(); handleNav('financial-configs'); }}
                   className={`nav-sub-item ${activeTab === 'financial-configs' ? 'active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -454,7 +575,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#gallery"
-              onClick={(e) => { e.preventDefault(); setActiveTab('gallery'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('gallery'); }}
               className={`nav-item ${activeTab === 'gallery' ? 'active' : ''}`}
               title="Galeria"
             >
@@ -466,7 +587,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#inventory"
-              onClick={(e) => { e.preventDefault(); setActiveTab('inventory'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('inventory'); }}
               className={`nav-item ${activeTab === 'inventory' ? 'active' : ''}`}
               title="Almoxarifado"
             >
@@ -478,7 +599,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#library"
-              onClick={(e) => { e.preventDefault(); setActiveTab('library'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('library'); }}
               className={`nav-item ${activeTab === 'library' ? 'active' : ''}`}
               title="Biblioteca"
             >
@@ -490,7 +611,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#store"
-              onClick={(e) => { e.preventDefault(); setActiveTab('store'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('store'); }}
               className={`nav-item ${activeTab === 'store' ? 'active' : ''}`}
               title="Loja da Casa"
             >
@@ -502,7 +623,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#radar"
-              onClick={(e) => { e.preventDefault(); setActiveTab('radar'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('radar'); }}
               className={`nav-item ${activeTab === 'radar' ? 'active' : ''}`}
               title="Radar AxéCloud"
             >
@@ -516,7 +637,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#subscription"
-              onClick={(e) => { e.preventDefault(); setActiveTab('subscription'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('subscription'); }}
               className={`nav-item ${activeTab === 'subscription' ? 'active' : ''}`}
               title="Minha assinatura"
             >
@@ -528,7 +649,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#settings"
-              onClick={(e) => { e.preventDefault(); setActiveTab('settings'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('settings'); }}
               className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
               title="Configurações"
             >
@@ -541,7 +662,7 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
 
             <a
               href="#suporte"
-              onClick={(e) => { e.preventDefault(); setActiveTab('suporte'); }}
+              onClick={(e) => { e.preventDefault(); handleNav('suporte'); }}
               className={`nav-item ${activeTab === 'suporte' ? 'active' : ''}`}
               title="Suporte"
             >
@@ -553,6 +674,24 @@ export const BerryAppShell: React.FC<BerryAppShellProps> = ({
           </nav>
 
           <div className="sidebar-footer">
+            <button
+              className="btn-install-pwa"
+              id="installPwaBtn"
+              title="Instalar aplicativo"
+              aria-label="Instalar AxéCloud no dispositivo"
+              type="button"
+              onClick={() => {
+                const event = new CustomEvent("axecloud:trigger-pwa-install");
+                window.dispatchEvent(event);
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" x2="12" y1="15" y2="3" />
+              </svg>
+              <span>Instalar aplicativo</span>
+            </button>
             <button
               className="btn-logout"
               data-tooltip="Sair"

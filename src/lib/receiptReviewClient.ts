@@ -1,11 +1,11 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {authFetch} from './authenticatedFetch';
-import type {ReceiptReview} from '../../lib/receiptReview';
+import {readReceiptPage,type ReceiptReview} from '../../lib/receiptReview';
 export const RECEIPT_UPDATED='axecloud:receipt-review-updated';
 export async function receiptRequest(url:string,init:RequestInit={},timeout=25_000){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
   try{
-    const response=await authFetch(url,{...init,signal:controller.signal});const body=await response.json().catch(()=>({}));
+    const response=await authFetch(url,{...init,signal:controller.signal});const body=await response.json().catch(()=>{throw Error('O servidor não retornou uma resposta válida. Tente novamente.');});
     if(!response.ok)throw Error(body.error||'Não foi possível concluir. Tente novamente.');return body;
   }catch(error){if(controller.signal.aborted)throw Error('A conexão demorou demais. Tente novamente; um envio já recebido não será duplicado.');throw error;}
   finally{clearTimeout(timer);}
@@ -19,7 +19,7 @@ export function useReceiptReviews(userId:string|undefined|null,tenantId:string|u
     if(!enabled||!userId||!tenantId)return;const key=scopeRef.current+':'+(more?cursor:'first');if(inFlight.current.has(key))return;
     inFlight.current.add(key);const ownScope=scopeRef.current,version=++revision.current;setLoading(true);setError('');
     try{
-      const body=await receiptRequest(`/api/v1/financial/comprovantes?tenantId=${encodeURIComponent(tenantId)}&status=${encodeURIComponent(filter)}&limit=30${more&&cursor?'&cursor='+encodeURIComponent(cursor):''}`);
+      const body=readReceiptPage(await receiptRequest(`/api/v1/financial/comprovantes?tenantId=${encodeURIComponent(tenantId)}&status=${encodeURIComponent(filter)}&limit=30${more&&cursor?'&cursor='+encodeURIComponent(cursor):''}`));
       if(scopeRef.current!==ownScope||version!==revision.current)return;
       setRows(previous=>more?[...new Map([...previous,...body.data].map(row=>[row.id,row])).values()]:body.data||[]);
       setCursor(body.next_cursor||null);setPendingCount(Number(body.pending_count)||0);setOpenIds(body.open_financeiro_ids||[]);

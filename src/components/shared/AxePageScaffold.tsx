@@ -1,6 +1,7 @@
 import React from 'react';
 import { LucideIcon, Search, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useModernInterface } from '../app/ModernInterfaceContext';
 
 // ==========================================
 // 1. AXÉ PAGE HEADER (SOPHISTICATED BERRY HERO)
@@ -24,6 +25,19 @@ export function AxePageHeader({
   className,
   theme = 'forest',
 }: AxePageHeaderProps) {
+  const modern = useModernInterface();
+  if (modern) {
+    return (
+      <header data-axe-heading={theme} className="modern-page-heading">
+        <div className="modern-page-heading-copy">
+          <h1>{title}</h1>
+          {description && <p>{description}</p>}
+          {badge && <div className="modern-page-heading-badge">{badge}</div>}
+        </div>
+        {actions && <div className="modern-page-heading-actions">{actions}</div>}
+      </header>
+    );
+  }
   const themeGradients = {
     forest: 'from-[#09150E] via-[#0F261B] to-[#173A2A]',
     gold: 'from-[#140E06] via-[#21180C] to-[#18261C]',
@@ -33,6 +47,7 @@ export function AxePageHeader({
 
   return (
     <header
+      data-axe-heading={theme}
       className={cn(
         'relative overflow-hidden rounded-lg p-6 sm:p-8 lg:p-9 shadow-[0_14px_40px_rgba(8,20,13,0.32)] border border-[#D4AF37]/35 transition-all duration-300',
         'bg-gradient-to-br text-white',
@@ -158,6 +173,7 @@ export function AxeButton({
 
   return (
     <button
+      data-axe-button={variant}
       disabled={disabled || loading}
       className={cn(
         'inline-flex items-center justify-center select-none transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 cursor-pointer',
@@ -190,6 +206,7 @@ export function AxeMetricRail({
 }) {
   return (
     <section
+      data-axe-metrics="true"
       className={cn('grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4', className)}
       aria-label="Indicadores principais"
     >
@@ -571,6 +588,9 @@ export interface AxeTabsBarProps {
 export function AxeTabsBar({ tabs, activeTab, onChange, className }: AxeTabsBarProps) {
   return (
     <div
+      data-axe-tabs="true"
+      role="navigation"
+      aria-label="Seções da página"
       className={cn(
         'flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none',
         className,
@@ -583,6 +603,7 @@ export function AxeTabsBar({ tabs, activeTab, onChange, className }: AxeTabsBarP
           <button
             key={tab.id}
             type="button"
+            aria-current={isActive ? 'page' : undefined}
             onClick={() => onChange(tab.id)}
             className={cn(
               'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-black transition-all shrink-0 border cursor-pointer select-none',

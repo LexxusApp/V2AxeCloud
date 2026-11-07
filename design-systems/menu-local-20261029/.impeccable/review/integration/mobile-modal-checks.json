@@ -1,0 +1,128 @@
+[
+  {
+    "route": "children",
+    "fields": 13,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Novo membro",
+    "width": 358
+  },
+  {
+    "route": "calendar",
+    "fields": 10,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Criar gira",
+    "width": 358
+  },
+  {
+    "route": "obligations",
+    "fields": 7,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Novo compromisso",
+    "width": 358
+  },
+  {
+    "route": "mural",
+    "fields": 7,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Preparar comunicado",
+    "width": 358
+  },
+  {
+    "route": "chat",
+    "fields": 1,
+    "fits": true,
+    "height": 572,
+    "overflow": false,
+    "title": "Nova conversa",
+    "width": 358
+  },
+  {
+    "route": "gallery",
+    "fields": 4,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Criar álbum",
+    "width": 358
+  },
+  {
+    "route": "inventory",
+    "fields": 7,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Novo item do estoque",
+    "width": 358
+  },
+  {
+    "route": "library",
+    "fields": 7,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Adicionar material",
+    "width": 358
+  },
+  {
+    "route": "store",
+    "fields": 8,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Novo produto",
+    "width": 358
+  },
+  {
+    "route": "financial",
+    "fields": 5,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Novo lançamento",
+    "width": 358
+  },
+  {
+    "route": "financial-mensalidades",
+    "fields": 4,
+    "fits": true,
+    "height": 717,
+    "overflow": false,
+    "title": "Novo lançamento",
+    "width": 358
+  },
+  {
+    "route": "suporte",
+    "fields": 3,
+    "fits": true,
+    "height": 639,
+    "overflow": false,
+    "title": "Organizar um pedido de ajuda",
+    "width": 358
+  },
+  {
+    "route": "subscription",
+    "fields": 0,
+    "fits": true,
+    "height": 370,
+    "overflow": false,
+    "title": "Revisar renovação de teste",
+    "width": 358
+  },
+  {
+    "route": "radar",
+    "fields": 0,
+    "fits": true,
+    "height": 827,
+    "overflow": false,
+    "title": "Prévia do perfil público",
+    "width": 382
+  }
+]

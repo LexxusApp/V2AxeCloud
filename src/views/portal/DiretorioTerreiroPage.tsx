@@ -19,6 +19,7 @@ import { trackConversionEvent } from '../../lib/trackConversion';
 import { getFeaturedTerreiroCopy } from '../../../lib/diretorioSeoShared';
 import { buildDiretorioWhatsappHref } from '../../../lib/diretorioWhatsapp';
 import { formatTelefoneBr } from '../../lib/formatTelefone';
+import { publicGiraTime, publicRadarCaption, pilotNetworkNames } from '../../lib/pilotRadarPublic';
 import {
   formatGiraTime, getNextGiraScheduleItem, GIRA_WEEKDAYS, type GiraScheduleItem,
 } from '../../../lib/giraSchedule';
@@ -48,11 +49,11 @@ function nextGiraDate(daysUntil: number): Date {
   const date = new Date(); date.setDate(date.getDate() + daysUntil); return date;
 }
 
-function ProfilePhoto({ fotoUrl, nome, className = '', eager = false }: {
-  fotoUrl: string | null; nome: string; className?: string; eager?: boolean;
+function ProfilePhoto({ fotoUrl, nome, className = '', eager = false, position, caption }: {
+  fotoUrl: string | null; nome: string; className?: string; eager?: boolean; position?:'top'|'center'|'bottom';caption?:string;
 }) {
   const [failed, setFailed] = useState(false);
-  if (fotoUrl && !failed) return <img src={fotoUrl} alt={'Imagem pública de ' + nome}
+  if (fotoUrl && !failed) return <img src={fotoUrl} alt={caption||'Imagem pública de ' + nome} style={position?{objectPosition:position}:undefined}
     className={'h-full w-full object-cover ' + className} loading={eager ? 'eager' : 'lazy'}
     onError={() => setFailed(true)} />;
   return <div className={'grid h-full w-full place-items-center bg-[#13241a] ' + className}>
@@ -127,7 +128,7 @@ function NextGiraCard({ schedules, whatsappHref, onWhatsapp, onOpenAgenda }: {
       <time className="grid min-h-28 place-items-center rounded-2xl bg-[#efbd14] px-4 py-3 text-center text-[#102118]" dateTime={date.toISOString()}>
         <span className="text-[10px] font-black uppercase tracking-[0.12em]">{weekday}</span><strong className="text-4xl leading-none">{day}</strong><small className="text-xs font-black uppercase">{month}</small>
       </time>
-      <div><p className="flex items-center gap-2 text-base font-black text-[#f7e6ac]"><Clock className="h-4 w-4" />{formatGiraTime(next.item.horario)}</p>
+      <div><p className="flex items-center gap-2 text-base font-black text-[#f7e6ac]"><Clock className="h-4 w-4" />{publicGiraTime(schedules.find(s=>s.diaSemana===next.item.diaSemana&&s.horario===next.item.horario)||next.item)}</p>
         {next.item.observacao ? <p className="mt-2 text-sm leading-relaxed text-white/68">{next.item.observacao}</p> : null}
         <p className="mt-2 text-xs leading-relaxed text-white/48">A programação pode mudar. Confirme diretamente com a casa antes de visitar.</p>
         <div className="mt-5 flex flex-wrap gap-3">
@@ -167,6 +168,7 @@ function ServicesPreview({ services, onOpen }: { services: TerreiroServico[]; on
   </section>;
 }
 function publicPhotos(terreiro: DiretorioTerreiro): string[] {
+  if(terreiro.pilotRadar)return terreiro.pilotRadar.gallery.map(m=>m.source);
   return [...new Set([terreiro.fotoUrl, ...(terreiro.galleryPhotoUrls || [])].filter((url): url is string => Boolean(url) && !url.includes('default-user')))];
 }
 
@@ -222,7 +224,7 @@ function AgendaPanel({ schedules, whatsappHref, onWhatsapp }: {
     {schedules.length ? <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {schedules.map((item, index) => <article key={item.diaSemana + '-' + item.horario + '-' + index} className="rounded-2xl border border-[#ded3c0] bg-white p-5">
         <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#967000]">{GIRA_WEEKDAYS[item.diaSemana]}</p>
-        <p className="mt-2 text-2xl font-black text-[#172019]">{formatGiraTime(item.horario)}</p>
+        <p className="mt-2 text-2xl font-black text-[#172019]">{publicGiraTime(item)}</p>
         <h3 className="mt-3 font-black text-[#263029]">{item.titulo || 'Gira da casa'}</h3>
         {item.observacao ? <p className="mt-2 text-sm leading-relaxed text-[#647067]">{item.observacao}</p> : null}
       </article>)}
@@ -243,7 +245,7 @@ function PhotosPanel({ terreiro }: { terreiro: DiretorioTerreiro }) {
   return <section className="rounded-2xl border border-[#ddd2bf] bg-[#fbf6ec] p-5 sm:p-8" aria-labelledby="photos-title">
     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Galeria pública</p>
     <h2 id="photos-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Fotos da casa</h2>
-    {photos.length ? <div className="mt-6 grid gap-3 sm:grid-cols-2">{photos.map((url, index) => <figure key={url} className={`overflow-hidden rounded-2xl border border-[#d8ccb8] bg-[#13241a] ${index === 0 && photos.length > 2 ? 'sm:col-span-2' : ''}`}><img src={url} alt={`Foto ${index + 1} de ${terreiro.nome}`} className={`w-full object-cover ${index === 0 ? 'h-80' : 'h-64'}`} loading={index === 0 ? 'eager' : 'lazy'} onError={() => setFailedUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))} /><figcaption className="bg-white px-4 py-3 text-xs font-semibold text-[#59645c]">Foto {index + 1} de {terreiro.nome}</figcaption></figure>)}</div> : <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-[#cfc2ac] bg-white/70 text-center">
+    {photos.length ? <div className="mt-6 grid gap-3 sm:grid-cols-2">{photos.map((url, index) => <figure key={url} className={`overflow-hidden rounded-2xl border border-[#d8ccb8] bg-[#13241a] ${index === 0 && photos.length > 2 ? 'sm:col-span-2' : ''}`}><img src={url} alt={publicRadarCaption(terreiro.pilotRadar,url)||`Foto ${index + 1} de ${terreiro.nome}`} className={`w-full object-cover ${index === 0 ? 'h-80' : 'h-64'}`} loading={index === 0 ? 'eager' : 'lazy'} onError={() => setFailedUrls((prev) => (prev.includes(url) ? prev : [...prev, url]))} /><figcaption className="bg-white px-4 py-3 text-xs font-semibold text-[#59645c]">{publicRadarCaption(terreiro.pilotRadar,url)||`Foto ${index + 1} de ${terreiro.nome}`}</figcaption></figure>)}</div> : <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-[#cfc2ac] bg-white/70 text-center">
       <span><Camera className="mx-auto h-7 w-7 text-[#a57b00]" /><strong className="mt-3 block text-[#172019]">Nenhuma foto publicada</strong><small className="mt-2 block text-[#647067]">A galeria aparecerá quando a casa adicionar imagens.</small></span>
     </div>}
   </section>;
@@ -256,12 +258,13 @@ function ContactPanel({ terreiro, whatsappHref, onWhatsapp }: {
     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#987000]">Planeje sua visita</p>
     <h2 id="information-title" className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#172019]">Informações da casa</h2>
     <div className="mt-6 rounded-2xl border border-[#ded3c0] bg-white px-5">
-      <InfoRow icon={MapPin} label="Endereço">{terreiro.endereco || 'Endereço não informado'}</InfoRow>
+      <InfoRow icon={MapPin} label="Endereço">{terreiro.pilotRadar?.showAddress===false?'Endereço reservado. Combine a visita com a casa.':terreiro.endereco || 'Endereço não informado'}</InfoRow>
       {!terreiro.gerenciada ? <InfoRow icon={Phone} label="Telefone">{terreiro.telefone ? <span className="select-text">{formatTelefoneBr(terreiro.telefone)}</span> : 'Telefone não informado'}</InfoRow> : null}
       {whatsappHref ? <InfoRow icon={MessageCircle} label="WhatsApp"><a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={onWhatsapp}
         className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#16794b] px-4 py-2.5 text-sm font-black text-white"><WhatsAppIcon />Conversar com a casa</a></InfoRow> : null}
-      {terreiro.instagramUrl ? <InfoRow icon={Instagram} label="Instagram"><a href={terreiro.instagramUrl} target="_blank" rel="noopener noreferrer"
+      {!terreiro.pilotRadar&&terreiro.instagramUrl ? <InfoRow icon={Instagram} label="Instagram"><a href={terreiro.instagramUrl} target="_blank" rel="noopener noreferrer"
         className="inline-flex min-h-11 items-center gap-2 py-2 font-black text-[#765600]">Abrir Instagram<ExternalLink className="h-4 w-4" /></a></InfoRow> : null}
+      {terreiro.pilotRadar?.socials.map(s=><InfoRow key={s.id} icon={ExternalLink} label={pilotNetworkNames[s.network]}><a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 py-2 font-black text-[#765600]">Abrir {pilotNetworkNames[s.network]}<ExternalLink className="h-4 w-4"/></a></InfoRow>)}
     </div>
     {terreiro.linkMaps ? <a href={terreiro.linkMaps} target="_blank" rel="noopener noreferrer"
       className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#efbd14] px-5 py-3 text-sm font-black text-[#102118]"><Compass className="h-4 w-4" />Traçar rota no Google Maps<ExternalLink className="h-4 w-4" /></a> : null}
@@ -388,7 +391,7 @@ export default function DiretorioTerreiroPage() {
       <article className="overflow-hidden rounded-2xl border border-[#d8cdb9] bg-white shadow-[0_22px_65px_rgba(48,39,23,.12)]">
         <header>
           <div className="relative min-h-[13rem] overflow-hidden bg-[#102118] sm:min-h-[17rem] 2xl:min-h-[22rem]">
-            <div className="absolute inset-0"><ProfilePhoto fotoUrl={terreiro.coverPhotoUrl || terreiro.fotoUrl} nome={terreiro.nome} eager className="opacity-75" /></div>
+            <div className="absolute inset-0"><ProfilePhoto fotoUrl={terreiro.coverPhotoUrl || terreiro.fotoUrl} nome={terreiro.nome} eager className="opacity-75" position={terreiro.pilotRadar?.coverPosition} caption={terreiro.pilotRadar?.cover?.caption}/></div>
             <div className="absolute inset-0 bg-gradient-to-t from-[#09130e]/90 via-[#102118]/25 to-black/20" />
             <a href={ROUTES.terreiros} className="absolute left-4 top-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/25 bg-[#0b1510]/65 px-4 py-2 text-xs font-black text-white backdrop-blur sm:left-6 sm:top-6">
               <ArrowLeft className="h-4 w-4" />Voltar para o Mapa
@@ -399,8 +402,9 @@ export default function DiretorioTerreiroPage() {
           </div>
           <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
             <div className="-mt-12 h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-[#102118] shadow-lg sm:-mt-14 sm:h-28 sm:w-28">
-              <ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} eager />
+              <ProfilePhoto fotoUrl={terreiro.fotoUrl} nome={terreiro.nome} eager caption={terreiro.pilotRadar?.portrait?.caption}/>
             </div>
+            {terreiro.pilotRadar&&[terreiro.pilotRadar.cover,terreiro.pilotRadar.portrait].filter(m=>m&&(m.caption||m.illustrative)).map((m,i)=><p key={i} className="mt-2 text-xs text-[#59645c]">{publicRadarCaption(terreiro.pilotRadar,m!.source)}</p>)}
             <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div className="max-w-3xl">
                 <div className="flex flex-wrap items-center gap-2.5">

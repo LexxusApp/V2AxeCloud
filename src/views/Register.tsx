@@ -1,3 +1,4 @@
+import { compressImage } from '../lib/imageCompression';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
@@ -275,7 +276,11 @@ export default function Register() {
 
       if (profilePhoto && signInData.session?.access_token) {
         try {
-          const fileData = await fileToBase64(profilePhoto);
+          const compressed = await compressImage(profilePhoto, {
+            maxWidth: 1024,
+            maxHeight: 1024,
+            quality: 0.82,
+          });
           const uploadResponse = await fetch('/api/v1/settings/directory-profile/upload-photo', {
             method: 'POST',
             headers: {
@@ -283,9 +288,9 @@ export default function Register() {
               Authorization: `Bearer ${signInData.session.access_token}`,
             },
             body: JSON.stringify({
-              fileData,
-              fileName: profilePhoto.name,
-              contentType: profilePhoto.type || 'image/jpeg',
+              fileData: compressed.fileData,
+              fileName: `diretorio.${compressed.extension}`,
+              contentType: compressed.contentType,
             }),
           });
           const uploaded = await uploadResponse.json().catch(() => ({}));

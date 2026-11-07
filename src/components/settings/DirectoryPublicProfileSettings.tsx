@@ -1,3 +1,4 @@
+import { compressImage } from '../../lib/imageCompression';
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Camera, Eye, EyeOff, Images, Loader2, Save, Trash2 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
@@ -18,19 +19,21 @@ const inputClass = 'min-h-11 w-full rounded-xl border border-[#D8D2C4] bg-white 
 
 async function uploadImage(file: File, kind: 'cover' | 'gallery'): Promise<string> {
   if (!file.type.startsWith('image/')) throw new Error('Selecione uma imagem JPG, PNG ou WebP.');
-  if (file.size > 8 * 1024 * 1024) throw new Error('A imagem deve ter no máximo 8 MB.');
-  const fileData = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const value = String(reader.result || '').split(',')[1];
-      value ? resolve(value) : reject(new Error('Não foi possível ler a imagem.'));
-    };
-    reader.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
-    reader.readAsDataURL(file);
+  const maxDim = kind === 'cover' ? 1600 : 1280;
+  const compressed = await compressImage(file, {
+    maxWidth: maxDim,
+    maxHeight: maxDim,
+    quality: 0.84,
   });
   const response = await authFetch('/api/v1/settings/directory-profile/upload-photo', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fileData, fileName: file.name, contentType: file.type, kind }),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileData: compressed.fileData,
+      fileName: file.name,
+      contentType: compressed.contentType,
+      kind,
+    }),
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok || !json.publicUrl) throw new Error(json.error || 'Erro ao enviar imagem.');
@@ -104,7 +107,7 @@ export function DirectoryPublicProfileSettings() {
     } finally { setSaving(false); }
   }
 
-  if (loading) return <div className="app-v5-panel grid min-h-40 place-items-center rounded-2xl"><Loader2 className="h-6 w-6 animate-spin text-[#526A55]" /></div>;
+  if (loading) return <div className="app-v5-panel grid min-h-40 place-items-center rounded-lg"><Loader2 className="h-6 w-6 animate-spin text-[#526A55]" /></div>;
   if (!claimed || !profile) return null;
 
   const statusMeta = profile.publicacaoStatus === 'publicado'
@@ -112,7 +115,7 @@ export function DirectoryPublicProfileSettings() {
     : { icon: EyeOff, label: profile.publicacaoStatus === 'oculto' ? 'Oculto' : 'Rascunho', copy: 'Não aparece no diretório público.' };
   const StatusIcon = statusMeta.icon;
 
-  return <section className="app-v5-panel overflow-hidden rounded-2xl">
+  return <section className="app-v5-panel overflow-hidden rounded-lg">
     <div className="flex flex-col gap-4 border-b border-[#DED6C8] p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
       <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B08A22]">Identidade pública</p>
         <h3 className="mt-1 font-display text-xl font-black tracking-tight text-[#211D17]">Capa, história e galeria</h3>
@@ -125,7 +128,7 @@ export function DirectoryPublicProfileSettings() {
     <div className="space-y-6 p-5 sm:p-6">
       <div>
         <div className="mb-2 flex items-center justify-between gap-3"><label className={labelClass}>Foto de capa</label><span className="text-[10px] font-semibold text-[#8A8174]">Horizontal · até 8 MB</span></div>
-        <div className="relative min-h-48 overflow-hidden rounded-2xl border border-[#D8D2C4] bg-[#11251B]">
+        <div className="relative min-h-48 overflow-hidden rounded-lg border border-[#D8D2C4] bg-[#11251B]">
           {profile.coverPhotoUrl ? <img src={profile.coverPhotoUrl} alt="Prévia da capa" className="h-56 w-full object-cover opacity-90" /> : <div className="grid h-52 place-items-center text-center text-white/65"><span><Camera className="mx-auto h-7 w-7" /><strong className="mt-3 block text-sm">Adicione uma capa da casa</strong><small className="mt-1 block">Fachada, congá ou ambiente autorizado</small></span></div>}
           <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2">
             <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-[#F2C441] px-4 text-xs font-black text-[#17251D] shadow-lg">

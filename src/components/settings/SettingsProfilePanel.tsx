@@ -1,3 +1,4 @@
+import { compressImage } from '../../lib/imageCompression';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Building2, Camera, CheckCircle, Loader2, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
@@ -80,34 +81,25 @@ export function SettingsProfilePanel({
       notify('Selecione uma imagem (JPG, PNG ou WebP).', 'error');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      notify('A imagem deve ter no máximo 5 MB.', 'error');
-      return;
-    }
 
     setIsUploadingPhoto(true);
     try {
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          const encoded = result.split(',')[1];
-          if (!encoded) reject(new Error('Falha ao ler a imagem.'));
-          else resolve(encoded);
-        };
-        reader.onerror = () => reject(new Error('Erro ao processar a imagem.'));
-        reader.readAsDataURL(file);
+      // Compressão client-side (evita HTTP 413 em fotos pesadas de celulares)
+      const compressed = await compressImage(file, {
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.82,
       });
+
+      const fileName = `${user.id}-${Date.now()}.${compressed.extension}`;
 
       const response = await authFetch('/api/v1/profile/upload-photo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileData: base64Data,
+          fileData: compressed.fileData,
           fileName,
-          contentType: file.type,
+          contentType: compressed.contentType,
         }),
       });
       const data = await response.json().catch(() => ({}));

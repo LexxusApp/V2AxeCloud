@@ -53,6 +53,14 @@ export class AutonomousProspectingService {
    * 5. Atualiza CRM e registra histórico.
    */
   async runAutonomousOutreachCycle(force = false, batchSize = 5): Promise<AutonomousProspectingResult> {
+    // Prospecção autônoma desativada pela administração (foco em retenção)
+    return {
+      dispatched: false,
+      reason: 'prospecting_disabled_by_admin',
+      sentCount: 0,
+      skippedCount: 0,
+      leadsProcessed: [],
+    };
     // Pausa estratégica de novos disparos a partir de domingo (18/10/2026):
     // Todo foco e investimento são direcionados para a conversão dos 34+ leads que já demonstraram interesse.
     const spDate = new Intl.DateTimeFormat('en-CA', {

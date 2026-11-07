@@ -1,13 +1,16 @@
-import ReceiptReviewPanel from '../components/financial/ReceiptReviewPanel';
-import {useReceiptReviews,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
-import {SacredMensalidadesView} from '../components/financial/SacredMensalidadesView';
-import CantinaView from '../components/financial/CantinaView';
+import { ModernFinancialOverview } from '../components/financial/ModernFinancialOverview';
+import { useModernInterface } from '../components/app/ModernInterfaceContext';
+import { fetchAllFinancialTransactions } from '../lib/financialTransactions';
+import { brazilFinancialToday } from '../lib/financialOverview';
+import { consumeModuleCreation } from '../lib/moduleCreation';
+import DataLoadError from '../components/DataLoadError';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
+  Coffee,
   CheckCircle2,
   Clock3,
   Copy,
@@ -29,6 +32,7 @@ import {
   PieChart,
   X,
   Bell,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { confirmAction } from '../lib/confirmAction';
@@ -37,8 +41,24 @@ import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
 import { whatsappApiUrl, whatsappRailwayHeaders } from '../lib/whatsappApiUrl';
 import FinanceiroBasico from '../components/FinanceiroBasico';
+import CantinaView from '../components/financial/CantinaView';
+import { SacredOverviewView } from '../components/financial/SacredOverviewView';
+import ReceiptReviewPanel from '../components/financial/ReceiptReviewPanel';
+import {useReceiptReviews,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
+import { SacredMensalidadesView } from '../components/financial/SacredMensalidadesView';
+import { SacredPixConfigView } from '../components/financial/SacredPixConfigView';
+import { FinancialEntryModal } from '../components/financial/FinancialEntryModal';
+import { isCantinaEnabled } from '../lib/cantinaFeature';
 import BodyPortal from '../components/BodyPortal';
 import { AppPageShell, AppPanelLoading } from '../components/app/AppTopNav';
+import {
+  AxePageHeader,
+  AxeTabsBar,
+  AxeMetricRail,
+  AxeMetricCard,
+  AxeCard,
+  AxeButton,
+} from '../components/shared/AxePageScaffold';
 import {
   AppDemoCard,
   AppDemoPanelHeader,
@@ -213,6 +233,8 @@ export default function Financial({
   isSessionReady = false,
   initialView = 'overview',
 }: FinancialProps) {
+  const modern = useModernInterface();
+  const OverviewComponent = modern ? ModernFinancialOverview : SacredOverviewView;
   // Não-filhos são sempre gestores do terreiro (admin, vita, cortesia, premium, oro, axe).
   // O plano controla QUAIS funções de gestão estão disponíveis (via hasPlanAccess), não SE o usuário é gestor.
   const isAdmin = userRole !== 'filho';
@@ -224,12 +246,18 @@ export default function Financial({
   const isBasicFinancePlan = plan === 'free';
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  useEffect(() => { setTransactions([]); setChildren([]); }, [userId, tenantId, userRole]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const submitLock = useRef(false);
   const requestRef = useRef<{ key: string; id: string } | null>(null);
   const [children, setChildren] = useState<any[]>([]);
   const [activeView, setActiveView] = useState<'overview' | 'mensalidades' | 'cantina' | 'caixinha' | 'configs'>(initialView);
+  const [entryModalOpen, setEntryModalOpen] = useState(false);
+  useEffect(() => {
+    if (!modern || !isAdmin || !isSessionReady || isBasicFinancePlan) return;
+    if (consumeModuleCreation({ userId, tenantId }, 'financial')) { setSubmitError(null); setEntryModalOpen(true); }
+  }, [modern, isAdmin, isSessionReady, isBasicFinancePlan, userId, tenantId]);
 
   useEffect(() => {
     setActiveView(initialView);
@@ -287,7 +315,7 @@ export default function Financial({
     tipo: 'entrada' as 'entrada' | 'saida',
     valor: '',
     categoria: '',
-    data: new Date().toISOString().split('T')[0],
+    data: brazilFinancialToday(),
     descricao: '',
     filho_id: '',
     status: 'pendente' as 'pago' | 'pendente',
@@ -300,12 +328,12 @@ export default function Financial({
       ? (['financial-transactions', tenantId, userId, userRole] as const)
       : null;
 
-  const { data: txJson, isLoading: txLoading, mutate: mutateTransactions } = useSWR(
+  const { data: txJson, error: txError, isLoading: txLoading, mutate: mutateTransactions } = useSWR(
     financialTxKey,
     async ([, tid, uid, role]) => {
-      const response = await authFetch(
-        `/api/transactions?tenantId=${encodeURIComponent(tid)}&userId=${encodeURIComponent(uid)}&userRole=${encodeURIComponent(String(role))}&limit=200`
-      );
+      const base = `/api/transactions?tenantId=${encodeURIComponent(tid)}&userId=${encodeURIComponent(uid)}&userRole=${encodeURIComponent(String(role))}`;
+      if (role !== 'filho') return fetchAllFinancialTransactions<Transaction>(authFetch, base);
+      const response = await authFetch(`${base}&limit=200`);
       if (!response.ok) throw new Error('Failed to fetch transactions');
       return response.json() as Promise<{ data?: any[] }>;
     },
@@ -370,8 +398,9 @@ export default function Financial({
     let valorPadrao = pixConfig.valor_mensalidade || '69.90';
     try {
       const res = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId || '')}`);
-      if (res.ok) {
-        const { data } = await res.json();
+      const cType = res.headers.get('content-type') || '';
+      if (res.ok && cType.includes('application/json')) {
+        const { data } = await res.json().catch(() => ({}));
         if (data) {
           dia = parseInt(String(data.dia_vencimento), 10) || 10;
           valorPadrao = data.valor_mensalidade?.toString() || '69.90';
@@ -386,24 +415,26 @@ export default function Financial({
         }
       }
     } catch (error) {
-      console.error('Error fetching pix config:', error);
+      console.warn('Silent fallback for pix config:', error);
     }
 
     try {
       const res = await authFetch(
         `/api/children?tenantId=${encodeURIComponent(tenantId || '')}&userRole=${encodeURIComponent(userRole || '')}`
       );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Erro ao carregar filhos');
-      const rows = (json.data || []) as Array<{ id: string; nome: string; created_at?: string; data_entrada?: string }>;
-      setChildren(rows.map((c) => ({
-        id: c.id,
-        nome: c.nome,
-        created_at: c.created_at,
-        data_entrada: c.data_entrada,
-      })));
+      const cType = res.headers.get('content-type') || '';
+      if (res.ok && cType.includes('application/json')) {
+        const json = await res.json().catch(() => ({}));
+        const rows = (json.data || []) as Array<{ id: string; nome: string; created_at?: string; data_entrada?: string }>;
+        setChildren(rows.map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          created_at: c.created_at,
+          data_entrada: c.data_entrada,
+        })));
+      }
     } catch (error) {
-      console.error('Error fetching children for mensalidades:', error);
+      console.warn('Silent fallback for children in financial:', error);
       setChildren([]);
     }
   }
@@ -769,7 +800,7 @@ export default function Financial({
 
     setProcessingMensalidadeId(row.id);
     showHouseToast('Registrando pagamento…', 'info');
-    const paymentDate = new Date().toISOString().split('T')[0];
+    const paymentDate = brazilFinancialToday();
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -964,7 +995,7 @@ export default function Financial({
       const saved = { ...json.data, valor: Number(json.data.valor) };
       setTransactions(previous => [saved, ...previous.filter(t => t.id !== saved.id)]);
       requestRef.current = null;
-      setFormData({ tipo: 'entrada', valor: '', categoria: '', data: new Date().toLocaleDateString('en-CA'),
+      setFormData({ tipo: 'entrada', valor: '', categoria: '', data: brazilFinancialToday(),
         descricao: '', filho_id: '', status: 'pendente', jurosTipo: 'nenhum', jurosValor: '' });
       window.dispatchEvent(new Event(FINANCE_UPDATED_EVENT));
       void fetchTransactions();
@@ -1111,7 +1142,7 @@ export default function Financial({
     [mensalidadesPagas]
   );
   const overdueMonthlyCount = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = brazilFinancialToday();
     return mensalidadesPendentes.filter((row) => {
       const dueDate = mensalidadeYmdPreferVenc(row);
       return Boolean(dueDate && dueDate < today);
@@ -1178,14 +1209,6 @@ export default function Financial({
     );
   }
 
-  if (loading && transactions.length === 0) {
-    return (
-      <AppPageShell>
-        <AppPanelLoading />
-      </AppPageShell>
-    );
-  }
-
   const pageHeader = isAdmin
     ? activeView === 'mensalidades'
       ? {
@@ -1194,6 +1217,11 @@ export default function Financial({
             ? 'Use Pendentes e Pagas. Ao marcar como pago, o item sai de pendentes e aparece em pagas na hora.'
             : 'Cobrança desativada — os filhos de santo não veem mensalidade no portal. Ative quando quiser voltar a cobrar.',
         }
+      : activeView === 'cantina'
+        ? {
+            title: 'Cantina do Terreiro',
+            description: 'Controle de consumo, limite por médium e caderneta digital do terreiro.',
+          }
       : activeView === 'configs'
         ? {
             title: 'Configurações Pix',
@@ -1211,22 +1239,33 @@ export default function Financial({
   return (
     <AppPageShell>
       <div className="financial-v5-page">
-      <AppDemoPanelHeader
+      <AxePageHeader
+        theme="gold"
+        kicker={
+          activeView === 'mensalidades'
+            ? 'ARRECADAÇÃO & MENSALIDADES'
+            : activeView === 'cantina'
+              ? 'CADERNETA & CONSUMO DO TERREIRO'
+              : activeView === 'configs'
+                ? 'CANAL DE RECEBIMENTO PIX'
+                : 'LIVRO DE CAIXA SAGRADO'
+        }
         title={pageHeader.title}
         description={pageHeader.description}
-        action={
+        actions={
           isAdmin && activeView === 'overview' ? (
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleDownloadReport}
+                data-axe-button={modern ? 'ghost' : undefined}
                 className={cn(
-                  'inline-flex items-center gap-2 rounded-xl border border-[#D8D1C4] bg-white px-3 py-2 text-xs font-bold text-[#11151A] transition hover:border-[#11151A]',
+                  modern ? 'inline-flex items-center gap-2 px-4 py-2.5 text-sm' : 'inline-flex items-center gap-2 rounded-lg border border-[#D4AF37]/50 bg-black/40 backdrop-blur-md px-4 py-2.5 text-xs font-black text-amber-200 transition hover:bg-black/60 hover:text-white hover:border-[#D4AF37]',
                   !hasReportsAccess && 'opacity-60',
                 )}
               >
                 <Download className="h-4 w-4" />
-                Relatório PDF
+                Exportar CSV
               </button>
             </div>
           ) : null
@@ -1234,331 +1273,57 @@ export default function Financial({
       />
 
       <div className="space-y-6">
-        {activeView === 'overview' ? (
-        <>
-          <div className="app-metric-rail grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Entradas</span>
-                <p className="mt-2 text-2xl font-black text-emerald-400">{formatBRL(stats.entradas)}</p>
-                <p className="mt-1 text-[10px] font-medium text-slate-300">receitas confirmadas</p>
-              </div>
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/40 p-2.5 text-emerald-400">
-                <ArrowUpRight className="h-5 w-5" />
-              </div>
-            </AppDemoCard>
-            <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">Saídas</span>
-                <p className="mt-2 text-2xl font-black text-rose-400">{formatBRL(stats.saidas)}</p>
-                <p className="mt-1 text-[10px] font-medium text-slate-300">despesas registradas</p>
-              </div>
-              <div className="rounded-xl border border-rose-500/20 bg-rose-950/40 p-2.5 text-rose-400">
-                <ArrowDownRight className="h-5 w-5" />
-              </div>
-            </AppDemoCard>
-            <AppDemoCard className="group flex min-h-[118px] items-center justify-between border-primary/25">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">Saldo</span>
-                <p className={cn('mt-2 text-2xl font-black', saldo >= 0 ? 'text-white' : 'text-rose-400')}>
-                  {formatBRL(saldo)}
-                </p>
-                <p className="mt-1 text-[10px] font-medium text-slate-300">saldo financeiro real</p>
-              </div>
-              <div className="rounded-xl border border-primary/20 bg-[#1E252E] p-2.5 text-primary">
-                <WalletCards className="h-5 w-5" />
-              </div>
-            </AppDemoCard>
-            <AppDemoCard className="group flex min-h-[118px] items-center justify-between">
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-200">A receber</span>
-                <p className="mt-2 text-2xl font-black text-amber-300">{formatBRL(pendingMonthlyTotal)}</p>
-                <p className="mt-1 text-[10px] font-medium text-slate-300">
-                  {mensalidadesPendentes.length} mensalidade{mensalidadesPendentes.length === 1 ? '' : 's'} pendente{mensalidadesPendentes.length === 1 ? '' : 's'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-amber-500/20 bg-amber-950/40 p-2.5 text-amber-300">
-                <Clock3 className="h-5 w-5" />
-              </div>
-            </AppDemoCard>
-          </div>
-
-          <div className="app-finance-workbench grid grid-cols-1 items-start gap-5 xl:grid-cols-5">
-            {isAdmin ? (
-              <AppDemoCard className="xl:col-span-2">
-                <div className="mb-5 flex items-start gap-3 border-b border-[#D8D1C4] pb-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-[#080A0D]">
-                    <Plus className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-[#17130D]">Novo lançamento</h4>
-                    <p className="mt-1 text-xs leading-relaxed text-[#4F473C]">
-                      Registre uma entrada ou saída no caixa da casa.
-                    </p>
-                  </div>
-                </div>
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  {submitError && <p role="alert">{submitError}</p>}
-                  <div>
-                    <label className={appLabelClass}>Descrição</label>
-                    <input
-                      required
-                      className={appInputClass}
-                      value={formData.descricao}
-                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                      placeholder="Ex: Mensalidade — filho João"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={appLabelClass}>Fluxo</label>
-                      <select
-                        className={appInputClass}
-                        value={formData.tipo}
-                        onChange={(e) =>
-                          setFormData({ ...formData, tipo: e.target.value as 'entrada' | 'saida' })
-                        }
-                      >
-                        <option value="entrada">Entrada</option>
-                        <option value="saida">Saída</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={appLabelClass}>Categoria</label>
-                      <select
-                        required
-                        className={appInputClass}
-                        value={formData.categoria}
-                        onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                      >
-                        <option value="">Selecione…</option>
-                        <option value="Mensalidade">Mensalidade</option>
-                        <option value="Doação">Doação</option>
-                        <option value="Evento">Evento</option>
-                        <option value="Insumos">Insumos</option>
-                        <option value="Contas">Contas</option>
-                        <option value="Manutenção">Manutenção</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={appLabelClass}>Valor (R$)</label>
-                      <input
-                        required
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className={appInputClass}
-                        value={formData.valor}
-                        onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                        placeholder="150.00"
-                      />
-                    </div>
-                    <div>
-                      <label className={appLabelClass}>Data</label>
-                      <input
-                        required
-                        type="date"
-                        className={appInputClass}
-                        value={formData.data}
-                        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={appLabelClass}>Vincular a filho (opcional)</label>
-                    <select
-                      className={appInputClass}
-                      value={formData.filho_id}
-                      onChange={(e) => setFormData({ ...formData, filho_id: e.target.value })}
-                    >
-                      <option value="">Nenhum</option>
-                      {children.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <AppPrimaryButton type="submit" disabled={isSubmitting} className="mt-2 w-full">
-                    {isSubmitting ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Registrar lançamento'}
-                  </AppPrimaryButton>
-                </form>
-              </AppDemoCard>
-            ) : null}
-
-            <div className={cn('min-w-0', isAdmin ? 'xl:col-span-3' : 'xl:col-span-5')}>
-              <div className="mb-3 rounded-2xl border border-[#1E242B] bg-[#11151A] p-3 sm:p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <h4 className="text-sm font-black text-[#F1F5F9]">Movimentações financeiras</h4>
-                    <p className="mt-1 text-xs font-semibold text-slate-300">
-                      {filteredCashTransactions.length} de {cashTransactions.length} lançamento{cashTransactions.length === 1 ? '' : 's'}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <label className="relative min-w-0 sm:w-64">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="search"
-                        value={financeSearch}
-                        onChange={(event) => setFinanceSearch(event.target.value)}
-                        placeholder="Buscar descrição ou categoria"
-                        className={cn(appInputClass, 'pl-9')}
-                      />
-                    </label>
-                    <select
-                      value={financeTypeFilter}
-                      onChange={(event) =>
-                        setFinanceTypeFilter(event.target.value as 'todos' | 'entrada' | 'saida')
-                      }
-                      className={cn(appInputClass, 'sm:w-36')}
-                      aria-label="Filtrar movimentações por fluxo"
-                    >
-                      <option value="todos">Todos os fluxos</option>
-                      <option value="entrada">Entradas</option>
-                      <option value="saida">Saídas</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-3 sm:hidden">
-                {filteredCashTransactions.map((t) => (
-                  <article key={t.id} className="rounded-2xl border border-[#1E242B] bg-[#12161A] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-3 break-words text-sm font-bold leading-snug text-[#F1F5F9]">
-                          {t.descricao}
-                        </p>
-                        <p className="mt-1 text-xs font-semibold text-[#CBD5E1]">{t.categoria || 'Sem categoria'}</p>
-                      </div>
-                      {renderTransactionActions(t)}
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                      <div className="rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2">
-                        <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Data</span>
-                        <span className="mt-1 block font-bold text-[#CBD5E1]">
-                          {new Date(t.data).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                      <div className="rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2">
-                        <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Fluxo</span>
-                        <span
-                          className={cn(
-                            'mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-black',
-                            t.tipo === 'entrada'
-                              ? 'border-emerald-400 bg-emerald-100 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-300'
-                              : 'border-rose-400 bg-rose-100 text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/50 dark:text-rose-300',
-                          )}
-                        >
-                          {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between rounded-xl border border-[#1E242B] bg-[#0F1318] px-3 py-2.5">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">Valor</span>
-                      <span className={cn('text-base font-black', t.tipo === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400')}>
-                        {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
-                      </span>
-                    </div>
-                  </article>
-                ))}
-                {filteredCashTransactions.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[#303844] bg-[#12161A] px-4 py-12 text-center">
-                    <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
-                      <DollarSign className="h-6 w-6 text-primary" aria-hidden />
-                    </div>
-                    <p className="mt-3 text-sm font-extrabold text-[#F1F5F9]">Seu histórico financeiro começa aqui</p>
-                    <p className="mx-auto mt-1 max-w-sm text-xs font-semibold leading-relaxed text-[#CBD5E1]">
-                      Registre a primeira entrada ou saída para acompanhar o saldo e gerar relatórios da casa.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="hidden sm:block">
-                <AppDemoTableShell>
-                  <table className="w-full table-fixed divide-y divide-[#1E242B] text-xs">
-                    <colgroup>
-                      <col className="w-[34%]" />
-                      <col className="w-[17%]" />
-                      <col className="w-[14%]" />
-                      <col className="w-[13%]" />
-                      <col className="w-[16%]" />
-                      <col className="w-[6%]" />
-                    </colgroup>
-                    <thead className="border-b border-[#D8D0C4] dark:border-[#252B33]">
-                      <tr>
-                        {['Descrição', 'Categoria', 'Data', 'Fluxo', 'Valor', ''].map((h) => (
-                          <th
-                            key={h || 'act'}
-                            className={cn(
-                              'px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider text-[#2B241B]',
-                              h === 'Valor' && 'text-right',
-                              !h && 'text-right',
-                            )}
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#1E242B]">
-                      {filteredCashTransactions.map((t) => (
-                        <tr key={t.id} className="hover:bg-[#1E242B]/40">
-                          <td className="px-4 py-3.5">
-                            <p className="line-clamp-2 break-words font-semibold leading-snug text-[#17130D]">{t.descricao}</p>
-                          </td>
-                          <td className="px-4 py-3.5 font-semibold text-[#4F473C]">
-                            <span className="line-clamp-1 break-words">{t.categoria}</span>
-                          </td>
-                          <td className="px-4 py-3.5 font-semibold text-[#4F473C]">
-                            {new Date(t.data).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <span
-                              className={
-                                t.tipo === 'entrada'
-                                  ? 'rounded-full border border-emerald-400 bg-emerald-100 px-2.5 py-0.5 text-[9px] font-black text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-300'
-                                  : 'rounded-full border border-rose-400 bg-rose-100 px-2.5 py-0.5 text-[9px] font-black text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/50 dark:text-rose-300'
-                              }
-                            >
-                              {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
-                            </span>
-                          </td>
-                          <td
-                            className={cn(
-                              'px-4 py-3.5 text-right font-black',
-                              t.tipo === 'entrada' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400',
-                            )}
-                          >
-                            {t.tipo === 'entrada' ? '+' : '−'} {formatBRL(t.valor)}
-                          </td>
-                          <td className="px-4 py-3.5 text-right">{renderTransactionActions(t)}</td>
-                        </tr>
-                      ))}
-                      {filteredCashTransactions.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="px-4 py-12 text-center">
-                            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/10">
-                              <DollarSign className="h-6 w-6 text-primary" aria-hidden />
-                            </div>
-                            <p className="mt-3 text-sm font-extrabold text-[#17130D]">Seu histórico financeiro começa aqui</p>
-                            <p className="mx-auto mt-1 max-w-sm text-xs font-semibold leading-relaxed text-[#4F473C]">
-                              Use o formulário ao lado para registrar a primeira movimentação da casa.
-                            </p>
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
-                </AppDemoTableShell>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
+        <DataLoadError message={txError ? 'Não foi possível conferir o extrato completo. Atualize os dados antes de conferir os totais.' : null} onRetry={() => void mutateTransactions()} />
+        {isAdmin && <div className="flex flex-wrap justify-end gap-3"><button type="button" onClick={() => { setSubmitError(null); setEntryModalOpen(true); }} className="app-v5-primary-button inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#173a2b] px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/>Novo lançamento</button><button type="button" onClick={() => { setSubmitError(null); setFormData(previous => ({ ...previous, tipo: 'entrada', categoria: 'Mensalidade', status: 'pendente', descricao: '', valor: '', filho_id: '', jurosTipo: 'nenhum', jurosValor: '' })); setEntryModalOpen(true); }} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#ccd7c9] bg-white px-4 py-2.5 text-sm font-semibold text-[#264b35]"><CalendarDays size={17}/>Lançar mensalidade antiga</button></div>}
+        {isAdmin && (
+          <AxeTabsBar
+            tabs={[
+              { id: 'overview', label: 'Visão Geral', icon: PieChart },
+              {
+                id: 'mensalidades',
+                label: 'Mensalidades',
+                icon: WalletCards,
+                badge: mensalidadesPendentes.length > 0 ? mensalidadesPendentes.length : undefined,
+              },
+              ...(isCantinaEnabled(tenantData, undefined, userId)
+                ? [{ id: 'cantina', label: 'Cantina', icon: Coffee }]
+                : []),
+              { id: 'configs', label: 'Configurações Pix', icon: Smartphone },
+            ]}
+            activeTab={activeView}
+            onChange={(tabId) => {
+              setActiveView(tabId as any);
+              if (tabId === 'overview') setActiveTab?.('financial');
+              else if (tabId === 'mensalidades') setActiveTab?.('financial-mensalidades');
+              else if (tabId === 'cantina') setActiveTab?.('financial-cantina');
+              else if (tabId === 'configs') setActiveTab?.('financial-configs');
+            }}
+          />
+        )}
+        {activeView === 'overview' ? (loading ? <div role="status"><AppPanelLoading /><p className="text-sm text-[#586b5e]">Conferindo o extrato completo…</p></div> : txError ? null : (
+          <OverviewComponent
+            onNewEntry={() => setEntryModalOpen(true)}
+            saldo={saldo}
+            stats={stats}
+            pendingMonthlyTotal={pendingMonthlyTotal}
+            mensalidadesPendentes={mensalidadesPendentes}
+            cashTransactions={cashTransactions}
+            filteredCashTransactions={filteredCashTransactions}
+            financeSearch={financeSearch}
+            setFinanceSearch={setFinanceSearch}
+            financeTypeFilter={financeTypeFilter}
+            setFinanceTypeFilter={setFinanceTypeFilter}
+            formData={formData}
+            setFormData={setFormData}
+            handleSubmit={handleSubmit}
+            submitError={submitError}
+            isSubmitting={isSubmitting}
+            children={children}
+            isAdmin={isAdmin}
+            renderTransactionActions={renderTransactionActions}
+            formatBRL={formatBRL}
+          />)
+        ) : (
         <div className="space-y-6">
           {activeView === 'mensalidades' ? (
             <SacredMensalidadesView
@@ -1662,7 +1427,7 @@ export default function Financial({
                   return (
                     <AppDemoCard key={meta.id} className="space-y-6">
                       <div className="flex items-center justify-between">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center">
                           <Target className="w-6 h-6 text-amber-600" />
                         </div>
                         <span className={cn(
@@ -1701,183 +1466,14 @@ export default function Financial({
               </div>
             </div>
           ) : (
-            <div className="financial-pix-console grid grid-cols-1 items-start gap-5 xl:grid-cols-5">
-              <AppDemoCard className="financial-pix-form space-y-6 xl:col-span-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-                    <Smartphone className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-[#17130D]">Dados de recebimento</h4>
-                    <p className="mt-1 text-xs font-semibold text-[#4F473C]">Configure como a casa recebe as mensalidades via Pix.</p>
-                  </div>
-                </div>
-                <form onSubmit={handleSavePixConfig} className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className={appLabelClass}>Mensalidade padrão</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#4F473C]">R$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={pixConfig.valor_mensalidade}
-                          onChange={(e) => setPixConfig({ ...pixConfig, valor_mensalidade: e.target.value })}
-                          className={cn(appInputClass, 'pl-9')}
-                          placeholder="69,90"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className={appLabelClass}>Tipo de chave</label>
-                      <select
-                        value={pixConfig.tipo_chave}
-                        onChange={(e) => setPixConfig({ ...pixConfig, tipo_chave: e.target.value })}
-                        className={appInputClass}
-                      >
-                        <option value="cpf">CPF</option>
-                        <option value="cnpj">CNPJ</option>
-                        <option value="email">E-mail</option>
-                        <option value="celular">Celular</option>
-                        <option value="aleatoria">Aleatória</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className={appLabelClass}>Chave Pix</label>
-                    <input
-                      type="text"
-                      value={pixConfig.chave_pix}
-                      onChange={(e) => setPixConfig({ ...pixConfig, chave_pix: e.target.value })}
-                      className={appInputClass}
-                      placeholder="Sua chave Pix"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className={appLabelClass}>Nome do beneficiário</label>
-                      <input
-                        type="text"
-                        value={pixConfig.nome_beneficiario}
-                        onChange={(e) => setPixConfig({ ...pixConfig, nome_beneficiario: e.target.value })}
-                        className={appInputClass}
-                        placeholder="Nome completo ou razão social"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className={appLabelClass}>Dia de vencimento</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={pixConfig.dia_vencimento}
-                          onChange={(e) => setPixConfig({ ...pixConfig, dia_vencimento: e.target.value })}
-                          className={appInputClass}
-                          placeholder="10"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#64748B]">/ mês</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end pt-2">
-                    <AppPrimaryButton type="submit" disabled={isSavingPix} className="inline-flex w-full items-center justify-center gap-2 sm:w-auto">
-                      {isSavingPix ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      {isSavingPix ? 'Salvando…' : 'Salvar configurações'}
-                    </AppPrimaryButton>
-                  </div>
-                </form>
-              </AppDemoCard>
-
-              <div className="space-y-4 xl:col-span-2">
-                <AppDemoCard className="financial-pix-preview overflow-hidden p-0">
-                  <div className="border-b border-[#D8D1C4] px-5 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-800 dark:text-primary">Prévia</span>
-                        <h4 className="mt-1 text-sm font-black text-[#17130D]">Cartão de pagamento</h4>
-                      </div>
-                      <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-950/40 text-emerald-400">
-                        <ShieldCheck className="h-5 w-5" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <div className="financial-pix-payment-card rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-[#122A1E] to-[#0A1610] p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200">Mensalidade da casa</p>
-                          <p className="mt-2 text-3xl font-black text-white">
-                            {formatBRL(Number(pixConfig.valor_mensalidade) || 0)}
-                          </p>
-                        </div>
-                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-[#080A0D]">
-                          <DollarSign className="h-5 w-5" />
-                        </div>
-                      </div>
-                      <div className="mt-6 space-y-3 border-t border-emerald-900/60 pt-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[10px] font-extrabold uppercase text-emerald-300/90">Vencimento</span>
-                          <span className="text-xs font-black text-white">Dia {pixConfig.dia_vencimento || '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-extrabold uppercase text-emerald-300/90">Beneficiário</span>
-                          <p className="mt-1 truncate text-xs font-black text-white">
-                            {pixConfig.nome_beneficiario || 'Nome ainda não informado'}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-extrabold uppercase text-emerald-300/90">Chave Pix</span>
-                          <div className="mt-1 flex items-center gap-2">
-                            <p className="min-w-0 flex-1 truncate text-xs font-black text-amber-300">
-                              {pixConfig.chave_pix || 'Chave ainda não informada'}
-                            </p>
-                            {pixConfig.chave_pix ? (
-                              <button
-                                type="button"
-                                onClick={() => void navigator.clipboard?.writeText(pixConfig.chave_pix)}
-                                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-700/50 text-emerald-300 transition hover:border-primary/40 hover:text-primary"
-                                aria-label="Copiar chave Pix"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </button>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </AppDemoCard>
-
-                <AppDemoCard className="financial-pix-status">
-                  <h4 className="text-sm font-black text-[#17130D]">Status da configuração</h4>
-                  <div className="mt-4 space-y-3">
-                    {[
-                      ['Chave Pix cadastrada', Boolean(pixConfig.chave_pix)],
-                      ['Beneficiário identificado', Boolean(pixConfig.nome_beneficiario)],
-                      ['Valor da mensalidade definido', Number(pixConfig.valor_mensalidade) > 0],
-                      ['Cobrança mensal ativa', mensalidadeAtiva],
-                    ].map(([label, ready]) => (
-                      <div key={String(label)} className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            'grid h-7 w-7 shrink-0 place-items-center rounded-full border',
-                            ready
-                              ? 'border-emerald-600/40 bg-emerald-100 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-400'
-                              : 'border-stone-300 bg-stone-100 text-stone-600 dark:border-[#303844] dark:bg-[#171C22] dark:text-[#64748B]',
-                          )}
-                        >
-                          {ready ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}
-                        </div>
-                        <span className={cn('text-xs font-extrabold', ready ? 'text-[#1E1B16]' : 'text-[#655E53]')}>
-                          {String(label)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </AppDemoCard>
-              </div>
-            </div>
+            <SacredPixConfigView
+              pixConfig={pixConfig}
+              setPixConfig={setPixConfig}
+              handleSavePixConfig={handleSavePixConfig}
+              isSavingPix={isSavingPix}
+              formatBRL={formatBRL}
+              terreiroNome={tenantData?.nome_terreiro || tenantData?.name || 'Terreiro Sagrado'}
+            />
           )}
         </div>
       )}
@@ -1897,7 +1493,7 @@ export default function Financial({
               animate={MODAL_PANEL_DONE}
               exit={MODAL_PANEL_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-h-[88dvh] flex-col space-y-5 overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md sm:px-10"
+              className="relative z-10 flex w-full max-h-[88dvh] flex-col space-y-5 overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] px-6 py-8 text-center text-[#171A16] shadow-2xl sm:max-w-md sm:px-10"
             >
               <div className="w-20 h-20 bg-[#F1E8D2] rounded-full flex items-center justify-center mx-auto shrink-0">
                 <Lock className="w-10 h-10 text-[#8F7724]" />
@@ -1914,7 +1510,7 @@ export default function Financial({
                     setIsUpgradeModalOpen(false);
                     window.dispatchEvent(new CustomEvent('navigate-to-subscription'));
                   }}
-                  className="w-full bg-[#17251D] text-[#FFFAF0] font-black py-4 rounded-2xl shadow-lg hover:bg-[#20342A] hover:scale-105 transition-transform"
+                  className="w-full bg-[#17251D] text-[#FFFAF0] font-black py-4 rounded-lg shadow-lg hover:bg-[#20342A] hover:scale-105 transition-transform"
                 >
                   Fazer Upgrade Agora
                 </button>
@@ -1930,6 +1526,8 @@ export default function Financial({
         )}
       </AnimatePresence>
       </BodyPortal>
+
+      <FinancialEntryModal dueDay={Number(pixConfig.dia_vencimento) || 10} open={entryModalOpen} onOpenChange={open => { if (!isSubmitting) setEntryModalOpen(open); }} formData={formData} setFormData={setFormData} handleSubmit={handleSubmit} submitError={submitError} isSubmitting={isSubmitting} children={children} formatBRL={formatBRL}/>
 
       {/* Modal Nova Meta */}
       <BodyPortal>
@@ -1948,7 +1546,7 @@ export default function Financial({
               animate={MODAL_DLG_DONE}
               exit={MODAL_DLG_OUT}
               transition={MODAL_TW}
-              className="relative z-10 flex w-full max-w-sm max-h-[88dvh] flex-col overflow-hidden rounded-[26px] border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
+              className="relative z-10 flex w-full max-w-sm max-h-[88dvh] flex-col overflow-hidden rounded-lg border border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl"
             >
               <div className="p-5 sm:p-6 border-b border-[#DED8CB] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">

@@ -1,19 +1,53 @@
 /**
- * Avisa o zelador no WhatsApp quando o dados_acesso do filho falha na Meta
- * (ex.: #131026 undeliverable), com registro/senha/link para passar manualmente.
+ * Avisa o zelador no WhatsApp quando uma mensagem importante enviada a um médium da casa
+ * falha na Meta (ex.: #131026 número sem WhatsApp ou #131049 bloqueio de engajamento da Meta),
+ * fornecendo o nome do médium, motivo amigável e ações recomendadas (dados manuais para acesso).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatFilhoMatricula } from "../../lib/filhoMatricula.js";
 import { filhoSenhaFromCpf, isValidFilhoCpfCadastro } from "../../lib/brCpf.js";
 import { normalizeBrazilMsisdn } from "./welcomeMessage.js";
 import { resolveFilhoLoginPublicUrl } from "./whatsappMetaCloud.js";
+import { formatPhoneBr } from "./giraDispatchSummaryWhatsApp.js";
 
-const TIPO = "falha_acesso_membro_zelador";
-const DEDUP_MS = Number(process.env.WA_FALHA_ACESSO_ZELADOR_DEDUP_MS || 6 * 60 * 60 * 1000);
+const TIPO_ACESSO = "falha_acesso_membro_zelador";
+const TIPO_GERAL = "falha_entrega_membro_zelador";
+const DEDUP_MS = Number(process.env.WA_FALHA_ACESSO_ZELADOR_DEDUP_MS || 3 * 60 * 60 * 1000);
 
 function resolveDedupMs(): number {
-  if (!Number.isFinite(DEDUP_MS) || DEDUP_MS <= 0) return 6 * 60 * 60 * 1000;
-  return Math.min(Math.max(DEDUP_MS, 60_000), 48 * 60 * 60 * 1000);
+  if (!Number.isFinite(DEDUP_MS) || DEDUP_MS <= 0) return 3 * 60 * 60 * 1000;
+  return Math.min(Math.max(DEDUP_MS, 60_000), 24 * 60 * 60 * 1000);
+}
+
+export function humanizeMetaFailureReason(metaError?: string | null): string {
+  const err = String(metaError || "").toLowerCase();
+  if (err.includes("131026") || err.includes("undeliverable")) {
+    return "Número sem WhatsApp ativo ou telefone incorreto (#131026)";
+  }
+  if (err.includes("131049") || err.includes("ecosystem")) {
+    return "Bloqueio temporário pela Meta (#131049 — peça para o médium mandar um 'Oi' para o WhatsApp do AxéCloud)";
+  }
+  if (err.includes("131047") || err.includes("re-engagement")) {
+    return "Janela de conversa de 24h fechada pela Meta (#131047)";
+  }
+  if (err.includes("131051") || err.includes("unsupported")) {
+    return "Tipo de mensagem não suportado pelo aparelho (#131051)";
+  }
+  if (err.includes("131021") || err.includes("spam")) {
+    return "Número temporariamente restrito por denúncia (#131021)";
+  }
+  return metaError ? `Falha de entrega: ${metaError}` : "Falha na entrega da mensagem pela Meta";
+}
+
+export function humanizeTipoMensagem(tipo: string): string {
+  const t = String(tipo || "").toLowerCase();
+  if (t === "dados_acesso") return "Dados de Acesso";
+  if (t === "transmissao_aviso" || t === "mural_aviso" || t === "broadcast") return "Comunicado do Mural";
+  if (t.includes("gira")) return "Aviso de Gira";
+  if (t.includes("mensalidade") || t.includes("cobranca")) return "Cobrança de Mensalidade";
+  if (t.includes("portal")) return "Convite do Portal";
+  if (t.includes("reza")) return "Pedido de Reza";
+  return "Mensagem do Terreiro";
 }
 
 async function resolveZeladorContact(
@@ -22,7 +56,7 @@ async function resolveZeladorContact(
 ): Promise<{ nome: string; phone: string } | null> {
   const { data, error } = await sb.auth.admin.getUserById(leaderId);
   if (error) {
-    console.warn("[falha-acesso-zelador] auth user:", error.message);
+    console.warn("[falha-entrega-zelador] auth user:", error.message);
     return null;
   }
   const meta = (data.user?.user_metadata || {}) as Record<string, unknown>;
@@ -54,57 +88,79 @@ export function buildFalhaAcessoDadosManuais(opts: {
 async function alreadyNotifiedRecently(
   sb: SupabaseClient,
   tenantId: string,
-  filhoId: string
+  filhoIdOrPhone: string,
+  tipoEnvio: string
 ): Promise<boolean> {
   const since = new Date(Date.now() - resolveDedupMs()).toISOString();
-  const { data } = await sb
+  let query = sb
     .from("whatsapp_logs")
     .select("id")
     .eq("tenant_id", tenantId)
-    .eq("filho_id", filhoId)
-    .eq("tipo", TIPO)
+    .in("tipo", [TIPO_ACESSO, TIPO_GERAL])
     .in("status", ["sent", "delivered", "read"])
-    .gte("created_at", since)
-    .limit(1);
+    .gte("created_at", since);
+
+  if (filhoIdOrPhone.includes("-")) {
+    query = query.eq("filho_id", filhoIdOrPhone);
+  } else {
+    query = query.ilike("mensagem", `%${filhoIdOrPhone}%`);
+  }
+
+  const { data } = await query.limit(1);
   return Boolean(data?.length);
 }
 
+export type FalhaEntregaMembroOpts = {
+  tenantId: string;
+  filhoId?: string | null;
+  telefoneFilho?: string | null;
+  tipo: string;
+  metaError?: string | null;
+  sourceExternalId?: string | null;
+  mensagemOriginal?: string | null;
+};
+
 /**
- * Dispara aviso ao zelador após falha de entrega de dados_acesso.
- * Idempotente por filho (janela WA_FALHA_ACESSO_ZELADOR_DEDUP_MS, default 6h).
+ * Dispara aviso ao zelador no WhatsApp quando qualquer mensagem importante a um médium falhar na Meta.
+ * Idempotente por filho/telefone em janela de 3h.
  */
-export async function notifyZeladorDadosAcessoFailed(
+export async function notifyZeladorFalhaEntregaMembro(
   sb: SupabaseClient,
-  opts: {
-    tenantId: string;
-    filhoId: string;
-    telefoneFilho?: string | null;
-    metaError?: string | null;
-    sourceExternalId?: string | null;
-  }
+  opts: FalhaEntregaMembroOpts
 ): Promise<{ sent: boolean; reason?: string }> {
   const tenantId = String(opts.tenantId || "").trim();
-  const filhoId = String(opts.filhoId || "").trim();
-  if (!tenantId || !filhoId) {
+  const filhoId = opts.filhoId ? String(opts.filhoId).trim() : null;
+  const rawPhone = opts.telefoneFilho ? normalizeBrazilMsisdn(String(opts.telefoneFilho)) : "";
+
+  if (!tenantId || (!filhoId && !rawPhone)) {
     return { sent: false, reason: "missing-ids" };
   }
 
-  if (await alreadyNotifiedRecently(sb, tenantId, filhoId)) {
+  const dedupKey = filhoId || rawPhone;
+  if (await alreadyNotifiedRecently(sb, tenantId, dedupKey, opts.tipo)) {
     return { sent: false, reason: "dedup" };
   }
 
-  const { data: filho, error: filhoErr } = await sb
-    .from("filhos_de_santo")
-    .select("id, nome, cpf, whatsapp_phone, data_entrada, tenant_id, lider_id")
-    .eq("id", filhoId)
-    .maybeSingle();
-
-  if (filhoErr) {
-    console.warn("[falha-acesso-zelador] filho:", filhoErr.message);
-    return { sent: false, reason: "filho-query" };
+  // Busca dados do filho de santo
+  let filho: any = null;
+  if (filhoId) {
+    const { data } = await sb
+      .from("filhos_de_santo")
+      .select("id, nome, cpf, whatsapp_phone, data_entrada, tenant_id, lider_id")
+      .eq("id", filhoId)
+      .maybeSingle();
+    filho = data;
   }
-  if (!filho) {
-    return { sent: false, reason: "filho-not-found" };
+  if (!filho && rawPhone) {
+    const cleanDigits = rawPhone.replace(/\D/g, "");
+    const last8 = cleanDigits.slice(-8);
+    const { data } = await sb
+      .from("filhos_de_santo")
+      .select("id, nome, cpf, whatsapp_phone, data_entrada, tenant_id, lider_id")
+      .or(`tenant_id.eq.${tenantId},lider_id.eq.${tenantId}`)
+      .ilike("whatsapp_phone", `%${last8}%`)
+      .limit(1);
+    if (data && data.length > 0) filho = data[0];
   }
 
   const contact = await resolveZeladorContact(sb, tenantId);
@@ -113,33 +169,30 @@ export async function notifyZeladorDadosAcessoFailed(
   }
 
   const filhoPhone = normalizeBrazilMsisdn(
-    String(opts.telefoneFilho || filho.whatsapp_phone || "")
+    String(rawPhone || filho?.whatsapp_phone || "")
   );
+
+  // Evita alertar o zelador no próprio número caso seja teste pessoal
   if (filhoPhone && filhoPhone === contact.phone) {
     return { sent: false, reason: "same-phone-as-zelador" };
   }
 
-  const cpfDigits = String(filho.cpf || "").replace(/\D/g, "");
-  if (!isValidFilhoCpfCadastro(cpfDigits)) {
-    return { sent: false, reason: "invalid-cpf" };
-  }
-  const senha = filhoSenhaFromCpf(cpfDigits) || "";
-  if (!senha) {
-    return { sent: false, reason: "no-senha" };
-  }
-
-  const registro = formatFilhoMatricula(String(filho.id), filho.data_entrada);
+  const isDadosAcesso = String(opts.tipo || "").toLowerCase() === "dados_acesso";
+  const tipoLabel = humanizeTipoMensagem(opts.tipo);
+  const motivoAmigavel = humanizeMetaFailureReason(opts.metaError);
+  const nomeFilho = String(filho?.nome || "Membro da casa").trim() || "Membro";
   const loginUrl = resolveFilhoLoginPublicUrl();
-  const waCadastro = filhoPhone || String(filho.whatsapp_phone || "");
+
+  const cpfDigits = String(filho?.cpf || "").replace(/\D/g, "");
+  const hasValidCpf = isValidFilhoCpfCadastro(cpfDigits);
+  const senha = hasValidCpf ? filhoSenhaFromCpf(cpfDigits) || "" : "";
+  const registro = filho?.id ? formatFilhoMatricula(String(filho.id), filho.data_entrada) : "";
+  const waCadastro = filhoPhone || String(filho?.whatsapp_phone || "");
+
   const dadosManuaisCurto =
-    `Registro: ${registro} · Senha (6 digitos do CPF): ${senha} · Link: ${loginUrl}`;
-  const dados = buildFalhaAcessoDadosManuais({
-    registro,
-    senha,
-    loginUrl,
-    whatsappCadastro: waCadastro,
-  });
-  const nomeFilho = String(filho.nome || "Membro").trim() || "Membro";
+    registro && senha
+      ? `Registro: ${registro} · Senha (6 digitos do CPF): ${senha} · Link: ${loginUrl}`
+      : `Link de entrada: ${loginUrl}`;
 
   const { isMetaCloudDirectConfigured, sendMetaCloudTemplate } = await import("./metaCloudSend.js");
   const {
@@ -153,89 +206,101 @@ export async function notifyZeladorDadosAcessoFailed(
     return { sent: false, reason: "meta-not-configured" };
   }
 
-  const dedicated = resolveFalhaAcessoMembroZeladorTemplateName();
-  // Nunca usar template de ops/novo terreiro aqui — copy errada para o zelador.
-  if (/novo_cadastro|ops_alert|ops_axecloud/i.test(dedicated)) {
-    console.error(
-      `[falha-acesso-zelador] template inválido bloqueado: ${dedicated} (use conta_membro_aviso_zelador_axc)`
-    );
-  }
-  const legacy = "aviso_geral_axecloud";
   let messageId: string | undefined;
 
-  const organizedText = [
-    `Ola, ${contact.nome}!`,
+  // Montagem do texto detalhado para entrega via WhatsApp
+  const lines: string[] = [
+    `Olá, ${contact.nome}! Axé! 🙏`,
     "",
-    "Nao foi possivel entregar o WhatsApp de acesso ao membro.",
+    `⚠️ Aviso de entrega: a mensagem de ${tipoLabel} não pôde ser entregue no WhatsApp de um médium.`,
     "",
-    `Membro: ${nomeFilho}`,
-    waCadastro ? `WhatsApp cadastro: ${String(waCadastro).replace(/\D/g, "")}` : null,
-    `Registro: ${registro}`,
-    `Senha (6 digitos do CPF): ${senha}`,
-    "",
-    "Passe esses dados manualmente para ele.",
-    `Link: ${loginUrl}`,
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
+    `• Médium: ${nomeFilho}`,
+    waCadastro ? `• Telefone: ${formatPhoneBr(waCadastro)}` : null,
+    `• Motivo: ${motivoAmigavel}`,
+  ];
 
-  const dedicatedOk =
-    dedicated &&
-    dedicated !== legacy &&
-    !/novo_cadastro|ops_alert|ops_axecloud/i.test(dedicated);
+  if (isDadosAcesso && registro && senha) {
+    lines.push("");
+    lines.push("🔑 Dados para você passar manualmente ao médium:");
+    lines.push(`• Registro: ${registro}`);
+    lines.push(`• Senha: ${senha} (6 primeiros dígitos do CPF)`);
+    lines.push(`• Link: ${loginUrl}`);
+  } else if (motivoAmigavel.includes("131049")) {
+    lines.push("");
+    lines.push("💡 Como resolver: Peça para o médium mandar um 'Oi' para o WhatsApp oficial do AxéCloud e salvar o número na agenda. Isso libera os envios na hora!");
+  } else if (motivoAmigavel.includes("131026")) {
+    lines.push("");
+    lines.push("💡 Como resolver: Verifique o DDD e o número no cadastro do médium na aba Filhos de Santo.");
+  } else {
+    lines.push("");
+    lines.push("💡 Você pode passar o aviso diretamente a ele na casa ou conferir os dados no painel.");
+  }
 
-  if (dedicatedOk) {
-    try {
-      const out = await sendMetaCloudTemplate(
-        contact.phone,
-        dedicated,
-        resolveMetaTemplateLanguage(),
-        buildFalhaAcessoMembroZeladorComponents({
-          nome_zelador: contact.nome,
-          nome_filho: nomeFilho,
-          whatsapp_cadastro: waCadastro,
-          registro,
-          senha,
-          dados_manuais: dadosManuaisCurto,
-        })
-      );
-      messageId = out.messageId;
-    } catch (err: unknown) {
-      console.warn(
-        `[falha-acesso-zelador] template ${dedicated} falhou:`,
-        err instanceof Error ? err.message : err
-      );
+  const organizedText = lines.filter((l) => l !== null).join("\n");
+
+  // 1. Se for dados_acesso e houver template dedicado aprovado, tenta usá-lo
+  if (isDadosAcesso && hasValidCpf && registro && senha) {
+    const dedicated = resolveFalhaAcessoMembroZeladorTemplateName();
+    const dedicatedOk =
+      dedicated &&
+      dedicated !== "aviso_geral_axecloud" &&
+      !/novo_cadastro|ops_alert|ops_axecloud/i.test(dedicated);
+
+    if (dedicatedOk) {
+      try {
+        const out = await sendMetaCloudTemplate(
+          contact.phone,
+          dedicated,
+          resolveMetaTemplateLanguage(),
+          buildFalhaAcessoMembroZeladorComponents({
+            nome_zelador: contact.nome,
+            nome_filho: nomeFilho,
+            whatsapp_cadastro: waCadastro,
+            registro,
+            senha,
+            dados_manuais: dadosManuaisCurto,
+          })
+        );
+        messageId = out.messageId;
+      } catch (err: unknown) {
+        console.warn(
+          `[falha-entrega-zelador] template dedicado ${dedicated} falhou:`,
+          err instanceof Error ? err.message : err
+        );
+      }
     }
   }
 
-  // Preferir texto livre organizado (quebras de linha) quando houver janela 24h.
+  // 2. Tenta enviar como texto livre organizado (caso haja janela 24h ativa com o zelador)
   if (!messageId) {
     try {
       const { sendMetaCloudText } = await import("./metaCloudSend.js");
       const out = await sendMetaCloudText(contact.phone, organizedText);
       messageId = out.messageId;
-      console.log("[falha-acesso-zelador] enviado via texto livre organizado");
-    } catch (textErr: unknown) {
-      console.warn(
-        "[falha-acesso-zelador] texto livre falhou:",
-        textErr instanceof Error ? textErr.message : textErr
-      );
+      console.log(`[falha-entrega-zelador] enviado via texto livre para ${contact.phone.slice(0, 4)}…`);
+    } catch {
+      /* fallback para template geral */
     }
   }
 
+  // 3. Fallback garantido: template universal aprovado aviso_geral_axecloud
   if (!messageId) {
     try {
-      const packed = `Falha WhatsApp acesso ${nomeFilho}: ${dados}`;
+      const packed = isDadosAcesso && registro && senha
+        ? `Falha WhatsApp acesso ${nomeFilho}: Registro ${registro} · Senha ${senha} · Link ${loginUrl}. Motivo: ${motivoAmigavel}`
+        : `Falha WhatsApp (${tipoLabel}) para ${nomeFilho}: ${motivoAmigavel}. Passe o comunicado diretamente na casa.`;
+
       const out = await sendMetaCloudTemplate(
         contact.phone,
-        legacy,
+        "aviso_geral_axecloud",
         resolveMetaTemplateLanguage(),
         buildMetaTemplateComponents(contact.nome, packed)
       );
       messageId = out.messageId;
+      console.log(`[falha-entrega-zelador] enviado via aviso_geral_axecloud para ${contact.phone.slice(0, 4)}…`);
     } catch (fallbackErr: unknown) {
       console.warn(
-        "[falha-acesso-zelador] fallback aviso_geral falhou:",
+        "[falha-entrega-zelador] fallback aviso_geral falhou:",
         fallbackErr instanceof Error ? fallbackErr.message : fallbackErr
       );
     }
@@ -245,12 +310,12 @@ export async function notifyZeladorDadosAcessoFailed(
     return { sent: false, reason: "send-failed" };
   }
 
-  const errHint = String(opts.metaError || "").trim();
+  const logTipo = isDadosAcesso ? TIPO_ACESSO : TIPO_GERAL;
   const audit = [
-    `Falha entrega acesso → avisar zelador: ${nomeFilho}`,
-    `Registro ${registro}`,
-    errHint ? `Meta: ${errHint}` : null,
-    opts.sourceExternalId ? `origem ${String(opts.sourceExternalId).slice(0, 40)}` : null,
+    `Falha entrega ${tipoLabel} → avisar zelador: ${nomeFilho}`,
+    filhoPhone ? `Tel ${filhoPhone}` : null,
+    `Motivo: ${motivoAmigavel}`,
+    opts.sourceExternalId ? `origem ${String(opts.sourceExternalId).slice(0, 30)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -258,8 +323,8 @@ export async function notifyZeladorDadosAcessoFailed(
   try {
     await sb.from("whatsapp_logs").insert({
       tenant_id: tenantId,
-      filho_id: filhoId,
-      tipo: TIPO,
+      filho_id: filhoId || null,
+      tipo: logTipo,
       telefone: contact.phone,
       mensagem: audit,
       status: "sent",
@@ -267,13 +332,29 @@ export async function notifyZeladorDadosAcessoFailed(
     });
   } catch (logErr: unknown) {
     console.warn(
-      "[falha-acesso-zelador] log:",
+      "[falha-entrega-zelador] log:",
       logErr instanceof Error ? logErr.message : logErr
     );
   }
 
-  console.log(
-    `[falha-acesso-zelador] enviado → ${contact.phone.slice(0, 4)}… filho=${filhoId.slice(0, 8)}`
-  );
   return { sent: true };
+}
+
+/**
+ * Mantido para compatibilidade com chamadas legadas de dados_acesso.
+ */
+export async function notifyZeladorDadosAcessoFailed(
+  sb: SupabaseClient,
+  opts: {
+    tenantId: string;
+    filhoId: string;
+    telefoneFilho?: string | null;
+    metaError?: string | null;
+    sourceExternalId?: string | null;
+  }
+): Promise<{ sent: boolean; reason?: string }> {
+  return notifyZeladorFalhaEntregaMembro(sb, {
+    ...opts,
+    tipo: "dados_acesso",
+  });
 }

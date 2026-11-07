@@ -1,0 +1,21 @@
+{
+  "$schema":"node_modules/wrangler/config-schema.json",
+  "name":"axecloud-interface-pilot",
+  "main":"cloudflare/pilot-interface-worker.js",
+  "compatibility_date":"2026-10-01",
+  "workers_dev":false,
+  "preview_urls":false,
+  "assets":{"directory":"./artifacts/pilot-release-20261101/dist","binding":"ASSETS","html_handling":"none","run_worker_first":true},
+  "services":[{"binding":"CURRENT_APP","service":"axecloud-app-assets"},{"binding":"API","service":"axecloud-api-staging"}],
+  "vars":{"INTERFACE_ROLLOUT_MODE":"managers","PILOT_OPERATION_ROLLOUT_MODE":"managers","MEMBER_INTERFACE_ROLLOUT_MODE":"members","MEMBER_OPERATION_ROLLOUT_MODE":"members"},
+  "routes":[
+    {"pattern":"https://axecloud.com.br/dashboard*","zone_name":"axecloud.com.br"},
+    {"pattern":"https://axecloud.com.br/entrar*","zone_name":"axecloud.com.br"},
+    {"pattern":"https://axecloud.com.br/financeiro*","zone_name":"axecloud.com.br"},
+    {"pattern":"https://axecloud.com.br/mensalidades*","zone_name":"axecloud.com.br"},
+    {"pattern":"axecloud.com.br/api/pilot/*","zone_name":"axecloud.com.br"},
+    {"pattern":"axecloud.com.br/assets/pilot-20261101/*","zone_name":"axecloud.com.br"},
+    {"pattern":"axecloud.com.br/assets/member-pilot-20261102/*","zone_name":"axecloud.com.br"}
+  ],
+  "observability":{"enabled":true}
+}

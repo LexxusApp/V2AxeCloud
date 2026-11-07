@@ -1,0 +1,65 @@
++--------------------------------------------------------------------------------------------------+
+| nav                                                                                              |
+| [ico: tridente] [t1: AxéCloud]                                                     [btn: Menu]   |
++--------------------------------------------------------------------------------------------------+
+| page-meta                                                                                        |
+| [lnk: Voltar para o mapa]                              [t3: Informações públicas. Confirme antes]|
++--------------------------------------------------------------------------------------------------+
+| hero                                                                                             |
+| +--------------------------------------------------------+ +-------------------------------------+ |
+| | hero-copy                                              | | media                               | |
+| | [t3: Diretório AxéCloud. Casa mapeada]                 | | [img: Foto pública do terreiro]    | |
+| | [h1: AEUPU - Associação Espiritualista de]             | |                                     | |
+| | [h1: Umbanda Pai Urupijaba]                            | | [t3: Perfil público] [t3: AxéCloud] | |
+| | [t2: Campinas. SP]                                     | |                                     | |
+| | [btn2: Sou responsável por esta casa]                  | |                                     | |
+| |                                                        | |                                     | |
+| | +----------------+ +----------------+ +---------------+ | |                                     | |
+| | | stat           | | stat           | | stat          | | |                                     | |
+| | | [t3: Tipo]     | | [t3: Local]    | | [t3: Situação]| | |                                     | |
+| | | [t2: Público]  | | [t2: SP]       | | [t2: Listado] | | |                                     | |
+| | +----------------+ +----------------+ +---------------+ | |                                     | |
+| +--------------------------------------------------------+ +-------------------------------------+ |
++--------------------------------------------------------------------------------------------------+
+| visit-card                                                                                       |
+| [t3: Dados disponíveis]                                                                          |
+| [h2: Planeje sua visita.]                                  [t3: Confirme diretamente com a casa] |
+| +----------------------------------------------------------------------------------------------+ |
+| | info-row                                                                                     | |
+| | [ico: localização] [t3: Endereço] [t2: R. Nova Iorque, 343 - Campinas - SP]                  | |
+| +----------------------------------------------------------------------------------------------+ |
+| +----------------------------------------------------------------------------------------------+ |
+| | info-row                                                                                     | |
+| | [ico: WhatsApp] [t3: WhatsApp] [t2: WhatsApp não disponível]                                | |
+| +----------------------------------------------------------------------------------------------+ |
+| [btn3: Traçar rota no Google Maps]                                                               |
++--------------------------------------------------------------------------------------------------+
+| schedule                                                                                         |
+| [t3: Horários habituais]                                                                         |
+| [h2: Dias de gira.]                                                                              |
+| +--------------------------------------------+ +-----------------------------------------------+ |
+| | card                                       | | card2                                         | |
+| | [t2: Dia e horário publicados pela casa]   | | [t3: Próxima gira prevista]                  | |
+| +--------------------------------------------+ +-----------------------------------------------+ |
++--------------------------------------------------------------------------------------------------+
+| services                                                                                         |
+| [t3: Atendimentos espirituais]                                                                   |
+| [h2: O que esta casa oferece.]                                                                    |
+| +----------------------------+ +----------------------------+ +-------------------------------+ |
+| | card3                      | | card3                      | | card3                         | |
+| | [h3: Atendimento]          | | [h3: Atendimento]          | | [h3: Atendimento]             | |
+| | [t2: Descrição e valor]    | | [t2: Descrição e valor]    | | [t2: Descrição e valor]       | |
+| +----------------------------+ +----------------------------+ +-------------------------------+ |
++--------------------------------------------------------------------------------------------------+
+| management-card                                                                                  |
+| [ico: proteção] [t3: Para dirigentes e zeladores]                                                |
+| [h2: Organize a casa sem expor o fundamento.]                         [btn4: Conhecer o AxéCloud]|
+| [t2: Financeiro, filhos de santo, giras, comunicação e memória em um ambiente privado.]          |
++--------------------------------------------------------------------------------------------------+
+| claim-card                                                                                       |
+| [ico: verificação] [t3: Sistema AxéCloud de gestão de terreiros]                                 |
+| [h2: Transforme este perfil na voz oficial da sua casa.]                                         |
+| [t2: Assuma os dados públicos e administre a casa no painel AxéCloud.]                            |
+| [t3: Gestão da casa] [t3: 30 dias grátis] [t3: Plano após o teste]                               |
+| [btn5: Assumir a gestão deste perfil] [btn6: Acompanhar reivindicação]                            |
++--------------------------------------------------------------------------------------------------+

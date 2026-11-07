@@ -101,7 +101,7 @@ async function loadFilhoHouseRefs(
   if (email && !SHADOW_EMAIL_F.test(email) && !SHADOW_EMAIL_FILHO.test(email)) {
     const { data: byEmail } = await supabaseAdmin
       .from("filhos_de_santo")
-      .select("lider_id, tenant_id")
+      .select("id, user_id, lider_id, tenant_id")
       .eq("email", email)
       .maybeSingle();
     if (byEmail) return byEmail;
@@ -178,6 +178,20 @@ export async function assertZeladorTenantAccess(
   userId: string,
   tenantId: string
 ): Promise<boolean> {
+  const PILOT_TEST_TENANT_ID = "fad75b91-d2eb-4805-b5a3-c19e8a073bed";
+  if (tenantId === PILOT_TEST_TENANT_ID) {
+    const { data: coAdmin } = await supabaseAdmin
+      .from("piloto_coadministradores")
+      .select("ativo")
+      .eq("tenant_id", PILOT_TEST_TENANT_ID)
+      .eq("user_id", userId)
+      .eq("ativo", true)
+      .maybeSingle();
+    if (coAdmin?.ativo) return true;
+  }
+  // A member binding wins over a stale leader profile, including shadow/email
+  // accounts. Resolve it before trusting perfil_lider (same precedence as Library).
+  if (await resolveFilhoHouseRefs(supabaseAdmin, { id: userId })) return false;
   const { data: prof } = await supabaseAdmin
     .from("perfil_lider")
     .select("id, tenant_id")
@@ -329,6 +343,8 @@ export const ALLOWED_CHILD_UPDATE_FIELDS = new Set([
   "status",
   "quizilas",
   "notas_sigilosas",
+  "limite_lojinha",
+  "bloquear_fiado_loja",
 ]);
 
 const CHILD_DATE_FIELDS = new Set(["data_nascimento", "data_entrada", "data_feitura"]);
@@ -364,6 +380,12 @@ export function normalizeChildPayload(body: Record<string, unknown>): Record<str
       } else if (value == null) {
         out[key] = null;
       }
+      continue;
+    }
+
+    if (key === "email") {
+      const emailStr = String(value || "").trim().toLowerCase();
+      out[key] = emailStr || null;
       continue;
     }
 
@@ -404,6 +426,16 @@ export function normalizeChildPayload(body: Record<string, unknown>): Record<str
         );
       }
       out[key] = cpf;
+      continue;
+    }
+
+    if (key === "limite_lojinha") {
+      out[key] = Math.max(0, Number(value) || 0);
+      continue;
+    }
+
+    if (key === "bloquear_fiado_loja") {
+      out[key] = Boolean(value);
       continue;
     }
 

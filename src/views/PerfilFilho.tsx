@@ -255,14 +255,54 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         const now = new Date();
         const y = now.getFullYear();
         const mo = now.getMonth();
+        // Verifica se a casa tem mensalidade ativa configurada
+        let casaTemMensalidadeAtiva = false;
+        try {
+          const pixRes = await authFetch(`/api/v1/financial/pix-config?tenantId=${encodeURIComponent(tenantId)}`);
+          if (pixRes.ok) {
+            const { data: pixData } = await pixRes.json();
+            casaTemMensalidadeAtiva = Boolean(
+              pixData &&
+              pixData.mensalidade_ativa !== false &&
+              (pixData.chave_pix || Number(pixData.valor_mensalidade) > 0)
+            );
+          }
+        } catch {
+          casaTemMensalidadeAtiva = false;
+        }
+
+        // 1. Há mensalidade PAGA neste mês?
         const paid = txs.some((t) => {
           if (!isPaidMensalidadeFinanceRow(t as Record<string, unknown>)) return false;
           const d = new Date(t.data);
           if (d.getFullYear() !== y || d.getMonth() !== mo) return false;
           if (t.filho_id === filho.id) return true;
-          return new RegExp(`\\(ID:${filho.id}\\)`).test(String(t.descricao || ''));
+          return new RegExp(`\\(ID:${filho.id}\\)`).test(String(t.descricao || ""));
         });
-        if (!cancelled) setHasDebt(!paid);
+
+        // 2. Há registro explícito de mensalidade PENDENTE ou ATRASADA para este filho?
+        const hasExplicitPendingMensalidade = txs.some((t) => {
+          const cat = String(t.categoria || '').toLowerCase();
+          if (cat !== 'mensalidade') return false;
+          const st = String(t.status || '').toLowerCase();
+          const isPending = st === 'pendente' || st === 'pending' || st === 'atrasado' || st === 'overdue';
+          if (!isPending) return false;
+          if (t.filho_id === filho.id) return true;
+          return new RegExp(`\\(ID:${filho.id}\\)`).test(String(t.descricao || ""));
+        });
+
+        if (!cancelled) {
+          if (paid) {
+            setHasDebt(false);
+          } else if (hasExplicitPendingMensalidade) {
+            setHasDebt(true);
+          } else if (casaTemMensalidadeAtiva) {
+            setHasDebt(true);
+          } else {
+            // Casa não tem mensalidade ativa/configurada e não há cobrança pendente
+            setHasDebt(false);
+          }
+        }
       } catch {
         if (!cancelled) setHasDebt(false);
       } finally {
@@ -276,11 +316,12 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
 
   // 3. Mural — feed central (estilo rede social)
   useEffect(() => {
+    if (!tenantId) return;
     let cancelled = false;
     (async () => {
       setLoadingNotices(true);
       try {
-        const res = await authFetch(`/api/notices?tenantId=${tenantId || ''}`);
+        const res = await authFetch(`/api/notices?tenantId=${encodeURIComponent(tenantId)}`);
         if (!res.ok) throw new Error('Falha ao carregar avisos');
         const { data } = await res.json();
         if (!cancelled) setNotices((data as Notice[]) || []);
@@ -347,7 +388,9 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         return;
       }
       const { data } = await res.json();
-      setMensalidadeAtiva(data?.mensalidade_ativa !== false);
+      const ativa = Boolean(data && data.mensalidade_ativa !== false && (data.chave_pix || Number(data.valor_mensalidade) > 0));
+
+      setMensalidadeAtiva(ativa);
       if (data?.dia_vencimento != null && data.dia_vencimento !== '') {
         setDiaVencimentoMensalidade(parseInt(String(data.dia_vencimento), 10) || 10);
       }
@@ -435,7 +478,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
       setPixBrCode('');
       return;
     }
-    const txid = (filho.id || user.id).replace(/-/g, '').slice(0, 25).padEnd(5, '0');
+    const txid = '***';
     const payload = buildPixPayload(pixConfig, valorMensalidade, txid, 'Mensalidade terreiro');
     setPixBrCode(payload);
     const canvas = filhoQrRef.current;
@@ -864,7 +907,7 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
         pixConfig={pixConfig}
         valor={valorMensalidade}
         descricao="Mensalidade AxéCloud"
-        txid={(filho?.id || user.id).replace(/-/g, '').slice(0, 25).padEnd(5, '0')}
+        txid="***"
       />
     </AppPageShell>
   );

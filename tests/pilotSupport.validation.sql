@@ -1,0 +1,36 @@
+begin;
+do $test$
+declare owner_id uuid:='fad75b91-d2eb-4805-b5a3-c19e8a073bed';ticket uuid:=gen_random_uuid();msg uuid:=gen_random_uuid();r jsonb;attempt uuid;old_attempt uuid;payload jsonb:='{"responsible":"VALIDACAO-CODEX","house":"VALIDACAO-CODEX","phone":"11900000000","subject":"VALIDACAO-CODEX-SUPORTE","text":"Pedido técnico de validação sem envio de e-mail.","category":"Uso do sistema"}';
+begin
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);execute 'set local role authenticated';
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,null,payload);attempt:=(r->>'attempt')::uuid;
+ if r->>'send'<>'true' or r->'payload'->>'nomeTerreiro'<>'VALIDACAO-CODEX' or r->'payload'->>'mensagem' not like '%Pedido técnico%' then raise exception 'Pedido perdeu dados ou não foi reservado';end if;
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,null,payload,true);if r->>'send'<>'false' then raise exception 'Tentativa concorrente autorizada';end if;
+ begin perform public.piloto_suporte_iniciar(owner_id,ticket,null,payload||'{"subject":"Outro assunto"}');raise exception 'Protocolo aceitou conteúdo diferente';exception when unique_violation then null;end;
+ r:=public.piloto_suporte_finalizar(owner_id,ticket,null,'uncertain',null,'Teste sem envio',attempt);
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,null,payload,true);if r->>'send'<>'false' then raise exception 'Resultado incerto autorizou reenvio';end if;
+ r:=public.piloto_suporte_finalizar(owner_id,ticket,null,'failed',null,'Recusa técnica',attempt);
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,null,payload);if r->>'send'<>'false' then raise exception 'Falha gerou reenvio implícito';end if;
+ old_attempt:=attempt;r:=public.piloto_suporte_iniciar(owner_id,ticket,null,payload,true);attempt:=(r->>'attempt')::uuid;if r->>'send'<>'true' or attempt=old_attempt then raise exception 'Nova tentativa explícita inválida';end if;
+ begin perform public.piloto_suporte_finalizar(owner_id,ticket,null,'failed',null,'Resposta atrasada',old_attempt);raise exception 'Tentativa antiga alterou resultado novo';exception when unique_violation then null;end;
+ begin perform public.piloto_suporte_finalizar(owner_id,ticket,null,'confirmed',null,null,attempt);raise exception 'Confirmação sem recibo';exception when invalid_parameter_value then null;end;
+ r:=public.piloto_suporte_finalizar(owner_id,ticket,null,'confirmed','TECHNICAL-NO-EMAIL',null,attempt);
+ r:=public.piloto_suporte_finalizar(owner_id,ticket,null,'failed',null,'Resposta atrasada',attempt);if r->>'state'<>'confirmed' then raise exception 'Recibo confirmado foi perdido';end if;
+ r:=public.piloto_suporte_situacao(owner_id,ticket,'closed','open');
+ begin perform public.piloto_suporte_iniciar(owner_id,ticket,msg,'{"text":"Complemento técnico"}');raise exception 'Acompanhamento encerrado aceitou complemento';exception when unique_violation then null;end;
+ r:=public.piloto_suporte_situacao(owner_id,ticket,'open','closed');
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,msg,'{"text":"Complemento técnico"}');attempt:=(r->>'attempt')::uuid;if r->>'send'<>'true' then raise exception 'Complemento não reservado';end if;
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,msg,'{"text":"Complemento técnico"}');if r->>'send'<>'false' then raise exception 'Complemento duplicou envio';end if;
+ r:=public.piloto_suporte_finalizar(owner_id,ticket,msg,'failed',null,'Teste sem envio',attempt);
+ r:=public.piloto_suporte_situacao(owner_id,ticket,'closed','open');
+ r:=public.piloto_suporte_iniciar(owner_id,ticket,msg,'{"text":"Complemento técnico"}',true);if r->>'send'<>'false' then raise exception 'Complemento de pedido encerrado reenviado';end if;
+ if (select count(*) from public.piloto_suporte_chamados where id=ticket)<>1 or (select count(*) from public.piloto_suporte_complementos where id=msg)<>1 then raise exception 'Histórico não persistiu';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub','ab2eef13-604c-4c8f-9d14-f3da41cc5a81','role','authenticated')::text,true);
+ if exists(select 1 from public.piloto_suporte_chamados) or exists(select 1 from public.piloto_suporte_complementos) then raise exception 'Suporte da zeladoria exposto ao membro';end if;
+ begin perform public.piloto_suporte_situacao(owner_id,ticket,'open','closed');raise exception 'Membro alterou pedido';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);
+ begin perform public.piloto_suporte_situacao(gen_random_uuid(),ticket,'open','closed');raise exception 'Operação aceitou outra casa';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+end $test$;
+rollback;
+select 'passed' as pilot_support_validation,'all fixtures and schema rolled back; no email service called' as persistence;

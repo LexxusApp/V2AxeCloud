@@ -1,3 +1,4 @@
+import { compressImage } from '../../lib/imageCompression';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   BadgeCheck,
@@ -102,34 +103,24 @@ export function ClaimedDirectoryProfileSettings() {
       setMessage({ text: 'Selecione uma imagem (JPG, PNG ou WebP).', kind: 'error' });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ text: 'A imagem deve ter no máximo 5 MB.', kind: 'error' });
-      return;
-    }
 
     setUploading(true);
     setMessage(null);
     try {
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          const encoded = result.split(',')[1];
-          if (!encoded) reject(new Error('Falha ao ler a imagem.'));
-          else resolve(encoded);
-        };
-        reader.onerror = () => reject(new Error('Erro ao processar a imagem.'));
-        reader.readAsDataURL(file);
+      // Compressão client-side (evita HTTP 413 em fotos pesadas de celulares)
+      const compressed = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.84,
       });
 
       const response = await authFetch('/api/v1/settings/directory-profile/upload-photo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileData: base64Data,
-          fileName: `diretorio.${fileExt}`,
-          contentType: file.type,
+          fileData: compressed.fileData,
+          fileName: `diretorio.${compressed.extension}`,
+          contentType: compressed.contentType,
         }),
       });
       const json = await response.json().catch(() => ({}));
@@ -196,7 +187,7 @@ export function ClaimedDirectoryProfileSettings() {
 
   if (loading) {
     return (
-      <div className="app-v5-panel grid min-h-40 place-items-center rounded-2xl">
+      <div className="app-v5-panel grid min-h-40 place-items-center rounded-lg">
         <Loader2 className="h-6 w-6 animate-spin text-[#526A55]" />
       </div>
     );
@@ -204,7 +195,7 @@ export function ClaimedDirectoryProfileSettings() {
 
   if (!data?.claimed || !profile) {
     return (
-      <section className="app-v5-panel rounded-2xl p-6 sm:p-7">
+      <section className="app-v5-panel rounded-lg p-6 sm:p-7">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B08A22]">Diretório</p>
         <h3 className="mt-1 font-display text-xl font-black text-[#211D17]">Nenhum perfil reivindicado</h3>
         <p className="mt-2 max-w-2xl text-sm font-semibold leading-relaxed text-[#70695F]">
@@ -225,7 +216,7 @@ export function ClaimedDirectoryProfileSettings() {
   }
 
   return (
-    <section className="app-v5-panel overflow-hidden rounded-2xl">
+    <section className="app-v5-panel overflow-hidden rounded-lg">
       <div className="flex flex-col gap-5 border-b border-[#DED6C8] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex min-w-0 items-center gap-4">
           <div className="relative h-[4.5rem] w-[4.5rem] shrink-0">
@@ -234,7 +225,7 @@ export function ClaimedDirectoryProfileSettings() {
               disabled={uploading}
               onClick={() => fileInputRef.current?.click()}
               aria-label={previewUrl ? 'Trocar foto do diretório' : 'Enviar foto do diretório'}
-              className="h-full w-full overflow-hidden rounded-2xl border border-[#DED6C8] bg-[#EEE7DC]"
+              className="h-full w-full overflow-hidden rounded-lg border border-[#DED6C8] bg-[#EEE7DC]"
             >
               {previewUrl ? (
                 <img src={previewUrl} alt="" className="h-full w-full object-cover" />
@@ -400,7 +391,7 @@ export function ClaimedDirectoryProfileSettings() {
               placeholder="https://www.instagram.com/sua.casa/"
             />
           </div>
-          <div className="sm:col-span-2 rounded-2xl border border-[#D8D2C4] bg-[#F8F1DF] p-4 sm:p-5">
+          <div className="sm:col-span-2 rounded-lg border border-[#D8D2C4] bg-[#F8F1DF] p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]">

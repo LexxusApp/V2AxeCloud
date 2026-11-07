@@ -1,70 +1,46 @@
-import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from "react";
 
-import AppTopNav from './components/app/AppTopNav';
-import { AppContextPrompts } from './components/app/AppContextPrompts';
-import { AppRuntimeOverlays } from './components/app/AppRuntimeOverlays';
-import { HouseToastHost } from './components/app/HouseToastHost';
-import SubscriptionLock from './components/SubscriptionLock';
-import { supabase } from './lib/supabase';
-import { authFetch } from './lib/authenticatedFetch';
-import { Session } from '@supabase/supabase-js';
-import { Loader2, ShieldAlert } from 'lucide-react';
-import { cn } from './lib/utils';
-import { ROUTES } from './lib/routes';
-import { hasPlanAccess, isLifetimePlan } from './constants/plans';
-import { isSubscriptionBlockedAfterDue } from './lib/subscriptionDue';
-import { financialSubviewFromTab, isFinancialNavTab } from './constants/appNav';
-import Paywall from './components/Paywall';
+import SubscriptionLock from "./components/SubscriptionLock";
+import { supabase } from "./lib/supabase";
+import { authFetch } from "./lib/authenticatedFetch";
+import { Session } from "@supabase/supabase-js";
+import { Loader2, ShieldAlert } from "lucide-react";
+import { cn } from "./lib/utils";
+import { ROUTES } from "./lib/routes";
+import { isLifetimePlan } from "./constants/plans";
+import { isSubscriptionBlockedAfterDue } from "./lib/subscriptionDue";
+import { isFinancialNavTab } from "./constants/appNav";
 // Views pesadas viram chunks separados, carregados sob demanda.
-import { isBerryDashboardBeta } from './lib/featureFlags';
-const BerryAppShell = lazy(() => import('./components/dashboard-berry/BerryAppShell'));
-const DashboardBerry = lazy(() => import('./components/dashboard-berry/DashboardBerry'));
-const Dashboard = lazy(() => import('./views/Dashboard'));
-const Children = lazy(() => import('./views/Children'));
-const Calendar = lazy(() => import('./views/Calendar'));
-const Financial = lazy(() => import('./views/Financial'));
-const Inventory = lazy(() => import('./views/Inventory'));
-const Gallery = lazy(() => import('./views/Gallery.tsx'));
-const NoticeBoard = lazy(() => import('./views/NoticeBoard'));
-const Settings = lazy(() => import('./views/Settings'));
-const Radar = lazy(() => import('./views/Radar'));
-const ChildProfile = lazy(() => import('./views/ChildProfile'));
-const PerfilFilho = lazy(() => import('./views/PerfilFilho'));
-const ObrigacoesFilho = lazy(() => import('./views/ObrigacoesFilho'));
-const Obligations = lazy(() => import('./views/Obligations'));
-const Library = lazy(() => import('./views/Library'));
-const MensalidadeFilho = lazy(() => import('./views/MensalidadeFilho'));
-const Store = lazy(() => import('./views/Store'));
-const MinhaAssinatura = lazy(() => import('./views/MinhaAssinatura'));
-const Frequencia = lazy(() => import('./views/Frequencia'));
-const ChatInbox = lazy(() => import('./views/ChatInbox'));
-const Support = lazy(() => import('./views/Support'));
-const AdvancedManagement = lazy(() => import('./views/AdvancedManagement'));
-import type { AdvancedSection } from './views/AdvancedManagement';
-import { useWebPush } from './hooks/useWebPush';
-import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from './config/version';
+import AppViewRouter, {
+  type AppTenantData,
+} from "./components/app/AppViewRouter";
+import AppShellRenderer from "./components/app/AppShellRenderer";
+import { useWebPush } from "./hooks/useWebPush";
+import { SYSTEM_VERSION as BASE_SYSTEM_VERSION } from "./config/version";
 import {
   clearCachedTenantIdForUser,
   peekCachedTenantId,
   readCachedTenantIdForUser,
   writeCachedTenantIdForUser,
-} from './lib/tenantCache';
-import { resolveTenantFromSupabase, resolveTerreiroNomeFromSupabase } from './lib/resolveTenantFromSupabase';
-import AppFooter from './components/AppFooter';
-import { AuthScreenBackground } from './components/AuthScreenBackground';
-import { CURRENT_LEGAL_TERMS_VERSION } from './config/legal';
+} from "./lib/tenantCache";
+import {
+  resolveTenantFromSupabase,
+  resolveTerreiroNomeFromSupabase,
+} from "./lib/resolveTenantFromSupabase";
+import { AuthScreenBackground } from "./components/AuthScreenBackground";
+import { CURRENT_LEGAL_TERMS_VERSION } from "./config/legal";
 import {
   hasAcceptedLegalTerms,
   writeLocalLegalAcceptance,
-} from './lib/legalTerms';
+} from "./lib/legalTerms";
 import {
   performFastLogout,
   performVersionBumpLogout,
   emergencyAuthCircuitBreaker,
   performEmergencyClientReset,
-} from './lib/logout';
-import { goToLogin } from './lib/navigation';
-import { withCompatibleAbortTimeout } from './lib/browserCapabilities';
+} from "./lib/logout";
+import { goToLogin } from "./lib/navigation";
+import { withCompatibleAbortTimeout } from "./lib/browserCapabilities";
 import {
   FILHO_ALLOWED_TABS,
   isFilhoIdentity,
@@ -79,16 +55,18 @@ import {
   resolveTerreiroNomeFallback,
   writeTenantAnchorToStorage,
   writeUserRoleAnchor,
-} from './lib/appSessionAnchors';
-export { getIsSessionReady } from './lib/appSessionAnchors';
+} from "./lib/appSessionAnchors";
+export { getIsSessionReady } from "./lib/appSessionAnchors";
 
-// Versionamento centralizado em src/config/version.ts (formato numérico contínuo).
 const SYSTEM_VERSION = BASE_SYSTEM_VERSION + 78;
 
-export type AppSurface = 'login' | 'dashboard';
+export type AppSurface = "login" | "dashboard";
 
-export default function App({ surface = 'dashboard' }: { surface?: AppSurface }) {
-  // Prioridade máxima: lê âncora de tenant no topo do ciclo de render, antes de effects.
+export default function App({
+  surface = "dashboard",
+}: {
+  surface?: AppSurface;
+}) {
   const earlyTenantAnchor = readTenantAnchorFromStorage();
   const earlyRoleAnchor = readUserRoleAnchor();
   const [session, setSession] = useState<Session | null>(null);
@@ -96,24 +74,11 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   const [isInitializing, setIsInitializing] = useState(true);
   const [subscriptionActive, setSubscriptionActive] = useState(true);
   const [isAdminGlobal, setIsAdminGlobal] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'filho' | null>(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [userRole, setUserRole] = useState<"admin" | "filho" | null>(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [isBlocked, setIsBlocked] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
-  const [tenantData, setTenantData] = useState<{ 
-    nome: string; 
-    plan: string; 
-    tenant_id?: string;
-    expires_at?: string;
-    status?: string;
-    is_trial?: boolean;
-    billing_cycle?: string;
-    foto_url?: string;
-    cargo?: string | null;
-    role?: string | null;
-    tradicao?: string | null;
-    whatsapp_missing?: boolean;
-  } | null>(null);
+  const [tenantData, setTenantData] = useState<AppTenantData | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [filhoFotoUrl, setFilhoFotoUrl] = useState<string | null>(null);
   /** Falha ao recuperar tenant após API + fallback (evita shell “zumbi”). */
@@ -123,20 +88,31 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   /** Evita recoverTenantAfterFailure em loop quando userRole não hidrata. */
   const roleRecoveryOnceForUserRef = useRef<string | null>(null);
   const [showConnectionResetCta, setShowConnectionResetCta] = useState(false);
-  const [tenantAnchorId, setTenantAnchorId] = useState<string | null>(earlyTenantAnchor);
-  const [roleAnchor, setRoleAnchor] = useState<'admin' | 'filho' | null>(
-    earlyRoleAnchor === 'filho' || earlyRoleAnchor === 'admin' ? earlyRoleAnchor : null
+  const [tenantAnchorId, setTenantAnchorId] = useState<string | null>(
+    earlyTenantAnchor,
+  );
+  const [roleAnchor, setRoleAnchor] = useState<"admin" | "filho" | null>(
+    earlyRoleAnchor === "filho" || earlyRoleAnchor === "admin"
+      ? earlyRoleAnchor
+      : null,
   );
   const [isSessionReady, setIsSessionReady] = useState(false);
-  const [legalTermsAccepted, setLegalTermsAccepted] = useState<boolean | null>(null);
+  const [legalTermsAccepted, setLegalTermsAccepted] = useState<boolean | null>(
+    null,
+  );
   const [legalTermsAccepting, setLegalTermsAccepting] = useState(false);
+
   const lastAuthUserIdRef = useRef<string | null>(null);
 
-  const isFilhoForPush = userRole === 'filho';
-  const { permission, subscribe, loading: pushLoading } = useWebPush(
+  const isFilhoForPush = userRole === "filho";
+  const {
+    permission,
+    subscribe,
+    loading: pushLoading,
+  } = useWebPush(
     session?.user?.id || null,
     tenantData?.tenant_id || null,
-    isFilhoForPush
+    isFilhoForPush,
   );
 
   const initializedRef = useRef(false);
@@ -148,21 +124,21 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   const pendingFilhoHydration = useMemo(
     () =>
       !!session?.user &&
-      (readPersistedFilhoFlag(session.user.id) || roleAnchor === 'filho') &&
-      (userRole !== 'filho' || tenantData?.role !== 'filho'),
-    [session?.user, userRole, roleAnchor, tenantData?.role]
+      (readPersistedFilhoFlag(session.user.id) || roleAnchor === "filho") &&
+      (userRole !== "filho" || tenantData?.role !== "filho"),
+    [session?.user, userRole, roleAnchor, tenantData?.role],
   );
 
   const effectiveTenantId = useMemo(
-    () => String(tenantData?.tenant_id || tenantAnchorId || '').trim() || null,
-    [tenantData?.tenant_id, tenantAnchorId]
+    () => String(tenantData?.tenant_id || tenantAnchorId || "").trim() || null,
+    [tenantData?.tenant_id, tenantAnchorId],
   );
 
   const blockingSpinnerActive = useMemo(() => {
     const hasMinProfile =
       !!session?.user &&
       !!userRole &&
-      (!!effectiveTenantId || userRole === 'filho');
+      (!!effectiveTenantId || userRole === "filho");
 
     if (isInitializing || loading) {
       if (hasMinProfile) return false;
@@ -174,7 +150,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       isSessionHydrating ||
       !userRole ||
       pendingFilhoHydration ||
-      (!!userRole && !effectiveTenantId && userRole !== 'filho')
+      (!!userRole && !effectiveTenantId && userRole !== "filho")
     );
   }, [
     isInitializing,
@@ -192,25 +168,39 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       !!session?.user &&
       !!userRole &&
       !!effectiveTenantId &&
-      !(roleAnchor === 'filho' && userRole !== 'filho');
+      !(roleAnchor === "filho" && userRole !== "filho");
     markSessionReadyGlobal(ready);
     setIsSessionReady(ready);
   }, [session?.user, userRole, effectiveTenantId, roleAnchor]);
 
   useEffect(() => {
-    const liveTenant = String(tenantData?.tenant_id || '').trim();
+    const liveTenant = String(tenantData?.tenant_id || "").trim();
     if (liveTenant) {
       writeTenantAnchorToStorage(liveTenant);
       setTenantAnchorId(liveTenant);
       return;
     }
     // NUNCA limpar âncora de tenant durante boot, recarga de atualização ou hidratação de sessão
-    const hasSavedAuth = typeof window !== 'undefined' && Boolean(localStorage.getItem('axecloud-auth-token'));
-    if (!session?.user && !isInitializing && !loading && !isSessionHydrating && !hasSavedAuth) {
+    const hasSavedAuth =
+      typeof window !== "undefined" &&
+      Boolean(localStorage.getItem("axecloud-auth-token"));
+    if (
+      !session?.user &&
+      !isInitializing &&
+      !loading &&
+      !isSessionHydrating &&
+      !hasSavedAuth
+    ) {
       writeTenantAnchorToStorage(null);
       setTenantAnchorId(null);
     }
-  }, [tenantData?.tenant_id, session?.user?.id, isInitializing, loading, isSessionHydrating]);
+  }, [
+    tenantData?.tenant_id,
+    session?.user?.id,
+    isInitializing,
+    loading,
+    isSessionHydrating,
+  ]);
 
   useEffect(() => {
     if (userRole) {
@@ -219,12 +209,26 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       return;
     }
     // NUNCA limpar âncora de role durante boot, recarga de atualização ou hidratação de sessão
-    const hasSavedAuth = typeof window !== 'undefined' && Boolean(localStorage.getItem('axecloud-auth-token'));
-    if (!session?.user && !isInitializing && !loading && !isSessionHydrating && !hasSavedAuth) {
+    const hasSavedAuth =
+      typeof window !== "undefined" &&
+      Boolean(localStorage.getItem("axecloud-auth-token"));
+    if (
+      !session?.user &&
+      !isInitializing &&
+      !loading &&
+      !isSessionHydrating &&
+      !hasSavedAuth
+    ) {
       writeUserRoleAnchor(null);
       setRoleAnchor(null);
     }
-  }, [userRole, session?.user?.id, isInitializing, loading, isSessionHydrating]);
+  }, [
+    userRole,
+    session?.user?.id,
+    isInitializing,
+    loading,
+    isSessionHydrating,
+  ]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -235,10 +239,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         ? { ...prev, tenant_id: tenantAnchorId }
         : {
             nome: resolveTerreiroNomeFallback(session.user.id),
-            plan: 'premium',
+            plan: "premium",
             tenant_id: tenantAnchorId,
             role: userRole ?? undefined,
-          }
+          },
     );
   }, [session?.user?.id, tenantData?.tenant_id, tenantAnchorId, userRole]);
 
@@ -254,8 +258,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }, [blockingSpinnerActive]);
 
   useEffect(() => {
-    document.documentElement.style.overscrollBehavior = 'none';
-    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overscrollBehavior = "none";
+    document.body.style.overscrollBehavior = "none";
   }, []);
 
   // Safety global: se o spinner inicial ficar travado (auth listener nunca finalizar,
@@ -264,7 +268,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   useEffect(() => {
     if (!isInitializing) return;
     const id = window.setTimeout(() => {
-      console.warn('[SYSTEM] isInitializing > 6s — forçando liberação do spinner.');
+      console.warn(
+        "[SYSTEM] isInitializing > 6s — forçando liberação do spinner.",
+      );
       authFirstEventHandledRef.current = true;
       setIsInitializing(false);
       setLoading(false);
@@ -276,13 +282,14 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   useEffect(() => {
     const handleSessionExpired = async () => {
       try {
-        const { collectClientUiPrefsFromStorage, restoreClientUiPrefsToStorage } = await import(
-          './lib/notificationPrefs'
-        );
+        const {
+          collectClientUiPrefsFromStorage,
+          restoreClientUiPrefsToStorage,
+        } = await import("./lib/notificationPrefs");
         const preservedUiPrefs = collectClientUiPrefsFromStorage();
         localStorage.clear();
         sessionStorage.clear();
-        localStorage.setItem('axecloud_version', SYSTEM_VERSION);
+        localStorage.setItem("axecloud_version", SYSTEM_VERSION);
         restoreClientUiPrefsToStorage(preservedUiPrefs);
       } catch {
         // no-op
@@ -299,7 +306,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       setIsInitializing(false);
       setIsSessionHydrating(false);
       try {
-        await supabase.auth.signOut({ scope: 'local' });
+        await supabase.auth.signOut({ scope: "local" });
       } catch {
         // no-op
       }
@@ -308,35 +315,42 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     const onExpired = () => {
       void handleSessionExpired();
     };
-    window.addEventListener('axecloud:session-expired', onExpired as EventListener);
-    return () => window.removeEventListener('axecloud:session-expired', onExpired as EventListener);
+    window.addEventListener(
+      "axecloud:session-expired",
+      onExpired as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        "axecloud:session-expired",
+        onExpired as EventListener,
+      );
   }, []);
 
   /** Ao voltar para a aba: re-hidrata sessão se o estado React perdeu o user mas o storage ainda tem sessão. */
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== "visible") return;
       void supabase.auth.getSession().then(({ data: { session: s } }) => {
         if (!s?.user) return;
         setSession((prev) => (prev?.user?.id ? prev : s));
       });
     };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       try {
-        if (sessionStorage.getItem('axecloud_critical_txn') !== '1') return;
+        if (sessionStorage.getItem("axecloud_critical_txn") !== "1") return;
       } catch {
         return;
       }
       event.preventDefault();
-      event.returnValue = 'Uma transação importante está em andamento.';
+      event.returnValue = "Uma transação importante está em andamento.";
     };
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, []);
 
   /**
@@ -346,7 +360,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   const recoverTenantAfterFailure = async (
     userId: string,
     userEmail?: string | null,
-    authRole?: string
+    authRole?: string,
   ): Promise<boolean> => {
     setTenantRecoveryFailed(false);
     try {
@@ -368,26 +382,31 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         if (tid) writeCachedTenantIdForUser(userId, tid);
       }
 
-      const isFilhoAuth = persistedFilho || isFilhoIdentity(fresh.user, undefined, authRole);
+      const isFilhoAuth =
+        persistedFilho || isFilhoIdentity(fresh.user, undefined, authRole);
       persistFilhoFlag(isFilhoAuth, userId);
 
       if (tid) {
         const nomeTerreiro = await resolveTerreiroNomeFromSupabase(tid);
         setSession(fresh);
-        setUserRole(isFilhoAuth ? 'filho' : 'admin');
-        writeUserRoleAnchor(isFilhoAuth ? 'filho' : 'admin');
-        setRoleAnchor(isFilhoAuth ? 'filho' : 'admin');
+        setUserRole(isFilhoAuth ? "filho" : "admin");
+        writeUserRoleAnchor(isFilhoAuth ? "filho" : "admin");
+        setRoleAnchor(isFilhoAuth ? "filho" : "admin");
         setTenantData({
           nome: resolveTerreiroNomeFallback(userId, nomeTerreiro),
-          plan: 'premium',
+          plan: "premium",
           tenant_id: tid,
-          role: isFilhoAuth ? 'filho' : 'admin',
+          role: isFilhoAuth ? "filho" : "admin",
         });
         writeCachedTenantIdForUser(userId, tid, nomeTerreiro);
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
         setLegalTermsAccepted(
-          isFilhoAuth ? true : hasAcceptedLegalTerms(userId, null) ? true : null
+          isFilhoAuth
+            ? true
+            : hasAcceptedLegalTerms(userId, null)
+              ? true
+              : null,
         );
         if (isFilhoAuth) {
           setActiveTab((prev) => normalizeFilhoTab(prev));
@@ -398,25 +417,27 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       if (!isFilhoAuth) {
         writeCachedTenantIdForUser(userId, userId);
         setSession(fresh);
-        setUserRole('admin');
-        writeUserRoleAnchor('admin');
-        setRoleAnchor('admin');
+        setUserRole("admin");
+        writeUserRoleAnchor("admin");
+        setRoleAnchor("admin");
         setTenantData({
           nome: resolveTerreiroNomeFallback(userId),
-          plan: 'premium',
+          plan: "premium",
           tenant_id: userId,
-          role: 'admin',
+          role: "admin",
         });
         setSubscriptionActive(true);
         setIsAdminGlobal(false);
-        setLegalTermsAccepted(hasAcceptedLegalTerms(userId, null) ? true : null);
+        setLegalTermsAccepted(
+          hasAcceptedLegalTerms(userId, null) ? true : null,
+        );
         return true;
       }
 
       setTenantRecoveryFailed(true);
       return false;
     } catch (e) {
-      console.error('[recoverTenantAfterFailure]', e);
+      console.error("[recoverTenantAfterFailure]", e);
       setTenantRecoveryFailed(true);
       return false;
     }
@@ -426,7 +447,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     userId: string,
     userEmail?: string,
     authRole?: string,
-    accessToken?: string | null
+    accessToken?: string | null,
   ) => {
     if (tenantLoadInFlightRef.current === userId) return;
     tenantLoadInFlightRef.current = userId;
@@ -435,7 +456,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     // Quem ja tem cache hidratado nao ve o spinner — esse fetch e essencialmente
     // "background refresh" da maioria das vezes.
     let retries = 2;
-    const isFilhoAuth = readPersistedFilhoFlag(userId) || isFilhoIdentity(null, userEmail, authRole);
+    const isFilhoAuth =
+      readPersistedFilhoFlag(userId) ||
+      isFilhoIdentity(null, userEmail, authRole);
     persistFilhoFlag(isFilhoAuth, userId);
 
     if (!isFilhoAuth && hasAcceptedLegalTerms(userId, null)) {
@@ -445,8 +468,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     const cachedSnap = peekCachedTenantId(userId);
     if (cachedSnap) {
       setTenantData((prev) => ({
-        nome: prev?.nome?.trim() ? prev.nome : resolveTerreiroNomeFallback(userId),
-        plan: prev?.plan ?? 'premium',
+        nome: prev?.nome?.trim()
+          ? prev.nome
+          : resolveTerreiroNomeFallback(userId),
+        plan: prev?.plan ?? "premium",
         tenant_id: cachedSnap,
         expires_at: prev?.expires_at,
         status: prev?.status,
@@ -463,7 +488,9 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     // Safety Net: Garantia de que o loader sairá em no máximo 6s.
     const safetyTimeout = setTimeout(() => {
       safetyFired = true;
-      console.warn('[SYSTEM] Safety timeout (6s) — caindo para recuperação por cache/Supabase.');
+      console.warn(
+        "[SYSTEM] Safety timeout (6s) — caindo para recuperação por cache/Supabase.",
+      );
       try {
         safetyAbort.abort();
       } catch {
@@ -478,65 +505,88 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       setTenantRecoveryFailed(false);
       while (retries > 0) {
         try {
-          const url = `/api/tenant-info?userId=${userId}&email=${encodeURIComponent(userEmail || '')}`;
+          const url = `/api/tenant-info?userId=${userId}&email=${encodeURIComponent(userEmail || "")}`;
           // Timeout compatível com WebViews que não possuem AbortSignal.timeout/any.
-          const response = await withCompatibleAbortTimeout(safetyAbort.signal, 3500, (signal) =>
-            authFetch(url, { signal }, accessToken ?? undefined)
+          const response = await withCompatibleAbortTimeout(
+            safetyAbort.signal,
+            3500,
+            (signal) => authFetch(url, { signal }, accessToken ?? undefined),
           );
-          
+
           if (response.status === 403) {
             const errorData = await response.json();
-            if (errorData.status === 'blocked') setIsBlocked(true);
-            if (errorData.status === 'deleted') setIsDeleted(true);
+            if (errorData.status === "blocked") setIsBlocked(true);
+            if (errorData.status === "deleted") setIsDeleted(true);
             return;
           }
 
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
           const data = await response.json();
 
           // Reset block/delete states on successful load
           setIsBlocked(false);
           setIsDeleted(false);
 
-        // 1. Role & Admin Status
-        // Normaliza: apenas 'filho' é tratado como filho — qualquer outro valor (admin, lider, zelador, etc.) é gestor.
-        const rawRole = (data.role || 'admin').toLowerCase().trim();
-        const role: 'admin' | 'filho' = rawRole === 'filho' || isFilhoAuth ? 'filho' : 'admin';
-        setUserRole(role);
-        writeUserRoleAnchor(role);
-        setRoleAnchor(role);
-        persistFilhoFlag(role === 'filho', userId);
-        const termsOk =
-          role === 'filho' ||
-          hasAcceptedLegalTerms(userId, data.terms_accepted_version as string | undefined);
-        setLegalTermsAccepted(role === 'filho' ? true : termsOk);
-        
-        // 2. Tenant Info
-        const plan = (data.plan || 'premium').toLowerCase().trim();
-        const isGlobalAdmin = !!data.is_admin_global;
-        let nome = resolveTerreiroNomeFallback(userId, data.nome_terreiro);
-        let tenantId = role === 'filho' ? (data.tenant_id || '') : (data.tenant_id || userId);
-        let tenantFotoUrl = data.foto_url;
+          // 1. Role & Admin Status
+          // Normaliza: apenas 'filho' é tratado como filho — qualquer outro valor (admin, lider, zelador, etc.) é gestor.
+          const rawRole = (data.role || "admin").toLowerCase().trim();
+          const role: "admin" | "filho" =
+            rawRole === "filho" || isFilhoAuth ? "filho" : "admin";
+          setUserRole(role);
+          writeUserRoleAnchor(role);
+          setRoleAnchor(role);
+          persistFilhoFlag(role === "filho", userId);
+          const termsOk =
+            role === "filho" ||
+            hasAcceptedLegalTerms(
+              userId,
+              data.terms_accepted_version as string | undefined,
+            );
+          setLegalTermsAccepted(role === "filho" ? true : termsOk);
+
+          // 2. Tenant Info
+          const plan = (data.plan || "premium").toLowerCase().trim();
+          const isGlobalAdmin = !!data.is_admin_global;
+          let nome = resolveTerreiroNomeFallback(userId, data.nome_terreiro);
+          let tenantId =
+            role === "filho" ? data.tenant_id || "" : data.tenant_id || userId;
+          let tenantFotoUrl = data.foto_url;
+
+          if (role === "admin" && !tenantFotoUrl) {
+            try {
+              const { data: leaderPhoto } = await supabase
+                .from("perfil_lider")
+                .select("foto_url")
+                .eq("id", userId)
+                .maybeSingle();
+              if (leaderPhoto?.foto_url) {
+                tenantFotoUrl = leaderPhoto.foto_url;
+              }
+            } catch {
+              // no-op
+            }
+          }
 
           // Filhos podem acessar direto sem passar pelo Dashboard do zelador.
           // Por isso resolvemos o terreiro pelo vínculo do filho antes de montar as abas.
-          if (role === 'filho') {
+          if (role === "filho") {
             let { data: childData, error: childError } = await supabase
-              .from('filhos_de_santo')
-              .select('id, foto_url, lider_id, tenant_id')
-              .eq('user_id', userId)
+              .from("filhos_de_santo")
+              .select("id, foto_url, lider_id, tenant_id")
+              .eq("user_id", userId)
               .maybeSingle();
 
             if (!childData && userEmail) {
               const byEmail = await supabase
-                .from('filhos_de_santo')
-                .select('id, foto_url, lider_id, tenant_id')
-                .eq('email', userEmail)
+                .from("filhos_de_santo")
+                .select("id, foto_url, lider_id, tenant_id")
+                .eq("email", userEmail)
                 .maybeSingle();
               childData = byEmail.data;
               childError = byEmail.error;
             }
-            
+
             if (childError) {
               console.error("Erro ao buscar vínculo de filho:", childError);
             } else if (childData) {
@@ -545,82 +595,102 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
               const profileFilters = [
                 childData.lider_id ? `id.eq.${childData.lider_id}` : null,
-                childData.tenant_id ? `tenant_id.eq.${childData.tenant_id}` : null,
+                childData.tenant_id
+                  ? `tenant_id.eq.${childData.tenant_id}`
+                  : null,
                 childData.tenant_id ? `id.eq.${childData.tenant_id}` : null,
-              ].filter(Boolean).join(',');
+              ]
+                .filter(Boolean)
+                .join(",");
 
               if (profileFilters) {
-                const { data: leaderProfile, error: leaderError } = await supabase
-                  .from('perfil_lider')
-                  .select('id, nome_terreiro, tenant_id, foto_url')
-                  .or(profileFilters)
-                  .maybeSingle();
+                const { data: leaderProfile, error: leaderError } =
+                  await supabase
+                    .from("perfil_lider")
+                    .select("id, nome_terreiro, tenant_id, foto_url")
+                    .or(profileFilters)
+                    .maybeSingle();
 
                 if (leaderError) {
-                  console.error("Erro ao buscar terreiro do filho:", leaderError);
+                  console.error(
+                    "Erro ao buscar terreiro do filho:",
+                    leaderError,
+                  );
                 } else if (leaderProfile) {
                   nome = leaderProfile.nome_terreiro || nome;
-                  tenantId = leaderProfile.tenant_id || leaderProfile.id || childData.lider_id || childData.tenant_id || tenantId;
+                  tenantId =
+                    leaderProfile.tenant_id ||
+                    leaderProfile.id ||
+                    childData.lider_id ||
+                    childData.tenant_id ||
+                    tenantId;
                   tenantFotoUrl = leaderProfile.foto_url || tenantFotoUrl;
                 } else {
-                  tenantId = childData.lider_id || childData.tenant_id || tenantId;
+                  tenantId =
+                    childData.lider_id || childData.tenant_id || tenantId;
                 }
               } else {
-                tenantId = childData.lider_id || childData.tenant_id || tenantId;
+                tenantId =
+                  childData.lider_id || childData.tenant_id || tenantId;
               }
             }
           }
-        
-        setTenantData({ 
-          nome, 
-          plan, 
-          tenant_id: String(tenantId || '').trim() || undefined,
-          expires_at: data.expires_at,
-          status: data.status,
-          is_trial: data.is_trial === true,
-          billing_cycle: data.billing_cycle || undefined,
-          foto_url: tenantFotoUrl,
-          cargo: data.cargo ?? undefined,
-          role: role,
-          tradicao: data.tradicao || 'mista',
-          whatsapp_missing: data.whatsapp_missing === true,
-        });
-        if (String(tenantId || '').trim()) {
-          writeCachedTenantIdForUser(userId, String(tenantId), nome);
-        }
+
+          setTenantData({
+            nome,
+            nome_terreiro: data.nome_terreiro || nome,
+            zelador: data.cargo || "Zelador",
+            plan,
+            tenant_id: String(tenantId || "").trim() || undefined,
+            expires_at: data.expires_at,
+            status: data.status,
+            is_trial: data.is_trial === true,
+            billing_cycle: data.billing_cycle || undefined,
+            foto_url: tenantFotoUrl,
+            cargo: data.cargo ?? undefined,
+            role: role,
+            tradicao: data.tradicao || "mista",
+            whatsapp_missing: data.whatsapp_missing === true,
+          });
+          if (String(tenantId || "").trim()) {
+            writeCachedTenantIdForUser(userId, String(tenantId), nome);
+          }
 
           setIsAdminGlobal(isGlobalAdmin);
 
-          if (activeTab === 'admin') {
-            setActiveTab('dashboard');
+          if (activeTab === "admin") {
+            setActiveTab("dashboard");
           }
 
           // Se for filho, garante que ele caia no Perfil (profile)
-          if (role === 'filho') {
-            setActiveTab(prev => normalizeFilhoTab(prev));
+          if (role === "filho") {
+            setActiveTab((prev) => normalizeFilhoTab(prev));
           }
 
           // 3. Subscription (Filhos de Santo não precisam de assinatura ativa)
-          if (isGlobalAdmin || role === 'filho') {
+          if (isGlobalAdmin || role === "filho") {
             setSubscriptionActive(true);
           } else if (isLifetimePlan(plan)) {
             // Planos vitalícios (vita/cortesia): ativo se status for 'active' ou se não houver registro de assinatura
-            setSubscriptionActive(!data.status || data.status === 'active');
-          } else if (!data.status || data.status === 'pending') {
+            setSubscriptionActive(!data.status || data.status === "active");
+          } else if (!data.status || data.status === "pending") {
             setSubscriptionActive(false);
           } else if (!data.expires_at) {
             setSubscriptionActive(false);
           } else {
-            const status = String(data.status || '').toLowerCase();
-            const isBlockedAfterDue = isSubscriptionBlockedAfterDue(data.expires_at);
-            const isActive = status === 'active' && !isBlockedAfterDue;
+            const status = String(data.status || "").toLowerCase();
+            const isBlockedAfterDue = isSubscriptionBlockedAfterDue(
+              data.expires_at,
+            );
+            const isActive = status === "active" && !isBlockedAfterDue;
             setSubscriptionActive(isActive);
           }
 
-          return; 
-
+          return;
         } catch (err: any) {
-          console.warn(`[WARN] Recuperando Tenant (Tentativa ${4 - retries}): ${err?.message || 'Failed to fetch'}`);
+          console.warn(
+            `[WARN] Recuperando Tenant (Tentativa ${4 - retries}): ${err?.message || "Failed to fetch"}`,
+          );
           // Se o safety timeout já disparou, não adianta retentar — recovery já foi acionado em paralelo.
           if (safetyFired) {
             return;
@@ -639,13 +709,19 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
           if (retries > 0) {
             // Atraso breve antes de tentar novamente — total maximo ~7s para 2 tentativas.
-            await new Promise(resolve => setTimeout(resolve, 600));
+            await new Promise((resolve) => setTimeout(resolve, 600));
             continue;
           }
 
           // Nunca exibir tela de assinatura/lock só porque a API caiu (5xx) ou rede falhou
-          console.warn('[WARN] tenant-info indisponível — validando sessão e recuperando tenant.');
-          const recovered = await recoverTenantAfterFailure(userId, userEmail, authRole);
+          console.warn(
+            "[WARN] tenant-info indisponível — validando sessão e recuperando tenant.",
+          );
+          const recovered = await recoverTenantAfterFailure(
+            userId,
+            userEmail,
+            authRole,
+          );
           if (!recovered) setTenantRecoveryFailed(true);
           return;
         }
@@ -666,12 +742,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       setIsInitializing(false);
     };
 
-    const lastVersion = localStorage.getItem('axecloud_version');
+    const lastVersion = localStorage.getItem("axecloud_version");
     if (lastVersion !== SYSTEM_VERSION) {
       // SOFT version bump: apenas registra a nova versão e segue o fluxo normal.
       // A sessão Supabase é preservada — o novo bundle JS já foi carregado pelo SW
       // (src/main.tsx → onNeedRefresh fez o reload). O usuário NÃO é deslogado.
-      console.log('[SYSTEM] Nova versão detectada (soft):', SYSTEM_VERSION);
+      console.log("[SYSTEM] Nova versão detectada (soft):", SYSTEM_VERSION);
       void performVersionBumpLogout(SYSTEM_VERSION);
     }
 
@@ -684,8 +760,8 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       // Quando trocamos de aba, o Supabase muitas vezes dispara eventos espúrios.
       // Se não há alteração real na sessão e ela já estava setada, nós ignoramos chamadas extras custosas de fetch (INITIAL_SESSION/SIGNED_IN)
       if (
-        (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && 
-        session && 
+        (event === "INITIAL_SESSION" || event === "SIGNED_IN") &&
+        session &&
         initializedRef.current
       ) {
         const {
@@ -701,15 +777,15 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               prev?.tenant_id
                 ? prev
                 : {
-                    nome: prev?.nome ?? '',
-                    plan: prev?.plan ?? 'premium',
+                    nome: prev?.nome ?? "",
+                    plan: prev?.plan ?? "premium",
                     tenant_id: cachedMerge,
                     expires_at: prev?.expires_at,
                     status: prev?.status,
                     foto_url: prev?.foto_url,
                     cargo: prev?.cargo ?? undefined,
                     role: prev?.role ?? undefined,
-                  }
+                  },
             );
           }
         }
@@ -717,21 +793,25 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
       }
 
       // Evento disparado silenciamente ao trocar de aba sem alterar o usuário
-      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         if (session) setSession(session);
-        return; 
+        return;
       }
 
       try {
         let currentSession = session;
         const hasStoredAuthToken =
-          typeof window !== 'undefined' &&
-          Boolean(localStorage.getItem('axecloud-auth-token'));
+          typeof window !== "undefined" &&
+          Boolean(localStorage.getItem("axecloud-auth-token"));
 
         // Se GoTrue disparou INITIAL_SESSION com session nula, mas há token salvo no storage:
         // O token pode estar no meio de um refresh assíncrono (ex: access_token expirado após atualização).
         // Recuperamos explicitamente via getSession() / refreshSession() antes de decidir!
-        if (!currentSession && (event === 'INITIAL_SESSION' || !initializedRef.current) && hasStoredAuthToken) {
+        if (
+          !currentSession &&
+          (event === "INITIAL_SESSION" || !initializedRef.current) &&
+          hasStoredAuthToken
+        ) {
           try {
             const { data: getRes } = await supabase.auth.getSession();
             if (getRes?.session?.user) {
@@ -743,14 +823,21 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               }
             }
           } catch (e) {
-            console.warn('[AUTH] Erro ao recuperar sessão em INITIAL_SESSION:', e);
+            console.warn(
+              "[AUTH] Erro ao recuperar sessão em INITIAL_SESSION:",
+              e,
+            );
           }
         }
 
         setSession(currentSession);
         if (currentSession) {
           lastAuthUserIdRef.current = currentSession.user.id;
-          if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || !initializedRef.current) {
+          if (
+            event === "INITIAL_SESSION" ||
+            event === "SIGNED_IN" ||
+            !initializedRef.current
+          ) {
             // Garante que qualquer papel residual de sessão anterior não vaze para a UI
             // enquanto os dados do novo usuário ainda estão sendo carregados.
             roleRecoveryOnceForUserRef.current = null;
@@ -766,7 +853,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               setUserRole(cachedRoleAnchor);
               setTenantData({
                 nome: resolveTerreiroNomeFallback(currentSession.user.id),
-                plan: 'premium',
+                plan: "premium",
                 tenant_id: cachedImmediate,
                 role: cachedRoleAnchor,
               });
@@ -781,22 +868,26 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               if (cachedImmediate) {
                 setTenantData({
                   nome: resolveTerreiroNomeFallback(currentSession.user.id),
-                  plan: 'premium',
+                  plan: "premium",
                   tenant_id: cachedImmediate,
                 });
               }
             }
 
             // Preserva o módulo solicitado no primeiro boot da sessão.
-            const isFilhoAuth = readPersistedFilhoFlag(currentSession.user.id) || isFilhoIdentity(currentSession.user);
+            const isFilhoAuth =
+              readPersistedFilhoFlag(currentSession.user.id) ||
+              isFilhoIdentity(currentSession.user);
             persistFilhoFlag(isFilhoAuth, currentSession.user.id);
             const requestedTab = requestedTabFromLocation();
             const initialTab = isFilhoAuth
-              ? normalizeFilhoTab(requestedTab || 'profile')
-              : (requestedTab ? normalizeZeladorDeepLinkTab(requestedTab) : null) || 'dashboard';
+              ? normalizeFilhoTab(requestedTab || "profile")
+              : (requestedTab
+                  ? normalizeZeladorDeepLinkTab(requestedTab)
+                  : null) || "dashboard";
             setActiveTab(initialTab);
             if (isFilhoAuth) {
-              setUserRole('filho');
+              setUserRole("filho");
               setIsAdminGlobal(false);
               setSubscriptionActive(true);
             }
@@ -804,17 +895,19 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
               currentSession.user.id,
               currentSession.user.email,
               currentSession.user.user_metadata?.role,
-              currentSession.access_token
+              currentSession.access_token,
             );
             if (currentSession.access_token) {
-              const { trackSessionActivity } = await import('./lib/trackSessionActivity');
+              const { trackSessionActivity } = await import(
+                "./lib/trackSessionActivity"
+              );
               void trackSessionActivity(currentSession.access_token);
             }
             initializedRef.current = true;
           }
         } else {
           // Só limpa o estado se NÃO há token salvo no storage OU se foi um evento explícito SIGNED_OUT
-          if (!hasStoredAuthToken || event === 'SIGNED_OUT') {
+          if (!hasStoredAuthToken || event === "SIGNED_OUT") {
             const uidOut = lastAuthUserIdRef.current;
             if (uidOut) clearCachedTenantIdForUser(uidOut);
             lastAuthUserIdRef.current = null;
@@ -832,49 +925,57 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             setFilhoFotoUrl(null);
             setTenantRecoveryFailed(false);
             setIsSessionHydrating(false);
-            setActiveTab('dashboard');
+            setActiveTab("dashboard");
             initializedRef.current = false;
             persistFilhoFlag(false);
           }
         }
       } catch (error: any) {
-        const errorMessage = String(error?.message || '').toLowerCase();
-        if (errorMessage.includes('jwt') && errorMessage.includes('expir')) {
-          window.dispatchEvent(new CustomEvent('axecloud:session-expired', { detail: { source: 'auth_listener' } }));
+        const errorMessage = String(error?.message || "").toLowerCase();
+        if (errorMessage.includes("jwt") && errorMessage.includes("expir")) {
+          window.dispatchEvent(
+            new CustomEvent("axecloud:session-expired", {
+              detail: { source: "auth_listener" },
+            }),
+          );
           return;
         }
-        if (error && error.message && (error.message.includes('stole it') || error.message.includes('Lock'))) {
+        if (
+          error &&
+          error.message &&
+          (error.message.includes("stole it") || error.message.includes("Lock"))
+        ) {
           if (session?.user) {
             void recoverTenantAfterFailure(
               session.user.id,
               session.user.email,
-              session.user.user_metadata?.role
+              session.user.user_metadata?.role,
             );
           }
           return;
         }
-        console.error('Error in onAuthStateChange:', error);
+        console.error("Error in onAuthStateChange:", error);
         if (session?.user) {
           void recoverTenantAfterFailure(
             session.user.id,
             session.user.email,
-            session.user.user_metadata?.role
+            session.user.user_metadata?.role,
           ).then((ok) => {
             if (!ok) setTenantRecoveryFailed(true);
           });
         }
       } finally {
         const hasStoredAuthToken =
-          typeof window !== 'undefined' &&
-          Boolean(localStorage.getItem('axecloud-auth-token'));
+          typeof window !== "undefined" &&
+          Boolean(localStorage.getItem("axecloud-auth-token"));
         const canResolveInitialization =
           Boolean(session) ||
-          event === 'SIGNED_OUT' ||
-          (event === 'INITIAL_SESSION' && !hasStoredAuthToken);
+          event === "SIGNED_OUT" ||
+          (event === "INITIAL_SESSION" && !hasStoredAuthToken);
         if (canResolveInitialization) {
-           setLoading(false);
-           setIsSessionHydrating(false);
-           markAuthInitialized();
+          setLoading(false);
+          setIsSessionHydrating(false);
+          markAuthInitialized();
         }
       }
     });
@@ -883,16 +984,20 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }, []);
 
   useEffect(() => {
-    if (surface !== 'dashboard') return;
+    if (surface !== "dashboard") return;
     if (loading || isInitializing || isSessionHydrating) return;
     // Se o storage ainda possui o token do Supabase, não redireciona prematuramente
-    if (typeof window !== 'undefined' && localStorage.getItem('axecloud-auth-token')) return;
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("axecloud-auth-token")
+    )
+      return;
     if (!session) goToLogin();
   }, [surface, session, loading, isInitializing, isSessionHydrating]);
 
   useEffect(() => {
     const uid = session?.user?.id;
-    if (!uid || userRole !== 'admin') return;
+    if (!uid || userRole !== "admin") return;
     if (hasAcceptedLegalTerms(uid, null)) {
       setLegalTermsAccepted(true);
     }
@@ -905,7 +1010,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     void recoverTenantAfterFailure(
       session.user.id,
       session.user.email,
-      session.user.user_metadata?.role
+      session.user.user_metadata?.role,
     ).then((ok) => {
       if (!ok) setTenantRecoveryFailed(true);
     });
@@ -928,15 +1033,18 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             ? { ...prev, tenant_id: storageAnchor }
             : {
                 nome: resolveTerreiroNomeFallback(session.user.id),
-                plan: 'premium',
+                plan: "premium",
                 tenant_id: storageAnchor,
                 role: userRole ?? undefined,
-              }
+              },
         );
         return;
       }
       // Tenta fallback do Supabase antes de acionar corta-circuito
-      const fallback = await resolveTenantFromSupabase(session.user.id, session.user.email);
+      const fallback = await resolveTenantFromSupabase(
+        session.user.id,
+        session.user.email,
+      );
       if (fallback) {
         writeCachedTenantIdForUser(session.user.id, fallback);
         writeTenantAnchorToStorage(fallback);
@@ -946,14 +1054,16 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
             ? { ...prev, tenant_id: fallback }
             : {
                 nome: resolveTerreiroNomeFallback(session.user.id),
-                plan: 'premium',
+                plan: "premium",
                 tenant_id: fallback,
                 role: userRole ?? undefined,
-              }
+              },
         );
         return;
       }
-      console.warn('[SESSION] tenant_id ausente após 8s — corta-circuito (logout sem redirect).');
+      console.warn(
+        "[SESSION] tenant_id ausente após 8s — corta-circuito (logout sem redirect).",
+      );
       persistFilhoFlag(false);
       await emergencyAuthCircuitBreaker();
     }, 8000);
@@ -964,28 +1074,34 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   useEffect(() => {
     if (!session?.user?.id || !tenantData) return;
     const raw = tenantData.tenant_id;
-    if (String(raw || '').trim()) {
+    if (String(raw || "").trim()) {
       return;
     }
     let cancelled = false;
     void (async () => {
-      const fallback = await resolveTenantFromSupabase(session.user.id, session.user.email);
+      const fallback = await resolveTenantFromSupabase(
+        session.user.id,
+        session.user.email,
+      );
       if (cancelled) return;
       if (fallback) {
         writeCachedTenantIdForUser(session.user.id, fallback);
-        setTenantData((prev) => (prev ? { ...prev, tenant_id: fallback } : prev));
+        setTenantData((prev) =>
+          prev ? { ...prev, tenant_id: fallback } : prev,
+        );
         if (import.meta.env.DEV) {
-          console.warn('[TenantContext][App]', {
+          console.warn("[TenantContext][App]", {
             userId: session.user.id,
             tenant_id: fallback,
-            origem: 'supabase_fallback_cliente',
+            origem: "supabase_fallback_cliente",
           });
         }
       } else if (import.meta.env.DEV) {
-        console.warn('[TenantContext][App]', {
+        console.warn("[TenantContext][App]", {
           userId: session.user.id,
           tenant_id: null,
-          alerta: 'tenant_id continua vazio após login e fallback Supabase — finanças/membros podem zerar',
+          alerta:
+            "tenant_id continua vazio após login e fallback Supabase — finanças/membros podem zerar",
         });
       }
     })();
@@ -996,35 +1112,48 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   useEffect(() => {
     const handleNavigateToSubscription = () => {
-      setActiveTab('subscription');
+      setActiveTab("subscription");
     };
 
-    window.addEventListener('navigate-to-subscription', handleNavigateToSubscription);
-    return () => window.removeEventListener('navigate-to-subscription', handleNavigateToSubscription);
+    window.addEventListener(
+      "navigate-to-subscription",
+      handleNavigateToSubscription,
+    );
+    return () =>
+      window.removeEventListener(
+        "navigate-to-subscription",
+        handleNavigateToSubscription,
+      );
   }, []);
 
   useEffect(() => {
     const onTradicaoUpdated = (e: Event) => {
-      const tradicao = (e as CustomEvent<{ tradicao?: string }>).detail?.tradicao;
+      const tradicao = (e as CustomEvent<{ tradicao?: string }>).detail
+        ?.tradicao;
       if (!tradicao) return;
       setTenantData((prev) => (prev ? { ...prev, tradicao } : prev));
     };
-    window.addEventListener('axecloud:tradicao-updated', onTradicaoUpdated);
-    return () => window.removeEventListener('axecloud:tradicao-updated', onTradicaoUpdated);
+    window.addEventListener("axecloud:tradicao-updated", onTradicaoUpdated);
+    return () =>
+      window.removeEventListener(
+        "axecloud:tradicao-updated",
+        onTradicaoUpdated,
+      );
   }, []);
 
   useEffect(() => {
-    if (userRole === 'filho' && !FILHO_ALLOWED_TABS.has(activeTab)) {
-      setActiveTab('profile');
+    if (userRole === "filho" && !FILHO_ALLOWED_TABS.has(activeTab)) {
+      setActiveTab("profile");
     }
   }, [userRole, activeTab]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const tab = requestedTabFromLocation();
     if (!tab) return;
-    if (userRole === 'filho') {
-      if (FILHO_ALLOWED_TABS.has(tab) || isFinancialNavTab(tab)) setActiveTab(isFinancialNavTab(tab) ? 'financial' : tab);
+    if (userRole === "filho") {
+      if (FILHO_ALLOWED_TABS.has(tab) || isFinancialNavTab(tab))
+        setActiveTab(isFinancialNavTab(tab) ? "financial" : tab);
       return;
     }
     // Zelador / admin: links diretos de todos os módulos do painel.
@@ -1042,29 +1171,46 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     return () => window.clearTimeout(timer);
   }, [loading]);
 
-  const refreshAllData = async (newData?: { nome_terreiro?: string; foto_url?: string; cargo?: string | null }) => {
+  const refreshAllData = async (newData?: {
+    nome_terreiro?: string;
+    foto_url?: string;
+    cargo?: string | null;
+  }) => {
     if (session?.user) {
-      
       if (newData) {
-        setTenantData(prev => prev ? ({
-          ...prev,
-          nome: newData.nome_terreiro || prev.nome,
-          foto_url: newData.foto_url !== undefined ? newData.foto_url : prev.foto_url,
-          cargo: newData.cargo !== undefined ? newData.cargo : prev.cargo
-        }) : null);
+        setTenantData((prev) =>
+          prev
+            ? {
+                ...prev,
+                nome: newData.nome_terreiro || prev.nome,
+                nome_terreiro:
+                  newData.nome_terreiro || prev.nome_terreiro || prev.nome,
+                foto_url:
+                  newData.foto_url !== undefined
+                    ? newData.foto_url
+                    : prev.foto_url,
+                cargo: newData.cargo !== undefined ? newData.cargo : prev.cargo,
+                zelador:
+                  newData.cargo !== undefined ? newData.cargo : prev.zelador,
+              }
+            : null,
+        );
       } else {
         await loadAllTenantData(
           session.user.id,
           session.user.email,
           session.user.user_metadata?.role,
-          session.access_token
+          session.access_token,
         );
       }
     }
   };
 
   const connectionEmergencyCta =
-    showConnectionResetCta && blockingSpinnerActive && !tenantAnchorId && !readTenantAnchorFromStorage() ? (
+    showConnectionResetCta &&
+    blockingSpinnerActive &&
+    !tenantAnchorId &&
+    !readTenantAnchorFromStorage() ? (
       <button
         type="button"
         onClick={() => void performEmergencyClientReset()}
@@ -1080,9 +1226,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         <AuthScreenBackground variant="dark" className="fixed inset-0" />
         <div className="relative z-10 max-w-md w-full bg-card border border-white/10 rounded-[32px] p-8 text-center space-y-6">
           <ShieldAlert className="w-14 h-14 text-red-500 mx-auto" />
-          <h2 className="text-xl font-black text-white tracking-tight">Sessão expirada</h2>
+          <h2 className="text-xl font-black text-white tracking-tight">
+            Sessão expirada
+          </h2>
           <p className="text-sm text-gray-400 font-medium">
-            Sua sessão não pôde ser recuperada com segurança. Faça login novamente para continuar.
+            Sua sessão não pôde ser recuperada com segurança. Faça login
+            novamente para continuar.
           </p>
           <button
             type="button"
@@ -1098,7 +1247,10 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
     );
   }
 
-  if ((isInitializing || loading) && (!session?.user || blockingSpinnerActive)) {
+  if (
+    (isInitializing || loading) &&
+    (!session?.user || blockingSpinnerActive)
+  ) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden px-4">
         <AuthScreenBackground className="fixed inset-0" />
@@ -1125,9 +1277,17 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto">
             <ShieldAlert className="w-10 h-10 text-red-500" />
           </div>
-          <h2 className="text-3xl font-black text-white tracking-tighter">CONTA EXCLUÍDA</h2>
-          <p className="text-gray-400 font-medium">Esta conta foi removida do sistema. Entre em contato com o suporte para mais informações.</p>
-          <button onClick={() => performFastLogout()} className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all">
+          <h2 className="text-3xl font-black text-white tracking-tighter">
+            CONTA EXCLUÍDA
+          </h2>
+          <p className="text-gray-400 font-medium">
+            Esta conta foi removida do sistema. Entre em contato com o suporte
+            para mais informações.
+          </p>
+          <button
+            onClick={() => performFastLogout()}
+            className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all"
+          >
             VOLTAR AO LOGIN
           </button>
         </div>
@@ -1143,9 +1303,17 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           <div className="w-20 h-20 bg-amber-500/10 rounded-3xl flex items-center justify-center mx-auto">
             <ShieldAlert className="w-10 h-10 text-amber-500" />
           </div>
-          <h2 className="text-3xl font-black text-white tracking-tighter">ACESSO SUSPENSO</h2>
-          <p className="text-gray-400 font-medium">Seu acesso ao AxéCloud foi temporariamente suspenso por um administrador.</p>
-          <button onClick={() => performFastLogout()} className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all">
+          <h2 className="text-3xl font-black text-white tracking-tighter">
+            ACESSO SUSPENSO
+          </h2>
+          <p className="text-gray-400 font-medium">
+            Seu acesso ao AxéCloud foi temporariamente suspenso por um
+            administrador.
+          </p>
+          <button
+            onClick={() => performFastLogout()}
+            className="w-full py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all"
+          >
             VOLTAR AO LOGIN
           </button>
         </div>
@@ -1155,8 +1323,13 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
 
   // Show lock screen if subscription is not active AND user is not admin
   // Admins and Children should always have access to the system
-  if (!subscriptionActive && !isAdminGlobal && userRole !== 'filho') {
-    return <SubscriptionLock plan={tenantData?.plan} subscriptionStatus={tenantData?.status} />;
+  if (!subscriptionActive && !isAdminGlobal && userRole !== "filho") {
+    return (
+      <SubscriptionLock
+        plan={tenantData?.plan}
+        subscriptionStatus={tenantData?.status}
+      />
+    );
   }
 
   if (blockingSpinnerActive) {
@@ -1179,9 +1352,12 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
           <AuthScreenBackground className="fixed inset-0" />
           <div className="relative z-10 max-w-md w-full bg-card border border-white/10 rounded-[32px] p-8 text-center space-y-6">
             <ShieldAlert className="w-14 h-14 text-amber-500 mx-auto" />
-            <h2 className="text-xl font-black text-white tracking-tight">Não foi possível carregar o terreiro</h2>
+            <h2 className="text-xl font-black text-white tracking-tight">
+              Não foi possível carregar o terreiro
+            </h2>
             <p className="text-sm text-gray-400 font-medium">
-              A sessão existe, mas os dados do terreiro não foram recuperados. Tente recarregar ou saia e entre de novo.
+              A sessão existe, mas os dados do terreiro não foram recuperados.
+              Tente recarregar ou saia e entre de novo.
             </p>
             <div className="flex flex-col gap-3">
               <button
@@ -1193,7 +1369,7 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
                     session.user.id,
                     session.user.email,
                     session.user.user_metadata?.role,
-                    session.access_token
+                    session.access_token,
                   );
                 }}
                 className="w-full py-4 bg-primary text-black font-black rounded-2xl hover:opacity-95 transition-opacity"
@@ -1222,159 +1398,27 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   }
 
   const navigateToTab = (tab: string) => {
-    const requestedTab = tab === 'atendimentos' ? 'consulentes' : tab;
-    const nextTab = userRole === 'filho' ? normalizeFilhoTab(requestedTab) : requestedTab;
+    const requestedTab = tab === "atendimentos" ? "consulentes" : tab;
+    const nextTab =
+      userRole === "filho" ? normalizeFilhoTab(requestedTab) : requestedTab;
     if (nextTab === activeTab) return;
     setActiveTab(nextTab);
   };
-  const renderView = () => {
-    // O portal do filho ignora travas do plano da zeladoria, mas mantém edição desativada.
-    // Mas passamos isAdminGlobal={false} para desativar botões de edição/exclusão.
-    const hijoTenantData = tenantData ? { ...tenantData, is_admin_global: true } : null;
-
-    if (userRole === 'filho') {
-      // Filhos acessam o conteúdo publicado sem assinatura própria.
-      switch (activeTab) {
-        case 'profile':
-        case 'perfil': return <PerfilFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
-        case 'obrigacoes':
-          return <ObrigacoesFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
-        case 'financial':
-        case 'financial-mensalidades':
-      case 'financial-cantina':
-        case 'financial-configs': return <MensalidadeFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
-        case 'calendar': return <Calendar user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} userRole={userRole} />;
-        case 'library': return <Library user={session.user} userRole={userRole} tenantData={hijoTenantData} isAdminGlobal={false} setActiveTab={navigateToTab} />;
-        case 'store': return <Store userRole={userRole} tenantData={hijoTenantData} userId={session.user.id} isAdminGlobal={false} setActiveTab={navigateToTab} />;
-        case 'mural': return <NoticeBoard isAdmin={false} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
-        case 'chat':
-          return (
-            <ChatInbox
-              tenantData={hijoTenantData}
-              userId={session.user.id}
-              userRole={userRole}
-              setActiveTab={navigateToTab}
-            />
-          );
-        default: return <PerfilFilho user={session.user} tenantData={hijoTenantData} setActiveTab={navigateToTab} />;
-      }
-    }
-
-    if (['reports', 'patrimony', 'documents', 'consulentes', 'atendimento-agenda', 'journey', 'liturgical', 'development', 'camarinha'].includes(activeTab))
-      return <AdvancedManagement section={activeTab as AdvancedSection} tenantData={tenantData} setActiveTab={navigateToTab} />;
-    // Check access for the active tab (Filhos de Santo têm acesso total de visualização via plano Cortesia)
-    const featureAccess = {
-      dashboard: true,
-      children: true,
-      obligations: true,
-      calendar: true,
-      frequencia: hasPlanAccess(tenantData?.plan, 'gestao_eventos', isAdminGlobal),
-      mural: true,
-      chat: true,
-      settings: true,
-      radar: true,
-      suporte: true,
-      profile: true,
-      inventory: hasPlanAccess(tenantData?.plan, 'inventory', isAdminGlobal),
-      atendimentos: hasPlanAccess(tenantData?.plan, 'atendimentos', isAdminGlobal),
-      gallery: hasPlanAccess(tenantData?.plan, 'gallery', isAdminGlobal),
-      library: hasPlanAccess(tenantData?.plan, 'library', isAdminGlobal),
-      financial: hasPlanAccess(tenantData?.plan, 'financial', isAdminGlobal),
-      store: hasPlanAccess(tenantData?.plan, 'store', isAdminGlobal),
-      subscription: true
-    };
-
-    const featureKey = isFinancialNavTab(activeTab) ? 'financial' : activeTab;
-    const isFeatureRestricted = !featureAccess[featureKey as keyof typeof featureAccess];
-
-    if (isFeatureRestricted) {
-      const requiredPlan = isFinancialNavTab(activeTab) || activeTab === 'store' ? 'Fundamento' : 'Orô';
-      return (
-        <Paywall 
-          featureName={isFinancialNavTab(activeTab) ? 'Financeiro' : activeTab === 'store' ? 'Loja do Axé' : activeTab === 'gallery' ? 'Galeria' : activeTab === 'inventory' ? 'Almoxarifado' : 'Biblioteca'} 
-          requiredPlan={requiredPlan}
-          onUpgrade={() => navigateToTab('subscription')}
-        />
-      );
-    }
-
-    switch (activeTab) {
-      case 'dashboard': 
-        return <Dashboard setActiveTab={navigateToTab} user={session.user} userRole={userRole} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setSelectedChildId={setSelectedChildId} systemVersion={SYSTEM_VERSION} isSessionReady={isSessionReady} />;
-      case 'children':
-        return <Children setActiveTab={navigateToTab} user={session.user} setSelectedChildId={setSelectedChildId} tenantData={tenantData} />;
-      case 'obligations':
-        return <Obligations user={session.user} tenantData={tenantData} setActiveTab={navigateToTab} setSelectedChildId={setSelectedChildId} />;
-      case 'inventory': 
-        return <Inventory tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'gallery':
-        return <Gallery tenantData={tenantData} userRole={userRole} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'calendar': 
-        return <Calendar user={session.user} userRole={userRole} tenantData={tenantData} setActiveTab={navigateToTab} />;
-      case 'frequencia':
-        return <Frequencia tenantData={tenantData} setActiveTab={navigateToTab} />;
-      case 'mural':
-        /* Neste ramo o usuário nunca é filho (filho tem switch próprio acima) — sempre gestão do terreiro */
-        return <NoticeBoard isAdmin tenantData={tenantData} setActiveTab={navigateToTab} />;
-      case 'chat':
-        return (
-          <ChatInbox
-            tenantData={tenantData}
-            userId={session.user.id}
-            userRole={userRole}
-            setActiveTab={navigateToTab}
-          />
-        );
-      case 'financial':
-      case 'financial-mensalidades':
-      case 'financial-cantina':
-      case 'financial-configs':
-        return (
-          <Financial
-            userRole={userRole}
-            userId={session.user.id}
-            tenantData={tenantData}
-            isAdminGlobal={isAdminGlobal}
-            setActiveTab={navigateToTab}
-            isSessionReady={isSessionReady}
-            initialView={financialSubviewFromTab(activeTab)}
-          />
-        );
-      case 'settings': 
-        return <Settings user={session.user} session={session} onRefresh={refreshAllData} tenantData={tenantData} setActiveTab={navigateToTab} />;
-      case 'radar':
-        return <Radar />;
-      case 'suporte':
-        return <Support user={session.user} tenantData={tenantData} setActiveTab={navigateToTab} />;
-      case 'library':
-        return <Library user={session.user} userRole={userRole} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'store':
-        return <Store userRole={userRole} tenantData={tenantData} userId={session.user.id} isAdminGlobal={isAdminGlobal} setActiveTab={navigateToTab} />;
-      case 'admin':
-        return (
-          <Dashboard
-            setActiveTab={navigateToTab}
-            user={session.user}
-            userRole={userRole}
-            tenantData={tenantData}
-            isAdminGlobal={isAdminGlobal}
-            setSelectedChildId={setSelectedChildId}
-            systemVersion={SYSTEM_VERSION}
-            isSessionReady={isSessionReady}
-          />
-        );
-      case 'profile':
-      case 'perfil':
-        if (!selectedChildId) {
-          return <Dashboard setActiveTab={navigateToTab} user={session.user} userRole={userRole} tenantData={tenantData} isAdminGlobal={isAdminGlobal} setSelectedChildId={setSelectedChildId} systemVersion={SYSTEM_VERSION} isSessionReady={isSessionReady} />;
-        }
-        return <ChildProfile childId={selectedChildId} setActiveTab={navigateToTab} user={session.user} tenantData={tenantData} isSelfView={false} />;
-      case 'subscription':
-        return <MinhaAssinatura session={session} tenantData={tenantData} onRefresh={refreshAllData} />;
-      default: 
-        return <Dashboard setActiveTab={navigateToTab} user={session.user} userRole={userRole} systemVersion={SYSTEM_VERSION} isSessionReady={isSessionReady} />;
-    }
-  };
+  const renderView = () => (
+    <AppViewRouter
+      activeTab={activeTab}
+      isAdminGlobal={isAdminGlobal}
+      isSessionReady={isSessionReady}
+      navigateToTab={navigateToTab}
+      refreshAllData={refreshAllData}
+      selectedChildId={selectedChildId}
+      session={session}
+      setSelectedChildId={setSelectedChildId}
+      systemVersion={SYSTEM_VERSION}
+      tenantData={tenantData}
+      userRole={userRole}
+    />
+  );
 
   const handleAcceptLegalTerms = async () => {
     const userId = session?.user?.id;
@@ -1385,24 +1429,26 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
         data: { session: authSession },
       } = await supabase.auth.getSession();
       if (!authSession?.access_token) {
-        throw new Error('Sessão expirada');
+        throw new Error("Sessão expirada");
       }
-      const response = await authFetch('/api/v1/legal/accept-terms', {
-        method: 'POST',
+      const response = await authFetch("/api/v1/legal/accept-terms", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${authSession.access_token}`,
         },
         body: JSON.stringify({ version: CURRENT_LEGAL_TERMS_VERSION }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.error || 'Não foi possível registrar o aceite');
+        throw new Error(
+          payload?.error || "Não foi possível registrar o aceite",
+        );
       }
       writeLocalLegalAcceptance(userId);
       setLegalTermsAccepted(true);
     } catch (err) {
-      console.warn('[legal] Falha ao persistir aceite no servidor:', err);
+      console.warn("[legal] Falha ao persistir aceite no servidor:", err);
       // Cache local + preservação no logout evitam reexibir o modal na mesma conta/dispositivo.
       writeLocalLegalAcceptance(userId);
       setLegalTermsAccepted(true);
@@ -1414,121 +1460,28 @@ export default function App({ surface = 'dashboard' }: { surface?: AppSurface })
   const showLegalTermsModal =
     !blockingSpinnerActive &&
     !!effectiveTenantId &&
-    userRole === 'admin' &&
+    userRole === "admin" &&
     legalTermsAccepted === false;
 
-  const getPlanColor = (plan: string) => {
-    switch (plan.toLowerCase()) {
-      case 'premium': return 'text-[#FBBC00]';
-      case 'vita':
-      case 'cortesia': return 'text-purple-400';
-      default: return 'text-gray-400';
-    }
-  };
-
-  const isBerryBetaUser = isBerryDashboardBeta(session?.user?.email, effectiveTenantId);
-
-  if (isBerryBetaUser) {
-    return (
-      <>
-        <HouseToastHost />
-        <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0f1411]"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>}>
-          <BerryAppShell
-            activeTab={activeTab}
-            setActiveTab={navigateToTab}
-            userRole={userRole || 'Zelador'}
-            isAdmin={isAdminGlobal}
-            terreiroNome={tenantData?.nome_terreiro || 'Terreiro Teste'}
-            zeladorNome={tenantData?.zelador || 'Zelador'}
-            userEmail={session?.user?.email}
-            tenantId={effectiveTenantId}
-            onLogout={() => performFastLogout()}
-          >
-            <Suspense
-              fallback={
-                <div className="flex min-h-[60vh] items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-                </div>
-              }
-            >
-              {activeTab === 'dashboard' ? (
-                <DashboardBerry
-                  onNavigate={navigateToTab}
-                  terreiroNome={tenantData?.nome_terreiro || 'Terreiro Teste'}
-                  zeladorNome={tenantData?.zelador || 'Zelador'}
-                  tenantId={effectiveTenantId}
-                />
-              ) : (
-                <div 
-                  key={`${activeTab}:${selectedChildId || ''}`} 
-                  className="app-v3 app-v4-experiment app-v5-identity app-v5-canvas flex-1 min-h-full w-full bg-[#F7F3EA] text-[#211D17]"
-                >
-                  <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
-                    {renderView()}
-                  </div>
-                </div>
-              )}
-            </Suspense>
-          </BerryAppShell>
-        </Suspense>
-        <AppRuntimeOverlays
-          showLegalTermsModal={showLegalTermsModal}
-          onAcceptLegalTerms={handleAcceptLegalTerms}
-          legalTermsAccepting={legalTermsAccepting}
-          userRole={userRole}
-          session={session}
-          activeTab={activeTab}
-          onNavigate={navigateToTab}
-          effectiveTenantId={effectiveTenantId}
-          blockingSpinnerActive={blockingSpinnerActive}
-          tenantData={tenantData}
-        />
-      </>
-    );
-  }
-
   return (
-    <>
-    <HouseToastHost />
-    <div className="app-v3 app-v4-experiment app-v5-identity flex h-[100dvh] w-full flex-col overflow-hidden bg-[#F7F3EA] text-[#211D17] font-sans selection:bg-primary selection:text-[#080A0D]">
-      <AppTopNav
-        activeTab={activeTab}
-        setActiveTab={navigateToTab}
-        userRole={userRole}
-        isAdmin={isAdminGlobal}
-        tenantData={tenantData}
-        userDisplayName={session?.user?.user_metadata?.nome}
-        userId={session?.user?.id}
-        userEmail={session?.user?.email}
-        filhoFotoUrl={filhoFotoUrl}
-        onFilhoFotoUpdated={setFilhoFotoUrl}
-      />
-
-      <div className="app-v3-scroll app-v5-canvas relative z-0 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F7F3EA] pb-[env(safe-area-inset-bottom,0px)] min-[880px]:pl-[var(--app-sidebar-width,15rem)]">
-          <main
-            className="app-page-shell flex min-h-full w-full min-w-0 max-w-full flex-col overflow-x-hidden"
-            data-role={userRole ?? undefined}
-            data-tab={activeTab}
-          >
-            <AppContextPrompts userRole={userRole} session={session} permission={permission} pushLoading={pushLoading} onSubscribe={() => void subscribe()} activeTab={activeTab} tenantData={tenantData} onNavigate={navigateToTab} />
-            <div className="flex-1">
-              <Suspense
-                fallback={
-                  <div className="flex min-h-[60vh] items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                }
-              >
-                <div key={`${activeTab}:${selectedChildId || ''}`} className="app-view-transition">
-                  {renderView()}
-                </div>
-              </Suspense>
-            </div>
-            <AppFooter />
-          </main>
-      </div>
-    </div>
-    <AppRuntimeOverlays showLegalTermsModal={showLegalTermsModal} onAcceptLegalTerms={handleAcceptLegalTerms} legalTermsAccepting={legalTermsAccepting} userRole={userRole} session={session} activeTab={activeTab} onNavigate={navigateToTab} effectiveTenantId={effectiveTenantId} blockingSpinnerActive={blockingSpinnerActive} tenantData={tenantData} />
-    </>
+    <AppShellRenderer
+      activeTab={activeTab}
+      blockingSpinnerActive={blockingSpinnerActive}
+      filhoFotoUrl={filhoFotoUrl}
+      isAdminGlobal={isAdminGlobal}
+      legalTermsAccepting={legalTermsAccepting}
+      navigateToTab={navigateToTab}
+      onAcceptLegalTerms={handleAcceptLegalTerms}
+      permission={permission}
+      pushLoading={pushLoading}
+      selectedChildId={selectedChildId}
+      session={session}
+      setFilhoFotoUrl={setFilhoFotoUrl}
+      showLegalTermsModal={showLegalTermsModal}
+      subscribe={subscribe}
+      tenantData={tenantData}
+      userRole={userRole}
+      view={renderView()}
+    />
   );
 }

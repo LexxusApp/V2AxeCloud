@@ -102,7 +102,12 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         terreiroName = perfil.nome_terreiro || "";
       } else {
         const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
-        const found = usersData?.users?.find((u) => u.email?.toLowerCase() === email);
+        const users = (usersData?.users || []) as Array<{
+          id: string;
+          email?: string;
+          user_metadata?: Record<string, any>;
+        }>;
+        const found = users.find((u) => u.email?.toLowerCase() === email);
         if (found) {
           userId = found.id;
           zeladorName = found.user_metadata?.nome_zelador || "";
@@ -173,7 +178,8 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
         userId = perfil.id;
       } else {
         const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
-        const found = usersData?.users?.find((u) => u.email?.toLowerCase() === email);
+        const users = (usersData?.users || []) as Array<{ id: string; email?: string }>;
+        const found = users.find((u) => u.email?.toLowerCase() === email);
         if (found) userId = found.id;
       }
 
@@ -205,18 +211,19 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
       }
 
       try {
-        await createAuditLog(supabaseAdmin, {
-          tenant_id: userId,
-          user_id: userId,
-          actor_user_id: userId,
-          action: "auth.restored_password_setup",
-          status: "success",
-          surface: "auth",
-          route: "/api/v1/auth/setup-restored-password",
-          ip: extractClientIp(req),
-          user_agent: extractUserAgent(req),
-          details: { email },
-        });
+        await createAuditLog(
+          supabaseAdmin,
+          req,
+          "auth.restored_password_setup",
+          "success",
+          userId,
+          {
+            userId,
+            email,
+            surface: "auth",
+            route: "/api/v1/auth/setup-restored-password",
+          },
+        );
       } catch {
         /* auditoria best-effort */
       }
@@ -404,11 +411,31 @@ export function registerOnboardingRoutes(app: Express, { supabaseAdmin }: Deps) 
           if (!txid) continue;
 
           console.log(`[EFI PIX WEBHOOK] Processando Pix txid=${txid}`);
-          const { data: sub } = await supabaseAdmin
+          let { data: sub } = await supabaseAdmin
             .from("subscriptions")
             .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, efi_pix_txid, last_activated_charge_id")
             .or(`efi_pix_txid.eq.${txid},efi_charge_id.eq.pix:${txid}`)
             .maybeSingle();
+
+          if (!sub) {
+            const { data: event } = await supabaseAdmin
+              .from("payment_webhook_events")
+              .select("tenant_id")
+              .eq("provider", "efi_pix")
+              .eq("charge_id", txid)
+              .not("tenant_id", "is", null)
+              .order("occurred_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (event?.tenant_id) {
+              const fallback = await supabaseAdmin
+                .from("subscriptions")
+                .select("id, status, plan, expires_at, billing_cycle, pending_billing_cycle, efi_pix_txid, last_activated_charge_id")
+                .eq("id", event.tenant_id)
+                .maybeSingle();
+              sub = fallback.data;
+            }
+          }
 
           if (sub && String(sub.last_activated_charge_id || "") !== `pix:${txid}`) {
             const billingCycle = normalizeBillingCycle(sub.pending_billing_cycle || sub.billing_cycle);

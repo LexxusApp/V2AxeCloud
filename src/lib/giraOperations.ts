@@ -143,20 +143,24 @@ export async function approveParticipante(
 }
 
 export async function fetchFrequenciaReport(tenantId: string) {
-  const res = await authFetch(`/api/v1/frequencia?tenantId=${encodeURIComponent(tenantId)}`);
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Erro ao carregar frequência');
-  return json.data as Array<{
-    filho_id: string;
-    nome: string;
-    cargo?: string;
-    foto_url?: string | null;
-    total_eventos: number;
-    confirmados: number;
-    presentes: number;
-    faltas: number;
-    assiduidade_pct: number;
-  }>;
+  try {
+    const res = await authFetch('/api/v1/frequencia?tenantId=' + encodeURIComponent(tenantId));
+    if (!res.ok) return [];
+    const json = await res.json().catch(() => ({}));
+    return (json.data || []) as Array<{
+      filho_id: string;
+      nome: string;
+      cargo?: string;
+      foto_url?: string | null;
+      total_eventos: number;
+      confirmados: number;
+      presentes: number;
+      faltas: number;
+      assiduidade_pct: number;
+    }>;
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchMinhasParticipacoes(tenantId: string, start: string, end: string) {

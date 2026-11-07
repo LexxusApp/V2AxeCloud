@@ -170,13 +170,13 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
         className={cn(
           'max-w-[85%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[70%]',
           isOwn
-            ? 'rounded-br-md bg-primary text-black'
-            : 'rounded-bl-md border border-[#1E242B] bg-[#1A1F26] text-[#F1F5F9]',
+            ? 'rounded-br-sm bg-[#1F5942] text-white shadow-xs'
+            : 'rounded-bl-sm border border-[#E6DFD3] bg-white text-[#17251D] shadow-xs',
           message.pending && 'opacity-80',
         )}
       >
         {!isOwn && (
-          <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">
+          <p className="mb-0.5 text-[10px] font-black uppercase tracking-wider text-[#8A958E]">
             {message.senderNome}
           </p>
         )}
@@ -214,8 +214,8 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
 
         <p
           className={cn(
-            'mt-1 text-right text-[10px]',
-            isOwn ? 'text-black/60' : 'text-[#64748B]',
+            'mt-1 text-right text-[10px] font-medium',
+            isOwn ? 'text-white/75' : 'text-[#8A958E]',
           )}
         >
           {formatChatTime(message.createdAt)}
@@ -404,7 +404,7 @@ function ChatAudioPlayer({
           disabled={loading}
           className={cn(
             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95',
-            isOwn ? 'bg-black/15 text-black' : 'bg-white/10 text-white',
+            isOwn ? 'bg-white/20 text-white' : 'bg-[#FAF7F2] text-[#1F5942] border border-[#E6DFD3]',
             loading && 'opacity-40',
             playing && !loading && 'ring-2 ring-current/30',
           )}
@@ -429,20 +429,20 @@ function ChatAudioPlayer({
             onClick={seek}
             className={cn(
               'group h-1.5 cursor-pointer overflow-hidden rounded-full',
-              isOwn ? 'bg-black/15' : 'bg-white/10',
+              isOwn ? 'bg-white/25' : 'bg-[#E6DFD3]',
               (playBlocked || playError) && 'cursor-not-allowed opacity-50',
             )}
           >
             <div
               className={cn(
                 'h-full rounded-full transition-[width] duration-150',
-                isOwn ? 'bg-black/50' : 'bg-primary',
+                isOwn ? 'bg-white' : 'bg-[#1F5942]',
                 playing && 'animate-pulse',
               )}
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className={cn('text-[11px] font-medium tabular-nums', isOwn ? 'text-black/70' : 'text-[#CBD5E1]')}>
+          <span className={cn('text-[11px] font-medium tabular-nums', isOwn ? 'text-white/80' : 'text-[#59655E]')}>
             {statusLabel}
           </span>
         </div>

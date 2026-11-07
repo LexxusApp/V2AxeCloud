@@ -1,4 +1,25 @@
 /* ==========================================================================
+   AXÉ PRO DASHBOARD - DIRECT PROTOTYPE STYLES (PORT 5000 SYNC)
+   Source: C:/Users/Lucas A/Desktop/Axecloud-Dashboard-Local/styles.css
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Force 100% Inter font across the whole Berry Dashboard, identical to localhost:5000 */
+.axe-berry-mode,
+.axe-berry-mode *,
+.app-shell,
+.app-shell *,
+.dashboard-main-content,
+.dashboard-main-content *,
+.app-topbar,
+.app-topbar *,
+.app-sidebar,
+.app-sidebar * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* ==========================================================================
    AXÉ PRO DASHBOARD — DESIGN SYSTEM & TOKENS (ESTILO BERRY + AXÉ DESIGN)
    ========================================================================== */
 
@@ -30,9 +51,10 @@
   box-sizing: border-box;
 }
 
-.axe-berry-mode {
+.axe-berry-mode, .app-shell {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #0f1411;
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -40,7 +62,7 @@
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Tipografia Base Estilo Berry — ESCOPO EXCLUSIVO DA DASHBOARD BERRY */
+/* Tipografia Base Estilo Berry - Escopo Restrito ao Dashboard */
 .dashboard-main-content h1, 
 .dashboard-main-content h2, 
 .dashboard-main-content h3, 
@@ -61,9 +83,7 @@
 
 .dashboard-main-content p, 
 .dashboard-main-content span, 
-.dashboard-main-content small,
-.app-topbar p, .app-topbar span, .app-topbar small,
-.app-sidebar p, .app-sidebar span, .app-sidebar small {
+.dashboard-main-content small {
   font-family: 'Inter', sans-serif;
 }
 
@@ -72,12 +92,14 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background: #0f1411;
 }
 
 .app-workspace {
   display: flex;
   flex: 1;
   min-height: calc(100vh - 72px);
+  background: #0f1411;
   position: relative;
 }
 
@@ -450,14 +472,7 @@
   flex-direction: column;
   min-width: 0;
   overflow-y: auto;
-}
-
-.app-main.is-dashboard {
   background: #0f1411;
-}
-
-.app-main.is-internal-view {
-  background: #F7F3EA;
 }
 
 /* Topbar — Cabeçalho Superior Completo Estilo Berry (100% de largura) */
@@ -1310,11 +1325,7 @@
   width: fit-content;
 }
 
-.hero-title,
-.axe-berry-mode h1.hero-title,
-.axe-berry-mode .hero-title {
-  color: #ffffff !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+.hero-title {
   margin: 0 0 6px 0;
   font-size: 26px;
   font-weight: 750;
@@ -1438,7 +1449,7 @@
   inset: 0;
   background:
     linear-gradient(90deg, rgba(2, 14, 9, 0.96) 0%, rgba(2, 14, 9, 0.8) 46%, rgba(2, 15, 10, 0.12) 80%),
-    url("/dashboard/gira-caboclo.webp") right center / cover no-repeat;
+    url("/assets/gira-caboclo.webp") right center / cover no-repeat;
   pointer-events: none;
   transform: none !important;
 }
@@ -1626,11 +1637,7 @@
   50% { transform: scale(1.35) rotate(18deg); filter: drop-shadow(0 0 6px #fef08a); }
 }
 
-.cinematic-gira-title,
-.axe-berry-mode h2.cinematic-gira-title,
-.axe-berry-mode .cinematic-gira-title {
-  color: #ffffff !important;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+.cinematic-gira-title {
   margin: 0 0 6px 0;
   font-size: 26px;
   font-weight: 750;
@@ -2806,133 +2813,10 @@
 
 
 /* ==========================================================================
-   AXÉ PRO DASHBOARD — ALIVE & MAGICAL 60FPS MOTION SUITE (ZERO LAG)
-   Aura radiante, feixe de energia vivo, varreduras de luz, fagúlhas de axé,
-   balanço orgânico da mata, radar vivo e efeitos de hover táteis em todos os cards.
+   RISCO DOURADO ESTÁTICO & MOVIMENTO BEM SUAVE DAS FOLHAGENS/FLORES
    ========================================================================== */
 
-/* 1. FLORESTA SAGRADA & BALANÇO DA COPA DE FOLHAS (GPU COMPOSITE) */
-.hero-welcome-card .dashboard-v5-hero__forest {
-  position: absolute;
-  inset: -4%;
-  z-index: 0;
-  background: url("/dashboard/command-forest.webp") var(--hero-forest-position) / cover no-repeat;
-  filter: brightness(var(--hero-forest-brightness)) saturate(var(--hero-forest-saturation));
-  opacity: 1;
-  pointer-events: none;
-  will-change: transform;
-  transform: scale(1.045) translateZ(0);
-  animation: heroForestSlowBreathe60 11s ease-in-out infinite alternate;
-}
-
-@keyframes heroForestSlowBreathe60 {
-  0% { transform: scale(1.045) translate3d(0, 0, 0); }
-  100% { transform: scale(1.075) translate3d(-0.5%, -0.5%, 0); }
-}
-
-.hero-welcome-card .dashboard-v5-hero__foliage--canopy {
-  position: absolute;
-  inset: -4%;
-  z-index: 1;
-  background: url("/dashboard/command-forest.webp") var(--hero-forest-position) / cover no-repeat;
-  filter: brightness(var(--hero-forest-brightness)) saturate(var(--hero-forest-saturation));
-  opacity: 0.95;
-  -webkit-mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
-  mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
-  transform-origin: 92% 10%;
-  pointer-events: none;
-  will-change: transform;
-  transform: scale(1.045) translateZ(0);
-  animation: foliageSwayComposite60 6.5s cubic-bezier(0.77, 0, 0.175, 1) infinite alternate;
-}
-
-@keyframes foliageSwayComposite60 {
-  0% { transform: scale(1.045) rotate(-0.6deg) translate3d(-0.3%, -0.3%, 0); }
-  100% { transform: scale(1.065) rotate(0.9deg) translate3d(0.6%, 0.7%, 0); }
-}
-
-/* 2. AURA SAGRADA RADIANDO NO CARD DE BOAS-VINDAS */
-.hero-sacred-aura {
-  position: absolute;
-  top: -30px;
-  right: 10%;
-  width: 350px;
-  height: 350px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(246, 201, 76, 0.32) 0%, rgba(229, 174, 18, 0.12) 42%, transparent 70%);
-  pointer-events: none;
-  z-index: 1;
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: heroAuraBreathe60 5.5s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
-}
-
-@keyframes heroAuraBreathe60 {
-  0% { transform: scale(0.88) translateZ(0); opacity: 0.55; }
-  50% { transform: scale(1.15) translateZ(0); opacity: 0.95; }
-  100% { transform: scale(0.94) translateZ(0); opacity: 0.65; }
-}
-
-/* 3. AURA DOURADA VIVA NO TRIDENTE (CARD DA GIRA) */
-.cinematic-gira-aura {
-  position: absolute;
-  top: 12%;
-  right: 20%;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(246, 201, 76, 0.35) 0%, rgba(229, 174, 18, 0.14) 42%, transparent 70%);
-  pointer-events: none;
-  z-index: 1;
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: tridentAuraBreathe60 5s ease-in-out infinite alternate;
-  mix-blend-mode: screen;
-}
-
-@keyframes tridentAuraBreathe60 {
-  0% { transform: scale(0.9) translateZ(0); opacity: 0.55; }
-  50% { transform: scale(1.15) translateZ(0); opacity: 0.95; }
-  100% { transform: scale(0.96) translateZ(0); opacity: 0.62; }
-}
-
-/* 4. VARREDURA PERIÓDICA DE LUZ DOURADA (LIGHT SHEEN NOS 2 CARDS HERO) */
-.hero-light-sheen {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: linear-gradient(115deg, transparent 35%, rgba(246, 201, 76, 0.16) 50%, transparent 65%);
-  will-change: transform;
-  transform: translateX(-140%) translateZ(0);
-  animation: heroSheenSweep60 7.5s ease-in-out infinite 1.5s;
-  display: block !important;
-}
-
-@keyframes heroSheenSweep60 {
-  0%, 65% { transform: translateX(-140%) translateZ(0); }
-  100% { transform: translateX(140%) translateZ(0); }
-}
-
-.cinematic-light-sheen {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-  background: linear-gradient(115deg, transparent 35%, rgba(246, 201, 76, 0.15) 50%, transparent 65%);
-  will-change: transform;
-  transform: translateX(-130%) translateZ(0);
-  animation: lightSheenSweep60 8s ease-in-out infinite 2s;
-  display: block !important;
-}
-
-@keyframes lightSheenSweep60 {
-  0%, 70% { transform: translateX(-130%) translateZ(0); }
-  100% { transform: translateX(130%) translateZ(0); }
-}
-
-/* 5. FLUXO DE ENERGIA DOURADA VIAJANDO PELA CURVA (HERO ENERGY STREAM) */
+/* 1. Risco Brilhante Elegante (Visível, Dourado e Estático) */
 .hero-welcome-card .dashboard-v5-hero__energy {
   position: absolute;
   inset: 0;
@@ -2946,339 +2830,881 @@
 
 .hero-energy-base {
   fill: none;
-  stroke: rgba(229, 174, 18, 0.25);
-  stroke-width: 1.5;
+  stroke: rgba(229, 174, 18, 0.28) !important;
+  stroke-width: 1.5 !important;
   vector-effect: non-scaling-stroke;
 }
 
 .hero-energy-glow-line {
   fill: none;
-  stroke: url(#dashboard-hero-energy);
-  stroke-width: 2.5;
-  stroke-linecap: round;
+  stroke: url(#dashboard-hero-energy) !important;
+  stroke-width: 2.2 !important;
+  stroke-linecap: round !important;
   vector-effect: non-scaling-stroke;
-  opacity: 0.9;
+  opacity: 0.9 !important;
 }
 
-.hero-energy-stream {
-  fill: none;
-  stroke: url(#dashboard-hero-energy);
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  stroke-dasharray: 220 580;
-  stroke-dashoffset: 800;
-  animation: heroEnergyTravel60 4.2s linear infinite;
-  vector-effect: non-scaling-stroke;
-  will-change: stroke-dashoffset;
-  display: block !important;
+/* 2. O feixe de luz que corria pela linha e a varredura (sheen) ficam DESLIGADOS */
+.hero-energy-stream,
+.hero-light-sheen {
+  display: none !important;
 }
 
-@keyframes heroEnergyTravel60 {
-  from { stroke-dashoffset: 800; }
-  to { stroke-dashoffset: 0; }
-}
-
-/* 6. FAGÚLHAS FLUTUANTES DE AXÉ (GOLDEN EMBERS VIVAS - 60FPS) */
-.hero-embers-container,
-.cinematic-embers {
+/* 3. Movimento Bem Suave e Orgânico das Folhagens/Flores ao Fundo */
+.hero-welcome-card .dashboard-v5-hero__foliage--canopy {
   position: absolute;
-  inset: 0;
+  inset: -4%;
+  z-index: 1;
+  background: url("/dashboard/command-forest.webp") var(--hero-forest-position) / cover no-repeat;
+  filter: brightness(var(--hero-forest-brightness)) saturate(var(--hero-forest-saturation));
+  opacity: 0.95 !important;
+  -webkit-mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
+  mask-image: radial-gradient(ellipse at 87% 10%, #000 0 24%, rgba(0, 0, 0, 0.82) 34%, transparent 59%);
+  transform-origin: 92% 10%;
+  animation: dashboard-v5-foliage-sway-canopy 9s ease-in-out infinite alternate !important;
   pointer-events: none;
-  z-index: 2;
-  overflow: hidden;
-  display: block !important;
 }
 
-.hero-ember,
-.c-ember {
+@keyframes dashboard-v5-foliage-sway-canopy {
+  0% {
+    transform: scale(1.045) rotate(-0.5deg) translate3d(-0.2%, -0.2%, 0);
+  }
+  50% {
+    transform: scale(1.055) rotate(0.3deg) translate3d(0.3%, 0.4%, 0);
+  }
+  100% {
+    transform: scale(1.065) rotate(0.8deg) translate3d(0.5%, 0.6%, 0);
+  }
+}
+
+.hero-welcome-card .dashboard-v5-hero__forest {
+  animation: heroForestSlowBreathe 14s ease-in-out infinite alternate !important;
+}
+
+@keyframes heroForestSlowBreathe {
+  0% { transform: scale(1.045) translate3d(0, 0, 0); }
+  100% { transform: scale(1.07) translate3d(-0.4%, -0.4%, 0); }
+}
+
+/* 4. Aura de Respiração Suave no Card */
+.hero-sacred-aura {
+  position: absolute;
+  top: -30px;
+  right: 10%;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(229, 174, 18, 0.2) 0%, rgba(229, 174, 18, 0.05) 45%, transparent 72%) !important;
+  pointer-events: none;
+  z-index: 1;
+  animation: heroAuraBreatheSoft 12s ease-in-out infinite alternate !important;
+  mix-blend-mode: screen;
+}
+
+@keyframes heroAuraBreatheSoft {
+  0% { transform: scale(0.95); opacity: 0.4; }
+  100% { transform: scale(1.06); opacity: 0.68; }
+}
+
+/* 5. Fagúlhas bem calmas */
+.hero-ember {
   position: absolute;
   border-radius: 50%;
-  background: #ffe066;
-  box-shadow: 0 0 8px 2px rgba(246, 201, 76, 0.85);
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  display: block !important;
+  background: #f6c94c !important;
+  box-shadow: 0 0 6px 1px rgba(246, 201, 76, 0.35) !important;
+  opacity: 0.45 !important;
 }
 
-/* Welcome card embers */
 .h-ember-1 {
-  bottom: 22%;
-  left: 28%;
-  width: 3.5px;
-  height: 3.5px;
-  animation: floatEmber60_1 5.2s ease-in-out infinite;
+  bottom: 25% !important;
+  left: 30% !important;
+  width: 3px !important;
+  height: 3px !important;
+  animation: heroFloatEmberSoft1 12s ease-in-out infinite !important;
 }
+
 .h-ember-2 {
-  bottom: 30%;
-  left: 55%;
-  width: 4px;
-  height: 4px;
-  animation: floatEmber60_2 6.5s ease-in-out infinite 1.2s;
+  bottom: 30% !important;
+  left: 55% !important;
+  width: 2.5px !important;
+  height: 2.5px !important;
+  animation: heroFloatEmberSoft2 15s ease-in-out infinite 2s !important;
 }
+
 .h-ember-3 {
-  bottom: 18%;
-  left: 78%;
-  width: 3px;
-  height: 3px;
-  animation: floatEmber60_3 4.8s ease-in-out infinite 2.4s;
+  bottom: 20% !important;
+  left: 75% !important;
+  width: 3px !important;
+  height: 3px !important;
+  animation: heroFloatEmberSoft1 14s ease-in-out infinite 4s !important;
 }
 
-/* Gira card embers */
-.ember-1 {
-  top: 78%;
-  right: 32%;
-  width: 3.5px;
-  height: 3.5px;
-  animation: floatEmber60_1 5.2s ease-in-out infinite;
-}
-.ember-2 {
-  top: 68%;
-  right: 25%;
-  width: 4px;
-  height: 4px;
-  animation: floatEmber60_2 6.5s ease-in-out infinite 1.4s;
-}
-.ember-3 {
-  top: 84%;
-  right: 39%;
-  width: 2.5px;
-  height: 2.5px;
-  animation: floatEmber60_3 4.6s ease-in-out infinite 2.2s;
-}
-.ember-4 {
-  top: 58%;
-  right: 19%;
-  width: 3px;
-  height: 3px;
-  animation: floatEmber60_1 7s ease-in-out infinite 3.5s;
-}
-.ember-5 {
-  top: 74%;
-  right: 44%;
-  width: 2px;
-  height: 2px;
-  animation: floatEmber60_2 5.2s ease-in-out infinite 0.8s;
+@keyframes heroFloatEmberSoft1 {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  35% { opacity: 0.6; transform: translateY(-16px) translateX(5px); }
+  75% { opacity: 0.4; transform: translateY(-38px) translateX(-4px); }
+  100% { transform: translateY(-60px) translateX(6px); opacity: 0; }
 }
 
-@keyframes floatEmber60_1 {
-  0% { transform: translate3d(0, 0, 0) scale(0.8); opacity: 0; }
-  25% { opacity: 0.95; }
-  75% { opacity: 0.7; }
-  100% { transform: translate3d(-14px, -85px, 0) scale(1.2); opacity: 0; }
+@keyframes heroFloatEmberSoft2 {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  30% { opacity: 0.65; transform: translateY(-18px) translateX(-6px); }
+  70% { opacity: 0.35; transform: translateY(-42px) translateX(4px); }
+  100% { transform: translateY(-70px) translateX(-5px); opacity: 0; }
 }
 
-@keyframes floatEmber60_2 {
-  0% { transform: translate3d(0, 0, 0) scale(0.7); opacity: 0; }
-  20% { opacity: 0.9; }
-  70% { opacity: 0.65; }
-  100% { transform: translate3d(16px, -95px, 0) scale(1.1); opacity: 0; }
+
+/* ==========================================================================
+   REACT APP SHELL INTEGRATION HELPERS
+   ========================================================================== */
+.app-main.is-dashboard {
+  background: #0f1411;
 }
 
-@keyframes floatEmber60_3 {
-  0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
-  30% { opacity: 1; }
-  80% { opacity: 0.55; }
-  100% { transform: translate3d(-8px, -70px, 0) scale(1); opacity: 0; }
+.app-main.is-internal-view {
+  background: #F7F3EA;
 }
 
-/* 7. ESTRELA PISCANDO NA TAG DA GIRA (✦ SPARKLE) */
-.sparkle {
-  display: inline-block;
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: starTwinkle60 3s ease-in-out infinite;
-  color: #f6c94c;
+/* Ensure mobile sidebar toggle and backdrop works seamlessly */
+.mobile-sidebar-backdrop {
+  position: fixed;
+  top: 72px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 995;
+  animation: fadeInBackdrop 200ms ease;
 }
 
-@keyframes starTwinkle60 {
-  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.8; }
-  50% { transform: scale(1.35) rotate(18deg) translateZ(0); opacity: 1; }
-}
-
-/* 8. ÍCONE ESTELAR GIRATÓRIO NA TAG DO PAINEL */
-.hero-tag-icon {
-  display: inline-block;
-  will-change: transform;
-  transform: translateZ(0);
-  animation: tagSparkleSpin60 4.5s ease-in-out infinite;
-}
-
-@keyframes tagSparkleSpin60 {
-  0%, 100% { transform: scale(1) rotate(0deg) translateZ(0); opacity: 0.9; }
-  50% { transform: scale(1.3) rotate(180deg) translateZ(0); opacity: 1; }
-}
-
-/* 9. INDICADORES LITÚRGICOS PULSANTES */
-.pulse-green {
-  position: relative;
-}
-.pulse-green::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(34, 197, 94, 0.8);
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: pulseRingComposite60 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-}
-
-.pulse-gold {
-  position: relative;
-}
-.pulse-gold::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(245, 158, 11, 0.85);
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: pulseRingComposite60 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite 0.7s;
-}
-
-.confirmed-pulse-dot {
-  position: relative;
-}
-.confirmed-pulse-dot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(34, 197, 94, 0.9);
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  animation: pulseRingComposite60 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-}
-
-@keyframes pulseRingComposite60 {
-  0% { transform: scale(1) translateZ(0); opacity: 0.9; }
-  100% { transform: scale(2.6) translateZ(0); opacity: 0; }
-}
-
-/* 10. MINI RADAR SWEEP */
-.mini-radar-sweep {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(229, 174, 18, 0.45) 360deg);
-  will-change: transform;
-  transform: translateZ(0);
-  animation: miniSweep60 3.5s linear infinite;
-}
-
-@keyframes miniSweep60 {
-  from { transform: rotate(0deg) translateZ(0); }
-  to { transform: rotate(360deg) translateZ(0); }
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ==========================================================================
-   11. HOVER TÁTIL & VIBRANTE EM TODOS OS CARDS E BOTÕES DO SISTEMA (60FPS)
-   Sem travar: transições apenas de transform e box-shadow aceleradas por hardware.
+   PADRONIZAÇÃO DOS CANTOS MENOS ARREDONDADOS (8PX / BERRY STYLE)
+   Garante que todas as páginas internas (Radar, Loja da Casa, Biblioteca,
+   Almoxarifado, Galeria, Todas as Páginas do Financeiro e Todas as Páginas da Casa)
+   tenham os mesmos cantos sóbrios e menos arredondados da Dashboard (--radius-card: 8px).
    ========================================================================== */
 
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-[2rem]"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-[2.5rem]"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-[26px]"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-[28px]"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-[32px]"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-3xl"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-2xl"]:not([class*="rounded-full"]):not(.berry-switch *):not(input):not(button.rounded-full),
+.axe-berry-mode .app-main.is-internal-view .app-v5-panel,
+.axe-berry-mode .app-main.is-internal-view .app-v5-table-shell,
+.axe-berry-mode .app-main.is-internal-view .app-command-strip,
+.axe-berry-mode .app-main.is-internal-view .axe-card,
+.axe-berry-mode .app-main.is-internal-view article:not([class*="rounded-full"]),
+.axe-berry-mode .app-main.is-internal-view .card,
+.axe-berry-mode .app-main.is-internal-view header[class*="rounded-"]:not([class*="rounded-full"]),
+.axe-berry-mode .app-main.is-internal-view section[class*="border"]:not([class*="rounded-full"]),
+.axe-berry-mode .app-main.is-internal-view .wa-settings-panel__card {
+  border-radius: var(--radius-card, 8px) !important;
+}
+
+/* Modal dialogs em páginas internas */
+.axe-berry-mode [role="dialog"] [class*="rounded-[26px]"],
+.axe-berry-mode [role="dialog"] [class*="rounded-2xl"],
+.axe-berry-mode [role="dialog"] [class*="rounded-3xl"],
+.axe-berry-mode [role="dialog"] .relative.z-10[class*="border"] {
+  border-radius: var(--radius-card, 8px) !important;
+}
+
+/* Protege elementos circulares intencionais (avatares, tags redondas, sliders) */
+.axe-berry-mode [class*="rounded-full"],
+.axe-berry-mode .app-main.is-internal-view [class*="rounded-full"],
+.axe-berry-mode [class*="rounded-full"] * {
+  border-radius: 9999px !important;
+}
+
+
+/* ==========================================================================
+   RESPONSIVIDADE COMPLETA: MOBILE, TABLET & DESKTOP (BERRY + AXÉ)
+   ========================================================================== */
+
+/* 1. DISPOSITIVOS MÓVEIS (SMARTPHONES <= 768px) */
+@media (max-width: 768px) {
+  /* Previne qualquer overflow horizontal global */
+  .axe-berry-mode.app-shell {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Topbar enxuto e alinhado */
+  .app-topbar {
+    padding: 0 12px !important;
+    height: 64px !important;
+    gap: 8px !important;
+  }
+
+  .topbar-left {
+    gap: 8px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .topbar-brand-link {
+    width: auto !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .topbar-brand-icon {
+    width: 26px !important;
+    height: 32px !important;
+  }
+
+  .topbar-brand-name {
+    font-size: 16px !important;
+  }
+
+  /* Oculta subtítulo da marca no mobile para economizar espaço precioso */
+  .topbar-brand-tag {
+    display: none !important;
+  }
+
+  .topbar-menu-toggle {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Campo de busca do topbar fica oculto em smartphones para que o perfil do zelador e avisos fiquem 100% visíveis */
+  .berry-search-box {
+    display: none !important;
+  }
+
+  .topbar-right {
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .topbar-btn.notification {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .berry-profile-chip {
+    padding: 3px 6px 3px 3px !important;
+    gap: 6px !important;
+  }
+
+  .profile-avatar-wrap {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .profile-gear-icon {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Popover do perfil contido perfeitamente na tela mobile */
+  .berry-profile-dropdown {
+    width: calc(100vw - 24px) !important;
+    max-width: 340px !important;
+    right: 0 !important;
+    top: calc(100% + 8px) !important;
+    padding: 14px !important;
+  }
+
+  /* Sidebar no mobile: gaveta flutuante (overlay) quando aberta, e 100% oculta quando recolhida */
+  .app-shell.sidebar-collapsed .app-sidebar {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+  }
+
+  .app-sidebar {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 82vw !important;
+    height: calc(100vh - 64px) !important;
+    z-index: 1000 !important;
+    box-shadow: 6px 0 28px rgba(0, 0, 0, 0.7) !important;
+    background: #0f1411 !important;
+  }
+
+  .mobile-sidebar-backdrop {
+    top: 64px !important;
+    z-index: 999 !important;
+    display: block !important;
+  }
+
+  /* Workspace e Conteúdo Principal ocupam 100% da tela */
+  .app-workspace {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-height: calc(100vh - 64px) !important;
+    margin-left: 0 !important;
+  }
+
+  .app-main {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .dashboard-main-content {
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    padding: 14px 12px 32px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  /* Ajustes finos dos Cards da Dashboard no Smartphone */
+  .hero-cinematic-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .cinematic-gira-card {
+    min-height: 250px !important;
+  }
+
+  .cinematic-gira-content {
+    max-width: 100% !important;
+  }
+
+  .cinematic-actions-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .btn-cinematic-notify,
+  .btn-cinematic-open {
+    flex: 1 1 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .metric-card {
+    padding: 14px 12px !important;
+  }
+
+  .metric-number {
+    font-size: 20px !important;
+  }
+
+  .metric-label {
+    font-size: 11px !important;
+  }
+
+  .shortcuts-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .featured-widgets-grid,
+  .bottom-sections-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Container de páginas internas com espaçamento mobile consistente */
+  .axe-berry-mode .app-main.is-internal-view > div {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* 2. TABLETS (769px a 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-topbar {
+    padding: 0 16px !important;
+  }
+
+  .topbar-brand-link {
+    width: auto !important;
+  }
+
+  .berry-search-box {
+    max-width: 190px !important;
+  }
+
+  .dashboard-main-content {
+    margin-right: 12px !important;
+  }
+
+  .hero-cinematic-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .mobile-sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+/* 3. DESKTOPS E TELAS ULTRA-WIDE (> 1024px) */
+@media (min-width: 1025px) {
+  .dashboard-main-content {
+    margin-right: 20px;
+  }
+
+  .mobile-sidebar-backdrop {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   AXÉ DESIGN — DASHBOARD DE PRODUÇÃO
+   A composição aprovada: boas-vindas → dados → gira + Radar → operação → ritmo.
+   A sidebar e a gaveta mobile permanecem as do shell atual.
+   ============================================================================ */
+.dashboard-container {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.hero-cinematic-grid,
+.featured-widgets-grid,
+.bottom-sections-grid {
+  display: contents;
+}
+
 .hero-welcome-card,
+.metrics-grid,
 .cinematic-gira-card,
-.berry-card,
-.feature-widget-card,
-.action-item,
-.shortcut-btn,
-.btn-hero-primary,
-.btn-hero-secondary,
-.btn-cinematic-notify,
-.btn-cinematic-open,
-.checklist-step {
-  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1), box-shadow 220ms ease, border-color 220ms ease !important;
-  will-change: transform, box-shadow;
+.widget-radar,
+.widget-preceito,
+.bottom-sections-grid > .section-panel,
+.dashboard-timeline {
+  min-width: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
-/* Hover no Card de Boas-Vindas */
-.hero-welcome-card:hover {
-  transform: translateY(-3px) translateZ(0) !important;
-  border-color: rgba(229, 174, 18, 0.55) !important;
-  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.65), 0 0 30px rgba(229, 174, 18, 0.18) !important;
+.hero-welcome-card {
+  grid-column: 1 / -1;
+  order: 1;
+  min-height: 250px;
 }
 
-/* Hover no Card Cinematográfico da Gira */
-.cinematic-gira-card:hover {
-  transform: translateY(-3px) translateZ(0) !important;
-  border-color: rgba(229, 174, 18, 0.5) !important;
-  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.65), 0 0 26px rgba(229, 174, 18, 0.2) !important;
+.metrics-grid {
+  grid-column: 1 / -1;
+  order: 2;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 0;
 }
 
-.cinematic-gira-card:hover .cinematic-gira-badge {
-  border-color: rgba(246, 201, 76, 0.65) !important;
-  background: rgba(229, 174, 18, 0.24) !important;
+.metrics-grid .berry-card {
+  min-width: 0;
 }
 
-/* Hover nos 4 Cards de Métricas Estilo Berry */
-.berry-card:hover {
-  transform: translateY(-4px) translateZ(0) !important;
-  box-shadow: 0 14px 28px -4px rgba(32, 40, 45, 0.14) !important;
-  border-color: #cbd5e1 !important;
+.preceito-activation-card {
+  background: linear-gradient(145deg, #fffaf0 0%, #fff 100%);
+  border-color: #eadca9;
 }
 
-/* Hover nos Widgets de Preceito e Radar */
-.feature-widget-card:hover {
-  transform: translateY(-3px) translateZ(0) !important;
-  box-shadow: 0 10px 24px -4px rgba(32, 40, 45, 0.12) !important;
+.preceito-activation-card .metric-number {
+  color: #9a6e06;
 }
 
-/* Hover nos Itens de Ação / Tarefas */
-.action-item:hover {
-  transform: translateX(5px) translateZ(0) !important;
-  background: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
-  border-color: #cbd5e1 !important;
+.metric-label strong,
+.metric-label span {
+  display: block;
 }
 
-/* Hover nos Botões Hero */
-.btn-hero-primary:hover {
-  transform: translateY(-2px) translateZ(0) !important;
-  box-shadow: 0 6px 16px rgba(229, 174, 18, 0.45) !important;
+.metric-label strong {
+  color: #946b06;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.btn-hero-secondary:hover {
-  transform: translateY(-2px) translateZ(0) !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+.metric-label span {
+  margin-top: 2px;
 }
 
-/* Hover nos Botões da Gira */
-.btn-cinematic-notify:hover {
-  transform: translateY(-1px) translateZ(0) !important;
-  background: rgba(255, 255, 255, 0.16) !important;
-  color: #ffffff !important;
+.cinematic-gira-card,
+.widget-radar {
+  grid-column: span 6;
+  order: 3;
 }
 
-.btn-cinematic-open:hover {
-  transform: translateY(-1px) translateZ(0) !important;
-  box-shadow: 0 4px 16px rgba(229, 174, 18, 0.5) !important;
+.widget-radar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 178px;
+  grid-template-areas: "content map";
+  gap: 20px;
+  min-height: 280px;
+  padding: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(229, 174, 18, 0.26);
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, #0c3325 0%, #164f39 100%);
+  box-shadow: 0 14px 32px rgba(16, 57, 40, 0.18);
 }
 
-/* Hover nos Atalhos Rápidos */
-.shortcut-btn:hover {
-  transform: translateY(-2px) translateZ(0) !important;
-  border-color: #e5ae12 !important;
-  color: #121926 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+.widget-radar::before {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 83% 22%, rgba(229, 174, 18, 0.18), transparent 30%);
+  content: "";
+  pointer-events: none;
 }
 
-/* Hover no Checklist de Onboarding */
-.checklist-step:hover {
-  transform: translateX(4px) translateZ(0) !important;
-  background: #ffffff !important;
+.widget-radar .widget-content-left,
+.widget-radar .widget-radar-map {
+  position: relative;
+  z-index: 1;
 }
 
-/* Reset de Botão para Itens do Popover */
-button.popover-menu-item {
-  border: none;
-  background: transparent;
+.widget-radar .widget-content-left {
+  grid-area: content;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.widget-radar .widget-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #e5ae12;
+}
+
+.radar-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7fe0ad;
+  box-shadow: 0 0 0 4px rgba(127, 224, 173, 0.15);
+}
+
+.widget-radar .widget-title,
+.widget-radar .widget-desc {
+  color: #f8fbf7;
+}
+
+.widget-radar .widget-title {
+  margin-top: 18px;
+  font-size: 25px;
+  letter-spacing: -0.035em;
+}
+
+.widget-radar .widget-desc {
+  max-width: 410px;
+  color: rgba(238, 248, 241, 0.76);
+}
+
+.widget-radar-map {
+  grid-area: map;
+  position: relative;
+  min-height: 178px;
+  align-self: center;
+  overflow: hidden;
+  border: 1px solid rgba(181, 224, 194, 0.22);
+  border-radius: 18px;
+  background:
+    linear-gradient(150deg, rgba(28, 93, 66, 0.7), rgba(5, 37, 26, 0.86)),
+    repeating-linear-gradient(28deg, transparent 0 22px, rgba(180, 222, 191, 0.12) 23px 24px);
+}
+
+.widget-radar-map::before,
+.widget-radar-map::after {
+  position: absolute;
+  border: 1px solid rgba(217, 235, 211, 0.16);
+  border-radius: 50%;
+  content: "";
+}
+
+.widget-radar-map::before {
+  width: 145px;
+  height: 145px;
+  top: 16px;
+  left: 15px;
+}
+
+.widget-radar-map::after {
+  width: 86px;
+  height: 86px;
+  top: 45px;
+  left: 44px;
+}
+
+.radar-map-road {
+  position: absolute;
+  height: 1px;
+  background: rgba(217, 235, 211, 0.2);
+  transform-origin: left center;
+}
+
+.radar-map-road-a { top: 76px; left: -8px; width: 210px; transform: rotate(-18deg); }
+.radar-map-road-b { top: 126px; left: 45px; width: 170px; transform: rotate(21deg); }
+
+.radar-map-zone {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(229, 174, 18, 0.12);
+}
+
+.radar-map-zone-a { width: 42px; height: 42px; top: 62px; left: 37px; }
+.radar-map-zone-b { width: 22px; height: 22px; top: 98px; right: 34px; background: rgba(127, 224, 173, 0.15); }
+
+.radar-map-home,
+.radar-map-pin {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.radar-map-home {
+  top: 72px;
+  left: 46px;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #f5cc45;
+  background: #0b3626;
+  color: #f5cc45;
+  box-shadow: 0 0 0 5px rgba(229, 174, 18, 0.14);
+}
+
+.radar-map-pin { width: 18px; height: 18px; background: #d8f0df; color: #185e42; }
+.radar-map-pin-a { top: 32px; right: 38px; }
+.radar-map-pin-b { top: 88px; right: 69px; }
+.radar-map-pin-c { top: 124px; right: 24px; }
+
+.widget-radar-map small {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: rgba(240, 250, 239, 0.66);
+  font-size: 9px;
+}
+
+.widget-radar-stats {
+  display: flex;
+  gap: 28px;
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid rgba(222, 245, 229, 0.18);
+}
+
+.widget-radar-stats div {
+  display: grid;
+  gap: 2px;
+}
+
+.widget-radar-stats strong {
+  color: #f5cc45;
+  font-size: 21px;
+}
+
+.widget-radar-stats span {
+  color: rgba(240, 250, 239, 0.68);
+  font-size: 10px;
+}
+
+.widget-radar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.widget-radar .widget-btn {
+  width: auto;
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: 9px;
+  background: #f5cc45;
+  color: #142318;
+}
+
+.widget-radar-secondary {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(225, 245, 230, 0.24);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8f3e9;
+  font-size: 11px;
+  font-weight: 800;
   cursor: pointer;
-  text-align: left;
+}
+
+.widget-preceito {
+  display: none;
+}
+
+.bottom-sections-grid > .section-panel:first-child {
+  grid-column: span 7;
+  order: 5;
+}
+
+.bottom-sections-grid > .section-panel:nth-child(2) {
+  grid-column: span 5;
+  order: 6;
+}
+
+.dashboard-timeline {
+  position: relative;
+  grid-column: 1 / -1;
+  order: 7;
+  overflow: hidden;
+  padding: 30px;
+  border: 1px solid #eadfbd;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 94% 12%, rgba(225, 174, 18, 0.13) 0 1px, transparent 1.5px) 0 0 / 18px 18px,
+    linear-gradient(135deg, #fffdf7 0%, #fdfbf5 62%, #ffffff 100%);
+  box-shadow: 0 18px 42px rgba(31, 48, 39, 0.08);
+}
+
+.dashboard-timeline::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(180deg, #e5ae12 0%, #d2a21c 48%, rgba(210, 162, 28, 0) 100%);
+  content: "";
+  opacity: 0.7;
+}
+
+.timeline-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid rgba(186, 159, 89, 0.22); }
+.timeline-heading h2 { margin-top: 7px; color: #0e2e23; font-size: 28px; letter-spacing: -0.045em; }
+.timeline-lead { max-width: 520px; margin: 9px 0 0; color: #66736c; font-size: 12px; line-height: 1.5; }
+.timeline-summary { display: inline-flex; align-items: center; gap: 7px; margin-top: 2px; padding: 9px 12px; border: 1px solid #d9e5dc; border-radius: 999px; background: rgba(255,255,255,.7); color: #66736c; font-size: 11px; white-space: nowrap; }
+.timeline-summary strong { color: #164b38; font-weight: 800; }
+.timeline-summary-dot { width: 7px; height: 7px; border-radius: 50%; background: #e5ae12; box-shadow: 0 0 0 4px #fff1c1; }
+.timeline-track { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--timeline-columns, 4), minmax(0, 1fr)); gap: 20px; padding-top: 34px; }
+.timeline-track::before { top: 59px; right: 4%; left: 4%; height: 3px; background: linear-gradient(90deg,#e5ae12 0%,#e5ae12 25%,#d7e6dc 25%,#d7e6dc 51%,#e7ddbd 51%,#e7ddbd 76%,#dce7ed 76%,#dce7ed 100%); }
+.timeline-event, .timeline-event-current { z-index: 1; display: flex; flex-direction: column; padding-top: 0; border-top: 0; }
+.timeline-event::before, .timeline-event-current::before { top: 53px; left: 50%; width: 13px; height: 13px; transform: translateX(-50%); border: 3px solid #fffdf7; background: #aebbb1; box-shadow: 0 0 0 4px #e5eee7; }
+.timeline-event-current::before, .timeline-event-attention::before { background: #e5ae12; box-shadow: 0 0 0 4px #fff0bd; }
+.timeline-event-gira::before { background: #1c8a60; box-shadow: 0 0 0 4px #d6eee0; }
+.timeline-event-preceito::before { background: #c99318; box-shadow: 0 0 0 4px #f8eac2; }
+.timeline-event-comunicado::before { background: #5e8ba8; box-shadow: 0 0 0 4px #deebf1; }
+.timeline-event-marker { position: relative; z-index: 2; display: flex; min-height: 68px; align-items: flex-start; flex-direction: column; }
+.timeline-node { display: inline-flex; min-height: 27px; align-items: center; padding: 6px 11px; border: 1px solid #dce6df; border-radius: 999px; background: rgba(255,255,255,.9); color: #245740; font-size: 11px; font-weight: 800; line-height: 1; }
+.timeline-event-current .timeline-node { border-color: #efcf70; background: #fff6d7; color: #936b08; }
+.timeline-event-gira .timeline-node { border-color: #bbdfca; background: #effaf2; color: #16724e; }
+.timeline-event-preceito .timeline-node { border-color: #ead49a; background: #fff8e6; color: #9e7108; }
+.timeline-event-comunicado .timeline-node { border-color: #c9dce6; background: #f2f8fb; color: #4e7893; }
+.timeline-event-card { position: relative; display: flex; min-height: 178px; margin-top: 0; overflow: hidden; flex-direction: column; padding: 17px; border: 1px solid rgba(214,224,218,.92); border-top: 3px solid #d8e2dc; border-radius: 17px; background: rgba(255,255,255,.84); box-shadow: 0 9px 22px rgba(31,48,39,.06); transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }
+.timeline-event-card:hover { transform: translateY(-4px); border-color: #c4d6c9; box-shadow: 0 16px 30px rgba(31,48,39,.11); }
+.timeline-event-current .timeline-event-card { transform: translateY(-5px); border-color: #e8d188; border-top-color: #e5ae12; background: linear-gradient(150deg,#fffaf0 0%,#fff 100%); box-shadow: 0 14px 28px rgba(183,129,3,.12); }
+.timeline-event-gira .timeline-event-card { border-top-color: #1c8a60; }
+.timeline-event-preceito .timeline-event-card { border-top-color: #c99318; }
+.timeline-event-comunicado .timeline-event-card { border-top-color: #5e8ba8; }
+.timeline-card-top { display: flex; align-items: center; gap: 10px; }
+.timeline-event-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 11px; background: #eef4ef; color: #1c513e; font-size: 15px; font-weight: 850; }
+.timeline-event-current .timeline-event-icon { background: #fff0c8; color: #a97605; }
+.timeline-event-gira .timeline-event-icon { background: #dcf4e6; color: #1c8a60; }
+.timeline-event-preceito .timeline-event-icon { background: #fff0c8; color: #b17b06; }
+.timeline-event-comunicado .timeline-event-icon { background: #e3eff5; color: #4e7893; }
+.timeline-event-type { color: #8b6d12; font-size: 10px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.timeline-event-gira .timeline-event-type { color: #1c8a60; }
+.timeline-event-preceito .timeline-event-type { color: #b17b06; }
+.timeline-event-comunicado .timeline-event-type { color: #4e7893; }
+.timeline-event-card strong { max-width: 220px; margin-top: 15px; color: #0e2e23; font-size: 14px; line-height: 1.35; }
+.timeline-event-card small { max-width: 240px; margin-top: auto; padding-top: 14px; color: #6a776f; font-size: 11.5px; line-height: 1.45; }
+
+.dashboard-empty-state {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  place-content: center start;
+  padding: 20px;
+  border: 1px dashed #d9e3dc;
+  border-radius: 14px;
+  background: #f8faf8;
+  color: #173b2d;
+}
+
+.dashboard-empty-state small {
+  color: #6a776f;
+  line-height: 1.5;
+}
+
+.timeline-empty-state {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.checklist-step-button {
   width: 100%;
-  font-family: inherit;
-  font-size: 13px;
-  line-height: normal;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.checklist-step-button:hover,
+.checklist-step-button:focus-visible {
+  background: #f5f8f5;
+}
+
+.checklist-step-button:focus-visible {
+  outline: 2px solid #d7a818;
+  outline-offset: 2px;
+}
+
+@media (max-width: 1200px) {
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cinematic-gira-card, .widget-radar { grid-column: 1 / -1; }
+  .bottom-sections-grid > .section-panel:first-child, .bottom-sections-grid > .section-panel:nth-child(2) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+  .dashboard-container { grid-template-columns: 1fr; gap: 16px; }
+  .hero-welcome-card, .metrics-grid, .cinematic-gira-card, .widget-radar, .bottom-sections-grid > .section-panel, .dashboard-timeline { grid-column: 1 / -1; }
+  .widget-radar { grid-template-columns: minmax(0, 1fr) 160px; grid-template-areas: "content map"; }
+  .timeline-track { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 16px; }
+  .timeline-track::before, .timeline-event::before, .timeline-event-current::before { display: none; }
+  .timeline-event-marker { min-height: auto; margin-bottom: 10px; }
+  .timeline-event-current .timeline-event-card { transform: none; }
+}
+
+@media (max-width: 640px) {
+  .dashboard-container { gap: 14px; }
+  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .metrics-grid .berry-card { min-height: 170px; padding: 18px 16px; }
+  .widget-radar { grid-template-columns: 1fr; grid-template-areas: "content" "map"; min-height: 0; padding: 20px; }
+  .widget-radar-map { order: -1; min-height: 142px; }
+  .widget-radar-map::before { width: 120px; height: 120px; }
+  .widget-radar-map::after { width: 72px; height: 72px; top: 40px; left: 39px; }
+  .dashboard-timeline { padding: 24px 18px 22px; }
+  .timeline-header { gap: 14px; flex-direction: column; }
+  .timeline-heading h2 { font-size: 24px; }
+  .timeline-summary { margin-top: 0; }
+  .timeline-track { grid-template-columns: 1fr; gap: 18px; padding-top: 24px; }
+  .timeline-event-card { min-height: 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-event-card { transition: none; }
+  .timeline-event-card:hover, .timeline-event-current .timeline-event-card { transform: none; }
 }

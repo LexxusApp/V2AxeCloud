@@ -105,7 +105,7 @@ function ServicoForm({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-[#DED6C8] bg-[#FFFDF8] p-5">
+    <div className="space-y-4 rounded-lg border border-[#DED6C8] bg-[#FFFDF8] p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className={paperLabel}>Nome do atendimento *</label>
@@ -325,7 +325,7 @@ export function TerreiroServicosSettings() {
 
   if (loading) {
     return (
-      <div className="app-v5-panel grid min-h-40 place-items-center rounded-2xl">
+      <div className="app-v5-panel grid min-h-40 place-items-center rounded-lg">
         <Loader2 className="h-6 w-6 animate-spin text-[#526A55]" />
       </div>
     );
@@ -333,7 +333,7 @@ export function TerreiroServicosSettings() {
 
   if (!data?.claimed) {
     return (
-      <section className="app-v5-panel rounded-2xl p-6 sm:p-7">
+      <section className="app-v5-panel rounded-lg p-6 sm:p-7">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B08A22]">Atendimentos</p>
         <h3 className="mt-1 font-display text-xl font-black text-[#211D17]">Nenhum perfil reivindicado</h3>
         <p className="mt-2 max-w-2xl text-sm font-semibold leading-relaxed text-[#70695F]">
@@ -354,7 +354,7 @@ export function TerreiroServicosSettings() {
   const servicos = data.servicos || [];
 
   return (
-    <section className="app-v5-panel overflow-hidden rounded-2xl">
+    <section className="app-v5-panel overflow-hidden rounded-lg">
       <div className="border-b border-[#DED6C8] p-5 sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#B08A22]">Atendimentos</p>
         <h3 className="mt-1 font-display text-xl font-black tracking-tight text-[#211D17]">O que a casa oferece</h3>
