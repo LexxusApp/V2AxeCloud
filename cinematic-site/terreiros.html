@@ -661,6 +661,28 @@ footer a { color: var(--ouro); text-decoration: none; }
         <a class="official-showcase-all" href="#map-shell">Explorar no mapa <span aria-hidden="true">↗</span></a>
       </div>
       <div class="official-showcase-grid" id="official-showcase-grid" aria-label="Casas oficiais em destaque"></div>
+      <div class="official-showcase-footer" aria-label="Navegação das casas oficiais">
+        <div class="official-showcase-pager">
+          <button type="button" id="official-showcase-prev" class="official-showcase-page-button" aria-label="Mostrar casas anteriores" disabled><span aria-hidden="true">←</span> Anteriores</button>
+          <span id="official-showcase-counter" class="official-showcase-counter" role="status" aria-live="polite"></span>
+          <button type="button" id="official-showcase-next" class="official-showcase-page-button" aria-label="Mostrar próximas casas">Próximas <span aria-hidden="true">→</span></button>
+        </div>
+        <button type="button" id="official-showcase-view-all" class="official-showcase-view-all" aria-expanded="false" aria-controls="official-showcase-all-panel">Ver todas as casas <span aria-hidden="true">↓</span></button>
+      </div>
+      <div class="official-showcase-all-panel" id="official-showcase-all-panel" hidden>
+        <div class="official-showcase-all-heading">
+          <div>
+            <h3>Todas as casas oficiais</h3>
+            <p>Encontre uma casa pelo nome, cidade ou estado e abra seu perfil.</p>
+          </div>
+          <div class="official-showcase-search-wrap">
+            <label for="official-showcase-search">Buscar nesta lista</label>
+            <input type="search" id="official-showcase-search" placeholder="Nome da casa ou cidade" autocomplete="off" />
+          </div>
+        </div>
+        <p class="official-showcase-list-status" id="official-showcase-list-status" role="status" aria-live="polite"></p>
+        <div class="official-showcase-list" id="official-showcase-list" aria-label="Todas as casas oficiais"></div>
+      </div>
     </section>
 
     <div class="map-stage">
@@ -1560,6 +1582,72 @@ function pontosDoContexto() {
 
 // A vitrine apenas reaproveita os perfis oficiais já presentes no mapa.
 const fotosVitrineEmCarga = new Set();
+let paginaAtualVitrine = 0;
+let contextoVitrine = "";
+let casasVitrine = [];
+let casasOrdenadasVitrine = [];
+let tamanhoPaginaVitrine = 4;
+let controlesVitrineIniciados = false;
+
+function quantidadeCardsVitrine() {
+  return window.innerWidth <= 600 ? 1 : window.innerWidth <= 980 ? 2 : 4;
+}
+
+function textoNormalizadoVitrine(valor) {
+  return String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+function renderizaListaCompletaVitrine() {
+  const painel = document.getElementById("official-showcase-all-panel");
+  const lista = document.getElementById("official-showcase-list");
+  const status = document.getElementById("official-showcase-list-status");
+  if (!painel || painel.hidden || !lista || !status) return;
+  const busca = textoNormalizadoVitrine(document.getElementById("official-showcase-search")?.value);
+  const filtradas = casasVitrine
+    .filter((p) => textoNormalizadoVitrine([p.nome, p.cidade, p.estado].join(" ")).includes(busca))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  status.textContent = `${filtradas.length} de ${casasVitrine.length} casas oficiais`;
+  lista.innerHTML = filtradas.length ? filtradas.map((p) => {
+    const local = [p.cidade, p.estado].filter(Boolean).join(" · ");
+    const perfil = perfilLocal(p) || p.perfilUrl;
+    return `<a class="official-showcase-list-item" href="${esc(perfil)}"><span class="official-showcase-list-mark" aria-hidden="true">✦</span><span class="official-showcase-list-copy"><strong>${esc(p.nome)}</strong><small>${esc(local || "Brasil")}</small></span><span class="official-showcase-list-arrow" aria-hidden="true">↗</span></a>`;
+  }).join("") : '<p class="official-showcase-empty">Nenhuma casa encontrada. Tente outro nome ou cidade.</p>';
+}
+
+function inicializaControlesVitrine() {
+  if (controlesVitrineIniciados) return;
+  controlesVitrineIniciados = true;
+  document.getElementById("official-showcase-prev")?.addEventListener("click", () => {
+    if (paginaAtualVitrine === 0) return;
+    paginaAtualVitrine -= 1;
+    renderizaVitrineOficiais(casasVitrine);
+  });
+  document.getElementById("official-showcase-next")?.addEventListener("click", () => {
+    if ((paginaAtualVitrine + 1) * tamanhoPaginaVitrine >= casasVitrine.length) return;
+    paginaAtualVitrine += 1;
+    renderizaVitrineOficiais(casasVitrine);
+  });
+  document.getElementById("official-showcase-view-all")?.addEventListener("click", () => {
+    const painel = document.getElementById("official-showcase-all-panel");
+    const botao = document.getElementById("official-showcase-view-all");
+    if (!painel || !botao) return;
+    painel.hidden = !painel.hidden;
+    botao.setAttribute("aria-expanded", String(!painel.hidden));
+    botao.innerHTML = painel.hidden
+      ? `Ver todas as ${casasVitrine.length} casas <span aria-hidden="true">↓</span>`
+      : 'Fechar lista completa <span aria-hidden="true">↑</span>';
+    if (!painel.hidden) renderizaListaCompletaVitrine();
+  });
+  document.getElementById("official-showcase-search")?.addEventListener("input", renderizaListaCompletaVitrine);
+  window.addEventListener("resize", () => {
+    const proximoTamanho = quantidadeCardsVitrine();
+    if (proximoTamanho !== tamanhoPaginaVitrine && casasVitrine.length) {
+      paginaAtualVitrine = 0;
+      renderizaVitrineOficiais(casasVitrine);
+    }
+  }, { passive: true });
+}
+
 function renderizaVitrineOficiais(oficiais) {
   const secao = document.getElementById("casas-oficiais");
   const gradeVitrine = document.getElementById("official-showcase-grid");
@@ -1567,15 +1655,26 @@ function renderizaVitrineOficiais(oficiais) {
   if (!oficiais.length) {
     secao.hidden = true;
     gradeVitrine.replaceChildren();
+    casasVitrine = [];
+    contextoVitrine = "";
+    paginaAtualVitrine = 0;
     return;
   }
 
-  // Rodízio visual diário: nenhuma casa fica permanentemente nas primeiras posições.
-  const inicio = Math.floor(Date.now() / 86400000) % oficiais.length;
-  const selecionados = Array.from(
-    { length: Math.min(4, oficiais.length) },
-    (_, indice) => oficiais[(inicio + indice) % oficiais.length],
-  );
+  // Rotação inicial diária, mas toda casa continua acessível pelas setas e pela lista.
+  const novaAssinatura = oficiais.map((p) => p.slug).join("|");
+  if (novaAssinatura !== contextoVitrine) {
+    contextoVitrine = novaAssinatura;
+    paginaAtualVitrine = 0;
+  }
+  casasVitrine = oficiais;
+  const giroDiario = Math.floor(Date.now() / 86400000) % oficiais.length;
+  casasOrdenadasVitrine = oficiais.slice(giroDiario).concat(oficiais.slice(0, giroDiario));
+  tamanhoPaginaVitrine = quantidadeCardsVitrine();
+  const totalPaginas = Math.ceil(oficiais.length / tamanhoPaginaVitrine);
+  paginaAtualVitrine = Math.min(paginaAtualVitrine, totalPaginas - 1);
+  const inicio = paginaAtualVitrine * tamanhoPaginaVitrine;
+  const selecionados = casasOrdenadasVitrine.slice(inicio, inicio + tamanhoPaginaVitrine);
   secao.hidden = false;
   gradeVitrine.innerHTML = selecionados.map((p) => {
     const detalhes = detalhesPopupPorSlug.get(p.slug) || itensPorSlug.get(p.slug) || {};
@@ -1597,7 +1696,22 @@ function renderizaVitrineOficiais(oficiais) {
       </a>`;
   }).join("");
 
-  // Só consulta as quatro casas em destaque; não carrega fotos de todo o diretório.
+  inicializaControlesVitrine();
+  const anterior = document.getElementById("official-showcase-prev");
+  const proxima = document.getElementById("official-showcase-next");
+  const contador = document.getElementById("official-showcase-counter");
+  const botaoTodas = document.getElementById("official-showcase-view-all");
+  if (anterior) anterior.disabled = paginaAtualVitrine === 0;
+  if (proxima) proxima.disabled = paginaAtualVitrine >= totalPaginas - 1;
+  if (contador) contador.textContent = selecionados.length === 1
+    ? `${inicio + 1} de ${oficiais.length}`
+    : `${inicio + 1}–${inicio + selecionados.length} de ${oficiais.length}`;
+  if (botaoTodas && botaoTodas.getAttribute("aria-expanded") !== "true") {
+    botaoTodas.innerHTML = `Ver todas as ${oficiais.length} casas <span aria-hidden="true">↓</span>`;
+  }
+  renderizaListaCompletaVitrine();
+
+  // Busca fotos apenas dos cards visíveis nesta página, não das demais casas.
   selecionados.forEach(async (p) => {
     if (fotosVitrineEmCarga.has(p.slug)) return;
     const card = Array.from(gradeVitrine.querySelectorAll(".official-showcase-card"))
