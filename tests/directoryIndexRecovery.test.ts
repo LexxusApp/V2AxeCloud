@@ -69,3 +69,11 @@ test('cidades, artigos e recursos ausentes não viram cópias da home com HTTP 2
     assert.equal((await response.text()).includes('rel="canonical"'), false);
   }
 });
+
+test('sitemaps antigos do diretório retornam 410 e apontam para o índice atual', async () => {
+  const env = { PREVIEW_MODE: 'false', ASSETS: { fetch: async () => { throw new Error('Não deve consultar asset legado'); } } };
+  const response = await worker.fetch(new Request('https://axecloud.com.br/sitemap-diretorio-12.xml'), env);
+  assert.equal(response.status, 410);
+  assert.equal(response.headers.get('Link'), '</sitemap.xml>; rel="sitemap"');
+  assert.match(await response.text(), /Sitemap antigo removido/);
+});

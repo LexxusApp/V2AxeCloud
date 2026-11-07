@@ -33,6 +33,8 @@
     { "pattern": "axecloud.com.br/senhas*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap.xml*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap-static.xml*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/sitemap-cidades.xml*", "zone_name": "axecloud.com.br" },
+    { "pattern": "axecloud.com.br/sitemap-terreiros-prioridade-*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/sitemap-diretorio-*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/robots.txt*", "zone_name": "axecloud.com.br" },
     { "pattern": "axecloud.com.br/privacidade*", "zone_name": "axecloud.com.br" },

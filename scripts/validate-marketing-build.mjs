@@ -135,8 +135,15 @@ const sitemapChildren = [...sitemapIndex.matchAll(/<loc>https:\/\/axecloud\.com\
 if (!sitemapChildren.includes('sitemap-static.xml')) {
   fail('sitemap.xml não referencia sitemap-static.xml');
 }
-if (!sitemapChildren.some((file) => /^sitemap-diretorio-\d+\.xml$/.test(file))) {
-  fail('sitemap.xml não referencia os blocos do diretório');
+if (!sitemapChildren.includes('sitemap-cidades.xml')) {
+  fail('sitemap.xml não referencia sitemap-cidades.xml');
+}
+const priorityChildren = sitemapChildren.filter((file) => /^sitemap-terreiros-prioridade-\d+\.xml$/.test(file));
+if (priorityChildren.length < 3 || priorityChildren.length > 6) {
+  fail(`quantidade inesperada de sitemaps prioritários: ${priorityChildren.length}`);
+}
+if (sitemapChildren.some((file) => /^sitemap-diretorio-\d+\.xml$/.test(file))) {
+  fail('sitemap.xml ainda referencia o inventário antigo do diretório');
 }
 for (const child of sitemapChildren) {
   const xml = read(child);
@@ -144,14 +151,24 @@ for (const child of sitemapChildren) {
     fail(`sitemap filho inválido: ${child}`);
   }
 }
-const directoryLocs = sitemapChildren
-  .filter((file) => file.startsWith('sitemap-diretorio-'))
+const priorityLocs = priorityChildren
   .flatMap((file) => [...read(file).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
-if (directoryLocs.length < 1000) {
-  fail(`sitemap do diretório insuficiente: ${directoryLocs.length} URL(s)`);
+if (priorityLocs.length < 3000 || priorityLocs.length > 4500) {
+  fail(`primeira leva SEO fora da faixa esperada: ${priorityLocs.length} perfil(is)`);
 }
-if (new Set(directoryLocs).size !== directoryLocs.length) {
-  fail('sitemap do diretório contém URLs duplicadas');
+if (priorityLocs.some((url) => !/\/terreiro\/[^/]+$/.test(url))) {
+  fail('sitemap prioritário contém URL que não é perfil de terreiro');
+}
+const cityLocs = [...read('sitemap-cidades.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+if (cityLocs.length < 400 || cityLocs.length > 1000) {
+  fail(`sitemap de cidades fora da faixa esperada: ${cityLocs.length} URL(s)`);
+}
+if (cityLocs.some((url) => !/\/terreiros\/[a-z]{2}\/[^/]+$/.test(url))) {
+  fail('sitemap de cidades contém rota inesperada');
+}
+const stagedLocs = [...priorityLocs, ...cityLocs];
+if (new Set(stagedLocs).size !== stagedLocs.length) {
+  fail('sitemaps prioritários contêm URLs duplicadas');
 }
 
 console.log(`[marketing:validate] ${CINEMATIC.length} páginas novas e ${REACT.length} rotas preservadas validadas.`);

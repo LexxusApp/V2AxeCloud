@@ -74,6 +74,15 @@ export default {
     }
 
     if (path === '/sitemap.xm') return respond(redirect('/sitemap.xml', 301));
+    if (/^\/sitemap-diretorio-\d+\.xml$/.test(path)) {
+      return respond(new Response('Sitemap antigo removido. Use /sitemap.xml.', {
+        status: 410,
+        headers: {
+          'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+          'Link': '</sitemap.xml>; rel="sitemap"',
+        },
+      }));
+    }
     if (/^\/recursos\/(?:%3c|<)a/i.test(path)) return respond(redirect('/recursos', 301));
     if (path === '/terreiro') return respond(redirect('/terreiros', 302));
     if (/^\/(?:terreiro|terreiros)\/(?:associacao-araxa|templo-de-umbanda-pai-jobim-da-guine|centro-espirita-lar-de-nana)(?:\/.*|\.md)?$/.test(path)) {

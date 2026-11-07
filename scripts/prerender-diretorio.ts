@@ -24,6 +24,12 @@ import {
   isDiretorioListingIndexable,
   isDiretorioListingPublishable,
 } from "../lib/diretorioQuality.ts";
+import {
+  SEO_PRIORITY_CITY_MIN_PROFILES,
+  SEO_PRIORITY_PROFILE_LIMIT,
+  isDiretorioSeoPriorityCity,
+  selectDiretorioSeoPriorityProfiles,
+} from "../lib/diretorioSeoPriority.ts";
 import { resolveTerreiroBairro, slugifyBairro } from "../lib/diretorioBairro.ts";
 import {
   resolveDiretorioTipo,
@@ -55,6 +61,10 @@ type SnapshotRow = DiretorioSeoTerreiro & {
   longitude: number | null;
   coordinateSource: string | null;
   verificada?: boolean;
+  gerenciada?: boolean;
+  descricao?: string | null;
+  instagramUrl?: string | null;
+  horariosGira?: unknown;
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -133,6 +143,10 @@ async function fetchPublicDirectoryRows(): Promise<SnapshotRow[]> {
         longitude: optionalCoordinate(item.longitude, 180),
         coordinateSource: item.coordinateSource ? String(item.coordinateSource) : null,
         verificada: Boolean(item.verificada),
+        gerenciada: Boolean(item.gerenciada),
+        descricao: item.descricao ? String(item.descricao).trim() : null,
+        instagramUrl: item.instagramUrl ? String(item.instagramUrl).trim() : null,
+        horariosGira: item.horariosGira,
         createdAt: item.criadaEm ? String(item.criadaEm) : null,
         updatedAt: item.atualizadaEm ? String(item.atualizadaEm) : null,
         cidadeUrl: item.cidadeUrl ? String(item.cidadeUrl) : null,
@@ -182,6 +196,10 @@ function mapRow(row: Record<string, unknown>): SnapshotRow {
     longitude: hasCoordinates ? longitude : null,
     coordinateSource: hasCoordinates ? String(row.coordinate_source || "google_maps_url") : null,
     verificada: Boolean(row.verified_at || row.claimed_by_tenant_id),
+    gerenciada: Boolean(row.claimed_by_tenant_id),
+    descricao: row.descricao_publica ? String(row.descricao_publica).trim() : null,
+    instagramUrl: row.instagram_url ? String(row.instagram_url).trim() : null,
+    horariosGira: row.gira_horarios,
     createdAt: row.created_at ? String(row.created_at) : null,
     updatedAt: row.updated_at ? String(row.updated_at) : null,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
@@ -479,58 +497,76 @@ function latestSitemapDate(...values: Array<string | null | undefined>): string 
 }
 
 function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>) {
+  const staticRoutes = staticSitemapRoutes();
   fs.writeFileSync(
     path.join(OUT_DIR, "sitemap-static.xml"),
-    buildSitemapXml(SITE_ORIGIN, staticSitemapRoutes()),
+    buildSitemapXml(SITE_ORIGIN, staticRoutes),
     "utf8",
   );
 
+  // Remove inventários antigos para que o Google abandone os lotes de ~15 mil URLs.
   for (const file of fs.readdirSync(OUT_DIR)) {
-    if (/^sitemap-diretorio-\d+\.xml$/.test(file)) {
+    if (
+      /^sitemap-diretorio-\d+\.xml$/.test(file) ||
+      file === "sitemap-cidades.xml" ||
+      /^sitemap-terreiros-prioridade-\d+\.xml$/.test(file)
+    ) {
       fs.rmSync(path.join(OUT_DIR, file));
     }
   }
 
-  const directoryRoutes = [
-    ...[...cityMap.values()].flatMap((items) => {
-      const first = items[0];
-      if (!first?.estado || !first.cidadeSlug) return [];
-      return [{
-        path: `/terreiros/${first.estado.toLowerCase()}/${first.cidadeSlug}`,
-        changeFrequency: "weekly" as const,
-        priority: 0.85,
-        lastModified: latestSitemapDate(
-          ...items.flatMap((item) => [item.updatedAt, item.createdAt]),
-        ),
-      }];
-    }),
-    ...rows.flatMap((row) => {
-      if (!row.slug || !isDiretorioListingIndexable(row)) return [];
-      return [{
-        path: `/terreiro/${row.slug}`,
-        changeFrequency: "monthly" as const,
-        priority: 0.65,
-        lastModified: latestSitemapDate(row.updatedAt, row.createdAt),
-      }];
-    }),
-  ];
-
-  const seen = new Set<string>();
-  const uniqueRoutes = directoryRoutes.filter((route) => {
-    if (seen.has(route.path)) return false;
-    seen.add(route.path);
-    return true;
+  const configuredLimit = Number(process.env.SEO_PRIORITY_PROFILE_LIMIT || SEO_PRIORITY_PROFILE_LIMIT);
+  const priorityLimit = Number.isFinite(configuredLimit)
+    ? Math.max(1000, Math.min(6000, Math.floor(configuredLimit)))
+    : SEO_PRIORITY_PROFILE_LIMIT;
+  const prioritySlugs = selectDiretorioSeoPriorityProfiles(rows, {
+    limit: priorityLimit,
+    minCityProfiles: SEO_PRIORITY_CITY_MIN_PROFILES,
   });
-  const chunkCount = Math.max(1, Math.ceil(uniqueRoutes.length / SITEMAP_CHUNK_SIZE));
-  const staticLastmod = latestSitemapDate(
-    ...staticSitemapRoutes().map((route) => route.lastModified),
+
+  const cityRoutes = [...cityMap.values()].flatMap((items) => {
+    const first = items[0];
+    if (!first?.estado || !first.cidadeSlug) return [];
+    if (!isDiretorioSeoPriorityCity(items, prioritySlugs)) return [];
+    return [{
+      path: `/terreiros/${first.estado.toLowerCase()}/${first.cidadeSlug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.85,
+      lastModified: latestSitemapDate(
+        ...items.flatMap((item) => [item.updatedAt, item.createdAt]),
+      ),
+    }];
+  });
+
+  const profileRoutes = rows.flatMap((row) => {
+    if (!row.slug || !prioritySlugs.has(row.slug) || !isDiretorioListingIndexable(row)) return [];
+    return [{
+      path: `/terreiro/${row.slug}`,
+      changeFrequency: row.gerenciada || row.verificada ? "weekly" as const : "monthly" as const,
+      priority: row.gerenciada || row.verificada ? 0.8 : 0.7,
+      lastModified: latestSitemapDate(row.updatedAt, row.createdAt),
+    }];
+  });
+
+  fs.writeFileSync(
+    path.join(OUT_DIR, "sitemap-cidades.xml"),
+    buildSitemapXml(SITE_ORIGIN, cityRoutes),
+    "utf8",
   );
+
+  const profileChunkCount = Math.max(1, Math.ceil(profileRoutes.length / SITEMAP_CHUNK_SIZE));
+  const staticLastmod = latestSitemapDate(...staticRoutes.map((route) => route.lastModified));
   const childSitemaps: Array<{ pathname: string; lastmod: string }> = [
     { pathname: "/sitemap-static.xml", lastmod: staticLastmod },
+    {
+      pathname: "/sitemap-cidades.xml",
+      lastmod: latestSitemapDate(...cityRoutes.map((route) => route.lastModified)),
+    },
   ];
-  for (let index = 0; index < chunkCount; index += 1) {
-    const filename = `sitemap-diretorio-${index + 1}.xml`;
-    const chunk = uniqueRoutes.slice(index * SITEMAP_CHUNK_SIZE, (index + 1) * SITEMAP_CHUNK_SIZE);
+
+  for (let index = 0; index < profileChunkCount; index += 1) {
+    const filename = `sitemap-terreiros-prioridade-${index + 1}.xml`;
+    const chunk = profileRoutes.slice(index * SITEMAP_CHUNK_SIZE, (index + 1) * SITEMAP_CHUNK_SIZE);
     fs.writeFileSync(path.join(OUT_DIR, filename), buildSitemapXml(SITE_ORIGIN, chunk), "utf8");
     childSitemaps.push({
       pathname: `/${filename}`,
@@ -553,9 +589,10 @@ function writeSitemaps(rows: SnapshotRow[], cityMap: Map<string, SnapshotRow[]>)
   fs.writeFileSync(path.join(OUT_DIR, "sitemap.xml"), indexXml, "utf8");
 
   return {
-    directoryUrls: uniqueRoutes.length,
-    indexableProfiles: uniqueRoutes.filter((route) => route.path.startsWith("/terreiro/")).length,
-    cityUrls: uniqueRoutes.filter((route) => route.path.startsWith("/terreiros/")).length,
+    directoryUrls: cityRoutes.length + profileRoutes.length,
+    eligibleProfiles: rows.filter((row) => isDiretorioListingIndexable(row)).length,
+    priorityProfiles: profileRoutes.length,
+    cityUrls: cityRoutes.length,
     childSitemaps: childSitemaps.length,
   };
 }
@@ -573,7 +610,7 @@ async function main() {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, verified_at, created_at, updated_at", (query, { from, to }) =>
+    const data = await fetchAllTerreirosRows(sb, TABLE, "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, instagram_url, descricao_publica, gira_horarios, cidade, estado, slug, cidade_slug, bairro, bairro_slug, tipo, latitude, longitude, coordinate_source, claimed_by_tenant_id, verified_at, created_at, updated_at", (query, { from, to }) =>
       query.order("cidade", { ascending: true }).order("nome", { ascending: true }).range(from, to),
     );
     rows = (data || [])
@@ -657,7 +694,7 @@ async function main() {
   }
 
   console.log(
-    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapCoverage.exact} exatos de ${mapCoverage.listed} representados no mapa; sitemap com ${sitemapCoverage.directoryUrls} URLs (${sitemapCoverage.cityUrls} cidades + ${sitemapCoverage.indexableProfiles} perfis) em ${sitemapCoverage.childSitemaps} arquivos filhos em ${path.relative(ROOT, OUT_DIR)}`,
+    `[prerender:diretorio] ${cityPages} cidade(s), ${terreiroPages} terreiro(s), ${mapCoverage.exact} exatos de ${mapCoverage.listed} representados no mapa; ${sitemapCoverage.eligibleProfiles} perfis elegíveis, primeira leva com ${sitemapCoverage.priorityProfiles} perfis + ${sitemapCoverage.cityUrls} cidades (${sitemapCoverage.directoryUrls} URLs) em ${sitemapCoverage.childSitemaps} sitemaps filhos em ${path.relative(ROOT, OUT_DIR)}`,
   );
 }
 
