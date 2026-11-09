@@ -142,8 +142,8 @@ test("dados de reivindicação não ficam expostos por RLS", () => {
 test("somente a conta vinculada edita os dados reais do diretório", () => {
   assert.match(settingsRoutes, /\/api\/v1\/settings\/directory-profile/);
   assert.match(settingsRoutes, /requireAuthOrRespond\(sb, req, res\)/);
-  assert.match(settingsRoutes, /\.eq\("claimed_by_tenant_id", user\.id\)/);
-  assert.match(settingsRoutes, /\.eq\("id", current\.id\)[\s\S]*\.eq\("claimed_by_tenant_id", user\.id\)/);
+  assert.match(settingsRoutes, /\.eq\("claimed_by_tenant_id", leaderId\)/);
+  assert.match(settingsRoutes, /\.eq\("id", current\.id\)[\s\S]*\.eq\("claimed_by_tenant_id", leaderId\)/);
   assert.match(settingsRoutes, /geocodeDirectoryAddress/);
 });
 

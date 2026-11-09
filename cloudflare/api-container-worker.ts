@@ -2,6 +2,9 @@ import { Container } from "@cloudflare/containers";
 import { env as runtimeEnv } from "cloudflare:workers";
 import { createClient } from "@supabase/supabase-js";
 import { handlePixWebhookEdge } from "./pixWebhookEdge.js";
+import {checkDelegatedApiRequest,resolveDelegatedModuleTenant} from '../api/lib/delegatedAccess.js';
+import {assertZeladorTenantAccess,normalizeChildPayload,resolveLeaderId} from '../api/lib/tenantAccess.js';
+import {handlePilotPrivatePdfEdge} from './pilot-private-pdf-edge.js';
 
 type AxeCloudBindings = {
   AXECLOUD_API_CONTAINER: DurableObjectNamespace<AxeCloudApiContainer>;
@@ -1302,11 +1305,26 @@ async function handleChildrenEdgeRequest(
     .eq("id", user.id)
     .maybeSingle();
 
-  const allowedTenants = new Set<string>([user.id]);
-  if (leaderProfile?.tenant_id) allowedTenants.add(leaderProfile.tenant_id);
-  if (leaderProfile?.id) allowedTenants.add(leaderProfile.id);
+  let delegatedPilotTenant:string|null=null;
+  try{
+    const managementTenant=await resolveDelegatedModuleTenant(supabase,user.id,'members',['GET','HEAD'].includes(request.method)?'visualizar':'gerenciar');
+    if(managementTenant!==user.id)delegatedPilotTenant=managementTenant;
+  }catch(error:any){return Response.json({error:'Não foi possível confirmar o acesso aos membros.'},{status:error?.code==='42501'?403:503});}
+  const {data:memberBinding}=await supabase.from('filhos_de_santo').select('id').eq('user_id',user.id).limit(1).maybeSingle();
+  if(!['GET','HEAD'].includes(request.method)&&!leaderProfile?.is_admin_global&&
+     !await assertZeladorTenantAccess(supabase,user.id,String(delegatedPilotTenant||leaderProfile?.tenant_id||user.id)))
+    return Response.json({error:'O zelador não liberou o gerenciamento de membros.'},{status:403});
+  if(isChildrenCollection&&memberBinding&&!delegatedPilotTenant&&!leaderProfile?.is_admin_global)
+    return Response.json({error:'A lista de membros precisa ser liberada pelo zelador.'},{status:403});
+  const allowedTenants = new Set<string>(memberBinding?[]:[user.id]);
+  if (!memberBinding&&leaderProfile?.tenant_id) allowedTenants.add(leaderProfile.tenant_id);
+  if (!memberBinding&&leaderProfile?.id) allowedTenants.add(leaderProfile.id);
+  if (delegatedPilotTenant) allowedTenants.add(delegatedPilotTenant);
 
   const queryTenant = url.searchParams.get("tenantId");
+  if (delegatedPilotTenant && queryTenant && !allowedTenants.has(queryTenant)) {
+    return Response.json({ error: "Terreiro não autorizado." }, { status: 403 });
+  }
   if (queryTenant && (allowedTenants.has(queryTenant) || leaderProfile?.is_admin_global)) {
     allowedTenants.add(queryTenant);
   }
@@ -1516,12 +1534,16 @@ async function handleChildrenEdgeRequest(
         return Response.json({ error: "Corpo da requisição inválido" }, { status: 400, headers: edgeHeaders });
       }
 
-      const childData = body.childData || body;
-      const effectiveTenantId = leaderProfile?.tenant_id || user.id;
+      let childData:Record<string,unknown>;
+      try{childData=normalizeChildPayload(body.childData||body);}catch(error:any){return Response.json({error:error?.message||'Cadastro inválido.'},{status:400,headers:edgeHeaders});}
+      if (delegatedPilotTenant && body.tenantId && body.tenantId !== delegatedPilotTenant) {
+        return Response.json({ error: "Terreiro não autorizado." }, { status: 403, headers: edgeHeaders });
+      }
+      const effectiveTenantId = delegatedPilotTenant || leaderProfile?.tenant_id || user.id;
 
       const dataToInsert: any = {
         ...childData,
-        lider_id: user.id,
+        lider_id: delegatedPilotTenant || user.id,
         tenant_id: effectiveTenantId,
       };
 
@@ -1581,6 +1603,67 @@ async function handleChildrenEdgeRequest(
   }
 
   return null;
+}
+
+async function handleSubscriptionCancelEdgeRequest(
+  request: Request,
+  env: AxeCloudBindings
+): Promise<Response | null> {
+  const edgeHeaders = {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "x-axecloud-runtime": "cloudflare-edge",
+  };
+
+  const authHeader = request.headers.get("authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
+    return Response.json({ error: "Não autorizado" }, { status: 401, headers: edgeHeaders });
+  }
+
+  const sbUrl = String(env.VITE_SUPABASE_URL || env.SUPABASE_URL || "");
+  const sbKey = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
+  if (!sbUrl || !sbKey) return null;
+
+  try {
+    const sb = createClient(sbUrl, sbKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: { user }, error: userErr } = await sb.auth.getUser(token);
+    if (userErr || !user) {
+      return Response.json({ error: "Sessão inválida ou expirada." }, { status: 401, headers: edgeHeaders });
+    }
+
+    const { data: profile } = await sb
+      .from("perfil_lider")
+      .select("id, tenant_id, role, nome_terreiro")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile || profile.role === "filho") {
+      return Response.json({ error: "Apenas o zelador titular pode cancelar a assinatura da casa." }, { status: 403, headers: edgeHeaders });
+    }
+
+    const tenantId = String(profile.tenant_id || user.id).trim();
+
+    const { error: subErr } = await sb
+      .from("subscriptions")
+      .update({
+        status: "cancelled",
+        pending_since: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", tenantId);
+
+    if (subErr) {
+      return Response.json({ error: "Erro ao atualizar status da assinatura." }, { status: 500, headers: edgeHeaders });
+    }
+
+    return Response.json({
+      success: true,
+      message: "Assinatura cancelada com sucesso. Nenhuma cobrança futura de renovação será realizada.",
+    }, { status: 200, headers: edgeHeaders });
+  } catch (err: any) {
+    return Response.json({ error: err?.message || "Erro interno ao cancelar assinatura" }, { status: 500, headers: edgeHeaders });
+  }
 }
 
 async function handleWhatsAppEdgeRequest(
@@ -1644,6 +1727,13 @@ async function handleWhatsAppEdgeRequest(
       return null;
     }
 
+    // A tenant field in the request is never proof that the target member
+    // belongs to that tenant. Check the actual row before any provider call.
+    const {data:target,error:targetError}=await supabase.from('filhos_de_santo').select('id,tenant_id,lider_id').eq('id',targetFilhoId).maybeSingle();
+    if(targetError)return Response.json({error:'Não foi possível validar o destinatário.'},{status:503});
+    if(!target||!await assertZeladorTenantAccess(supabase,user.id,String(target.tenant_id||target.lider_id||'')))
+      return Response.json({error:'Este membro não pertence à casa autorizada.'},{status:403});
+
     if (isCantinaTipo) {
       const { data: child } = await supabase
         .from("filhos_de_santo")
@@ -1678,7 +1768,7 @@ async function handleWhatsAppEdgeRequest(
         return Response.json({ error: res.error || "Não foi possível enviar a cobrança da cantina." }, { status: 502 });
       }
 
-      return Response.json({ success: true, messageId: res.messageId }, {
+      return Response.json({ success: true, messageId: res.messageId, externalId:res.messageId }, {
         headers: { "x-axecloud-runtime": "cloudflare-edge-whatsapp" },
       });
     }
@@ -1717,7 +1807,7 @@ async function handleWhatsAppEdgeRequest(
         return Response.json({ error: res.error || "Não foi possível enviar a cobrança de mensalidade." }, { status: 502 });
       }
 
-      return Response.json({ success: true, messageId: res.messageId }, {
+      return Response.json({ success: true, messageId: res.messageId, externalId:res.messageId }, {
         headers: { "x-axecloud-runtime": "cloudflare-edge-whatsapp" },
       });
     }
@@ -1760,13 +1850,15 @@ async function handleWhatsAppEdgeRequest(
       return Response.json({ error: res.error || "Não foi possível enviar o acesso." }, { status: 502 });
     }
 
-    return Response.json({ success: true, messageId: res.messageId }, {
+    return Response.json({ success: true, messageId: res.messageId, externalId:res.messageId }, {
       headers: { "x-axecloud-runtime": "cloudflare-edge-whatsapp" },
     });
   }
 
   if (isResend) {
-    const tenantPk = leaderProfile?.tenant_id || user.id;
+    const managedTenant=await resolveDelegatedModuleTenant(supabase,user.id,'members','gerenciar');
+    const tenantPk=managedTenant!==user.id?managedTenant:(leaderProfile?.tenant_id||user.id);
+    if(!await assertZeladorTenantAccess(supabase,user.id,tenantPk))return Response.json({error:'Acesso negado.'},{status:403});
     const { data: filhos } = await supabase
       .from("filhos_de_santo")
       .select("id, nome, whatsapp_phone, cpf, data_entrada, created_at, email, status")
@@ -1831,9 +1923,43 @@ async function handleWhatsAppEdgeRequest(
   return null;
 }
 
+// Delegated pilot requests are verified before both the edge handlers and the
+// service-role-backed API container. Any unknown module fails closed.
+async function guardPilotDelegatedRequest(request:Request,env:AxeCloudBindings):Promise<Response|null>{
+ const url=new URL(request.url);
+ if(url.hostname!==PRODUCTION_HOST || request.method==='OPTIONS')return null;
+ if(/^\/(?:api\/webhooks|webhook\/|api\/v1\/cron|api\/cron)(?:\/|$)/.test(url.pathname))return null;
+ const auth=request.headers.get('Authorization')||'';
+ if(!/^Bearer \S+$/i.test(auth))return null;
+ const supabaseUrl=String(env.VITE_SUPABASE_URL||env.SUPABASE_URL||'').trim();
+ const serviceKey=String(env.SUPABASE_SERVICE_ROLE_KEY||'').trim();
+ if(!supabaseUrl||!serviceKey)return Response.json({error:'Verificação de acesso temporariamente indisponível'},{status:503});
+ const admin=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
+ const token=auth.replace(/^Bearer\s+/i,'');
+ const {data:{user},error:userError}=await admin.auth.getUser(token);
+ if(userError||!user)return Response.json({error:'Sessão inválida'},{status:401,headers:{'Cache-Control':'no-store'}});
+ let body;
+ if(['POST','PUT','PATCH','DELETE'].includes(request.method) &&
+    request.headers.get('content-type')?.includes('application/json')){
+  const size=Number(request.headers.get('content-length')||0);
+  if(size>10485760)return Response.json({error:'Solicitação acima do limite permitido.'},{status:413});
+  body=await request.clone().json().catch(()=>null);
+ }
+ try{
+  const denial=await checkDelegatedApiRequest({sb:admin,user,url,method:request.method,body});
+  return denial?Response.json(denial,{status:denial.status,headers:{'Cache-Control':'private,no-store'}}):null;
+ }catch{return Response.json({error:'Não foi possível validar suas permissões.'},{status:503,headers:{'Cache-Control':'no-store'}});}
+}
+
 export default {
   async fetch(request: Request, env: AxeCloudBindings): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === '/api/v1/_pilot_private_pdf_fetch' || url.pathname === '/api/v1/library/pdf-proxy') {
+      const edgePdf = await handlePilotPrivatePdfEdge(request, env, createClient, fetch);
+      if (edgePdf) return edgePdf;
+    }
+    const delegatedBlock=await guardPilotDelegatedRequest(request,env);
+    if(delegatedBlock)return delegatedBlock;
 
     if (
       request.method === "POST" &&
@@ -1877,6 +2003,11 @@ export default {
     if (eventNotifyMatch && request.method === "POST") {
       const giraRes = await handleGiraNotificationEdgeRequest(request, env, eventNotifyMatch[1]);
       if (giraRes) return giraRes;
+    }
+
+    if (url.pathname === "/api/v1/subscription/cancel" && request.method === "POST") {
+      const cancelRes = await handleSubscriptionCancelEdgeRequest(request, env);
+      if (cancelRes) return cancelRes;
     }
 
     // Defesa no edge para clientes antigos: não chega ao container nem à Meta.

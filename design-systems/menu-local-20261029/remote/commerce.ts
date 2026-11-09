@@ -8,12 +8,15 @@ import { storeImagePath } from '../../../lib/storeImageReference';
 const uploadedProductImages=new WeakMap<File,{tenantId:string;path:string}>();
 registerLoader('shop',async()=>{
   await ensureResource('members');
+  const credit=await checked(supabase.rpc('piloto_credito_loja',{p_tenant:previewSession().tenantId}));
+  if(!credit||typeof credit!=='object'||Array.isArray(credit))throw Error('Os limites de compra não foram confirmados.');
+  publishValue('storeCredits',credit);
   let [products,orders,rawProducts,deliveries]=await Promise.all([request(scoped('/api/v1/store/products')),tableRows('pedidos','*,itens_pedido(*,produtos(nome))'),tableRows('produtos'),tableRows('piloto_entregas_pedidos','*','pedido_id')]);
   if(!Array.isArray(products.data))throw new Error('Resposta do catálogo inválida.');
   // Repair only the authorized pilot's invalid public references. The existing API
   // signs private reads using its service account; browser storage access stays closed.
   const repairs=products.data.filter((row:any)=>storeImagePath(row.imagem_url)&&String(row.imagem_url).includes('/object/public/loja_imagens/'));
-  if(repairs.length&&previewSession().tenantId==='fad75b91-d2eb-4805-b5a3-c19e8a073bed'){
+  if(repairs.length&&previewSession().tenantId==='fad75b91-d2eb-4805-b5a3-c19e8a073bed'&&(!previewSession().profile.is_co_admin||previewSession().profile.permissoes?.store==='gerenciar')){
     for(const row of repairs)await request(`/api/v1/store/products/${encodeURIComponent(row.id)}`,'PATCH',{tenantId:previewSession().tenantId,imagem_url:storeImagePath(row.imagem_url)});
     products=await request(scoped('/api/v1/store/products'));
   }
@@ -27,7 +30,7 @@ registerWriter('shop',async(next:LocalShop,before:LocalShop,operation)=>{
   const tenantId=previewSession().tenantId;
   if(!equal(next.orders,before.orders)){
     const {row,old,removed}=singleChange(next.orders,before.orders);if(removed)throw new Error('Use o cancelamento para manter o histórico do pedido.');
-    if(!old){const result=await request('/api/v1/store/checkout','POST',{tenantId,checkoutId:row.checkoutId,filhoId:row.memberId,method:({cash:'dinheiro',pix:'pix',book:'mensalidade',reserve:'reserva'}as const)[row.method],items:row.lines.map(item=>({produto_id:item.productId,quantidade:item.quantity}))});if(result.success!==true||!result.order?.id)throw Error('O servidor não confirmou o pedido.');row.id=result.order.id;}
+    if(!old){const result=await request('/api/v1/store/checkout','POST',{tenantId,userRole:'admin',checkoutId:row.checkoutId,filhoId:row.memberId,method:({cash:'dinheiro',pix:'pix',book:'mensalidade',reserve:'reserva'}as const)[row.method],items:row.lines.map(item=>({produto_id:item.productId,quantidade:item.quantity}))});if(result.success!==true||!result.order?.id)throw Error('O servidor não confirmou o pedido.');row.id=result.order.id;}
     else{
       if(row.delivered!==old.delivered){
         if(row.status!==old.status||row.method!==old.method)throw Error('Confirme a entrega separadamente do pagamento.');
@@ -36,7 +39,7 @@ registerWriter('shop',async(next:LocalShop,before:LocalShop,operation)=>{
       }
       const action=row.status==='cancelled'?'cancelar':old.status==='paid'&&row.status==='pending'?'estornar':old.status==='reserved'&&row.method!==old.method?({cash:'converter_dinheiro',pix:'converter_pix',book:'converter_mensalidade',reserve:''}as const)[row.method]:row.status==='paid'?'confirmar':'';
       if(!action)throw new Error('Esta mudança não é aceita pelo serviço de pedidos.');
-      const result=await request(`/api/v1/store/orders/${encodeURIComponent(row.id)}/action`,'POST',{tenantId,action});if(result.success!==true||result.order?.id!==row.id)throw Error('O servidor não confirmou a atualização do pedido.');
+      const result=await request(`/api/v1/store/orders/${encodeURIComponent(row.id)}/action`,'POST',{tenantId,userRole:'admin',action});if(result.success!==true||result.order?.id!==row.id)throw Error('O servidor não confirmou a atualização do pedido.');
     }
     publishValue('shop',{...before,cart:next.cart,cartId:next.cartId});await refreshResource('finance');
   }else if(!equal(next.products,before.products)){

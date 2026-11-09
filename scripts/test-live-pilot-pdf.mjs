@@ -45,6 +45,13 @@ async function testLivePilotEndpoint() {
   console.log('Content-Type:', res.headers.get('content-type'));
   console.log('Content-Length:', res.headers.get('content-length'));
   console.log('Content-Disposition:', res.headers.get('content-disposition'));
+  if (res.ok) {
+    const ab = await res.arrayBuffer();
+    const header = new TextDecoder().decode(ab.slice(0, 10));
+    console.log('Received bytes:', ab.byteLength, 'Header magic:', header);
+  } else {
+    console.log('Body:', await res.text());
+  }
 }
 
 testLivePilotEndpoint().catch(console.error);

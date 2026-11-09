@@ -5,6 +5,7 @@ import { MODAL_PANEL_DONE, MODAL_PANEL_IN, MODAL_PANEL_OUT, MODAL_TW } from '../
 import { AppPrimaryButton } from '../ui/appDemoUi';
 import { cn } from '../../lib/utils';
 import { resolveChildWhatsAppPhone } from '../../lib/whatsappPhone';
+import { maskTelefoneInput } from '../../lib/formatTelefone';
 import BodyPortal from '../BodyPortal';
 
 
@@ -164,9 +165,11 @@ export function ChildProfileEditModal({
                 <label className={fieldLabel}>WhatsApp</label>
                 <input
                   type="tel"
-                  value={resolveChildWhatsAppPhone(editData)}
-                  onChange={(e) => onChange('whatsapp_phone', e.target.value)}
-                  placeholder="11999999999"
+                  inputMode="numeric"
+                  maxLength={15}
+                  value={maskTelefoneInput(resolveChildWhatsAppPhone(editData))}
+                  onChange={(e) => onChange('whatsapp_phone', maskTelefoneInput(e.target.value))}
+                  placeholder="(11) 99999-9999"
                   className={fieldInput}
                 />
               </div>

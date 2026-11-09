@@ -199,6 +199,7 @@ class TabErrorBoundary extends React.Component<
 
 const MemberFinance = safeLazy(() => import("./MemberFinance"));
 import DashboardPage from "./DashboardPage";
+import DelegatedDashboard from './DelegatedDashboard';
 const FinancialOverview = safeLazy(() => import("./FinancialOverview"));
 const MonthlyPage = safeLazy(() => import("./MonthlyPage"));
 const CantinaPage = safeLazy(() => import("./CantinaPage"));
@@ -230,6 +231,7 @@ import {
   type LocalRadar,
   type LocalSupport,
 } from "./completion";
+import { radarDraftEqual } from "./radarLogic";
 const RadarPage = safeLazy(() => import("./RadarPage"));
 const SettingsPage = safeLazy(() => import("./SettingsPage"));
 const SubscriptionPage = safeLazy(() => import("./SubscriptionPage"));
@@ -266,13 +268,26 @@ import "./remote/radar";
 import "./remote/commerce";
 import "./remote/communication";
 
-const entries = buildZeladorNavEntries(
-  previewSession().profile.tradicao,
-  previewSession().tenantId,
-  previewSession().email,
+const sessionProfile = previewSession().profile;
+const isUserCoAdmin = sessionProfile?.is_co_admin === true;
+const delegatedPermissions = isUserCoAdmin ? (sessionProfile?.permissoes || {}) as Record<string,string> : {};
+const delegatedTabModules:Record<string,string>={
+  children:'members',obligations:'giras',calendar:'giras',frequencia:'giras',
+  financial:'finance','financial-mensalidades':'finance','financial-cantina':'cantina',
+  inventory:'inventory',mural:'communications',chat:'communications',
+  gallery:'gallery',library:'library',store:'store',radar:'radar',
+};
+const allowedNav=(tabId:string)=>!isUserCoAdmin ||
+  tabId==='dashboard' ||
+  (Boolean(delegatedTabModules[tabId]) &&
+   ['visualizar','gerenciar'].includes(delegatedPermissions[delegatedTabModules[tabId]]));
+const rawEntries = buildZeladorNavEntries(
+  sessionProfile.tradicao,previewSession().tenantId,previewSession().email,
 );
+const entries = rawEntries
+  .map(e=>e.type==='item'?e:{...e,items:e.items.filter(i=>allowedNav(i.id))})
+  .filter(e=>e.type==='item'?allowedNav(e.item.id):e.items.length>0);
 const items = flattenZeladorNavEntries(entries);
-let isUserCoAdmin = false; try { const p = previewSession()?.profile; isUserCoAdmin = p?.is_co_admin === true || p?.cargo === "Co-Administrador"; } catch {}
 const accountIds = new Set(isUserCoAdmin ? ["settings", "suporte"] : ["subscription", "settings", "suporte"]);
 const money = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -308,10 +323,8 @@ const originalNotifications = [
   },
 ];
 function getTab() {
-  return managerTab(
-    location,
-    items.map((item) => item.id),
-  );
+  const candidate=managerTab(location,items.map(item=>item.id));
+  return allowedNav(candidate)?candidate:'dashboard';
 }
 
 function Button({
@@ -453,7 +466,7 @@ function Prototype() {
   const profileBox = useRef<HTMLDivElement>(null);
   const profileButton = useRef<HTMLButtonElement>(null);
   const [tab, setTab] = useState(getTab);
-  const chatAlerts = useChatAlerts(tab === "chat");
+  const chatAlerts = useChatAlerts(tab === "chat",allowedNav('chat'));
   const [chatRequest, setChatRequest] = useState({ id: "", version: 0 });
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -554,17 +567,24 @@ function Prototype() {
     initialAccount(),
   );
   const [radar, setRadar] = useRemoteState<LocalRadar>("radar", initialRadar());
+  const radarDraftDirty = useRef(false);
   const [radarDraft, setRadarDraft] = useState(() =>
-    radarProfileDraft(initialRadar()),
+    radarProfileDraft(readValue<LocalRadar>("radar") || initialRadar()),
   );
   const previousRadar = useRef(radar);
   useEffect(() => {
-    setRadarDraft((current) =>
-      JSON.stringify(current) ===
-      JSON.stringify(radarProfileDraft(previousRadar.current))
-        ? radarProfileDraft(radar)
-        : current,
-    );
+    setRadarDraft((current) => {
+      const initialBlank = radarProfileDraft(initialRadar());
+      const isBlank = radarDraftEqual(current, initialBlank);
+      const matchesPrev = radarDraftEqual(
+        current,
+        radarProfileDraft(previousRadar.current),
+      );
+      if (!radarDraftDirty.current || isBlank || matchesPrev) {
+        return radarProfileDraft(radar);
+      }
+      return current;
+    });
     previousRadar.current = radar;
   }, [radar]);
   const [subscription] = useRemoteState<LiveSubscription | null>(
@@ -693,7 +713,7 @@ function Prototype() {
         .reduce((sum, row) => sum + Math.round(Number(row.valor) * 100), 0),
     ]),
   );
-  const creditFor = (memberId: string) => ({
+  const creditFor = (memberId: string) => readValue<any>('storeCredits')?.[memberId] || ({
     ...(cantina.preferences?.[memberId] || {
       limitCents: 10000,
       blocked: false,
@@ -735,6 +755,10 @@ function Prototype() {
     notifications.filter((n) => !n.read).length + chatAlerts.alerts.length;
   const ping = (text: string) => setToast(text);
   const navigate = (id: string) => {
+    if(!allowedNav(id)){
+      setToast('O zelador não liberou esta área para sua conta.');
+      return;
+    }
     setProfileOpen(false);
     setMobileMenu(false);
     setSearchOpen(false);
@@ -1083,9 +1107,15 @@ function Prototype() {
                       onClick={async (e) => {
                         e.preventDefault();
                         try {
-                          await authFetch('/api/pilot/interface-access?space=member', { method: 'POST', cache: 'no-store' });
-                        } catch {}
-                        window.location.href = '/dashboard?space=member';
+                          const response = await authFetch('/api/pilot/interface-access?space=member', { method: 'POST', cache: 'no-store' });
+                          const access = await response.json();
+                          if (!response.ok || access.enabled !== true || access.interface !== 'member') {
+                            throw new Error(access.error || 'Seu vínculo de membro não foi confirmado.');
+                          }
+                          window.location.assign('/dashboard?space=member');
+                        } catch (error) {
+                          window.alert(error instanceof Error ? error.message : 'Não foi possível abrir seu espaço de filho.');
+                        }
                       }}
                       style={{
                         display: "flex",
@@ -1106,7 +1136,7 @@ function Prototype() {
                       <ArrowRight size={15} style={{ marginLeft: "auto" }} />
                     </a>
                   )}
-                  <button onClick={() => openSettings("house")}>
+                  {!isUserCoAdmin && <><button onClick={() => openSettings("house")}>
                     <Users size={17} />
                     Minha conta e casa
                     <ArrowRight size={15} />
@@ -1115,7 +1145,7 @@ function Prototype() {
                     <MessageCircle size={17} />
                     WhatsApp e automações
                     <ArrowRight size={15} />
-                  </button>
+                  </button></>}
                   {!isUserCoAdmin && (
                   <button onClick={() => navigate("subscription")}>
                     <CreditCard size={17} />
@@ -1182,7 +1212,7 @@ function Prototype() {
                                                 : "Uma navegação mais clara para cada rotina da casa."}
                 </p>
               </div>
-              <div className="page-actions">
+              <fieldset className="page-actions" style={{border:0,padding:0,margin:0,minWidth:0}} disabled={isUserCoAdmin&&delegatedPermissions[delegatedTabModules[tab]]!=='gerenciar'&&libraryMemberId===null}>
                 {tab === "children" ? (
                   <Button
                     icon={UserPlus}
@@ -1266,7 +1296,7 @@ function Prototype() {
                     Novo lançamento
                   </Button>
                 ) : null}
-              </div>
+              </fieldset>
             </div>
           )}
 
@@ -1282,7 +1312,8 @@ function Prototype() {
           <React.Suspense fallback={<PageLoading route={tab} />}>
             <TabErrorBoundary>
               <RemotePageGate tab={tab}>
-                {tab === "dashboard" && (
+                {tab === 'dashboard' && isUserCoAdmin && <DelegatedDashboard permissions={delegatedPermissions} house={sessionProfile.nome_terreiro||'Minha casa'} onNavigate={navigate}/>}
+                {tab === "dashboard" && !isUserCoAdmin && (
                   <DashboardPage
                     resources={dashboardStatus}
                     onReload={(keys) =>
@@ -1613,14 +1644,24 @@ function Prototype() {
                     {tab === "radar" && (
                       <RadarPage
                         draft={radarDraft}
-                        onDraftChange={setRadarDraft}
+                        onDraftChange={(next) => {
+                          if (radarDraftEqual(next, radarProfileDraft(radar))) {
+                            radarDraftDirty.current = false;
+                          } else {
+                            radarDraftDirty.current = true;
+                          }
+                          setRadarDraft(next);
+                        }}
                         state={radar}
                         metrics={radarSummary?.metrics}
                         onChange={async (next) => {
                           await change("Salvando perfil público do Radar", () =>
                             setRadar(next),
                           );
-                          setRadarDraft(radarProfileDraft(readValue("radar")));
+                          radarDraftDirty.current = false;
+                          setRadarDraft(
+                            radarProfileDraft(readValue("radar") || next),
+                          );
                         }}
                         profile={account.profile}
                         onNavigate={navigate}
@@ -1641,6 +1682,7 @@ function Prototype() {
                     {tab === "subscription" && !isUserCoAdmin && subscription && (
                       <SubscriptionPage
                         state={subscription}
+                        userEmail={account?.profile?.email}
                         onRefresh={() => refreshResource("subscription")}
                         onCheckPix={checkSubscriptionPix}
                         onNavigate={navigate}

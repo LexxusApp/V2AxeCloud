@@ -20,6 +20,8 @@ import { useSubscriptionBillingCycle } from '../hooks/useSubscriptionBillingCycl
 import { formatPriceBRL } from '../lib/plansDisplay';
 import { getSubscriptionDueState } from '../lib/subscriptionDue';
 import { cn } from '../lib/utils';
+import { CancelSubscriptionModal } from '../components/account/CancelSubscriptionModal';
+import { DeleteAccountModal } from '../components/account/DeleteAccountModal';
 
 type BillingCycle = 'monthly' | 'annual';
 
@@ -31,9 +33,15 @@ type MinhaAssinaturaProps = {
 
 function formatDate(value?: string | null) {
   if (!value) return 'Data não definida';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return 'Data não definida';
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date);
+  try {
+    const raw = String(value).trim();
+    const ymd = raw.slice(0, 10);
+    const date = ymd.length === 10 ? new Date(`${ymd}T12:00:00`) : new Date(raw);
+    if (!Number.isFinite(date.getTime())) return 'Data não definida';
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date);
+  } catch {
+    return 'Data não definida';
+  }
 }
 
 export default function MinhaAssinatura({ session, tenantData, onRefresh }: MinhaAssinaturaProps) {
@@ -41,6 +49,8 @@ export default function MinhaAssinatura({ session, tenantData, onRefresh }: Minh
   const currentCycle = useSubscriptionBillingCycle(tenantId, tenantData?.billing_cycle);
   const [selectedCycle, setSelectedCycle] = useState<BillingCycle>(currentCycle);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [cancelSubModalOpen, setCancelSubModalOpen] = useState(false);
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
   const paymentRef = useRef<HTMLDivElement>(null);
   const { plans, loading: plansLoading } = usePlansCatalog();
 
@@ -178,8 +188,65 @@ export default function MinhaAssinatura({ session, tenantData, onRefresh }: Minh
           </section>
         ) : null}
 
+        {/* Gestão de Assinatura e Zona de Cancelamento / Exclusão */}
+        <section className="border-t border-[#D6CBB7] bg-[#F5EFE3] px-5 py-7 sm:px-8 lg:px-11">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8B6413]">
+                Gerenciamento e Encerramento
+              </p>
+              <h3 className="mt-1 text-base font-black text-[#1B211C]">
+                Precisa cancelar a assinatura ou encerrar o acesso?
+              </h3>
+              <p className="mt-1 max-w-xl text-xs font-semibold leading-relaxed text-[#70695D]">
+                {tenantData?.is_trial
+                  ? 'Você pode cancelar o período de testes para evitar cobranças futuras, ou excluir a conta definitivamente.'
+                  : 'Cancele a renovação automática a qualquer momento sem perder o acesso do ciclo vigente, ou encerre a conta por completo.'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {!lifetime && tenantData?.status !== 'cancelled' && (
+                <button
+                  type="button"
+                  onClick={() => setCancelSubModalOpen(true)}
+                  className="rounded-xl border border-[#C5BBA7] bg-[#EAE2D2] px-4 py-2.5 text-xs font-black text-[#4B4438] transition hover:bg-[#DDD2BE] hover:text-[#1F1B14]"
+                >
+                  {tenantData?.is_trial ? 'Cancelar teste gratuito' : 'Cancelar assinatura'}
+                </button>
+              )}
+              {tenantData?.status === 'cancelled' && (
+                <span className="rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800">
+                  Assinatura cancelada (sem renovação)
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setDeleteAccountModalOpen(true)}
+                className="rounded-xl border border-rose-300/70 bg-rose-100/60 px-4 py-2.5 text-xs font-black text-rose-900 transition hover:bg-rose-600 hover:text-white"
+              >
+                Excluir acesso e conta
+              </button>
+            </div>
+          </div>
+        </section>
+
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#D6CBB7] bg-[#E4DAC7] px-5 py-4 text-[10px] font-bold text-[#71695C] sm:px-8 lg:px-11"><span className="flex items-center gap-2"><Clock3 className="h-3.5 w-3.5" /> Situação atualizada automaticamente</span><span>AxéCloud · cobrança segura e transparente</span></footer>
       </div>
+
+      <CancelSubscriptionModal
+        open={cancelSubModalOpen}
+        onOpenChange={setCancelSubModalOpen}
+        isTrial={tenantData?.is_trial === true}
+        expiresAt={formatDate(tenantData?.expires_at)}
+        onSuccess={onRefresh}
+      />
+
+      <DeleteAccountModal
+        open={deleteAccountModalOpen}
+        onOpenChange={setDeleteAccountModalOpen}
+        userEmail={session?.user?.email || tenantData?.email}
+      />
     </AppPageShell>
   );
 }

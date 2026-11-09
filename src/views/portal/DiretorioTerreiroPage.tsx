@@ -363,9 +363,10 @@ export default function DiretorioTerreiroPage() {
 
   const official = Boolean(terreiro.verificada || terreiro.gerenciada);
   const whatsappContextMessage = `Conheci o ${terreiro.nome} no AxéCloud e quero saber mais sobre giras e atendimentos.`;
-  const whatsappHref = terreiro.gerenciada
-    ? buildDiretorioWhatsappHref(terreiro, servicosData.whatsappAtendimento)
-    : null;
+  const whatsappHref = buildDiretorioWhatsappHref(
+    terreiro,
+    servicosData.whatsappAtendimento || terreiro.whatsapp || terreiro.telefone,
+  );
   const tradition = traditionLabel(terreiro.tradicao);
   const location = [terreiro.cidade, terreiro.estado].filter(Boolean).join(', ');
   const summary = terreiro.descricao || (official
@@ -415,7 +416,7 @@ export default function DiretorioTerreiroPage() {
                   {location ? <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-[#a77b00]" />{location}</span> : null}
                   {location && tradition ? <span>·</span> : null}{tradition ? <span>{tradition}</span> : null}
                 </p>
-                {!terreiro.gerenciada && terreiro.telefone ? <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#566159]">
+                {!whatsappHref && terreiro.telefone ? <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#566159]">
                   <Phone className="h-4 w-4 shrink-0" aria-hidden /><span className="select-text">Telefone: {formatTelefoneBr(terreiro.telefone)}</span>
                 </p> : null}
                 <p className="mt-4 max-w-2xl text-sm leading-6 text-[#566159] sm:text-base">{summary}</p>
@@ -439,7 +440,7 @@ export default function DiretorioTerreiroPage() {
           <div className="flex gap-3 border-t border-[#e1d8c8] px-5 py-4 sm:border-r sm:border-t-0"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#9d7400]" />
             <div><strong className="block text-xs text-[#263029]">Visitas com confirmação</strong><span className="text-[11px] text-[#707970]">consulte a agenda antes de ir</span></div></div>
           <div className="flex gap-3 border-t border-[#e1d8c8] px-5 py-4 sm:border-t-0"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-            <div><strong className="block text-xs text-[#263029]">{terreiro.gerenciada ? 'Contato da casa' : 'Telefone público'}</strong><span className="text-[11px] text-[#707970]">{terreiro.gerenciada ? 'atendimento administrado pela casa' : 'exibido apenas como texto'}</span></div></div>
+            <div><strong className="block text-xs text-[#263029]">{whatsappHref ? 'WhatsApp disponível' : terreiro.gerenciada ? 'Contato da casa' : 'Telefone da casa'}</strong><span className="text-[11px] text-[#707970]">{whatsappHref ? 'atendimento direto com a casa' : terreiro.gerenciada ? 'atendimento administrado pela casa' : 'exibido para contato'}</span></div></div>
         </div>
         <div className="overflow-x-auto"><div className="flex min-w-max gap-1 px-3 pt-2 sm:px-6" role="tablist" aria-label="Seções do perfil">
           {PROFILE_TABS.map((tab, index) => <button key={tab.id} id={'tab-' + tab.id}

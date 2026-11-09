@@ -29,7 +29,7 @@ function sessionFixture() {
   let endpoint=async(_url:string,_init:any)=>Response.json({data:[{id:'real'}]});
   const api=load('design-systems/menu-local-20261029/remote/session.ts',{
     '../../../src/lib/supabase':{supabase:{auth:{getSession:()=>{getSessions++;return getSession();},onAuthStateChange:(handler:any)=>{subscriptions++;authHandler=handler;return {data:{subscription:{unsubscribe(){unsubscribed++;}}}};}}}},
-    '../../../src/lib/authenticatedFetch':{authFetch:(url:string,init:any)=>{calls.push(url);if(url==='/api/pilot/interface-access'){accessReads++;return access();}return endpoint(url,init);}},
+    '../../../src/lib/authenticatedFetch':{authFetch:(url:string,init:any)=>{calls.push(url);if(url.startsWith('/api/pilot/interface-access')){accessReads++;return access();}return endpoint(url,init);}},
     '../uploadTransport':{},'../../../lib/pilotLogout':{},
   },{Date:class extends Date{static now(){return now;}},setInterval:(fn:()=>void)=>{timers.add(fn);return fn;},clearInterval:(fn:()=>void)=>timers.delete(fn),document:{visibilityState:'visible',addEventListener:(_event:string,fn:()=>void)=>visibility.add(fn),removeEventListener:(_event:string,fn:()=>void)=>visibility.delete(fn)},location:{hostname:'axecloud.com.br',replace:(url:string)=>redirects.push(url)}});
   return {api,calls,redirects,timers,visibility,advance:(ms:number)=>{now+=ms;},counts:()=>({subscriptions,unsubscribed,getSessions,accessReads}),event:(event:string,next:any)=>authHandler(event,next),setUser:(next:typeof user)=>{user=next;},setProfile:(next:any)=>{profile=next;},setAccess:(next:typeof access)=>{access=next;},setGetSession:(next:typeof getSession)=>{getSession=next;},setEndpoint:(next:typeof endpoint)=>{endpoint=next;}};
@@ -44,6 +44,7 @@ function runtimeFixture(sessionApi?:any) {
     './session':{...session,request:(url:string)=>request(url),scoped:(url:string)=>url},
     './readModels':{memberFromServer:(row:any)=>row,financeFromServer:(rows:any,people:any)=>({mapped:{rows,people}})},
     './financeRead':{readFinance:()=>readFinance()},'../operations':{},
+    '../../../src/lib/supabase':{supabase:{}},'../../../cloudflare/pilot-granular-policy.js':{grantAllows:()=>false},
   },{Date:class extends Date{static now(){return now;}}});
   return {api,effects,advance:(ms:number)=>{now+=ms;},setRequest:(next:any)=>{request=next;},setFinance:(next:any)=>{readFinance=next;},status:(key:string)=>api.useResourceStatus([key])[key],gate:(tab:string)=>renderToStaticMarkup(api.RemotePageGate({tab,children:'AUTHORIZED DATA'}))};
 }
@@ -110,7 +111,7 @@ test('same-user tenant changes and auth identity changes invalidate the document
 test('visibility bursts coalesce renewal and skip recently verified access; revocation clears the session',async()=>{
   const f=sessionFixture();await f.api.connectPreview();for(const fn of f.visibility)fn();await tick();assert.equal(f.counts().accessReads,1);
   f.advance(60_001);const gate=deferred<Response>();f.setAccess(()=>gate.promise);for(let i=0;i<5;i++)for(const fn of f.visibility)fn();for(const fn of f.timers)fn();await tick();assert.equal(f.counts().accessReads,2);
-  gate.resolve(Response.json({enabled:false},{status:403}));await tick();assert.throws(()=>f.api.previewSession(),/Entre/);assert.deepEqual(f.redirects,['/dashboard?classic=1']);
+  gate.resolve(Response.json({enabled:false},{status:403}));await tick();assert.throws(()=>f.api.previewSession(),/Entre/);assert.deepEqual(f.redirects,['/dashboard?space=member']);
 });
 
 test('outage with non-JSON content remains a retryable access error without authorizing or redirecting',async()=>{
@@ -128,6 +129,15 @@ test('a member role or blocked profile cannot retain an existing manager session
   for(const profile of [{tenant_id:'own-house',role:'filho'},{tenant_id:'own-house',role:'admin',status:'blocked'}]){
     const f=sessionFixture();await f.api.connectPreview();f.setProfile(profile);await assert.rejects(f.api.connectPreview());assert.throws(()=>f.api.previewSession(),/Entre/);assert.equal(f.timers.size,0);
   }
+});
+
+test('delegated management renewal keeps explicit manager mode and permission changes reload without logging out',async()=>{
+ const f=sessionFixture();f.setProfile({tenant_id:'own-house',role:'admin',status:'active',is_co_admin:true,permissoes:{inventory:'visualizar'}});
+ assert.equal(await f.api.connectPreview(),true);f.advance(60_001);for(const fn of f.visibility)fn();await tick();
+ assert.equal(f.api.previewSession().profile.role,'admin');assert.deepEqual(f.redirects,[]);
+ assert.ok(f.calls.every(path=>path==='/api/pilot/interface-access?space=manager'));
+ f.advance(60_001);f.setProfile({tenant_id:'own-house',role:'admin',status:'active',is_co_admin:true,permissoes:{inventory:'gerenciar'}});for(const fn of f.timers)fn();await tick();
+ assert.deepEqual(f.redirects,['/dashboard?space=manager']);
 });
 
 test('gate remounts and concurrent readers reuse a fresh resource; expiry and explicit refresh read again',async()=>{

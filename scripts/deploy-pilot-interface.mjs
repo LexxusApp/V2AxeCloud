@@ -24,6 +24,12 @@ const stagedFile=path.join(dir,'wrangler.staged.json');fs.writeFileSync(stagedFi
 if(!process.argv.includes('--update'))deploy(stagedFile,'stage');
 const secrets=await cf('/accounts/'+account+'/workers/scripts/'+config.name+'/secrets');
 if(!secrets.some(item=>item.name==='PILOT_COOKIE_SECRET'))await cf('/accounts/'+account+'/workers/scripts/'+config.name+'/secrets',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'PILOT_COOKIE_SECRET',type:'secret_text',text:crypto.randomBytes(48).toString('base64url')})});
+if(!secrets.some(item=>item.name==='SUPABASE_SERVICE_ROLE_KEY')){
+  const envContent=fs.existsSync('.env')?fs.readFileSync('.env','utf8'):'';
+  let sKey='';
+  for(const line of envContent.split('\n')){if(line.startsWith('SUPABASE_SERVICE_ROLE_KEY=')||line.startsWith('SUPABASE_SERVICE_KEY=')){sKey=line.split('=').slice(1).join('=').trim();}}
+  if(sKey)await cf('/accounts/'+account+'/workers/scripts/'+config.name+'/secrets',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'SUPABASE_SERVICE_ROLE_KEY',type:'secret_text',text:sKey})});
+}
 deploy(path.resolve('wrangler.pilot-interface.jsonc'),'activate');
 const settings=await cf('/accounts/'+account+'/workers/scripts/'+config.name+'/settings');
 const plainVariables=Object.fromEntries((settings.bindings||[]).filter(binding=>binding.type==='plain_text').map(binding=>[binding.name,binding.text]));

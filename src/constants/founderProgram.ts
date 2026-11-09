@@ -1,4 +1,4 @@
-﻿import {
+import {
   PLAN_PRICE_FOUNDER_LABEL,
   PLAN_PRICE_STANDARD_LABEL,
 } from '../../lib/planPricing';
@@ -13,7 +13,7 @@ export const FOUNDER_PROGRAM = {
   pilotCity: 'Grande São Paulo',
   pilotRegionNote:
     'Começamos pelo eixo Grande São Paulo e região metropolitana. Casas de outras cidades também podem se inscrever — entraremos em contato conforme abrirmos novas vagas.',
-  waComercial: 'https://wa.me/5511912276156',
+  waComercial: 'https://wa.me/5511920033501',
   waComercialLabel: 'Falar no WhatsApp',
 } as const;
 

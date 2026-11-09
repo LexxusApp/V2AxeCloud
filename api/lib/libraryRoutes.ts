@@ -27,7 +27,7 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
 
       if (error) throw error;
 
-      const reader = await resolveLibraryReader(supabaseAdmin, access.user, access.tenantId);
+      const reader = await resolveLibraryReader(supabaseAdmin, access.user, access.tenantId,req.query.userRole==='admin');
       const enriched = (data || []).filter(row => canReadLibraryMaterial(row, reader)).map(row => libraryMaterialResponse(row, reader));
 
       res.json({ data: enriched, capabilities: { individualAudience: true, authenticatedDownloads: true } });
@@ -54,7 +54,7 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
       const ok = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
       if (!ok) return res.status(403).json({ error: "Acesso negado" });
 
-      const reader = await resolveLibraryReader(supabaseAdmin, user, String(tenantId));
+      const reader = await resolveLibraryReader(supabaseAdmin, user, String(tenantId),true);
       if (!reader.manager) return res.status(403).json({ error: 'Apenas a gestão pode publicar materiais.' });
 
       const safeCategoria = slugifyStoragePath(categoria || 'geral');
@@ -96,7 +96,7 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
         return res.status(400).json({ error: "storagePath inválido para este tenant" });
       }
 
-      const reader = await resolveLibraryReader(supabaseAdmin, user, String(tenantId));
+      const reader = await resolveLibraryReader(supabaseAdmin, user, String(tenantId),true);
       if (!reader.manager) return res.status(403).json({ error: 'Apenas a gestão pode publicar materiais.' });
       let audience;
       try { audience = await validateLibraryRecipients(supabaseAdmin, String(tenantId), req.body); }
@@ -135,7 +135,7 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
     }
 
     try {
-      const reader = await resolveLibraryReader(supabaseAdmin, user, tenantId);
+      const reader = await resolveLibraryReader(supabaseAdmin, user, tenantId,true);
       if (!reader.manager) return res.status(403).json({ error: "Acesso negado" });
       const resolvedId = await resolveLeaderId(tenantId);
       const { data: row, error: fetchErr } = await supabaseAdmin
@@ -191,6 +191,8 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
       return res.status(403).json({ error: "Caminho inválido" });
     }
     const isObrigacaoPdf = normalizedPath.startsWith(`${pathTenant}/obrigacoes/`);
+    const isPrivatePilotPdf = /^[0-9a-f-]{36}\/private\/[0-9a-f-]{36}\.pdf$/i.test(normalizedPath);
+
     if (isObrigacaoPdf) {
       const { assertObrigacaoPdfStorageAccess } = await import("./tenantAccess.js");
       const obrigacaoOk = await assertObrigacaoPdfStorageAccess(
@@ -200,7 +202,54 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
         normalizedPath
       );
       if (!obrigacaoOk) return res.status(403).json({ error: "Acesso negado" });
-    } else if (!(await canReadLibraryPath(supabaseAdmin, user, pathTenant, normalizedPath))) {
+    } else if (isPrivatePilotPdf) {
+      const { data: row, error: rowErr } = await supabaseAdmin
+        .from('piloto_biblioteca_privada')
+        .select('id, titulo, visibilidade, destinatario, retired_at')
+        .eq('tenant_id', pathTenant)
+        .eq('storage_path', normalizedPath)
+        .maybeSingle();
+
+      if (rowErr || !row || row.retired_at) {
+        return res.status(403).json({ error: 'Você não tem acesso a este material.' });
+      }
+
+      const leaderId = await resolveLeaderId(effectiveTenant);
+      const isLeader = user.id === leaderId || user.id === effectiveTenant || user.id === pathTenant;
+
+      if (!isLeader && row.visibilidade === 'individual') {
+        const { data: filho } = await supabaseAdmin
+          .from('filhos_de_santo')
+          .select('id')
+          .eq('tenant_id', pathTenant)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!filho || filho.id !== row.destinatario) {
+          return res.status(403).json({ error: 'Você não tem acesso a este material.' });
+        }
+      }
+
+      const { data, error } = await supabaseAdmin.storage
+        .from('piloto_biblioteca_privada')
+        .download(normalizedPath);
+
+      if (error || !data) {
+        return res.status(404).send('PDF não encontrado');
+      }
+      const buffer = Buffer.from(await data.arrayBuffer());
+      if (buffer.length < 5 || buffer.subarray(0, 5).toString('utf-8') !== '%PDF-') {
+        return res.status(502).send('Arquivo armazenado inválido');
+      }
+      const safeTitle = (row.titulo || 'documento').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 80);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Length': String(buffer.length),
+        'Content-Disposition': `inline; filename="${safeTitle}.pdf"; filename*=UTF-8''${encodeURIComponent(row.titulo || 'documento')}.pdf`,
+        'Cache-Control': 'private, no-store',
+        'Accept-Ranges': 'bytes',
+      });
+      return res.send(buffer);
+    } else if (!(await canReadLibraryPath(supabaseAdmin, user, pathTenant, normalizedPath,req.query.userRole==='admin'))) {
       return res.status(403).json({ error: 'Você não tem acesso a este material.' });
     }
 
@@ -211,10 +260,14 @@ export function registerLibraryRoutes(app: Express, { supabaseAdmin, slugifyStor
         return res.status(404).send("PDF não encontrado");
       }
       const buffer = Buffer.from(await data.arrayBuffer());
+      if (buffer.length < 5 || buffer.subarray(0, 5).toString('utf-8') !== '%PDF-') {
+        return res.status(502).send("Arquivo armazenado inválido");
+      }
       res.set({
         "Content-Type": "application/pdf",
         "Content-Length": String(buffer.length),
         "Cache-Control": "private, no-store",
+        "Accept-Ranges": "bytes",
       });
       return res.send(buffer);
     } catch (err: any) {

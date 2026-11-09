@@ -10,6 +10,25 @@ export function slugifyDiretorioText(raw: string, maxLen = 80): string {
     .slice(0, maxLen);
 }
 
+export function slugifyTerreiroNome(nome: string): string {
+  const base = slugifyDiretorioText(nome, 80);
+  return base || "terreiro";
+}
+
+export function parseDiretorioSlugVariants(raw: string): string[] {
+  const trimmed = String(raw || "").trim().toLowerCase();
+  if (!trimmed || !trimmed.replace(/-+/g, "")) return [];
+  const normalized = slugifyTerreiroNome(trimmed);
+  const sanitizedRaw = trimmed.replace(/[^a-z0-9-]+/g, "").replace(/^-+|-+$/g, "").slice(0, 100);
+  const variants = new Set<string>();
+  if (normalized && normalized.length >= 2 && normalized !== "terreiro") variants.add(normalized);
+  if (sanitizedRaw && sanitizedRaw.length >= 2) variants.add(sanitizedRaw);
+  if (variants.size === 0 && (normalized === "terreiro" || trimmed === "terreiro")) {
+    variants.add("terreiro");
+  }
+  return Array.from(variants);
+}
+
 export function diretorioCityPath(estado: string | null | undefined, cidadeSlug: string): string {
   const uf = String(estado || "")
     .trim()

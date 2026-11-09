@@ -1,7 +1,7 @@
 import PageLoading from '../shared/PageLoading';
 import { supabase } from '../../src/lib/supabase';
 import { previewSession } from './remote/session';
-const PILOT_COADMIN_TENANT_ID = 'fad75b91-d2eb-4805-b5a3-c19e8a073bed';
+import {CoAdminPermissionsDialog,type CoAdminPermissions,type CoAdminEntry} from './CoAdminPermissions';
 import { financialToday } from './billing';
 import { useCreateRequest } from './useCreateRequest';
 import { useEffect, useRef, useState, type ReactNode, type FormEvent } from 'react';
@@ -56,14 +56,15 @@ function Field({ label, value }: { label: string; value?: string }) {
 
 export default function MembersPage({ obligations, members, nextMeeting, paid, charges, renderFinance, createRequest, onCreateHandled, onChange, onSendAccess, onNavigate }: Props) {
   const [deleting,setDeleting]=useState(false),[memberActionBusy,setMemberActionBusy]=useState(false),[memberActionError,setMemberActionError]=useState('');
-  const [coAdmins, setCoAdmins] = useState<{ id: string; filho_id: string; nome: string; email: string; ativo: boolean }[]>([]);
+  const [coAdmins, setCoAdmins] = useState<CoAdminEntry[]>([]);
+  const [permissionMember,setPermissionMember] = useState<DemoMember|null>(null);
   const [coAdminBusy, setCoAdminBusy] = useState(false);
   const [cardFeedback, setCardFeedback] = useState('');
   const [cardError, setCardError] = useState('');
   const session = (() => { try { return previewSession(); } catch { return null; } })();
-  const isPilotTenant = session?.tenantId === PILOT_COADMIN_TENANT_ID;
   const isDelegatedCoAdmin = session?.profile?.is_co_admin === true || session?.profile?.cargo === 'Co-Administrador';
-  const canManageCoAdmins = isPilotTenant && !isDelegatedCoAdmin;
+  const canManageCoAdmins = Boolean(session&&session.userId===session.tenantId) && !isDelegatedCoAdmin;
+  const canEditMembers=!isDelegatedCoAdmin||session?.profile?.permissoes?.members==='gerenciar';
 
   const parseCoAdminList = (res: any) => {
     if (Array.isArray(res)) return res;
@@ -74,13 +75,17 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
   const loadCoAdmins = async () => {
     if (!canManageCoAdmins) return;
     try {
-      const { data, error } = await supabase.rpc('piloto_listar_coadministradores', { p_tenant: PILOT_COADMIN_TENANT_ID });
+      const { data, error } = await supabase.rpc('piloto_listar_coadministradores', { p_tenant: session!.tenantId });
+      if(error)throw error;
       if (!error && data) {
         const list = parseCoAdminList(data);
         setCoAdmins(list.filter((r: any) => r.ativo));
+        return true;
       }
     } catch (err) {
+      setCardError('Não foi possível consultar os acessos. Recarregue a lista antes de editar permissões.');
       console.warn('[MembersPage] Falha ao carregar coadministradores:', err);
+      return false;
     }
   };
 
@@ -88,38 +93,31 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
     if (canManageCoAdmins) void loadCoAdmins();
   }, [canManageCoAdmins]);
 
-  const handleToggleCoAdmin = async (filhoId: string, makeCoAdmin: boolean) => {
-    if (!canManageCoAdmins) return;
-    setCoAdminBusy(true);
+  const openPermissions=async(member:DemoMember)=>{
+    if(!canManageCoAdmins||coAdminBusy)return;
+    setMenuOpenId(null);
     setCardError('');
     setCardFeedback('');
-
-    // Atualização otimista imediata para resposta instantânea ao clique
-    if (makeCoAdmin) {
-      setCoAdmins(prev => [...prev.filter(c => c.filho_id !== filhoId), { id: filhoId, filho_id: filhoId, nome: '', email: '', ativo: true }]);
-    } else {
-      setCoAdmins(prev => prev.filter(c => c.filho_id !== filhoId));
-    }
-
-    try {
-      const { data, error } = await supabase.rpc('piloto_definir_coadministrador', {
-        p_tenant: PILOT_COADMIN_TENANT_ID,
-        p_filho_id: filhoId,
-        p_ativo: makeCoAdmin,
+    setCoAdminBusy(true);
+    try{if(await loadCoAdmins())setPermissionMember(member);}finally{setCoAdminBusy(false);}
+  };
+  const savePermissions=async(permissions:CoAdminPermissions,active:boolean)=>{
+    if(!canManageCoAdmins||!permissionMember)throw new Error('Acesso não permitido.');
+    setCoAdminBusy(true);
+    try{
+      const {data,error}=await supabase.rpc('piloto_salvar_permissoes_coadministrador',{
+        p_tenant:session!.tenantId,
+        p_filho_id:permissionMember.id,
+        p_permissoes:permissions,
+        p_ativo:active,
       });
-      if (error) throw error;
-      const msg = makeCoAdmin ? 'Membro definido como Co-Administrador do sistema!' : 'Co-administração revogada com sucesso.';
-      setFeedback(msg);
-      setCardFeedback(msg);
+      if(error||data?.ok!==true)throw error||new Error('O servidor não confirmou a alteração.');
       await loadCoAdmins();
-    } catch (err) {
-      await loadCoAdmins();
-      const msg = err instanceof Error ? err.message : 'Falha ao atualizar co-administrador.';
-      setFeedback(msg);
-      setCardError(msg);
-    } finally {
-      setCoAdminBusy(false);
-    }
+      const message=active?'Permissões atualizadas com sucesso.':'Acesso delegado revogado.';
+      setFeedback(message);
+      setCardFeedback(message);
+      setPermissionMember(null);
+    }finally{setCoAdminBusy(false);}
   };
   const [targetMember, setTargetMember] = useState<DemoMember | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -152,7 +150,7 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
   const shown = records.filter(m => normalize(`${m.name} ${m.registration} ${m.role}`).includes(normalize(query)) && (filter === 'all' || filter === 'active' && (!m.status || m.status === 'Ativo') || filter === 'inactive' && m.status === 'Inativo' || filter === 'status-pending' && m.status === 'Pendente' || filter === 'debt' && hasDebt(m) || filter === 'app' && !m.hasApp || filter === 'data' && missing(m) || filter === 'birthday' && m.birthday.slice(5, 7) === financialToday().slice(5,7)))
     .sort((a, b) => sort === 'recent' ? b.joined.localeCompare(a.joined) || a.name.localeCompare(b.name, 'pt-BR') : sort === 'attention' ? Number(!b.hasApp) + Number(hasDebt(b)) - Number(!a.hasApp) - Number(hasDebt(a)) || a.name.localeCompare(b.name, 'pt-BR') : a.name.localeCompare(b.name, 'pt-BR'));
 
-  useCreateRequest(createRequest, onCreateHandled, () => { setEditor(blankMember()); setEditorError(''); opener.current = document.activeElement as HTMLElement; });
+  useCreateRequest(createRequest, onCreateHandled, () => { if(!canEditMembers)return;setEditor(blankMember()); setEditorError(''); opener.current = document.activeElement as HTMLElement; });
   useEffect(() => {
     if (selected) profileHeading.current?.focus({ preventScroll: true });
     else if (returnFocusId.current) {
@@ -179,7 +177,7 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
 
   const openProfile = (m: DemoMember) => { setSelected(m.id); setProfileTab('info'); setNote(''); setFeedback(''); window.scrollTo({ top: 0, behavior: 'instant' }); };
   const back = () => { returnFocusId.current = selected; setSelected(null); setNote(''); setFeedback(''); };
-  const edit = (m: DemoMember) => { opener.current = document.activeElement as HTMLElement; setEditor({ ...m, cpf: m.cpf ? formatCpf(m.cpf) : '' }); setEditorError(''); };
+  const edit = (m: DemoMember) => { if(!canEditMembers)return;opener.current = document.activeElement as HTMLElement; setEditor({ ...m, cpf: m.cpf ? formatCpf(m.cpf) : '' }); setEditorError(''); };
   const filterList = (next: string) => { setFilter(next); setQuery(''); searchRef.current?.focus(); };
   const add = () => { opener.current = document.activeElement as HTMLElement; setEditor(blankMember()); setEditorError(''); };
   const save = async (event: FormEvent<HTMLFormElement>) => {
@@ -217,8 +215,8 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
     {mode === 'loading' ? <PageLoading route="children"/> : mode === 'error' ? <section className="hs-state" role="alert"><h2>Não foi possível carregar a corrente.</h2><p>Tente novamente para consultar as informações.</p><button className="button secondary" onClick={() => setMode('ready')}>Tentar novamente</button></section> : member ? <>
       <button className="m-back" onClick={back}><ArrowLeft size={17} />Voltar à corrente</button>
       <section className="m-profile" aria-labelledby="m-profile-name">
-        <div className="m-identity"><Portrait member={member} large /><div><span className="m-status"><span />{member.status || 'Ativo'} na corrente</span><h2 ref={profileHeading} tabIndex={-1} id="m-profile-name">{member.name}</h2><p>{member.role}{coAdmins.some(c => c.filho_id === member.id) && <span className="m-tag amber" style={{ marginLeft: 10, padding: '3px 10px', fontSize: 12, fontWeight: 600, verticalAlign: 'middle' }}>👑 Co-Administrador do Sistema</span>}</p></div></div>
-        <div className="m-profile-actions"><button className="m-button secondary" onClick={() => { opener.current = document.activeElement as HTMLElement; setTargetMember(member); setMemberActionError(''); setAccessOpen(true); }}><MessageCircle size={17} />Enviar dados de acesso</button><button className="m-button" onClick={() => edit(member)}><Pencil size={16} />Editar perfil</button><button className="m-button secondary" onClick={()=>{setTargetMember(member); setMemberActionError('');setDeleting(true);}}><Trash2 size={16}/>Excluir membro</button></div>
+        <div className="m-identity"><Portrait member={member} large /><div><span className="m-status"><span />{member.status || 'Ativo'} na corrente</span><h2 ref={profileHeading} tabIndex={-1} id="m-profile-name">{member.name}</h2><p>{member.role}{coAdmins.some(c => c.filho_id === member.id) && <span className="m-tag amber" style={{ marginLeft: 10, padding: '3px 10px', fontSize: 12, fontWeight: 600, verticalAlign: 'middle' }}>Responsável pelo sistema</span>}</p></div></div>
+        <fieldset className="m-profile-actions" disabled={!canEditMembers} style={{border:0,padding:0,margin:0}}><button className="m-button secondary" onClick={() => { opener.current = document.activeElement as HTMLElement; setTargetMember(member); setMemberActionError(''); setAccessOpen(true); }}><MessageCircle size={17} />Enviar dados de acesso</button><button className="m-button" onClick={() => edit(member)}><Pencil size={16} />Editar perfil</button><button className="m-button secondary" onClick={()=>{setTargetMember(member); setMemberActionError('');setDeleting(true);}}><Trash2 size={16}/>Excluir membro</button></fieldset>
         <dl className="m-identity-details"><Field label="Registro" value={member.registration} /><Field label="Na casa desde" value={date(member.joined)} /><Field label="Orixá de frente" value={member.orixa} /><Field label="Acesso ao app" value={member.hasApp ? 'Acesso disponível' : 'Ainda sem acesso'} /></dl>
       </section>
       <div className="m-summary" aria-label="Resumo do membro">
@@ -262,9 +260,9 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
                 className="m-button"
                 style={{ marginTop: 14, width: '100%', justifyContent: 'center', minHeight: 42, background: coAdmins.some(c => c.filho_id === member.id) ? '#fff6f4' : '#173323', color: coAdmins.some(c => c.filho_id === member.id) ? '#a54434' : '#fff', border: coAdmins.some(c => c.filho_id === member.id) ? '1px solid #e6c9c3' : '1px solid #173323' }}
                 disabled={coAdminBusy}
-                onClick={() => handleToggleCoAdmin(member.id, !coAdmins.some(c => c.filho_id === member.id))}
+                onClick={() => openPermissions(member)}
               >
-                {coAdminBusy ? 'Atualizando…' : coAdmins.some(c => c.filho_id === member.id) ? 'Revogar acesso de gestão' : 'Conceder acesso de gestão'}
+                {coAdminBusy ? 'Atualizando…' : coAdmins.some(c => c.filho_id === member.id) ? 'Editar permissões de gestão' : 'Configurar acesso de gestão'}
               </button>
               {cardFeedback && <div style={{ marginTop: 12, padding: '9px 12px', background: '#eff7f1', color: '#17633b', border: '1px solid #c7ddcd', borderRadius: 10, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}><Check size={16} /> {cardFeedback}</div>}
               {cardError && <div style={{ marginTop: 12, padding: '9px 12px', background: '#fff6f4', color: '#991b1b', border: '1px solid #e6c9c3', borderRadius: 10, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}><CircleAlert size={16} /> {cardError}</div>}
@@ -292,7 +290,7 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
           const isLastFew = index >= shown.length - 2 && shown.length > 2;
           return <li key={m.id} className="m-row-item">
             <button id={`m-row-${m.id}`} className="m-person-row" onClick={() => openProfile(m)} aria-label={`Abrir perfil de ${m.name}`}>
-              <span className="m-person-name"><Portrait member={m} /><span><strong>{m.name}{coAdmins.some(c => c.filho_id === m.id) && <span className="m-tag amber" style={{ marginLeft: 8, padding: '2px 8px', fontSize: 11, fontWeight: 600, verticalAlign: 'middle' }} title="Responsável pelo Sistema">👑 Co-Admin</span>}</strong><small>{m.role} · {m.registration}</small></span></span>
+              <span className="m-person-name"><Portrait member={m} /><span><strong>{m.name}{coAdmins.some(c => c.filho_id === m.id) && <span className="m-tag amber" style={{ marginLeft: 8, padding: '2px 8px', fontSize: 11, fontWeight: 600, verticalAlign: 'middle' }} title="Responsável pelo Sistema">Responsável</span>}</strong><small>{m.role} · {m.registration}</small></span></span>
               <span className={`m-access ${!m.hasApp ? 'pending' : ''}`}><span />{m.hasApp ? 'Com acesso' : 'Sem app'}</span>
               <span className={`m-tag ${hasDebt(m) ? 'amber' : !m.hasInvoice ? 'neutral' : ''}`}>{!m.hasInvoice ? 'Sem lançamento' : hasDebt(m) ? 'Em aberto' : 'Em dia'}</span>
             </button>
@@ -313,7 +311,7 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
               </button>
               {isMenuOpen && (
                 <div role="menu" className={`m-action-menu ${isLastFew ? 'drop-up' : ''}`} onClick={(e) => e.stopPropagation()}>
-                  {isPilotTenant && (
+                  {canManageCoAdmins && (
                     <button
                       type="button"
                       role="menuitem"
@@ -322,18 +320,18 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
                       onClick={async (e) => {
                         e.stopPropagation();
                         setMenuOpenId(null);
-                        const isCo = coAdmins.some(c => c.filho_id === m.id);
-                        await handleToggleCoAdmin(m.id, !isCo);
+                        openPermissions(m);
                       }}
                     >
                       <ShieldCheck size={15} aria-hidden="true" />
-                      <span>{coAdmins.some(c => c.filho_id === m.id) ? 'Revogar Co-Admin' : 'Tornar Co-Admin'}</span>
+                      <span>{coAdmins.some(c => c.filho_id === m.id) ? 'Editar permissões' : 'Conceder acesso de gestão'}</span>
                     </button>
                   )}
                   <button
                     type="button"
                     role="menuitem"
                     className="m-action-item access"
+                    disabled={!canEditMembers}
                     onClick={(e) => {
                       e.stopPropagation();
                       setMenuOpenId(null);
@@ -363,6 +361,7 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
                     type="button"
                     role="menuitem"
                     className="m-action-item danger"
+                    disabled={!canEditMembers}
                     onClick={(e) => {
                       e.stopPropagation();
                       setMenuOpenId(null);
@@ -396,6 +395,13 @@ export default function MembersPage({ obligations, members, nextMeeting, paid, c
       {editorError && <p id="m-name-error" className="m-form-error m-form-wide" role="alert">{editorError}</p>}<div className="m-form-footer m-form-wide"><p>O servidor confirma o cadastro. Mensalidades são lançadas separadamente no financeiro.</p><button type="submit" className="m-button"><Check size={17} />Salvar no sistema</button></div>
     </form>}</Dialog.Content></Dialog.Portal></Dialog.Root>
     <Dialog.Root open={accessOpen} onOpenChange={open=>{if(!memberActionBusy){setAccessOpen(open);if(!open)setTargetMember(null);}}}><Dialog.Portal><Dialog.Overlay className="dialog-overlay"/><Dialog.Content {...dialogFocus} className="dialog"><div className="dialog-heading"><Dialog.Title>Enviar dados de acesso</Dialog.Title><Dialog.Close asChild><button className="icon-button" aria-label="Fechar acesso"><X size={20}/></button></Dialog.Close></div><Dialog.Description>O modelo oficial com o Registro e as instruções de entrada será enviado somente ao WhatsApp deste membro. O sistema usa as regras atuais de acesso; nenhuma senha é solicitada aqui.</Dialog.Description><div className="m-access-detail"><ShieldCheck size={27}/><strong>{(targetMember||member)?.name}</strong><p>{(targetMember||member)?.phone||'Cadastre o WhatsApp antes de enviar.'}</p>{memberActionError&&<p role="alert" className="m-form-error">{memberActionError}</p>}<button className="m-button" disabled={memberActionBusy||!(targetMember||member)?.phone} onClick={async()=>{const active=targetMember||member;if(!active||memberActionBusy)return;setMemberActionBusy(true);setMemberActionError('');try{await onSendAccess(active.id);setAccessOpen(false);setTargetMember(null);setFeedback('Envio dos dados de acesso aceito. Acompanhe a entrega no histórico do WhatsApp.');}catch(error){setMemberActionError(error instanceof Error?error.message:'Não foi possível enviar.');}finally{setMemberActionBusy(false);}}}><MessageCircle size={17}/>{memberActionBusy?'Enviando…':'Enviar para este membro'}</button></div></Dialog.Content></Dialog.Portal></Dialog.Root>
-    <Dialog.Root open={deleting} onOpenChange={open=>{if(!memberActionBusy){setDeleting(open);if(!open)setTargetMember(null);}}}><Dialog.Portal><Dialog.Overlay className="dialog-overlay"/><Dialog.Content {...dialogFocus} className="dialog"><div className="dialog-heading"><Dialog.Title>Excluir filho de santo?</Dialog.Title><Dialog.Close asChild><button className="icon-button" aria-label="Fechar exclusão"><X size={20}/></button></Dialog.Close></div><Dialog.Description>Você vai excluir o cadastro de {(targetMember||member)?.name} usando a mesma operação do sistema atual. A exclusão é definitiva. Se houver vínculos que impeçam a remoção, o servidor preservará o cadastro e mostrará o erro.</Dialog.Description>{memberActionError&&<p role="alert" className="m-form-error">{memberActionError}</p>}<div className="m-profile-actions"><button className="m-button secondary" disabled={memberActionBusy} onClick={()=>{setDeleting(false);setTargetMember(null);}}>Manter membro</button><button className="m-button" disabled={memberActionBusy} onClick={async()=>{const active=targetMember||member;if(!active||memberActionBusy)return;setMemberActionBusy(true);setMemberActionError('');try{await onChange(members.filter(row=>row.id!==active.id));setDeleting(false);setTargetMember(null);if(selected===active.id)setSelected(null);setFeedback('Cadastro excluído pelo servidor.');}catch(error){setMemberActionError(error instanceof Error?error.message:'Não foi possível excluir.');}finally{setMemberActionBusy(false);}}}><Trash2 size={16}/>{memberActionBusy?'Excluindo…':'Excluir definitivamente'}</button></div></Dialog.Content></Dialog.Portal></Dialog.Root>
+    <Dialog.Root open={deleting} onOpenChange={open=>{if(!memberActionBusy){setDeleting(open);if(!open)setTargetMember(null);}}}><Dialog.Portal><Dialog.Overlay className="dialog-overlay"/><Dialog.Content {...dialogFocus} className="dialog"><div className="dialog-heading"><Dialog.Title>Excluir filho de santo?</Dialog.Title><Dialog.Close asChild><button className="icon-button" aria-label="Fechar exclusão"><X size={20}/></button></Dialog.Close></div><Dialog.Description>Você vai excluir o cadastro de {(targetMember||member)?.name} usando a mesma operação do sistema atual. A exclusão é definitiva. Se houver vínculos que impeçam a remoção, o servidor preservará o cadastro e mostrará o erro.</Dialog.Description>{memberActionError&&<p role="alert" className="m-form-error">{memberActionError}</p>}<fieldset className="m-profile-actions" disabled={!canEditMembers} style={{border:0,padding:0,margin:0}}><button className="m-button secondary" disabled={memberActionBusy} onClick={()=>{setDeleting(false);setTargetMember(null);}}>Manter membro</button><button className="m-button" disabled={memberActionBusy} onClick={async()=>{const active=targetMember||member;if(!active||memberActionBusy)return;setMemberActionBusy(true);setMemberActionError('');try{await onChange(members.filter(row=>row.id!==active.id));setDeleting(false);setTargetMember(null);if(selected===active.id)setSelected(null);setFeedback('Cadastro excluído pelo servidor.');}catch(error){setMemberActionError(error instanceof Error?error.message:'Não foi possível excluir.');}finally{setMemberActionBusy(false);}}}><Trash2 size={16}/>{memberActionBusy?'Excluindo…':'Excluir definitivamente'}</button></fieldset></Dialog.Content></Dialog.Portal></Dialog.Root>
+    <CoAdminPermissionsDialog
+      member={permissionMember?{id:permissionMember.id,name:permissionMember.name,email:permissionMember.email}:null}
+      existing={coAdmins.find(item=>item.filho_id===permissionMember?.id)}
+      busy={coAdminBusy}
+      onClose={()=>setPermissionMember(null)}
+      onSave={savePermissions}
+    />
   </div>;
 }

@@ -9,13 +9,14 @@ const emoji:Record<MenuProduct['icon'],string>={coffee:'☕',snack:'🥟',water:
 const same=(a:any,b:any)=>JSON.stringify(a)===JSON.stringify(b);
 const pendingIds=new Map<string,string>();
 registerLoader('cantina',async()=>{
-  await ensureResource('finance');
-  const [data,menu]=await Promise.all([request(scoped('/api/v1/cantina/data')),request(scoped('/api/v1/cantina/cardapio'))]);
+  const [data,menu,transactions]=await Promise.all([request(scoped('/api/v1/cantina/data')),request(scoped('/api/v1/cantina/cardapio')),checked(supabase.rpc('piloto_cantina_lancamentos',{p_tenant:previewSession().tenantId}))]);
   if(!Array.isArray(data.filhos)||!Array.isArray(menu.items))throw new Error('Resposta da cantina inválida.');
+  if(!Array.isArray(transactions))throw Error('O histórico da cantina não foi confirmado.');
+  publishValue('cantinaFinanceRows',transactions);
   publishValue('cantinaMenuRows',menu.items);
   const previous=readValue<CantinaState>('cantina');
   const names=new Map(data.filhos.map((row:any)=>[row.id,row.nome]));
-  const sales=(readValue<any[]>('financeRows')||[]).filter(row=>row.categoria==='Cantina'&&['pendente','pago'].includes(row.status)).map(row=>{
+  const sales=transactions.filter(row=>row.categoria==='Cantina'&&['pendente','pago'].includes(row.status)).map(row=>{
     const items=Array.isArray(row.cantina_itens)?row.cantina_itens:[];
     const lines=items.length?items.map((item:any,i:number)=>({id:`${row.id}-${i}`,name:item.nome,cents:Math.round(Number(item.preco)*100),quantity:Number(item.quantidade)})):[{id:row.id,name:row.descricao||'Consumo registrado',cents:Math.round(Number(row.valor)*100),quantity:1}];
     const settled=row.status==='pago',createdAt=Date.parse(row.created_at||`${String(row.data_venda||row.data).slice(0,10)}T12:00:00-03:00`);

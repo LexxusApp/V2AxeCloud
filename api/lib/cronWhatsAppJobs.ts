@@ -428,7 +428,8 @@ function formatEventDateBr(isoDate: string): string {
   const raw = String(isoDate || "").trim();
   if (!raw) return "";
   try {
-    return format(parseISO(raw.length > 10 ? raw : `${raw}T12:00:00`), "dd/MM/yyyy");
+    const ymd = raw.slice(0, 10);
+    return format(parseISO(`${ymd}T12:00:00`), "dd/MM/yyyy");
   } catch {
     return raw;
   }
@@ -733,7 +734,8 @@ async function runGiraReminders(
 
     let eventDay: Date;
     try {
-      eventDay = startOfDay(parseISO(dataRaw.length > 10 ? dataRaw : `${dataRaw}T12:00:00`));
+      const ymd = dataRaw.slice(0, 10);
+      eventDay = startOfDay(parseISO(`${ymd}T12:00:00`));
     } catch {
       skipped++;
       continue;
@@ -814,7 +816,7 @@ async function runGiraReminders(
           hora: String(row.hora || ""),
           banner_url: row.banner_url ?? null,
         },
-        { messageSuffix: dedupeKey, bypassFanoutCooldown: true }
+        { messageSuffix: dedupeKey, bypassFanoutCooldown: true, notifyZeladorSummary: true }
       );
       sent += result.sent;
       errors += result.errors;

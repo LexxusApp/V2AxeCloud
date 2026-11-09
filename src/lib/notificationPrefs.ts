@@ -2,7 +2,7 @@
  * Preferências do sino de notificações (lidas / descartadas).
  * Só existem no cliente — precisam sobreviver a localStorage.clear() no logout.
  */
-import { REMEMBER_EMAIL_KEY, REMEMBER_EMAIL_ENABLED_KEY } from './loginRemember';
+import { REMEMBER_EMAIL_KEY, REMEMBER_EMAIL_ENABLED_KEY, REMEMBER_MEMBER_KEY } from './loginRemember';
 
 export const NOTIF_READ_KEY = 'axecloud_notif_read_v2';
 export const NOTIF_DISMISS_KEY = 'axecloud_notif_dismissed_v2';
@@ -65,6 +65,7 @@ function isPreservedUiPrefKey(key: string): boolean {
   return (
     key === REMEMBER_EMAIL_KEY ||
     key === REMEMBER_EMAIL_ENABLED_KEY ||
+    key === REMEMBER_MEMBER_KEY ||
     key === NOTIF_READ_KEY ||
     key === NOTIF_DISMISS_KEY ||
     key.startsWith(`${NOTIF_READ_KEY}:`) ||

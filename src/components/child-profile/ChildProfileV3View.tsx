@@ -1,3 +1,4 @@
+import {CoAdminPermissionsDialog,type CoAdminEntry,type CoAdminPermissions} from '../../../design-systems/menu-local-20261029/CoAdminPermissions';
 import { supabase } from '../../lib/supabase';
 import { showHouseToast } from '../../lib/houseToast';
 import React, { useState } from 'react';
@@ -27,8 +28,8 @@ import {
 import MemberProfileHeader from './MemberProfileHeader';
 import { cn } from '../../lib/utils';
 import { authFetch } from '../../lib/authenticatedFetch';
-import { confirmAction } from '../../lib/confirmAction';
 import { formatFilhoMatricula } from '../../../lib/filhoMatricula';
+import { formatTelefoneBr } from '../../lib/formatTelefone';
 
 export type ChildProfileTab = 'info' | 'history' | 'finance' | 'notes';
 
@@ -163,10 +164,10 @@ export function ChildProfileV3View({
 }: ChildProfileV3ViewProps) {
   const [openingPdfUrl, setOpeningPdfUrl] = useState<string | null>(null);
   const [showCpf, setShowCpf] = useState(false);
-  const PILOT_TEST_TENANT_ID = 'fad75b91-d2eb-4805-b5a3-c19e8a073bed';
-  const isPilotTenant = tenantData?.tenant_id === PILOT_TEST_TENANT_ID;
-  const canManageDelegatedAccess = isPilotTenant && !tenantData?.is_co_admin;
+  const canManageDelegatedAccess = Boolean(tenantData?.tenant_id) && !tenantData?.is_co_admin;
   const [isCoAdmin, setIsCoAdmin] = useState(false);
+  const [coAdminEntry,setCoAdminEntry]=useState<CoAdminEntry|null>(null);
+  const [permissionOpen,setPermissionOpen]=useState(false);
   const [coAdminLoading, setCoAdminLoading] = useState(false);
 
   React.useEffect(() => {
@@ -176,12 +177,12 @@ export function ChildProfileV3View({
       try {
         const { data } = await supabase
           .from('piloto_coadministradores')
-          .select('ativo')
-          .eq('tenant_id', PILOT_TEST_TENANT_ID)
+          .select('filho_id,ativo,permissoes,updated_at')
+          .eq('tenant_id', tenantData.tenant_id)
           .eq('filho_id', String(child.id))
           .eq('ativo', true)
           .maybeSingle();
-        if (active) setIsCoAdmin(!!data?.ativo);
+        if (active) {setIsCoAdmin(!!data?.ativo);setCoAdminEntry(data as CoAdminEntry|null);}
       } catch {
         // noop
       }
@@ -191,39 +192,17 @@ export function ChildProfileV3View({
   }, [canManageDelegatedAccess, isSelfView, child?.id]);
 
   async function handleToggleCoAdmin() {
-    if (!canManageDelegatedAccess || isSelfView || !child?.id) return;
-    const nextState = !isCoAdmin;
-    const confirmed = await confirmAction({
-      title: nextState ? 'Conceder acesso de gestão?' : 'Revogar acesso de gestão?',
-      description: nextState
-        ? `${nome} poderá administrar as rotinas da casa pelo painel. Assinatura, cobrança do AxéCloud e exclusão da casa continuarão exclusivas da zeladoria titular.`
-        : `${nome} voltará ao espaço comum de membro e deixará de acessar o painel administrativo. Nenhum dado será apagado.`,
-      confirmLabel: nextState ? 'Conceder acesso' : 'Revogar acesso',
-      cancelLabel: 'Cancelar',
-      tone: nextState ? 'primary' : 'danger',
-    });
-    if (!confirmed) return;
-
+    if (canManageDelegatedAccess && !isSelfView && child?.id) setPermissionOpen(true);
+  }
+  async function saveCoAdminPermissions(permissions:CoAdminPermissions,active:boolean){
+    if(!canManageDelegatedAccess||isSelfView||!child?.id)throw Error('Acesso não autorizado.');
     setCoAdminLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('piloto_definir_coadministrador', {
-        p_tenant: PILOT_TEST_TENANT_ID,
-        p_filho_id: child.id,
-        p_ativo: nextState,
-      });
-      if (error) throw error;
-      setIsCoAdmin(nextState);
-      showHouseToast(
-        nextState
-          ? `Co-Administrador definido: ${nome} agora possui acesso de gestão.`
-          : `Co-Administração revogada: ${nome} retornou ao acesso comum.`,
-        'success'
-      );
-    } catch (err: any) {
-      showHouseToast(err?.message || 'Erro ao atualizar co-administração', 'error');
-    } finally {
-      setCoAdminLoading(false);
-    }
+    try{
+      const {data,error}=await supabase.rpc('piloto_salvar_permissoes_coadministrador',{p_tenant:tenantData.tenant_id,p_filho_id:child.id,p_permissoes:permissions,p_ativo:active});
+      if(error||data?.ok!==true)throw error||Error('O servidor não confirmou as permissões.');
+      setIsCoAdmin(active);setCoAdminEntry({...data,permissoes:permissions});setPermissionOpen(false);
+      showHouseToast(active?'Permissões de gestão atualizadas.':'Acesso de gestão revogado.','success');
+    }finally{setCoAdminLoading(false);}
   }
   const nome = String(child.nome || 'Filho de Santo');
   const cargo = String(child.cargo || 'Filho de Santo');
@@ -445,7 +424,7 @@ export function ChildProfileV3View({
                       </div>
                     </div>
                     <InfoField label="Localização / Residência" value={endereco || EMPTY} />
-                    <InfoField label="WhatsApp de Contato" value={contato || EMPTY} />
+                    <InfoField label="WhatsApp de Contato" value={contato ? formatTelefoneBr(contato) : EMPTY} />
                     <div className="space-y-1">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-zinc-300">
                         E-mail de Acesso
@@ -514,7 +493,7 @@ export function ChildProfileV3View({
                         )}
                       >
                         {coAdminLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                        {isCoAdmin ? 'Revogar acesso de gestão' : 'Conceder acesso de gestão'}
+                        {isCoAdmin ? 'Editar permissões de gestão' : 'Conceder acesso de gestão'}
                       </button>
                     </div>
                   </div>
@@ -783,6 +762,7 @@ export function ChildProfileV3View({
           </div>
         )}
       </div>
+      <CoAdminPermissionsDialog member={permissionOpen?{id:String(child.id),name:nome,email:String(child.email||'')}:null} existing={coAdminEntry} busy={coAdminLoading} onClose={()=>setPermissionOpen(false)} onSave={saveCoAdminPermissions}/>
     </div>
   );
 }

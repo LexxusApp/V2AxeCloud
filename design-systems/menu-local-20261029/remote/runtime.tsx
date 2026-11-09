@@ -4,6 +4,8 @@ import { previewSession, request, scoped, onPreviewSessionChange } from './sessi
 import { memberFromServer, giraFromServer, financeFromServer } from './readModels';
 import { readFinance } from './financeRead';
 import { currentOperation, operations, isRemoteMutation, type Operation } from '../operations';
+import {supabase} from '../../../src/lib/supabase';
+import {grantAllows} from '../../../cloudflare/pilot-granular-policy.js';
 type Writer = (next:any,before:any,operation?:Operation)=>Promise<void>;
 const values = new Map<string,any>(), states = new Map<string,{loading:boolean;error:string;ready:boolean}>();
 const listeners = new Set<()=>void>(), inflight = new Map<string,Promise<void>>(), writes = new Set<string>(), writers = new Map<string,Writer>();
@@ -27,7 +29,7 @@ const put=(key:string,value:any)=>{resourceScope();return values.set(key,value);
 export function readValue<T=any>(key:string):T { resourceScope();return values.get(key); }
 export function isResourceWriting(key:string){return writes.has(key);}
 const loaders:Record<string,()=>Promise<void>>={
-  members:async()=>{ const result=await request(scoped('/api/children'));if(!Array.isArray(result.data))throw new Error('Resposta de membros inválida.');put('memberRows',result.data);put('members',result.data.map(memberFromServer)); },
+  members:async()=>{ const p=previewSession();const reference=p.profile?.is_co_admin===true&&!grantAllows(p.profile.permissoes,'members','visualizar');const result=reference?await supabase.rpc('piloto_referencias_membros',{p_tenant:p.tenantId}):await request(scoped('/api/children'));if(result.error)throw result.error;if(!Array.isArray(result.data))throw new Error('Resposta de membros inválida.');put('memberRows',result.data);put('members',result.data.map(memberFromServer)); },
   giras:async()=>{ const result=await request(scoped('/api/events'));if(!Array.isArray(result.data))throw new Error('Resposta da agenda inválida.');put('giras',result.data.filter((row:any)=>!String(row.tipo||'').toLowerCase().includes('obrig')).map(giraFromServer)); },
   finance:async()=>{ const [,rows]=await Promise.all([ensureResource('members'),readFinance()]);put('financeRows',rows);const mapped=financeFromServer(rows,readValue('members'));Object.entries(mapped).forEach(([key,value])=>put(key,value)); },
   pix:async()=>{const {data}=await request(scoped('/api/v1/financial/pix-config'));put('pixSettings',data?{enabled:data.mensalidade_ativa!==false,key:data.chave_pix||'',keyType:({telefone:'phone',aleatoria:'random'}as any)[data.tipo_chave]||data.tipo_chave||'email',beneficiary:data.nome_beneficiario||'',amount:Number(data.valor_mensalidade||0).toFixed(2).replace('.',','),day:String(data.dia_vencimento||10)}:null);},
@@ -35,6 +37,7 @@ const loaders:Record<string,()=>Promise<void>>={
 };
 export async function loadResource(key:string,force=false):Promise<void>{
   const scope=resourceScope();
+  if(!canReadResource(key))return;
   if(inflight.has(key)){
     if(!force)return inflight.get(key)!;
     const after=inflight.get(key)!;
@@ -49,21 +52,48 @@ export async function loadResource(key:string,force=false):Promise<void>{
   const operation=Promise.resolve().then(async()=>{try{if(!loaders[key])throw new Error('Esta função ainda está sendo conectada ao servidor. Nenhuma alteração local será tratada como salva.');await loaders[key]();if(resourceScope()!==scope)throw new Error('A conta ou a casa mudou durante a consulta.');states.set(key,{loading:false,error:'',ready:true});loadedAt.set(key,Date.now());}catch(error){if(activeScope===scope)states.set(key,{loading:false,error:error instanceof Error?error.message:'Não foi possível carregar os dados reais.',ready:false});}finally{if(inflight.get(key)===operation){inflight.delete(key);notify();}}});
   inflight.set(key,operation);return operation;
 }
+const delegatedResourceModules:Record<string,string>={
+ members:'members',giras:'giras',obligations:'giras',attendance:'giras',preceito:'giras',preceitoId:'giras',
+ finance:'finance',charges:'finance',manualCash:'finance',cantina:'cantina',
+ inventory:'inventory',notices:'communications',inbox:'communications',
+ gallery:'gallery',galleryUsage:'gallery',library:'library',shop:'store',radar:'radar',
+ dashboardRadar:'radar',dashboardWhatsApp:'communications',dispatches:'communications',notifications:'communications',
+};
+export function canReadResource(key:string){
+ const profile=previewSession().profile;
+ if(profile?.is_co_admin!==true)return true;
+ if(['account','support'].includes(key))return true;
+ if(key==='members'&&['giras','finance','cantina','communications','library','store'].some(module=>grantAllows(profile.permissoes,module,'visualizar')))return true;
+ if(key==='giras'&&grantAllows(profile.permissoes,'communications','visualizar'))return true;
+ return grantAllows(profile.permissoes,delegatedResourceModules[key],'visualizar');
+}
 export function useRemoteState<T>(key:string,empty:T):[T,(next:SetStateAction<T>)=>Promise<void>]{
   resourceScope();
   if(!values.has(key))put(key,empty);
   const value=useSyncExternalStore(subscribe,()=>values.get(key),()=>empty) as T;
-  return [value,async(next)=>{const scope=resourceScope();if(writes.has(key))throw new Error('Aguarde a operação em andamento.');const before=values.get(key),after=typeof next==='function'?(next as (old:T)=>T)(before):next;const writer=writers.get(key);if(!writer)throw new Error('Esta ação ainda não está ligada à API. Nenhum registro foi alterado.');const parent=currentOperation(),own=!parent&&isRemoteMutation(key,after,before),operation=parent||(own?operations.begin('Atualizando os dados da casa',key):undefined);operation?.resource(key);writes.add(key);try{await writer(after,before,operation);if(resourceScope()!==scope)throw new Error('A conta ou a casa mudou durante a operação.');if(own)operation?.complete();}catch(error){if(own)operation?.fail(error);throw error;}finally{writes.delete(key);notify();}}];
+  return [value,async(next)=>{const scope=resourceScope();if(writes.has(key))throw new Error('Aguarde a operação em andamento.');const before=values.get(key),after=typeof next==='function'?(next as (old:T)=>T)(before):next;const writer=writers.get(key);if(!writer)throw new Error('Esta ação ainda não está ligada à API. Nenhum registro foi alterado.');
+    const delegated=previewSession().profile;
+    if(delegated?.is_co_admin===true){
+      const module=delegatedResourceModules[key];
+      if(key!=='support'&&(!module||delegated.permissoes?.[module]!=='gerenciar'))
+        throw new Error('Este acesso está configurado apenas para consulta ou não foi liberado pelo zelador.');
+    }const parent=currentOperation(),own=!parent&&isRemoteMutation(key,after,before),operation=parent||(own?operations.begin('Atualizando os dados da casa',key):undefined);operation?.resource(key);writes.add(key);try{await writer(after,before,operation);if(resourceScope()!==scope)throw new Error('A conta ou a casa mudou durante a operação.');if(own)operation?.complete();}catch(error){if(own)operation?.fail(error);throw error;}finally{writes.delete(key);notify();}}];
 }
 export function registerWriter(key:string,writer:Writer){writers.set(key,writer);}
 export function registerLoader(key:string,loader:()=>Promise<void>){loaders[key]=loader;}
 export async function ensureResource(key:string){await loadResource(key);const queued=queuedRefreshes.get(key);if(queued)await queued.promise;const state=states.get(key);if(!state?.ready)throw new Error(state?.error||`Não foi possível carregar ${key}.`);}
-export async function refreshResource(key:string){await loadResource(key,true);const state=states.get(key);if(!state?.ready)throw new Error(`A operação foi recebida, mas a atualização da tela falhou: ${state?.error||key}. Atualize antes de repetir.`);}
+export async function refreshResource(key:string){if(!canReadResource(key))return;await loadResource(key,true);const state=states.get(key);if(!state?.ready)throw new Error(`A operação foi recebida, mas a atualização da tela falhou: ${state?.error||key}. Atualize antes de repetir.`);}
 export function publishValue(key:string,value:any){put(key,value);notify();}
 const routes:Record<string,string[]>={dashboard:['home','preceito'],children:['members','finance','giras','obligations'],'member-finance':['finance','cantina','shop'],calendar:['giras','members','preceito'],financial:['finance','members','pix'],'financial-mensalidades':['finance','members','pix'],'financial-configs':['pix'],'financial-cantina':['cantina','members'],settings:['account'],radar:['radar','account'],obligations:['obligations','members'],frequencia:['attendance','members','giras'],mural:['notices','members','giras'],chat:['inbox','members'],gallery:['gallery'],inventory:['inventory'],library:['library','members'],store:['shop','members','cantina'],subscription:['subscription','members'],suporte:['support','account']};
 export function RemotePageGate({tab,children}:{tab:string;children:ReactNode}){
   resourceScope();
-  const resources=routes[tab]||[tab];
+  // A page may show supplemental data from other modules. A delegated
+  // member must never load those resources without an explicit grant.
+  const profile=previewSession().profile;
+  const resources=(routes[tab]||[tab]).filter(key=>{
+   if(profile?.is_co_admin!==true)return true;
+   return canReadResource(key);
+  });
   const signature=useSyncExternalStore(subscribe,()=>resources.map(key=>{const s=states.get(key)||idle;return `${key}:${s.loading}:${s.ready}:${s.error}`;}).join('|'));
   useEffect(()=>{void Promise.all(resources.map(key=>loadResource(key)));},[tab]);
   const error=resources.map(key=>states.get(key)?.error).find(Boolean),ready=resources.every(key=>states.get(key)?.ready);
@@ -72,5 +102,7 @@ export function RemotePageGate({tab,children}:{tab:string;children:ReactNode}){
   if(tab==='dashboard')return <>{children}</>;
   if(!ready&&!error)return <PageLoading route={tab}/>;
   if(!ready)return <section className="hs-state" role="alert"><h2>Não foi possível carregar esta área.</h2><p>{error}</p><button className="button secondary" onClick={()=>void Promise.all(resources.map(key=>loadResource(key,true)))}>Tentar novamente</button></section>;
-  return <>{children}</>;
+  const module=({children:'members',calendar:'giras',obligations:'giras',frequencia:'giras',financial:'finance','financial-mensalidades':'finance','financial-cantina':'cantina',inventory:'inventory',mural:'communications',chat:'communications',gallery:'gallery',library:'library',store:'store',radar:'radar'} as Record<string,string>)[tab];
+  const readOnly=profile?.is_co_admin===true&&profile.permissoes?.[module]==='visualizar';
+  return <>{readOnly&&<p className="cap-readonly-note" role="note">Você tem acesso de consulta nesta área. Alterações precisam ser liberadas pelo zelador.</p>}{children}</>;
 }

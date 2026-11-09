@@ -266,7 +266,7 @@ export default function Settings({ user, session, tenantData, onRefresh, setActi
                       if (profile) setProfile({ ...profile, email });
                     }}
                   />
-                  {tenantId === 'fad75b91-d2eb-4805-b5a3-c19e8a073bed' && !tenantData?.is_co_admin && (
+                  {tenantId && !tenantData?.is_co_admin && (
                     <SettingsPilotCoAdminPanel
                       tenantId={tenantId}
                       onNavigateChildren={() => setActiveTab('children')}

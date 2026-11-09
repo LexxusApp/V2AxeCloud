@@ -111,13 +111,45 @@ const categoryConfig = {
 };
 
 /** Aceita YYYY-MM-DD ou ISO completo sem quebrar o dialog do mural. */
-function formatNoticeExpiry(value: string): string | null {
+function formatNoticeExpiry(value?: string | null): string | null {
   const raw = String(value || '').trim();
   if (!raw) return null;
   const dateOnly = /^(\d{4}-\d{2}-\d{2})$/.exec(raw);
   const date = dateOnly ? new Date(`${dateOnly[1]}T12:00:00`) : new Date(raw);
   if (Number.isNaN(date.getTime())) return null;
   return format(date, 'dd/MM/yyyy');
+}
+
+function formatNoticeDate(rawDate?: string | null, formatStr: string = 'dd MMM yyyy', fallback: string = 'Recente'): string {
+  if (!rawDate) return fallback;
+  try {
+    const raw = String(rawDate).trim();
+    const dateOnly = /^(\d{4}-\d{2}-\d{2})$/.exec(raw);
+    const d = dateOnly ? new Date(`${dateOnly[1]}T12:00:00`) : new Date(raw);
+    if (Number.isNaN(d.getTime())) return fallback;
+    return format(d, formatStr, { locale: ptBR });
+  } catch {
+    return fallback;
+  }
+}
+
+function isNoticeActive(expiracao?: string | null): boolean {
+  if (!expiracao) return true;
+  try {
+    const raw = String(expiracao).trim();
+    const dateOnly = /^(\d{4}-\d{2}-\d{2})$/.exec(raw);
+    const d = dateOnly ? new Date(`${dateOnly[1]}T23:59:59`) : new Date(raw);
+    if (Number.isNaN(d.getTime())) return true;
+    return d.getTime() >= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+function getNoticeTimestamp(rawDate?: string | null): number {
+  if (!rawDate) return 0;
+  const t = new Date(rawDate).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isAdmin?: boolean, tenantData?: any, setActiveTab: (tab: string) => void }) {
@@ -223,7 +255,19 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (submittingRef.current) return;
+    if (submittingRef.current || isSubmitting) return;
+
+    const cleanTitulo = (formData.titulo || '').trim();
+    const cleanConteudo = (formData.conteudo || '').trim();
+    if (!cleanTitulo) {
+      showHouseToast('Informe o título do comunicado antes de publicar.', 'info');
+      return;
+    }
+    if (!cleanConteudo) {
+      showHouseToast('Escreva a mensagem ou conteúdo do comunicado.', 'info');
+      return;
+    }
+
     submittingRef.current = true;
     setIsSubmitting(true);
     setElapsedSeconds(0);
@@ -232,13 +276,13 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
     let published = false;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not found');
+      if (!user) throw new Error('Sessão expirada. Faça login novamente.');
 
       // Prepara os dados para inserção, tratando a data de expiração vazia como null
       const insertData = {
-        titulo: formData.titulo,
-        conteudo: formData.conteudo,
-        categoria: formData.categoria,
+        titulo: cleanTitulo,
+        conteudo: cleanConteudo,
+        categoria: formData.categoria || 'Geral',
         tenant_id: tenantId || user.id,
         data_publicacao: new Date().toISOString(),
         expiracao: formData.expiracao || null
@@ -280,7 +324,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         published = progress.stage !== 'publishing';
         setPublicationProgress(progress);
       });
-      setLastPostedNotice({ titulo: formData.titulo, conteudo: formData.conteudo });
+      setLastPostedNotice({ titulo: cleanTitulo, conteudo: cleanConteudo });
       setLastWhatsappResult(
         notifyWhatsApp && payload.whatsapp
           ? {
@@ -299,17 +343,23 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
       void fetchBroadcastLogs();
     } catch (error: any) {
       console.error('Error posting notice:', error);
-      const message = published
+      const rawMsg = String(error?.message || '');
+      let message = published
         ? 'O comunicado já está no mural. Não foi possível confirmar o resultado das notificações. Confira o histórico antes de reenviar.'
-        : `Não foi possível confirmar a publicação: ${error.message || 'conexão interrompida'}. Confira o mural antes de tentar novamente.`;
+        : `Não foi possível confirmar a publicação: ${error?.message || 'conexão interrompida'}. Confira o mural antes de tentar novamente.`;
+      
+      if (rawMsg.includes('131026') || rawMsg.toLowerCase().includes('undeliverable')) {
+        message = 'Aviso publicado no mural, mas alguns números não possuem WhatsApp ativo.';
+      } else if (rawMsg.includes('131047') || rawMsg.toLowerCase().includes('re-engagement')) {
+        message = 'Aviso publicado no mural. A janela de 24h da Meta expirou para alguns contatos.';
+      } else if (rawMsg.includes('PGRST205')) {
+        message = 'O mural está temporariamente indisponível. Aguarde alguns segundos.';
+      }
+
       setPublicationError(message);
       void fetchNotices();
       void fetchBroadcastLogs();
-      if (error.code === 'PGRST205') {
-        showHouseToast('O mural está temporariamente indisponível.', 'error');
-      } else {
-        showHouseToast(message, 'error');
-      }
+      showHouseToast(message, 'error');
     } finally {
       setIsSubmitting(false);
       submittingRef.current = false;
@@ -362,10 +412,10 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
         if (a.categoria === 'Urgente' && b.categoria !== 'Urgente') return -1;
         if (a.categoria !== 'Urgente' && b.categoria === 'Urgente') return 1;
         // Then by date
-        return new Date(b.data_publicacao).getTime() - new Date(a.data_publicacao).getTime();
+        return getNoticeTimestamp(b.data_publicacao) - getNoticeTimestamp(a.data_publicacao);
       });
   }, [notices, activeCategory, searchTerm]);
-  const activeNoticesCount = notices.filter((notice) => !notice.expiracao || new Date(notice.expiracao).getTime() >= Date.now()).length;
+  const activeNoticesCount = notices.filter((notice) => isNoticeActive(notice.expiracao)).length;
   const successfulLogs = broadcastLogs.filter((log) => {
     const status = String(log.status || '').toLowerCase();
     return !['failed', 'falha', 'error', 'erro'].includes(status);
@@ -741,9 +791,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <AxeBadge variant={badgeVariant}>{notice.categoria}</AxeBadge>
                           <span className="text-xs font-semibold text-[#8A958E]">
-                            {format(new Date(notice.data_publicacao), 'dd MMM yyyy', {
-                              locale: ptBR,
-                            })}
+                            {formatNoticeDate(notice.data_publicacao, 'dd MMM yyyy')}
                           </span>
                         </div>
 
@@ -897,9 +945,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                             ? 'Corrente geral'
                             : log.telefone || 'Destinatário'}{' '}
                           ·{' '}
-                          {format(new Date(log.created_at), "dd/MM/yyyy 'às' HH:mm", {
-                            locale: ptBR,
-                          })}
+                          {formatNoticeDate(log.created_at, "dd/MM/yyyy 'às' HH:mm", 'Recentemente')}
                         </p>
                       </div>
                     </div>
@@ -930,7 +976,7 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
             <motion.button type="button" aria-label="Fechar comunicado" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedNotice(null)} className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm" />
             <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={MODAL_TW} className="fixed inset-y-0 right-0 z-[101] flex w-full max-w-md flex-col border-l border-[#DED8CB] bg-[#F9F6EE] text-[#171A16] shadow-2xl" role="dialog" aria-modal="true">
               <div className="flex items-center justify-between border-b border-[#DED8CB] p-5"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#8F7724]">{selectedNotice.categoria}</p><h2 className="mt-1 font-display text-lg font-black text-[#171A16]">Comunicado publicado</h2></div><button type="button" onClick={() => setSelectedNotice(null)} className="grid h-10 w-10 place-items-center rounded-full border border-[#DCD6CA] bg-white/70 text-[#171A16] hover:bg-white"><X className="h-5 w-5" /></button></div>
-              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#6F675C]">{(() => { const d = new Date(selectedNotice.data_publicacao); return Number.isNaN(d.getTime()) ? 'Data indisponível' : format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }); })()}</p><h3 className="mt-3 text-2xl font-black text-[#171A16]">{selectedNotice.titulo}</h3><div className="prose mt-5 max-w-none text-sm leading-relaxed text-[#171A16]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo || ''}</ReactMarkdown></div>{(() => { const expiryLabel = selectedNotice.expiracao ? formatNoticeExpiry(selectedNotice.expiracao) : null; return expiryLabel ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Visível até {expiryLabel}</div> : null; })()}</div>
+              <div className="flex-1 overflow-y-auto p-5"><p className="text-xs font-semibold text-[#6F675C]">{formatNoticeDate(selectedNotice.data_publicacao, "dd 'de' MMMM 'de' yyyy", 'Data indisponível')}</p><h3 className="mt-3 text-2xl font-black text-[#171A16]">{selectedNotice.titulo}</h3><div className="prose mt-5 max-w-none text-sm leading-relaxed text-[#171A16]"><ReactMarkdown rehypePlugins={[rehypeSanitize]}>{selectedNotice.conteudo || ''}</ReactMarkdown></div>{(() => { const expiryLabel = selectedNotice.expiracao ? formatNoticeExpiry(selectedNotice.expiracao) : null; return expiryLabel ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">Visível até {expiryLabel}</div> : null; })()}</div>
               {isAdmin ? <div className="grid grid-cols-2 gap-2 border-t border-[#DED8CB] p-5"><button type="button" onClick={() => void copyToClipboard(selectedNotice.titulo, selectedNotice.conteudo, selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#D8D2C4] bg-white text-sm font-bold text-[#4A463E] hover:bg-[#F5F0E5]"><Copy className="h-4 w-4" />{copiedId === selectedNotice.id ? 'Copiado' : 'Copiar'}</button><button type="button" disabled={deletingNoticeId !== null} aria-busy={deletingNoticeId === selectedNotice.id} onClick={() => void deleteNotice(selectedNotice.id)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#B04A32] text-sm font-bold text-white hover:bg-[#9C3F2A] disabled:cursor-wait disabled:opacity-55">{deletingNoticeId === selectedNotice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{deletingNoticeId === selectedNotice.id ? 'Excluindo…' : 'Excluir'}</button><button type="button" onClick={() => { setFormData({ titulo: selectedNotice.titulo, conteudo: selectedNotice.conteudo, categoria: selectedNotice.categoria, expiracao: '' }); setSelectedNotice(null); setComposerOpen(true); }} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#17251D] text-sm font-black text-[#FFFAF0] hover:bg-[#20342A]"><Send className="h-4 w-4" />Reenviar comunicado</button></div> : null}
             </motion.aside>
           </>
@@ -963,15 +1009,26 @@ export default function NoticeBoard({ isAdmin, tenantData, setActiveTab }: { isA
                 <div className="space-y-1">
                   <h3 className="font-display text-lg sm:text-xl font-black text-[#171A16] leading-tight">Aviso <span className="text-[#8F7724]">publicado!</span></h3>
                   {lastWhatsappResult ? (
-                    <p className={cn('text-xs sm:text-sm font-medium', lastWhatsappResult.errors > 0 || lastWhatsappResult.status === 'offline' ? 'text-amber-800' : 'text-[#3F7258]')}>
-                      {lastWhatsappResult.status === 'offline' ? 'O canal WhatsApp está indisponível. O comunicado está publicado no mural.' : <>
-                      WhatsApp: {lastWhatsappResult.sent} enviado(s)
-                      {lastWhatsappResult.errors > 0 ? `, ${lastWhatsappResult.errors} falha(s)` : ''}
-                      {lastWhatsappResult.skipped > 0 ? `, ${lastWhatsappResult.skipped} não processado(s) neste lote` : ''}.
-                      </>}
-                    </p>
+                    <div className={cn('text-xs sm:text-sm font-medium', lastWhatsappResult.errors > 0 || lastWhatsappResult.status === 'offline' ? 'text-amber-800' : 'text-[#3F7258]')}>
+                      {lastWhatsappResult.status === 'offline' ? (
+                        <p>O canal WhatsApp está indisponível no momento. O comunicado foi publicado no mural da casa.</p>
+                      ) : (
+                        <>
+                          <p>
+                            WhatsApp: {lastWhatsappResult.sent} enviado(s)
+                            {lastWhatsappResult.errors > 0 ? `, ${lastWhatsappResult.errors} falha(s)` : ''}
+                            {lastWhatsappResult.skipped > 0 ? `, ${lastWhatsappResult.skipped} não processado(s) neste lote` : ''}.
+                          </p>
+                          {lastWhatsappResult.errors > 0 && (
+                            <p className="text-[11px] text-amber-700/80 mt-1 font-normal">
+                              (números sem WhatsApp ou incorretos não afetam a entrega aos demais)
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
                   ) : (
-                    <p className="text-xs sm:text-sm text-[#6F675C] font-medium">Publicado no app sem disparo WhatsApp.</p>
+                    <p className="text-xs sm:text-sm text-[#6F675C] font-medium">Publicado no mural do app sem envio de WhatsApp.</p>
                   )}
                   <p className="text-xs sm:text-sm text-[#6F675C] font-medium">Compartilhe manualmente se precisar.</p>
                 </div>

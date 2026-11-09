@@ -570,6 +570,16 @@ export default function Financial({
 
   async function handleSavePixConfig(e: React.FormEvent) {
     e.preventDefault();
+    if (!pixConfig.chave_pix?.trim()) {
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast('Informe a chave Pix do terreiro.', 'error');
+      return;
+    }
+    if (!pixConfig.nome_beneficiario?.trim()) {
+      const { showHouseToast } = await import('../lib/houseToast');
+      showHouseToast('Informe o nome do titular/beneficiário do Pix.', 'error');
+      return;
+    }
     setIsSavingPix(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -918,6 +928,11 @@ export default function Financial({
       setIsUpgradeModalOpen(true);
       return;
     }
+    if (!pixConfig?.chave_pix?.trim()) {
+      showHouseToast('Configure a chave Pix do terreiro antes de enviar cobranças.', 'error');
+      setActiveView('configs');
+      return;
+    }
 
     const chargeKey = `${childId}:${competenciaIso}`;
     if (sendingChargeKey) return;
@@ -926,13 +941,23 @@ export default function Financial({
     showHouseToast(`Enviando cobrança para ${nome}…`, 'info');
 
     try {
-      const [year, month] = competenciaIso.split('-');
-      const mesAno = `${month}/${year}`;
+      let mesAno = '';
+      if (competenciaIso && competenciaIso.includes('-')) {
+        const parts = competenciaIso.split('-');
+        if (parts.length >= 2) mesAno = `${parts[1]}/${parts[0]}`;
+      }
+      if (!mesAno) {
+        const now = new Date();
+        mesAno = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+      }
+
+      const numVal = parseFloat(String(valorExibicao || '').replace(',', '.')) || parseFloat(pixConfig.valor_mensalidade) || 0;
+      const valorFormatado = numVal > 0 ? numVal.toFixed(2).replace('.', ',') : (valorExibicao || '0,00');
 
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       const uid = session?.user?.id;
-      if (!token || !uid) throw new Error('Sessão expirada');
+      if (!token || !uid) throw new Error('Sessão expirada. Faça login novamente.');
       const response = await fetch(whatsappApiUrl('/whatsapp/send'), {
         method: 'POST',
         headers: whatsappRailwayHeaders(token, uid),
@@ -942,7 +967,7 @@ export default function Financial({
           variables: {
             nome_filho: nome,
             mes_ano: mesAno,
-            valor: valorExibicao,
+            valor: valorFormatado,
             nome_terreiro: tenantData?.nome || 'Nosso Terreiro',
           },
         }),
@@ -950,14 +975,21 @@ export default function Financial({
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(String(result?.error || result?.message || 'Não foi possível enviar a mensagem.'));
+        const rawErr = String(result?.error || result?.message || 'Não foi possível enviar a mensagem.');
+        if (rawErr.includes('131026') || rawErr.toLowerCase().includes('undeliverable') || rawErr.toLowerCase().includes('não possui whatsapp')) {
+          throw new Error(`O número de ${nome} não possui WhatsApp ativo. Corrija o telefone no módulo Médiuns.`);
+        }
+        if (rawErr.includes('131047') || rawErr.toLowerCase().includes('24h')) {
+          throw new Error(`Janela de 24h expirada para ${nome}. Mensagem de contingência enviada.`);
+        }
+        throw new Error(rawErr);
       }
       showHouseToast(`Cobrança enviada para ${nome} pelo WhatsApp`);
     } catch (error: unknown) {
       console.error('Error sending cobranca:', error);
       showHouseToast(
         error instanceof Error && error.message
-          ? `Não foi possível enviar: ${error.message}`
+          ? error.message
           : 'Não foi possível enviar a cobrança. Tente novamente.',
         'error',
       );

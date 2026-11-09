@@ -2,11 +2,17 @@ import assert from 'node:assert/strict';
 import test, { afterEach, beforeEach } from 'node:test';
 import {
   REMEMBER_EMAIL_KEY,
+  REMEMBER_MEMBER_KEY,
   clearRememberedLoginEmail,
+  clearRememberedMemberLogin,
   collectRememberedLoginEmailFromStorage,
+  collectRememberedMemberLoginFromStorage,
   readRememberedLoginEmail,
+  readRememberedMemberLogin,
   restoreRememberedLoginEmailToStorage,
+  restoreRememberedMemberLoginToStorage,
   writeRememberedLoginEmail,
+  writeRememberedMemberLogin,
   readRememberLoginPreference,
   writeRememberLoginPreference,
 } from '../src/lib/loginRemember.ts';
@@ -98,4 +104,27 @@ test('a escolha de não lembrar permanece após recarregar e limpar a sessão', 
   assert.equal(readRememberedLoginEmail(), null);
   writeRememberLoginPreference(true);
   assert.equal(readRememberLoginPreference(), true);
+});
+
+test('identificador de membro lembrado pode ser relido sem depender de autenticação', () => {
+  writeRememberedMemberLogin('  11999998888  ');
+  assert.equal(readRememberedMemberLogin(), '11999998888');
+  assert.deepEqual([...storage.values], [[REMEMBER_MEMBER_KEY, '11999998888']]);
+});
+
+test('logout preserva o login de membro e remove a sessão', () => {
+  writeRememberedMemberLogin('AXC-2026-F91A');
+  storage.setItem('sb-session', 'token-de-teste');
+  const memberId = collectRememberedMemberLoginFromStorage();
+  storage.clear();
+  restoreRememberedMemberLoginToStorage(memberId);
+  assert.equal(readRememberedMemberLogin(), 'AXC-2026-F91A');
+  assert.equal(storage.getItem('sb-session'), null);
+});
+
+test('desmarcar preferência de lembrar remove também o login de membro', () => {
+  writeRememberedMemberLogin('11999998888');
+  assert.equal(readRememberedMemberLogin(), '11999998888');
+  writeRememberLoginPreference(false);
+  assert.equal(readRememberedMemberLogin(), null);
 });

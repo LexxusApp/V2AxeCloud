@@ -13,7 +13,8 @@ async function send(memberId:string,kind:string,variables:Record<string,string>,
   sending.add(key);
   try{
     const member=(readValue<any[]>('members')||[]).find(row=>row.id===memberId);
-    if(!member?.phone)throw new Error('Cadastre o WhatsApp deste membro antes de enviar o aviso.');
+    const profile=previewSession().profile;
+    if(!member||(!member.phone&&!(profile.is_co_admin===true&&!profile.permissoes?.members)))throw new Error('Cadastre o WhatsApp deste membro antes de enviar o aviso.');
     const result=await request('/api/whatsapp/send','POST',{tipo:kind,filhoId:memberId,tenant_id:previewSession().tenantId,variables:{...variables,nome_filho:member.name,nome_terreiro:readValue('account')?.profile.house||previewSession().profile.nome||'Terreiro'}});
     if(result.success!==true)throw new Error('O serviço não confirmou o envio. Confira o histórico antes de repetir.');
     operation.sent(String(result.externalId||`request:${operation.id}`),result.externalId?'sent':'unknown');
@@ -30,8 +31,8 @@ export function sendMonthlyReminder(id:string){return tracked('Enviando cobranç
   await send(charge.memberId,'cobranca_mensalidade',{mes_ano:`${month}/${year}`,valor:(charge.totalCents/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})},operation);
 });}
 export function sendCantinaReminder(memberId:string){return tracked('Enviando cobrança da cantina',async operation=>{
-  await Promise.all(['finance','members','pix','account'].map(ensureResource));
-  const total=(readValue<any[]>('financeRows')||[]).filter(row=>row.categoria==='Cantina'&&row.status==='pendente'&&row.filho_id===memberId).reduce((sum,row)=>sum+Math.round(Number(row.valor)*100),0);
+  await Promise.all(['cantina','members','account'].map(ensureResource));
+  const total=(readValue<any[]>('cantinaFinanceRows')||[]).filter(row=>row.categoria==='Cantina'&&row.status==='pendente'&&row.filho_id===memberId).reduce((sum,row)=>sum+Math.round(Number(row.valor)*100),0);
   if(!Number.isSafeInteger(total)||total<=0)throw new Error('Não há consumo em aberto para enviar a este membro.');
   await send(memberId,'cobranca_cantina',{valor:(total/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}),chave_pix:readValue('pixSettings')?.key||'Consulte a zeladoria'},operation);
 });}
@@ -54,8 +55,8 @@ export async function sendAutomaticCantinaNotice(financeId:string){
   const claim:any=await checked(supabase.rpc('piloto_iniciar_aviso_cantina',{p_tenant:scope.tenantId,p_financeiro:financeId,p_request:requestId}));
   if(claim.send!==true)return;claimed=true;
   operation=operations.begin('Enviando aviso da nova comanda');
-  await Promise.all(['finance','pix','account','members'].map(ensureResource));
-  const total=(readValue<any[]>('financeRows')||[]).filter(row=>row.categoria==='Cantina'&&row.status==='pendente'&&row.filho_id===claim.member_id).reduce((sum,row)=>sum+Math.round(Number(row.valor)*100),0);
+  await Promise.all(['cantina','account','members'].map(ensureResource));
+  const total=(readValue<any[]>('cantinaFinanceRows')||[]).filter(row=>row.categoria==='Cantina'&&row.status==='pendente'&&row.filho_id===claim.member_id).reduce((sum,row)=>sum+Math.round(Number(row.valor)*100),0);
   if(!Number.isSafeInteger(total)||total<=0)throw Error('A comanda já foi acertada. Nenhum aviso de cobrança foi enviado.');
   if(previewSession().tenantId!==scope.tenantId||previewSession().userId!==scope.userId)throw Error('A conta mudou antes do envio.');
   const result=await send(claim.member_id,'cobranca_cantina',{valor:(total/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}),chave_pix:readValue('pixSettings')?.key||'Consulte a zeladoria'},operation);

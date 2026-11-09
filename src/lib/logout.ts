@@ -8,6 +8,8 @@ import {
 import {
   collectRememberedLoginEmailFromStorage,
   restoreRememberedLoginEmailToStorage,
+  collectRememberedMemberLoginFromStorage,
+  restoreRememberedMemberLoginToStorage,
 } from './loginRemember';
 import {
   collectClientUiPrefsFromStorage,
@@ -56,6 +58,7 @@ export async function performFastLogout(): Promise<void> {
 
   const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
   const preservedRememberEmail = collectRememberedLoginEmailFromStorage();
+  const preservedRememberMember = collectRememberedMemberLoginFromStorage();
   const preservedUiPrefs = collectClientUiPrefsFromStorage();
 
   try {
@@ -67,6 +70,7 @@ export async function performFastLogout(): Promise<void> {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
       restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
       restoreRememberedLoginEmailToStorage(preservedRememberEmail);
+      restoreRememberedMemberLoginToStorage(preservedRememberMember);
       restoreClientUiPrefsToStorage(preservedUiPrefs);
     } catch {
       /* ignorar */
@@ -114,6 +118,7 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
   }
   const preservedLegalAcceptance = collectLegalAcceptanceFromStorage();
   const preservedRememberEmail = collectRememberedLoginEmailFromStorage();
+  const preservedRememberMember = collectRememberedMemberLoginFromStorage();
   const preservedUiPrefs = collectClientUiPrefsFromStorage();
 
   try {
@@ -124,6 +129,7 @@ export async function emergencyAuthCircuitBreaker(): Promise<void> {
       localStorage.setItem('axecloud_version', SYSTEM_VERSION);
       restoreLegalAcceptanceToStorage(preservedLegalAcceptance);
       restoreRememberedLoginEmailToStorage(preservedRememberEmail);
+      restoreRememberedMemberLoginToStorage(preservedRememberMember);
       restoreClientUiPrefsToStorage(preservedUiPrefs);
     } catch {
       /* ignorar */

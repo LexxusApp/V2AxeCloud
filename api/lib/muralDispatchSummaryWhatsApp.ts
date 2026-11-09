@@ -221,42 +221,78 @@ export async function sendMuralDispatchSummaryWhatsApp(
   const { isMetaCloudDirectConfigured, sendMetaCloudTemplate } = await import("./metaCloudSend.js");
   const {
     buildMetaTemplateComponents,
+    buildResumoDisparoGiraComponents,
     resolveMetaTemplateLanguage,
+    resolveResumoDisparoGiraTemplateName,
   } = await import("./whatsappMetaCloud.js");
 
   let messageId: string | undefined;
 
-  // 1. Tenta enviar como texto livre caso haja janela 24h aberta
+  // Envia o relatório exclusivamente via templates Meta homologados (sem texto livre fora da janela 24h)
   if (isMetaCloudDirectConfigured()) {
-    try {
-      const { sendMetaCloudText } = await import("./metaCloudSend.js");
-      const out = await sendMetaCloudText(contact.phone, resumoText);
-      messageId = out.messageId;
-      console.log(`[mural-summary] enviado via texto livre para ${contact.phone.slice(0, 4)}…`);
-    } catch {
-      /* fallback para template oficial */
+    let resumoLinha = "";
+    if (stats.falhas === 0 && stats.pendentes === 0) {
+      resumoLinha = `Todos os ${stats.entregues} médiuns receberam com sucesso no WhatsApp!`;
+    } else {
+      const partes: string[] = [];
+      if (stats.entregues > 0) partes.push(`${stats.entregues} entregues`);
+      if (stats.falhas > 0) {
+        const failedNames = stats.failedMembers.slice(0, 3).map((m) => m.nome).filter(Boolean);
+        const nomes = failedNames.length > 0 ? ` (${failedNames.join(", ")}${stats.failedMembers.length > 3 ? "..." : ""})` : "";
+        partes.push(`${stats.falhas} não receberam${nomes}`);
+      }
+      if (stats.pendentes > 0) partes.push(`${stats.pendentes} em trânsito`);
+      resumoLinha = partes.join(" · ") + ". Confira no painel.";
     }
 
-    // 2. Fallback garantido: template universal aprovado aviso_geral_axecloud
-    if (!messageId) {
-      try {
-        const resumoCurto = stats.falhas > 0
-          ? `Comunicado "${stats.titulo}": ${stats.entregues} entregues com sucesso, ${stats.falhas} falharam. Confira a lista no painel.`
-          : `Comunicado "${stats.titulo}": todos os ${stats.entregues} médiuns receberam com sucesso no WhatsApp!`;
+    const dedicated = resolveResumoDisparoGiraTemplateName();
+    const legacy = "aviso_geral_axecloud";
 
-        const out = await sendMetaCloudTemplate(
-          contact.phone,
-          "aviso_geral_axecloud",
-          resolveMetaTemplateLanguage(),
-          buildMetaTemplateComponents(contact.nome, resumoCurto)
-        );
-        messageId = out.messageId;
-        console.log(`[mural-summary] enviado via aviso_geral_axecloud para ${contact.phone.slice(0, 4)}…`);
-      } catch (templateErr: unknown) {
-        console.warn(
-          "[mural-summary] template aviso_geral falhou:",
-          templateErr instanceof Error ? templateErr.message : templateErr
-        );
+    try {
+      const out = await sendMetaCloudTemplate(
+        contact.phone,
+        dedicated,
+        resolveMetaTemplateLanguage(),
+        buildResumoDisparoGiraComponents({
+          nome_zelador: contact.nome,
+          evento_rotulo: `Comunicado: "${stats.titulo.slice(0, 40)}"`,
+          resumo: resumoLinha,
+        }),
+        {
+          tenantId: opts.tenantId,
+          recipientName: contact.nome,
+          source: "resumo_disparo_mural",
+        }
+      );
+      messageId = out.messageId;
+      console.log(`[mural-summary] enviado via template ${dedicated} para ${contact.phone.slice(0, 4)}…`);
+    } catch (err: unknown) {
+      console.warn(
+        `[mural-summary] template dedicado ${dedicated} falhou:`,
+        err instanceof Error ? err.message : err
+      );
+      if (dedicated !== legacy) {
+        try {
+          const packed = `Comunicado "${stats.titulo.slice(0, 30)}": ${resumoLinha}`;
+          const out = await sendMetaCloudTemplate(
+            contact.phone,
+            legacy,
+            resolveMetaTemplateLanguage(),
+            buildMetaTemplateComponents(contact.nome, packed),
+            {
+              tenantId: opts.tenantId,
+              recipientName: contact.nome,
+              source: "resumo_disparo_mural",
+            }
+          );
+          messageId = out.messageId;
+          console.log(`[mural-summary] enviado via fallback ${legacy} para ${contact.phone.slice(0, 4)}…`);
+        } catch (templateErr: unknown) {
+          console.warn(
+            "[mural-summary] template aviso_geral falhou:",
+            templateErr instanceof Error ? templateErr.message : templateErr
+          );
+        }
       }
     }
   }

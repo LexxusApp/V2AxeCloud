@@ -86,7 +86,7 @@ test('upload and AI outage preserve pending debt; accepted hash is blocked befor
  ctx.setRPC((_name:string,args:any)=>{const saved={...row(),request_id:args.p_request,arquivo_sha256:args.p_sha,storage_path:args.p_path,analysis_status:'pendente'};ctx.tables.mensalidade_comprovante_envios.push(saved);return {data:saved};});
  const sent=await ctx.call('POST',submit,payload,member);
  assert.equal(sent.status,202);assert.equal(sent.body.requires_review,true);assert.equal(sent.body.data.analysis_status,'indisponivel');assert.equal(ctx.notices.length,0);assert.equal(ctx.tables.financeiro[0].status,'pendente');assert.deepEqual(ctx.writes,['mensalidade_comprovante_envios']);
- const retried=await ctx.call('POST',submit,payload,member);assert.equal(retried.body.replayed,true);assert.equal(retried.body.data.created_at,sent.body.data.created_at);assert.equal(ctx.storage.length,1);assert.equal(ctx.calls.length,1);assert.equal(ctx.calls[0].name,'piloto_registrar_envio_comprovante');
+ const retried=await ctx.call('POST',submit,payload,member);assert.equal(retried.body.replayed,true);assert.equal(retried.body.data.created_at,sent.body.data.created_at);assert.equal(ctx.storage.length,1);assert.equal(ctx.calls.length,1);assert.equal(ctx.calls[0].name,'registrar_envio_comprovante');
  const duplicate=fixture(false);duplicate.tables.financeiro_comprovantes.push({id:randomUUID(),arquivo_sha256:createHash('sha256').update(bytes).digest('hex')});
  assert.equal((await duplicate.call('POST',submit,payload,member)).status,409);assert.equal(duplicate.storage.length,0);assert.equal(duplicate.calls.length,0);
 });

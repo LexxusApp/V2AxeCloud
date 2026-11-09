@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { supabase } from "../../src/lib/supabase";
 import { previewSession } from "./remote/session";
-const PILOT_COADMIN_TENANT_ID = "fad75b91-d2eb-4805-b5a3-c19e8a073bed";
+import {CoAdminPermissionsDialog,summarizeCoAdminPermissions,type CoAdminPermissions,type CoAdminEntry} from './CoAdminPermissions';
+import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import {
+  Trash2,
   ArrowRight,
   Check,
   History,
@@ -36,6 +38,7 @@ export default function SettingsPage({
   onChange: (s: AccountSetup) => void;
   onNavigate: (id: string) => void;
 }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [whatsView, setWhatsView] = useState<"automations" | "history">(
     "automations",
   );
@@ -48,14 +51,14 @@ export default function SettingsPage({
     >(null),
     [photoUrl, setPhotoUrl] = useState(""),
     [reading, setReading] = useState(false);
-  const [coAdmins, setCoAdmins] = useState<{ id: string; filho_id: string; nome: string; email: string; cargo: string; ativo: boolean }[]>([]);
+  const [coAdmins,setCoAdmins] = useState<CoAdminEntry[]>([]);
+  const [editingPermissions,setEditingPermissions] = useState<CoAdminEntry|null>(null);
   const [coAdminLoading, setCoAdminLoading] = useState(false);
   const [coAdminBusy, setCoAdminBusy] = useState(false);
   const [coAdminFeedback, setCoAdminFeedback] = useState("");
   const session = (() => { try { return previewSession(); } catch { return null; } })();
-  const isPilotTenant = session?.tenantId === PILOT_COADMIN_TENANT_ID;
   const isDelegatedCoAdmin = session?.profile?.is_co_admin === true || session?.profile?.cargo === "Co-Administrador";
-  const canManageCoAdmins = isPilotTenant && !isDelegatedCoAdmin;
+  const canManageCoAdmins = Boolean(session&&session.userId===session.tenantId) && !isDelegatedCoAdmin;
 
   const parseCoAdminList = (res: any) => {
     if (Array.isArray(res)) return res;
@@ -67,12 +70,14 @@ export default function SettingsPage({
     if (!canManageCoAdmins) return;
     setCoAdminLoading(true);
     try {
-      const { data, error } = await supabase.rpc("piloto_listar_coadministradores", { p_tenant: PILOT_COADMIN_TENANT_ID });
+      const { data, error } = await supabase.rpc("piloto_listar_coadministradores", { p_tenant: session!.tenantId });
+      if(error)throw error;
       if (!error && data) {
         const list = parseCoAdminList(data);
         setCoAdmins(list.filter((r: any) => r.ativo));
       }
     } catch (err) {
+      setCoAdminFeedback('Não foi possível carregar os responsáveis. Tente novamente antes de editar.');
       console.warn("[SettingsPage] Falha ao carregar coadministradores:", err);
     } finally {
       setCoAdminLoading(false);
@@ -83,25 +88,21 @@ export default function SettingsPage({
     if (canManageCoAdmins) void loadCoAdmins();
   }, [canManageCoAdmins]);
 
-  const handleRevokeCoAdmin = async (filhoId: string) => {
-    if (!canManageCoAdmins) return;
+  const savePermissions=async(permissions:CoAdminPermissions,active:boolean)=>{
+    if(!canManageCoAdmins||!editingPermissions)throw new Error('Acesso não autorizado.');
     setCoAdminBusy(true);
-    setCoAdmins(prev => prev.filter(c => c.filho_id !== filhoId));
-    try {
-      const { error } = await supabase.rpc("piloto_definir_coadministrador", {
-        p_tenant: PILOT_COADMIN_TENANT_ID,
-        p_filho_id: filhoId,
-        p_ativo: false,
+    try{
+      const {data,error}=await supabase.rpc('piloto_salvar_permissoes_coadministrador',{
+        p_tenant:session!.tenantId,
+        p_filho_id:editingPermissions.filho_id,
+        p_permissoes:permissions,
+        p_ativo:active,
       });
-      if (error) throw error;
-      setCoAdminFeedback("Co-administração revogada com sucesso.");
+      if(error||data?.ok!==true)throw error||new Error('O servidor não confirmou a alteração.');
       await loadCoAdmins();
-    } catch (err) {
-      await loadCoAdmins();
-      setError(err instanceof Error ? err.message : "Falha ao revogar co-administrador.");
-    } finally {
-      setCoAdminBusy(false);
-    }
+      setCoAdminFeedback(active?'Permissões atualizadas.':'Acesso revogado.');
+      setEditingPermissions(null);
+    }finally{setCoAdminBusy(false);}
   };
 
   const fileRef = useRef<HTMLInputElement>(null),
@@ -209,6 +210,41 @@ export default function SettingsPage({
     }
     setConfirm(null);
   };
+
+  if (isDelegatedCoAdmin) {
+    return (
+      <div className="finish-page settings-local">
+        <section style={{ overflow: "hidden", border: "1px solid #d8d0c4", borderRadius: 18, background: "#fffdf8", maxWidth: 850, margin: "0 auto", boxShadow: "0 16px 36px -30px rgba(53,42,25,.7)" }}>
+          <div style={{ background: "linear-gradient(135deg,#173323,#214b35)", padding: "24px 26px", display: "flex", alignItems: "flex-start", gap: 15 }}>
+            <span style={{ display: "grid", placeItems: "center", width: 46, height: 46, flexShrink: 0, borderRadius: 12, background: "rgba(244,196,48,.12)", color: "#f4c430" }}>
+              <ShieldCheck size={24} />
+            </span>
+            <div>
+              <p style={{ margin: 0, color: "#f4c430", fontSize: 10, textTransform: "uppercase", letterSpacing: ".16em", fontWeight: 800 }}>Acesso delegado</p>
+              <h2 style={{ margin: "5px 0 0", color: "#fff", fontSize: 21, fontWeight: 800 }}>Responsável pelo sistema</h2>
+              <p style={{ margin: "7px 0 0", color: "#d5e2d8", fontSize: 13, lineHeight: 1.6 }}>
+                Seu acesso permite administrar as atividades da casa autorizadas pela zeladoria titular.
+              </p>
+            </div>
+          </div>
+          <div style={{ padding: 26, display: "grid", gap: 14 }}>
+            <div style={{ background: "#f1f6f2", border: "1px solid #d8e0d5", borderRadius: 12, padding: 15 }}>
+              <strong style={{ display: "block", color: "#17633b", marginBottom: 5 }}>Operação da casa</strong>
+              <p style={{ margin: 0, color: "#706658", fontSize: 13, lineHeight: 1.6 }}>Use os módulos liberados de membros, giras, comunicados e rotinas operacionais. Suas ações continuam vinculadas à sua própria conta.</p>
+            </div>
+            <div style={{ background: "#fff9ed", border: "1px solid #e0d5be", borderRadius: 12, padding: 15 }}>
+              <strong style={{ display: "block", color: "#8a6800", marginBottom: 5 }}>Exclusivo do titular</strong>
+              <p style={{ margin: 0, color: "#706658", fontSize: 13, lineHeight: 1.6 }}>Dados de titularidade, configurações da conta da casa, assinatura, cobrança do AxéCloud, exclusão do terreiro e delegação de outros responsáveis permanecem protegidos.</p>
+            </div>
+            <button type="button" className="finish-link" onClick={() => onNavigate("children")} style={{ alignSelf: "start", display: "inline-flex", alignItems: "center", gap: 8, color: "#17633b", fontWeight: 800 }}>
+              Abrir corrente <ArrowRight size={16} />
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="finish-page settings-local">
       {feedback && (
@@ -725,7 +761,7 @@ export default function SettingsPage({
                                 Acesso ativo
                               </span>
                             </div>
-                            <small style={{ color: "#64748b", fontSize: 12 }}>{admin.email || "E-mail não informado"}</small>
+                            <small style={{ color: "#64748b", fontSize: 12 }}>{admin.email || "E-mail não informado"} · {summarizeCoAdminPermissions(admin.permissoes||{})}</small>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <button
@@ -741,9 +777,9 @@ export default function SettingsPage({
                               className="finish-link danger"
                               style={{ fontSize: 12 }}
                               disabled={coAdminBusy}
-                              onClick={() => handleRevokeCoAdmin(admin.filho_id)}
+                              onClick={() => setEditingPermissions(admin)}
                             >
-                              Revogar
+                              Editar permissões
                             </button>
                           </div>
                         </div>
@@ -752,10 +788,29 @@ export default function SettingsPage({
                   )}
 
                   <p style={{ fontSize: 12, color: "#706658", marginTop: 14, marginBottom: 0, lineHeight: 1.55, fontWeight: 600 }}>
-                    O acesso delegado cobre as rotinas operacionais da casa. Assinatura, cobrança do AxéCloud e exclusão permanecem exclusivas da zeladoria titular.
+                    As permissões são individuais e podem ser alteradas ou revogadas a qualquer momento. Assinatura, cobrança do AxéCloud e exclusão permanecem exclusivas da zeladoria titular.
                   </p>
                 </section>
               )}
+                            <section style={{ marginTop: 24, padding: 20, borderRadius: 16, border: "1px solid #fecaca", background: "#fef2f2" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#991b1b", marginBottom: 6 }}>
+                  <Trash2 size={20} />
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#991b1b" }}>
+                    Zona de Perigo · Exclusão de Acesso e Conta
+                  </h3>
+                </div>
+                <p style={{ margin: "0 0 14px", fontSize: 12, color: "#7f1d1d", lineHeight: 1.5 }}>
+                  Deseja excluir permanentemente o cadastro do terreiro e encerrar seu acesso? Esta ação apaga todos os dados (membros, financeiro, giras, mural, galeria) e o login de forma definitiva.
+                </p>
+                <button
+                  type="button"
+                  className="finish-link danger"
+                  style={{ fontSize: 12, fontWeight: 700, padding: "8px 14px", background: "#fff", borderRadius: 8, border: "1px solid #fca5a5" }}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  Excluir minha conta e dados definitivamente
+                </button>
+              </section>
               <section className="settings-reset">
                 <h3>Descartar edições não salvas</h3>
                 <p>
@@ -827,6 +882,14 @@ export default function SettingsPage({
           </>
         )}
       </WorkflowDialog>
+      <DeleteAccountDialog open={deleteOpen} onOpenChange={setDeleteOpen} userEmail={state.profile.email} />
+      <CoAdminPermissionsDialog
+        member={editingPermissions?{id:editingPermissions.filho_id,name:editingPermissions.nome,email:editingPermissions.email||undefined}:null}
+        existing={editingPermissions}
+        busy={coAdminBusy}
+        onClose={()=>setEditingPermissions(null)}
+        onSave={savePermissions}
+      />
     </div>
   );
 }

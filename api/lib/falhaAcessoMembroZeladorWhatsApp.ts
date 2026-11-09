@@ -271,19 +271,10 @@ export async function notifyZeladorFalhaEntregaMembro(
     }
   }
 
-  // 2. Tenta enviar como texto livre organizado (caso haja janela 24h ativa com o zelador)
-  if (!messageId) {
-    try {
-      const { sendMetaCloudText } = await import("./metaCloudSend.js");
-      const out = await sendMetaCloudText(contact.phone, organizedText);
-      messageId = out.messageId;
-      console.log(`[falha-entrega-zelador] enviado via texto livre para ${contact.phone.slice(0, 4)}…`);
-    } catch {
-      /* fallback para template geral */
-    }
-  }
-
-  // 3. Fallback garantido: template universal aprovado aviso_geral_axecloud
+  // 2. Envio oficial via template aprovado aviso_geral_axecloud
+  // NOTA: Alertas proativos iniciados pelo sistema ao zelador NÃO devem ser enviados como texto livre (meta_text),
+  // pois a Meta rejeita assincronamente via webhook (#131047) caso o zelador não tenha interagido nas últimas 24h.
+  // O template aprovado aviso_geral_axecloud é aceito e entregue pela Meta a qualquer momento.
   if (!messageId) {
     try {
       const packed = isDadosAcesso && registro && senha

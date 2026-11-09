@@ -132,7 +132,7 @@ export async function runSubscriptionBillingReminders(
 
   const { data: subscriptions, error } = await sb
     .from("subscriptions")
-    .select("id, tenant_id, status, expires_at, billing_cycle")
+    .select("id, status, expires_at, billing_cycle")
     .eq("status", "active")
     .not("expires_at", "is", null)
     .limit(500);
@@ -148,7 +148,7 @@ export async function runSubscriptionBillingReminders(
       skipped++;
       continue;
     }
-    const tenantRef = String(subscription.tenant_id || subscription.id || "").trim();
+    const tenantRef = String((subscription as any).tenant_id || subscription.id || "").trim();
     if (!tenantRef) {
       skipped++;
       continue;
@@ -278,13 +278,8 @@ export async function runSubscriptionBillingReminders(
                 idempotencyKey: `subscription-pix-code:${leaderId}:${expiryYmd}:d${offset}`,
               }
             );
-          } catch {
-            await sendMetaCloudText(phone, pixCopyPaste, {
-              tenantId: leaderId,
-              recipientName: String(profile.cargo || "Zelador"),
-              source: "billing_pix_code",
-              idempotencyKey: `subscription-pix-code:${leaderId}:${expiryYmd}:d${offset}`,
-            });
+          } catch (pixTplErr) {
+            console.warn("[SUBSCRIPTION WA] Template pix_copia_cola_axecloud falhou:", pixTplErr);
           }
         } catch (textErr) {
           console.warn("[SUBSCRIPTION WA] Falha ao enviar código Pix em mensagem separada:", textErr);

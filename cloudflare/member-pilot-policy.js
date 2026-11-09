@@ -11,11 +11,9 @@ const email=value=>String(value||'').trim().toLowerCase();
 export function isPilotMember(user,tenant,member){
  if(!user||!tenant||!member)return false;
  const userId=String(user.id||''),memberId=String(member.id||''),tenantId=String(tenant.tenant_id||''),memberTenant=String(member.tenant_id||member.tenantId||'');
- const authEmail=email(user.email),memberEmail=email(member.email),shadowEmail=`f_${memberId.toLowerCase()}@axecloud.internal`;
  const tenantStatus=email(tenant.status),memberStatus=email(member.status);
  return Boolean(UUID.test(userId)&&UUID.test(memberId)&&UUID.test(tenantId)&&memberTenant===tenantId
   &&email(tenant.role)==='filho'&&String(member.user_id||'')===userId
-  &&(authEmail===shadowEmail||Boolean(memberEmail&&authEmail===memberEmail))
   &&['ativo','active'].includes(memberStatus)
   &&tenant.is_blocked!==true&&!tenant.deleted_at&&!['blocked','deleted','inativo','inactive'].includes(tenantStatus));
 }

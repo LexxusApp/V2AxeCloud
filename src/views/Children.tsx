@@ -22,6 +22,7 @@ import ChildrenCurrentExperience from '../components/children/ChildrenCurrentExp
 import BodyPortal from '../components/BodyPortal';
 import { confirmAction } from '../lib/confirmAction';
 import { reportFeatureFailureClient } from '../lib/telemetryClient';
+import { formatTelefoneBr, maskTelefoneInput, isValidTelefoneBr } from '../lib/formatTelefone';
 
 const paperLabelClass =
   'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
@@ -199,6 +200,14 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         throw new Error("Usuário não autenticado");
       }
 
+      const cleanPhone = String(formData.whatsapp_phone || '').replace(/\D/g, '');
+      if (!cleanPhone) {
+        throw new Error("Informe o telefone com WhatsApp do médium.");
+      }
+      if (!isValidTelefoneBr(cleanPhone)) {
+        throw new Error("Informe um WhatsApp válido com DDD (ex.: 11 98765-4321).");
+      }
+
       const response = await authFetch('/api/children', {
         method: 'POST',
         headers: {
@@ -207,7 +216,10 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
         body: JSON.stringify({
           userId: user.id,
           tenantId: tenantId,
-          childData: formData
+          childData: {
+            ...formData,
+            whatsapp_phone: cleanPhone,
+          }
         })
       });
 
@@ -634,7 +646,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className={childStatusClass(child.status)}>{child.status}</span>
                   {hasPendingPayment ? <span className="rounded-full border border-rose-400/20 bg-rose-400/10 px-2 py-1 text-xs font-bold text-rose-300">Mensalidade pendente</span> : null}
-                  {phone ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#8E9AAA]"><Phone className="h-3 w-3" />{phone}</span> : null}
+                  {phone ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#8E9AAA]"><Phone className="h-3 w-3" />{formatTelefoneBr(phone)}</span> : null}
                 </div>
               </button>
             );
@@ -699,7 +711,7 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                     </td>
                     <td className="px-3 py-3.5 text-[#94A3B8] md:px-4">{child.cargo || '—'}</td>
                     <td className="hidden px-4 py-3.5 text-[#AAB4C2] md:table-cell">
-                      {child.whatsapp_phone || child.telefone || 'Não informado'}
+                      {child.whatsapp_phone || child.telefone ? formatTelefoneBr(child.whatsapp_phone || child.telefone || '') : 'Não informado'}
                     </td>
                     <td className="hidden px-4 py-3.5 text-[#94A3B8] md:table-cell">
                       {child.data_entrada ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${child.data_entrada.slice(0, 10)}T12:00:00`)) : '—'}
@@ -872,7 +884,9 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                   </div>
                   <div className="col-span-2 rounded-xl border border-[#E6DFD3] bg-white p-3 shadow-xs">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#8A958E]">Contato / WhatsApp</p>
-                    <p className="mt-1 text-xs font-black text-[#17251D]">{previewChild.whatsapp_phone || previewChild.telefone || 'Não informado'}</p>
+                    <p className="mt-1 text-xs font-black text-[#17251D]">
+                      {previewChild.whatsapp_phone || previewChild.telefone ? formatTelefoneBr(previewChild.whatsapp_phone || previewChild.telefone || '') : 'Não informado'}
+                    </p>
                   </div>
                 </div>
 
@@ -1118,31 +1132,41 @@ export default function Children({ setActiveTab, user, tenantData, setSelectedCh
                         required
                         type="tel"
                         inputMode="numeric"
-                        pattern="[0-9]{10,13}"
-                        title="Informe DDD + número, somente dígitos (ex: 11999999999)"
-                        maxLength={13}
+                        maxLength={15}
                         className={cn(paperInputClass, 'pl-9')}
                         value={formData.whatsapp_phone}
-                        onChange={(e) => setFormData({ ...formData, whatsapp_phone: e.target.value.replace(/\D/g, '') })}
-                        placeholder="11999999999"
+                        onChange={(e) => setFormData({ ...formData, whatsapp_phone: maskTelefoneInput(e.target.value) })}
+                        placeholder="(11) 99999-9999"
                       />
                     </div>
+                    {formData.whatsapp_phone && !isValidTelefoneBr(formData.whatsapp_phone) ? (
+                      <p className="mt-1 text-[10px] font-medium text-[#B04A32]">
+                        Informe DDD + 9 dígitos (ex: (11) 98765-4321).
+                      </p>
+                    ) : formData.whatsapp_phone && isValidTelefoneBr(formData.whatsapp_phone) ? (
+                      <p className="mt-1 text-[10px] font-bold text-emerald-700">
+                        ✓ WhatsApp com DDD válido
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-[10px] text-[#8A8070]">
+                        DDD + celular para receber cobranças e avisos de gira.
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className={paperLabelClass}>E-mail</label>
+                    <label className={paperLabelClass}>E-mail (opcional)</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#6F675C]" />
                       <input
-                        required
                         type="email"
                         className={cn(paperInputClass, 'pl-9')}
                         value={formData.email || ''}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value.trim().toLowerCase() })}
-                        placeholder="filho@exemplo.com"
+                        placeholder="filho@exemplo.com (opcional)"
                       />
                     </div>
                     <p className="mt-1 text-[10px] text-[#8A8070]">
-                      Obrigatório: permite ao filho acessar o portal com o próprio e-mail pessoal.
+                      Opcional: preencha caso o médium queira entrar no aplicativo por e-mail.
                     </p>
                   </div>
                   <div>

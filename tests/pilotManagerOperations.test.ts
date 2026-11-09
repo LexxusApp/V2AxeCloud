@@ -13,7 +13,7 @@ function harness(file:string){
  const modules:any={
   './runtime':runtime,'./helpers':helpers,'./session':{previewSession:()=>({tenantId,userId:tenantId}),scoped:(url:string)=>url,request:async(...args:any[])=>{calls.push(['request',...args]);if(responses.has(args[0]))return responses.get(args[0]);throw Error('Unexpected HTTP operation');}},
   '../../../src/lib/supabase':{supabase:{from:(table:string)=>{const query:any={update:(payload:any)=>{calls.push(['update',table,payload]);return query;},insert:(payload:any)=>{calls.push(['insert',table,payload]);return query;},eq:()=>query,select:()=>query,single:async()=>({data:{id:'obligation'}})};return query;},rpc:async(name:string,args:any)=>{calls.push(['rpc',name,args]);const result=rpcResults.get(name);return result instanceof Error?{error:result}:{data:result};}}},
-  './readModels':{},'./uploads':{},'../../../lib/storeImageReference':{},'./chatHistory':{},'./notices':{},
+  './readModels':{},'./initial':{},'./uploads':{},'../../../lib/storeImageReference':{},'./chatHistory':{},'./notices':{},
  };
  const source=ts.transpileModule(readFileSync('design-systems/menu-local-20261029/remote/'+file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  runInNewContext(source,{exports:{},require:(name:string)=>{if(!(name in modules))throw Error('Unexpected dependency '+name);return modules[name];},crypto,File,Date,Map,Set,Error});

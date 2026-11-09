@@ -83,7 +83,7 @@ async function establishPreview(options: { signal: AbortSignal; onStage: (stage:
     if(access.status>=500)throw Error('O serviço de acesso está temporariamente indisponível. Tente novamente.');
     if(access.status===401){invalidate('/entrar');return false;}
     const pilot=await access.json();
-    if(!access.ok||!pilot.enabled){invalidate('/dashboard?classic=1');return false;}
+    if(!access.ok||!pilot.enabled||pilot.interface==='member'){invalidate('/dashboard?space=member');return false;}
     profile=pilot.profile;
   }
   options.signal?.throwIfAborted();
@@ -105,7 +105,7 @@ async function establishPreview(options: { signal: AbortSignal; onStage: (stage:
       if (pending || Date.now() - verifiedAt < 60_000) return;
       pending = true;
       try {
-        const response=await authFetch('/api/pilot/interface-access',{method:'POST',cache:'no-store',signal:controller.signal});
+        const response=await authFetch('/api/pilot/interface-access?space=manager',{method:'POST',cache:'no-store',signal:controller.signal});
         if (controller.signal.aborted) return;
         assertSession(scope, version);
         if (response.status >= 500) return;
@@ -113,13 +113,16 @@ async function establishPreview(options: { signal: AbortSignal; onStage: (stage:
         const access=await response.json();
         if (controller.signal.aborted) return;
         assertSession(scope, version);
-        if (!response.ok || !access.enabled) { invalidate('/dashboard?classic=1'); return; }
+        if (!response.ok || !access.enabled || access.interface==='member') { invalidate('/dashboard?space=member'); return; }
         if (!access.profile || String(access.profile.tenant_id || '').trim() !== scope.tenantId || String(access.profile.role || '').toLowerCase() === 'filho' || ['blocked','deleted'].includes(String(access.profile.status || '').toLowerCase())) { invalidate('/entrar'); return; }
+        if(JSON.stringify(access.profile.permissoes||{})!==JSON.stringify(scope.profile.permissoes||{})){
+          invalidate('/dashboard?space=manager');return;
+        }
         verifiedAt = Date.now();
       } catch {} finally { pending = false; }
     };
     const visible = () => { if(document.visibilityState==='visible')void renewPilot(); };
-    const timer = setInterval(visible,10*60*1000);
+    const timer = setInterval(visible,60_000);
     document.addEventListener('visibilitychange',visible);
     stopRenewal = () => { controller.abort(); clearInterval(timer); document.removeEventListener('visibilitychange',visible); };
   }

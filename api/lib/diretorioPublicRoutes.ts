@@ -4,6 +4,7 @@ import { apiReadRateLimit, publicFormRateLimit } from "./rateLimit.js";
 import {
   parseDiretorioCityRoute,
   slugifyCidadeOnly,
+  parseDiretorioSlugVariants,
   slugifyTerreiroNome,
 } from "./diretorioSlug.js";
 import {
@@ -208,7 +209,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     publicFormRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
         const body = req.body && typeof req.body === "object" ? req.body : {};
         if (String(body.website || "").trim()) {
           return res.status(200).json({ success: true });
@@ -222,7 +223,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         const message = String(body.message || "").trim().slice(0, 1500) || null;
         const conversion = body.conversion && typeof body.conversion === "object" ? body.conversion : {};
 
-        if (!slug || slug.length < 2) return res.status(400).json({ error: "Perfil inválido." });
+        if (!variants.length) return res.status(400).json({ error: "Perfil inválido." });
         if (requesterName.length < 3) return res.status(400).json({ error: "Informe seu nome completo." });
         if (requesterRole.length < 2) return res.status(400).json({ error: "Informe sua função na casa." });
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail)) {
@@ -238,8 +239,9 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
         const { data: terreiro, error: terreiroError } = await sb
           .from(TABLE)
-          .select("id, nome, verified_at")
-          .eq("slug", slug)
+          .select("id, nome, slug, verified_at")
+          .in("slug", variants)
+          .limit(1)
           .maybeSingle();
         if (terreiroError) throw terreiroError;
         if (!terreiro) return res.status(404).json({ error: "Terreiro não encontrado no diretório." });
@@ -289,7 +291,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
               ...conversion,
               eventName: "claim_completed",
               ctaId: "directory-profile-claim",
-              metadata: { slug, claimId: claim.id },
+              metadata: { slug: String(terreiro.slug || variants[0]), claimId: claim.id },
             },
             { allowCompleted: true },
           );
@@ -320,9 +322,9 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     async (req: Request, res: Response) => {
       try {
         const body = req.body && typeof req.body === "object" ? req.body : {};
-        const slug = slugifyTerreiroNome(String(body.slug || ""));
+        const variants = parseDiretorioSlugVariants(String(body.slug || ""));
         const requesterEmail = String(body.email || "").trim().toLowerCase().slice(0, 180);
-        if (!slug || slug.length < 2) return res.status(400).json({ error: "Perfil inválido." });
+        if (!variants.length) return res.status(400).json({ error: "Perfil inválido." });
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail)) {
           return res.status(400).json({ error: "Informe o mesmo e-mail usado na solicitação." });
         }
@@ -330,7 +332,8 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         const { data: terreiro, error: terreiroError } = await sb
           .from(TABLE)
           .select("id, nome, slug, claimed_by_tenant_id, verified_at")
-          .eq("slug", slug)
+          .in("slug", variants)
+          .limit(1)
           .maybeSingle();
         if (terreiroError) throw terreiroError;
         if (!terreiro) return res.status(404).json({ error: "Perfil não encontrado." });
@@ -548,13 +551,14 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
   /** Proxy de foto (Google bloqueia hotlink direto no browser). */
   app.get("/api/v1/public/diretorio/foto/:slug", apiReadRateLimit, async (req: Request, res: Response) => {
     try {
-      const slug = slugifyTerreiroNome(String(req.params.slug || ""));
-      if (!slug) return res.status(400).end();
+      const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+      if (!variants.length) return res.status(400).end();
 
       const { data, error } = await sb
         .from(TABLE)
         .select("foto_url, owner_photo_url")
-        .eq("slug", slug)
+        .in("slug", variants)
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
 
@@ -581,7 +585,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
 
       const photo = await fetchBestGooglePhoto(rawUrl);
       if (!photo) {
-        console.warn("[public/diretorio/foto] sem imagem útil", slug);
+        console.warn("[public/diretorio/foto] sem imagem útil", variants[0]);
         // URLs do Maps expiram. Não mantenha o 204 por um dia inteiro porque
         // o varredor pode recuperar e persistir uma foto nova a qualquer momento.
         res.setHeader("Cache-Control", "public, max-age=300, s-maxage=1800");
@@ -604,12 +608,12 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     apiReadRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
-        if (!slug || slug.length < 2) {
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+        if (!variants.length) {
           return res.status(400).json({ error: "Slug inválido." });
         }
 
-        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        const { data, error } = await sb.from(TABLE).select(SELECT).in("slug", variants).limit(1).maybeSingle();
         if (error) throw error;
         if (!data) return res.status(404).json({ error: "Terreiro não encontrado no diretório." });
 
@@ -665,10 +669,10 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     publicFormRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
-        if (!slug || slug.length < 2) return res.status(400).json({ error: "Slug inválido." });
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+        if (!variants.length) return res.status(400).json({ error: "Slug inválido." });
 
-        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        const { data, error } = await sb.from(TABLE).select(SELECT).in("slug", variants).limit(1).maybeSingle();
         if (error) throw error;
         if (!data || !isDiretorioListingPublishable(data as Record<string, unknown>)) {
           return res.status(404).json({ error: "Terreiro não encontrado." });
@@ -756,10 +760,10 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     publicFormRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
-        if (!slug || slug.length < 2) return res.status(400).json({ error: "Slug inválido." });
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+        if (!variants.length) return res.status(400).json({ error: "Slug inválido." });
 
-        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        const { data, error } = await sb.from(TABLE).select(SELECT).in("slug", variants).limit(1).maybeSingle();
         if (error) throw error;
         if (!data || !isDiretorioListingPublishable(data as Record<string, unknown>)) {
           return res.status(404).json({ error: "Terreiro não encontrado." });
@@ -791,13 +795,13 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
     publicFormRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
-        if (!slug || slug.length < 2) return res.status(400).json({ error: "Slug inválido." });
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+        if (!variants.length) return res.status(400).json({ error: "Slug inválido." });
 
-        const traffic = directoryTrafficMetadata(req.body, slug);
+        const traffic = directoryTrafficMetadata(req.body, variants[0]);
         if (!traffic.google) return res.status(204).end();
 
-        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        const { data, error } = await sb.from(TABLE).select(SELECT).in("slug", variants).limit(1).maybeSingle();
         if (error) throw error;
         if (!data || !isDiretorioListingPublishable(data as Record<string, unknown>)) {
           return res.status(404).json({ error: "Terreiro não encontrado." });

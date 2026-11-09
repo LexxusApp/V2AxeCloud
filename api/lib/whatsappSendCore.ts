@@ -50,6 +50,7 @@ import { normalizeBrWhatsAppMsisdn } from "../../src/lib/whatsappPhone.js";
 
 export type WhatsAppSendInput = {
   tenantId: string;
+  actorUserId?: string;
   tipo: string;
   filhoId?: string | null;
   forcePhone?: string | null;
@@ -774,14 +775,15 @@ export async function sendWhatsAppForTenant(
   if (String(input.tipo || "").trim().toLowerCase() === "teste") {
     throw httpError("Envio de teste removido do painel do zelador.", 410);
   }
-  const ctx = await resolveTerreiroWhatsAppContext(sb, input.tenantId, input.tenantId);
+  const actor=input.actorUserId||input.tenantId;
+  const ctx = await resolveTerreiroWhatsAppContext(sb, actor, input.tenantId);
 
   let phone: string;
   let nomeMembro: string;
   let filhoId: string | null = input.filhoId ? String(input.filhoId) : null;
 
   if (input.filhoId) {
-    const target = await resolveMemberWhatsAppTarget(sb, input.tenantId, input.tenantId, String(input.filhoId));
+    const target = await resolveMemberWhatsAppTarget(sb, actor, input.tenantId, String(input.filhoId));
     phone = target.phone;
     nomeMembro = target.nomeMembro;
     filhoId = target.filhoId;

@@ -3,9 +3,15 @@ import { canReadLibraryMaterial, parseLibraryAudience, type LibraryAudience, typ
 import { assertUserCanAccessTenant, assertZeladorOrGlobalAdmin, resolveFilhoHouseRefs, resolveLeaderId } from './tenantAccess.js';
 import { isConsoleGlobalAdmin } from './consoleAdmin.js';
 import { libraryStoragePath } from '../../lib/libraryStoragePath.js';
+import {readActiveDelegation} from './delegatedAccess.js';
+import {grantAllows} from '../../lib/delegatedPolicy.js';
 
-export async function resolveLibraryReader(sb: SupabaseClient, user: { id: string; email?: string | null }, tenantId: string): Promise<LibraryReader> {
+export async function resolveLibraryReader(sb: SupabaseClient, user: { id: string; email?: string | null }, tenantId: string, management=false): Promise<LibraryReader> {
   if (await isConsoleGlobalAdmin(sb, user)) return { manager: true, memberId: null };
+  if(management){
+    const delegation=await readActiveDelegation(sb,user.id,tenantId);
+    if(delegation&&grantAllows(delegation.permissoes,'library','visualizar'))return {manager:true,memberId:null};
+  }
   // A shadow member must never inherit management from a stale leader profile.
   const child = await resolveFilhoHouseRefs(sb, user);
   if (child) return { manager: false, memberId: String(child.id || '') || null };
@@ -33,12 +39,12 @@ export async function libraryHouseRefs(sb: SupabaseClient, tenantId: string): Pr
   return [...new Set([house, tenantId, profile?.id, profile?.tenant_id].filter((value): value is string => typeof value === 'string' && Boolean(value)))];
 }
 
-export async function canReadLibraryPath(sb: SupabaseClient, user: { id: string; email?: string | null }, tenantId: string, path: string): Promise<boolean> {
+export async function canReadLibraryPath(sb: SupabaseClient, user: { id: string; email?: string | null }, tenantId: string, path: string, management=false): Promise<boolean> {
   if (!(await assertUserCanAccessTenant(sb, user, tenantId))) return false;
   const { data, error } = await sb.from('biblioteca').select('*').eq('storage_path', path).maybeSingle();
   if (error) return false;
   const house = await resolveLeaderId(sb, tenantId);
-  const reader = await resolveLibraryReader(sb, user, tenantId);
+  const reader = await resolveLibraryReader(sb, user, tenantId,management);
   if (data) return await resolveLeaderId(sb, String(data.tenant_id)) === house && canReadLibraryMaterial(data as LibraryAudience, reader);
   // Older rows stored only arquivo_url. Locate them inside this same house and
   // apply the identical audience check instead of trusting the old signed URL.

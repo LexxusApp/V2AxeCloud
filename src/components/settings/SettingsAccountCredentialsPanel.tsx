@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Mail, Trash2 } from 'lucide-react';
+import { DeleteAccountModal } from '../account/DeleteAccountModal';
 import { authFetch } from '../../lib/authenticatedFetch';
 import { PASSWORD_HINT_PT, validateStrongPassword } from '../../../lib/passwordPolicy';
 
@@ -26,6 +27,7 @@ export function SettingsAccountCredentialsPanel({
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     setDisplayEmail(String(userEmail || '').trim());
@@ -276,6 +278,38 @@ export function SettingsAccountCredentialsPanel({
           </button>
         </div>
       </div>
+    
+      <div className="mt-5 rounded-2xl border border-rose-500/30 bg-[#250F14] p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-rose-500/20 text-rose-400">
+                <Trash2 className="h-4 w-4" />
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-rose-300">
+                Zona de Perigo · Exclusão de Acesso e Conta
+              </span>
+            </div>
+            <p className="mt-2 text-xs font-semibold leading-relaxed text-rose-100/80">
+              Caso não queira mais utilizar o AxéCloud, você pode excluir permanentemente seu login, o terreiro e todos os dados associados.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeleteModalOpen(true)}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-400/40 bg-rose-600 px-4 text-xs font-black text-white shadow-lg transition hover:bg-rose-500"
+          >
+            <Trash2 className="h-4 w-4" />
+            Excluir minha conta
+          </button>
+        </div>
+      </div>
+
+      <DeleteAccountModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        userEmail={displayEmail}
+      />
     </section>
   );
 }

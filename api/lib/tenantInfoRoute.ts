@@ -10,6 +10,7 @@ import { verifyUser } from "./verifyUser.js";
 import { safeErrorMessage } from "./safeError.js";
 import { getBearerToken } from "./requireAuth.js";
 import { normalizeBrazilPhone } from "../../lib/brazilPhone.js";
+import { readActiveDelegation } from './delegatedAccess.js';
 
 dotenv.config();
 const SHARED_TENANT_ID_SUPER = "6588b6c9-ce84-4140-a69a-f487a0c61dab";
@@ -137,7 +138,7 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
     }
 
     if (linkedChild) {
-      const leaderRef = linkedChild.lider_id || linkedChild.tenant_id;
+      const leaderRef = linkedChild.tenant_id || linkedChild.lider_id;
       let leaderProfile: { data: any; error: any } = { data: null, error: null };
 
       if (leaderRef) {
@@ -183,40 +184,16 @@ export async function handleTenantInfoRoute(req: { method?: string; query?: Reco
         linkedChild.tenant_id ||
         linkedChild.lider_id ||
         "";
-      const PILOT_TEST_TENANT_ID = "fad75b91-d2eb-4805-b5a3-c19e8a073bed";
-      if (resolvedTenantId === PILOT_TEST_TENANT_ID) {
-        const { data: coAdmin } = await sb
-          .from("piloto_coadministradores")
-          .select("ativo, cargo_delegado")
-          .eq("tenant_id", PILOT_TEST_TENANT_ID)
-          .eq("filho_id", linkedChild.id)
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (coAdmin?.ativo) {
-          res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
-          return res.json({
-            nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
-            cargo: coAdmin.cargo_delegado || "Co-Administrador",
-            role: "admin",
-            is_co_admin: true,
-            is_admin_global: false,
-            tenant_id: resolvedTenantId,
-            plan: filhoPlanSlug,
-            status: leaderActive ? "active" : leaderSub.data?.status || "inactive",
-            expires_at: leaderSub.data?.expires_at || null,
-            billing_cycle: leaderSub.data?.billing_cycle || "monthly",
-            foto_url: leaderProfile.data?.foto_url || null,
-            tradicao: leaderProfile.data?.tradicao || "mista",
-          });
-        }
-      }
-
-      res.setHeader("Cache-Control", "private, max-age=30, stale-while-revalidate=120");
+      const delegation = await readActiveDelegation(sb,userId,resolvedTenantId);
+      // Identity remains Filho de Santo. Only the explicitly selected manager
+      // interface may project this identity into a delegated management role.
+      res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
       return res.json({
         nome_terreiro: leaderProfile.data?.nome_terreiro || "Meu Terreiro",
         cargo: null,
         role: "filho",
+        is_co_admin: Boolean(delegation),
+        permissoes: delegation?.permissoes || {},
         is_admin_global: false,
         tenant_id: resolvedTenantId,
         plan: filhoPlanSlug,

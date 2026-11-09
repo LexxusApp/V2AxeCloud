@@ -33,6 +33,23 @@ import GiraRitualCommand from '../components/gira/GiraRitualCommand';
 import BodyPortal from '../components/BodyPortal';
 import FilhoGirasExperience from '../components/filho/FilhoGirasExperience';
 import { reportFeatureFailureClient } from '../lib/telemetryClient';
+import { showHouseToast } from '../lib/houseToast';
+
+function parseEventDateSafe(rawDate?: string | null): Date {
+  if (!rawDate) return new Date();
+  try {
+    const raw = String(rawDate).trim();
+    const ymd = raw.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+      const [year, month, day] = ymd.split('-').map(Number);
+      return new Date(year, month - 1, day, 12, 0, 0);
+    }
+    const d = parseISO(raw);
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+  } catch {
+    return new Date();
+  }
+}
 
 const paperLabelClass =
   'mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#6F675C]';
@@ -90,47 +107,47 @@ function formatGiraWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
   type: 'success' | 'info' | 'error';
 } {
   if (!whatsapp) {
-    return { message: 'Gira marcada na agenda', type: 'success' };
+    return { message: 'Gira marcada na agenda.', type: 'success' };
   }
   switch (whatsapp.status) {
     case 'queued':
       return {
-        message: 'Gira marcada. Avisos WhatsApp estão sendo enviados à corrente.',
+        message: 'Gira marcada. Os avisos WhatsApp estão sendo enviados à corrente.',
         type: 'success',
       };
     case 'sent':
       return {
-        message: `Gira marcada. Aviso enviado para ${whatsapp.sent} pessoa${whatsapp.sent === 1 ? '' : 's'} da corrente`,
+        message: `Gira marcada. Aviso enviado para ${whatsapp.sent} pessoa${whatsapp.sent === 1 ? '' : 's'} da corrente.`,
         type: 'success',
       };
     case 'partial':
       return {
-        message: `Gira marcada. Aviso parcial: ${whatsapp.sent} ok, ${whatsapp.errors} falha(s)`,
+        message: `Gira marcada. Aviso enviado: ${whatsapp.sent} ok, ${whatsapp.errors} falha(s) (números sem WhatsApp ou incorretos).`,
         type: 'info',
       };
     case 'no_recipients':
       return {
         message:
-          'Gira marcada. Para avisar a corrente, cadastre WhatsApp nos filhos ativos — ou convide avulsos no evento.',
+          'Gira marcada. Cadastre números com DDD nos filhos ativos para enviar avisos automáticos via WhatsApp.',
         type: 'info',
       };
     case 'channel_offline':
       return {
-        message: 'Gira marcada. WhatsApp offline — o aviso não saiu agora.',
+        message: 'Gira marcada. WhatsApp desconectado — reconecte em Configurações para disparar avisos.',
         type: 'info',
       };
     case 'disabled':
       return {
-        message: 'Gira marcada. Avisos de gira estão desligados no WhatsApp.',
+        message: 'Gira marcada. Avisos automáticos de gira estão desativados nas configurações.',
         type: 'info',
       };
     case 'failed':
       return {
-        message: `Gira marcada, mas o WhatsApp falhou (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'})`,
+        message: `Gira marcada, mas o WhatsApp não pôde enviar (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'}).`,
         type: 'error',
       };
     default:
-      return { message: 'Gira marcada na agenda', type: 'success' };
+      return { message: 'Gira marcada na agenda.', type: 'success' };
   }
 }
 
@@ -144,33 +161,33 @@ function formatAvisoWhatsAppFeedback(whatsapp?: EventWhatsAppFeedback): {
   switch (whatsapp.status) {
     case 'sent':
       return {
-        message: `WhatsApp enviado para ${whatsapp.sent} filho${whatsapp.sent === 1 ? '' : 's'}.`,
+        message: `WhatsApp enviado com sucesso para ${whatsapp.sent} filho${whatsapp.sent === 1 ? '' : 's'}.`,
         type: 'success',
       };
     case 'partial':
       return {
-        message: `WhatsApp: ${whatsapp.sent} enviado(s), ${whatsapp.errors} falha(s).`,
+        message: `WhatsApp: ${whatsapp.sent} enviado(s). ${whatsapp.errors} número(s) falharam (verifique se os contatos têm WhatsApp ativo).`,
         type: 'info',
       };
     case 'no_recipients':
       return {
         message:
-          'Nenhum aviso enviado: não há filhos ativos com WhatsApp na corrente. Cadastre a corrente ou use convite avulso no evento.',
+          'Nenhum aviso enviado: não há filhos ativos com telefone WhatsApp válido na corrente.',
         type: 'info',
       };
     case 'channel_offline':
       return {
-        message: 'Canal WhatsApp offline — avisos não enviados.',
+        message: 'Canal WhatsApp desconectado. Reconecte o WhatsApp em Configurações.',
         type: 'error',
       };
     case 'disabled':
       return {
-        message: 'Avisos de gira desativados nas configurações do WhatsApp.',
+        message: 'Avisos de gira estão desativados nas configurações do WhatsApp.',
         type: 'info',
       };
     case 'failed':
       return {
-        message: `Falha no envio WhatsApp (${whatsapp.errors} erro${whatsapp.errors === 1 ? '' : 's'}).`,
+        message: `Não foi possível enviar via WhatsApp (${whatsapp.errors} falha${whatsapp.errors === 1 ? '' : 's'}). Verifique a conexão em Configurações.`,
         type: 'error',
       };
     default:
@@ -226,7 +243,7 @@ function EventDetailModalPanel({
         <div className="flex items-center gap-2 text-[#171A16]">
           <CalendarIcon className="h-4 w-4 shrink-0 text-[#8F7724]" />
           <span className="font-bold">
-            {format(parseISO(event.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
+            {format(parseEventDateSafe(event.data), "EEEE, dd 'de' MMMM yyyy", { locale: ptBR })}
           </span>
         </div>
         {horaFmt ? (
@@ -399,7 +416,7 @@ function AdminEventDrawer({
             </p>
           ) : null}
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Data</p><p className="mt-0.5 text-sm font-black">{format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}</p></div>
+            <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Data</p><p className="mt-0.5 text-sm font-black">{format(parseEventDateSafe(event.data), 'dd/MM/yyyy', { locale: ptBR })}</p></div>
             <div className="rounded-xl border border-[#E3DCCE] bg-white px-3 py-2.5"><p className="text-[10px] font-bold text-[#6F675C]">Horário</p><p className="mt-0.5 text-sm font-black">{formatHoraEvento(event.hora) || 'Não informado'}</p></div>
           </div>
           {event.descricao ? <div className="mt-3 rounded-xl border border-[#E3DCCE] bg-white p-3"><p className="text-[10px] font-bold text-[#6F675C]">Informações</p><p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-xs font-medium leading-relaxed text-[#171A16]">{event.descricao}</p></div> : null}
@@ -720,11 +737,11 @@ function AddEventModalPanel({
                   const f = e.target.files?.[0];
                   if (!f) return;
                   if (!f.type.startsWith('image/')) {
-                    alert('Selecione um arquivo de imagem.');
+                    showHouseToast('Selecione um arquivo de imagem válido (JPEG, PNG ou WebP).', 'info');
                     return;
                   }
                   if (f.size > 4.5 * 1024 * 1024) {
-                    alert('Imagem muito grande (máx. 4,5 MB).');
+                    showHouseToast('A imagem é muito grande. Escolha uma foto de até 4,5 MB.', 'info');
                     return;
                   }
                   onBannerFile(f);
@@ -849,6 +866,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   };
 
   const handleNotifyPush = async (event: Event) => {
+    if (isNotifying) return;
     try {
       setIsNotifying(event.id);
       setNotifyChannel('push');
@@ -858,7 +876,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         body: JSON.stringify({
           tenantId: effectiveTenantId,
           title: `🗓️ Novo Evento: ${event.titulo}`,
-          body: `Marcado para ${new Date(event.data).toLocaleDateString('pt-BR')} às ${event.hora}. Contamos com sua presença!`,
+          body: `Marcado para ${format(parseEventDateSafe(event.data), 'dd/MM/yyyy', { locale: ptBR })} às ${formatHoraEvento(event.hora) || event.hora}. Contamos com sua presença!`,
           url: '/calendar',
         }),
       });
@@ -883,6 +901,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   };
 
   const handleNotifyWhatsApp = async (event: Event) => {
+    if (isNotifying) return;
     try {
       setIsNotifying(event.id);
       setNotifyChannel('whatsapp');
@@ -897,8 +916,16 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       setNotifyChannel(null);
     } catch (error: any) {
       console.error('Error notifying whatsapp:', error);
+      let userFriendlyMsg = error?.message || 'Erro ao enviar aviso no WhatsApp.';
+      if (userFriendlyMsg.includes('131026') || userFriendlyMsg.toLowerCase().includes('undeliverable')) {
+        userFriendlyMsg = 'Alguns contatos não possuem WhatsApp ativo. Verifique os cadastros dos médiuns.';
+      } else if (userFriendlyMsg.includes('131047') || userFriendlyMsg.toLowerCase().includes('re-engagement')) {
+        userFriendlyMsg = 'A janela de 24h da Meta expirou para alguns contatos. O aviso será enviado via canal de contingência.';
+      } else if (userFriendlyMsg.toLowerCase().includes('failed to fetch') || userFriendlyMsg.toLowerCase().includes('network')) {
+        userFriendlyMsg = 'Instabilidade temporária de conexão. O aviso está sendo processado.';
+      }
       setToast({
-        message: error?.message || 'Erro ao enviar aviso no WhatsApp.',
+        message: userFriendlyMsg,
         type: 'error',
       });
     } finally {
@@ -1095,7 +1122,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
         message: action === 'confirmar' ? 'Participação confirmada!' : 'Resposta registrada.',
       });
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Erro');
+      setToast({ type: 'error', message: e instanceof Error ? e.message : 'Não foi possível registrar sua resposta no momento.' });
     } finally {
       setPartBusy(null);
     }
@@ -1214,6 +1241,17 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittingRef.current || isSubmitting) return;
+
+    const cleanTitulo = (formData.titulo || '').trim();
+    if (!cleanTitulo) {
+      showHouseToast('Por favor, informe o título ou nome da gira.', 'info');
+      return;
+    }
+    if (!formData.data?.trim()) {
+      showHouseToast('Por favor, selecione a data do evento.', 'info');
+      return;
+    }
+
     submittingRef.current = true;
     setIsSubmitting(true);
     try {
@@ -1244,6 +1282,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
       } = formData;
       const payload = {
         ...formFields,
+        titulo: cleanTitulo,
+        hora: (formData.hora || '').trim() || '20:00',
         wa_reminder_interval_days: wa_reminder_enabled
           ? Number(reminderIntervalRaw) || 2
           : null,
@@ -1304,7 +1344,11 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
           tipo: formData.tipo,
         },
       });
-      alert(error.message || (editingEvent ? 'Erro ao atualizar evento.' : 'Erro ao criar evento.'));
+      let friendlyError = error?.message || (editingEvent ? 'Erro ao atualizar gira.' : 'Erro ao criar gira.');
+      if (friendlyError.includes('<!') || friendlyError.includes('502') || friendlyError.includes('503')) {
+        friendlyError = 'Servidor ocupado. Aguarde alguns segundos e tente novamente.';
+      }
+      showHouseToast(friendlyError, 'error');
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);
@@ -1313,7 +1357,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
   const isEventPassed = (dateStr: string, timeStr: string) => {
     try {
-      const [year, month, day] = dateStr.split('-').map(Number);
+      const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+      const [year, month, day] = cleanDate.split('-').map(Number);
       const [hours, minutes] = timeStr.split(':').map(Number);
       const eventDateTime = new Date(year, month - 1, day, hours, minutes);
       return eventDateTime < new Date();
@@ -1394,7 +1439,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
     const past = eventsSorted.filter((event) => parseEventDateTime(event).getTime() < now).reverse();
     return [...future, ...past];
   }, [eventsSorted]);
-  const eventsThisMonth = events.filter((event) => isSameMonth(parseISO(event.data), new Date()));
+  const eventsThisMonth = events.filter((event) => isSameMonth(parseEventDateSafe(event.data), new Date()));
   const nextConfirmedCount = nextUpcomingEvent ? (confirmadosByEvent[nextUpcomingEvent.id] ?? []).length : 0;
   const nextUnconfirmedCount = nextUpcomingEvent ? Math.max(0, totalActiveChildren - nextConfirmedCount) : 0;
 
@@ -1503,7 +1548,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
               <div className="grid grid-cols-7 gap-1">
                 {calendarDays.map((day, idx) => {
-                  const dayEvents = events.filter(e => isSameDay(parseISO(e.data), day));
+                  const dayEvents = events.filter(e => isSameDay(parseEventDateSafe(e.data), day));
                   const isSelected = isSameDay(day, selectedDate);
                   const isCurrentMonth = isSameMonth(day, monthStart);
                   const isToday = isSameDay(day, new Date());
@@ -1578,8 +1623,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   {upcomingEvents.map((event) => {
                     const passed = isEventPassed(event.data, event.hora);
                     const horaFmt = formatHoraEvento(event.hora);
-                    const dataCurta = format(parseISO(event.data), "dd/MM", { locale: ptBR });
-                    const dataLonga = format(parseISO(event.data), "EEE, dd MMM", { locale: ptBR });
+                    const dataCurta = format(parseEventDateSafe(event.data), "dd/MM", { locale: ptBR });
+                    const dataLonga = format(parseEventDateSafe(event.data), "EEE, dd MMM", { locale: ptBR });
                     const part = participacoes[event.id];
                     const partStatus = part?.status;
                     return (
@@ -1781,7 +1826,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
 
         <section className="app-metric-rail mb-5 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Resumo das giras">
           {[
-            { label: 'Próxima gira', value: nextUpcomingEvent ? format(parseISO(nextUpcomingEvent.data), 'dd/MM') : '—', detail: nextUpcomingEvent?.titulo || 'nenhuma agendada', icon: CalendarDays, color: 'text-sky-300', bg: 'border-sky-400/20 bg-sky-400/10' },
+            { label: 'Próxima gira', value: nextUpcomingEvent ? format(parseEventDateSafe(nextUpcomingEvent.data), 'dd/MM') : '—', detail: nextUpcomingEvent?.titulo || 'nenhuma agendada', icon: CalendarDays, color: 'text-sky-300', bg: 'border-sky-400/20 bg-sky-400/10' },
             { label: 'Eventos no mês', value: String(eventsThisMonth.length), detail: format(new Date(), 'MMMM', { locale: ptBR }), icon: CalendarRange, color: 'text-violet-300', bg: 'border-violet-400/20 bg-violet-400/10' },
             { label: 'Confirmações', value: String(nextConfirmedCount), detail: nextUpcomingEvent ? 'na próxima gira' : 'aguardando agenda', icon: Users, color: 'text-emerald-300', bg: 'border-emerald-400/20 bg-emerald-400/10' },
             { label: 'Sem confirmar', value: String(nextUnconfirmedCount), detail: nextUpcomingEvent ? 'pessoas da corrente' : 'aguardando agenda', icon: UserRoundX, color: 'text-amber-300', bg: 'border-amber-400/20 bg-amber-400/10' },
@@ -1882,7 +1927,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                       <div className="mt-3 flex items-center justify-between border-t border-[#1E242B] pt-3 text-xs text-[#94A3B8]">
                         <span className="flex items-center gap-1 font-bold">
                           <CalendarDays className="h-3.5 w-3.5 text-primary" aria-hidden />
-                          {format(parseISO(event.data), 'dd/MM/yyyy', { locale: ptBR })}
+                          {format(parseEventDateSafe(event.data), 'dd/MM/yyyy', { locale: ptBR })}
                         </span>
                         <span className="flex items-center gap-1 font-bold">
                           <Clock className="h-3.5 w-3.5 text-primary" aria-hidden />
@@ -1990,7 +2035,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     </div>
                     <div className="grid grid-cols-7 overflow-hidden rounded-xl border border-white/10">
                       {calendarDays.map((day) => {
-                        const dayEvents = events.filter((event) => isSameDay(parseISO(event.data), day));
+                        const dayEvents = events.filter((event) => isSameDay(parseEventDateSafe(event.data), day));
                         const today = isSameDay(day, new Date());
                         const current = isSameMonth(day, monthStart);
                         return (
@@ -2022,8 +2067,8 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                   {nextUpcomingEvent ? (
                     <>
                       <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3">
-                        <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><span className="text-lg font-black">{format(parseISO(nextUpcomingEvent.data), 'dd')}</span></div>
-                        <div><p className="text-sm font-black text-white">{format(parseISO(nextUpcomingEvent.data), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p><p className="text-xs font-semibold text-[#7F8B9C]">{formatHoraEvento(nextUpcomingEvent.hora)} · {nextUpcomingEvent.tipo}</p></div>
+                        <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary"><span className="text-lg font-black">{format(parseEventDateSafe(nextUpcomingEvent.data), 'dd')}</span></div>
+                        <div><p className="text-sm font-black text-white">{format(parseEventDateSafe(nextUpcomingEvent.data), "EEEE, dd 'de' MMMM", { locale: ptBR })}</p><p className="text-xs font-semibold text-[#7F8B9C]">{formatHoraEvento(nextUpcomingEvent.hora)} · {nextUpcomingEvent.tipo}</p></div>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <div className="rounded-xl bg-emerald-400/[0.06] p-3"><p className="text-xl font-black text-emerald-300">{nextConfirmedCount}</p><p className="text-xs font-bold text-[#7F8B9C]">confirmados</p></div>
@@ -2040,7 +2085,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
                     {eventsSorted.filter((event) => !isEventPassed(event.data, event.hora)).slice(0, 3).map((event) => (
                       <button key={event.id} type="button" onClick={() => setEventDetailModal(event)} className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-left hover:border-primary/25">
                         <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', getEventColor(event.tipo))} />
-                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-white">{event.titulo}</span><span className="block text-xs font-semibold text-[#64748B]">{format(parseISO(event.data), 'dd/MM')} · {formatHoraEvento(event.hora)}</span></span>
+                        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-white">{event.titulo}</span><span className="block text-xs font-semibold text-[#64748B]">{format(parseEventDateSafe(event.data), 'dd/MM')} · {formatHoraEvento(event.hora)}</span></span>
                         <ChevronRight className="h-4 w-4 text-[#64748B]" />
                       </button>
                     ))}
@@ -2116,7 +2161,7 @@ export default function Calendar({ user, userRole, tenantData, setActiveTab }: C
             <EventGuestsInline
               eventId={selectedEventForOps.id}
               eventTitle={selectedEventForOps.titulo}
-              eventData={format(parseISO(selectedEventForOps.data), 'dd/MM/yyyy', { locale: ptBR })}
+              eventData={format(parseEventDateSafe(selectedEventForOps.data), 'dd/MM/yyyy', { locale: ptBR })}
               eventHora={selectedEventForOps.hora}
               eventDescricao={selectedEventForOps.descricao}
               bannerUrl={selectedEventForOps.banner_url}

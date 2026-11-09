@@ -1123,15 +1123,16 @@ export function buildResumoDisparoGiraComponents(opts: {
   evento_rotulo: string;
   resumo: string;
 }): MetaTemplateComponent[] {
-  const multilineText =
-    sanitizeTemplateParam(String(opts.resumo || "Sem dados"), true).slice(0, 950) || "-";
+  // A Meta rejeita quebras de linha (\n) em parâmetros de template (#132018). Normalizamos para " · "
+  const singleLineText =
+    sanitizeTemplateParam(String(opts.resumo || "Sem dados").replace(/\n+/g, " · "), false).slice(0, 950) || "-";
   return [
     {
       type: "body",
       parameters: [
         textParam(String(opts.nome_zelador || "Zelador")),
         textParam(String(opts.evento_rotulo || "Gira/Evento")),
-        { type: "text", text: multilineText },
+        { type: "text", text: singleLineText },
       ],
     },
   ];

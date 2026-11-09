@@ -23,6 +23,8 @@ import { isWithinAllowedSendWindow } from "./whatsappAntiSpam.js";
 import { getPersistentQuotaSnapshot } from "./whatsappPersistentLimits.js";
 import { assertZeladorTenantAccess } from "./tenantAccess.js";
 import { safeErrorMessage } from "./safeError.js";
+import {resolveDelegatedModuleTenant} from './delegatedAccess.js';
+import {classifyPilotDelegatedOperation} from '../../lib/delegatedPolicy.js';
 import {
   handleMetaWebhookChallenge,
   isMetaCloudWebhookPayload,
@@ -178,13 +180,14 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "logs" && method === "GET") {
+      const logsTenant=await resolveDelegatedModuleTenant(sb,user.id,'communications','visualizar');
       const requestUrl = new URL(req.url || "/api/whatsapp/logs", "http://localhost");
       const requestedLimit = Number(requestUrl.searchParams.get("limit") || 12);
       const logLimit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 50) : 12;
       const { data, error } = await sb
         .from("whatsapp_logs")
         .select("id, filho_id, telefone, mensagem, tipo, status, created_at")
-        .eq("tenant_id", user.id)
+        .eq("tenant_id", logsTenant)
         .order("created_at", { ascending: false })
         .limit(logLimit);
       if (error) throw error;
@@ -205,7 +208,8 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
     }
 
     if (act === "resend-dados-acesso" && method === "POST") {
-      const zeladorOk = await assertZeladorTenantAccess(sb, user.id, user.id);
+      const resendTenant=await resolveDelegatedModuleTenant(sb,user.id,'members','gerenciar');
+      const zeladorOk = await assertZeladorTenantAccess(sb, user.id, resendTenant);
       if (!zeladorOk) return sendJson(res, 403, { error: "Acesso negado" });
 
       const rl = consumeRateLimit(req, { windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "wa-resend-dados-acesso" });
@@ -214,7 +218,7 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       }
 
       try {
-        const result = await resendDadosAcessoWhatsAppForTenant(sb, user.id);
+        const result = await resendDadosAcessoWhatsAppForTenant(sb, resendTenant);
         if (!result.total && result.skippedNoPhone > 0 && !result.sent) {
           return sendJson(res, 400, {
             error: "Nenhum filho com WhatsApp e CPF cadastrados para envio de acesso.",
@@ -287,8 +291,12 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const { tipo, filhoId, variables, forcePhone } = body;
       try {
+        const action=classifyPilotDelegatedOperation('/api/whatsapp/send','POST',body);
+        const module=action.type==='module'?action.module:'communications';
+        const tenantId=await resolveDelegatedModuleTenant(sb,user.id,module,'gerenciar');
         const result = await sendWhatsAppForTenant(sb, {
-          tenantId: user.id,
+          tenantId,
+          actorUserId:user.id,
           tipo: String(tipo || ""),
           filhoId,
           forcePhone,

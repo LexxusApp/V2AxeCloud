@@ -3156,8 +3156,8 @@ async function startServer() {
   registerFundamentosRoutes(app, { supabaseAdmin });
   registerPreceitoRoutes(app, { supabaseAdmin });
   registerAdvancedManagementRoutes(app, { supabaseAdmin });
-  registerTerreiroServicosRoutes(app, { supabaseAdmin });
-  registerDirectoryProfilePublicationsRoutes(app, { supabaseAdmin });
+  registerTerreiroServicosRoutes(app, { supabaseAdmin, resolveLeaderId });
+  registerDirectoryProfilePublicationsRoutes(app, { supabaseAdmin, resolveLeaderId });
 
   app.all("/api/cron/audit-tick", async (req, res) => {
     await handleAuditTick(req, res, supabaseAdmin);

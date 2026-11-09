@@ -14,6 +14,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { authFetch } from '../../lib/authenticatedFetch';
+import { readPdfBytes } from '../../lib/pdfSourceReader';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 
 type Props = {
@@ -202,11 +203,13 @@ export function AuthenticatedPdfFrame({ title, url, storagePath, tenantId, class
       try {
         const path = storagePath || extractLibraryStoragePath(url);
         if (path && !tenantId) throw Error('Reabra a biblioteca para identificar sua casa.');
-        const response = path && tenantId
-          ? await authFetch(`/api/v1/library/pdf-proxy?path=${encodeURIComponent(path)}&tenantId=${encodeURIComponent(tenantId)}`)
-          : await fetch(url, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`PDF respondeu ${response.status}`);
-        const data = new Uint8Array(await response.arrayBuffer());
+        const proxyUrl = path && tenantId
+          ? `/api/v1/library/pdf-proxy?path=${encodeURIComponent(path)}&tenantId=${encodeURIComponent(tenantId)}`
+          : '';
+        const sourceUrl = (url && url.startsWith('/api/'))
+          ? url
+          : (proxyUrl || url);
+        const data = await readPdfBytes(sourceUrl, { storagePath: path, tenantId });
         if (!data.byteLength) throw new Error('PDF vazio');
 
         const pdfjs = await import('pdfjs-dist');

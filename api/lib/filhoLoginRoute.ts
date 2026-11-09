@@ -206,11 +206,20 @@ async function findChildSmart(
 
   if (cleanDigits.length >= 8 && cleanDigits.length <= 16 && !raw.toUpperCase().startsWith("AXC-")) {
     const last8 = cleanDigits.slice(-8);
+    const mid4 = cleanDigits.slice(-8, -4);
+    const last4 = cleanDigits.slice(-4);
+
+    const orFilters = [
+      `whatsapp_phone.ilike.%${last8}%`,
+      `whatsapp_phone.ilike.%${mid4}-${last4}%`,
+      `telefone.ilike.%${last8}%`,
+      `telefone.ilike.%${mid4}-${last4}%`,
+    ].join(",");
 
     const { data, error } = await sb
       .from("filhos_de_santo")
-      .select("id, cpf, user_id, nome, whatsapp_phone, tenant_id, lider_id")
-      .ilike("whatsapp_phone", `%${last8}%`);
+      .select("id, cpf, user_id, nome, whatsapp_phone, telefone, tenant_id, lider_id")
+      .or(orFilters);
     if (error) throw error;
 
     const matchingCpf = (data || []).filter((c) => {
@@ -220,8 +229,9 @@ async function findChildSmart(
 
     // Se houver mais de um que bate com os 8 dígitos finais + CPF, desambigua pelo número completo com DDD
     const exactMatch = matchingCpf.filter((c) => {
-      const dbDigits = String(c.whatsapp_phone || "").replace(/\D/g, "").replace(/^55/, "").replace(/^0+/, "");
-      return dbDigits === cleanDigits;
+      const p1 = String(c.whatsapp_phone || "").replace(/\D/g, "").replace(/^55/, "").replace(/^0+/, "");
+      const p2 = String(c.telefone || "").replace(/\D/g, "").replace(/^55/, "").replace(/^0+/, "");
+      return p1 === cleanDigits || p2 === cleanDigits || p1.endsWith(cleanDigits) || p2.endsWith(cleanDigits);
     });
 
     const chosen = exactMatch.length === 1 ? exactMatch[0] : (matchingCpf.length === 1 ? matchingCpf[0] : null);

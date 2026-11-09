@@ -249,10 +249,13 @@ export function registerPreceitoRoutes(app: Express, deps: Deps) {
   app.get("/api/v1/preceitos/current", async (req: Request, res: Response) => {
     const ctx = await context(supabaseAdmin, req, res, req.query.tenantId);
     if (!ctx) return;
-    if (ctx.isManager) return res.json({ data: [] });
     try {
+      // A delegated manager may also be a participant. Personal preceitos
+      // always resolve by their authenticated child record, never by grants.
       const childRef = await resolveAuthenticatedFilho(supabaseAdmin, ctx.user.id);
-      if (!childRef?.id) return res.status(403).json({ error: "Perfil de filho não encontrado." });
+      if (!childRef?.id) return ctx.isManager
+        ? res.json({ data: [] })
+        : res.status(403).json({ error: "Perfil de filho não encontrado." });
       const { data: memberships, error: membershipsError } = await supabaseAdmin
         .from("preceito_participantes")
         .select("id, ciclo_id, status, confirmado_em, orientacao_solicitada_em")
@@ -459,7 +462,8 @@ export function registerPreceitoRoutes(app: Express, deps: Deps) {
   app.post("/api/v1/preceitos/:id/acknowledge", async (req: Request, res: Response) => {
     const ctx = await context(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
     if (!ctx) return;
-    if (ctx.isManager) return res.status(400).json({ error: "Confirmação disponível somente para participantes." });
+    // Require an actual participant record; being a manager does not remove
+    // an authenticated user's personal right to acknowledge their own cycle.
     try {
       const child = await resolveAuthenticatedFilho(supabaseAdmin, ctx.user.id);
       if (!child?.id) return res.status(403).json({ error: "Perfil de filho não encontrado." });
@@ -482,7 +486,8 @@ export function registerPreceitoRoutes(app: Express, deps: Deps) {
   app.post("/api/v1/preceitos/:id/guidance", async (req: Request, res: Response) => {
     const ctx = await context(supabaseAdmin, req, res, req.body?.tenantId || req.query.tenantId);
     if (!ctx) return;
-    if (ctx.isManager) return res.status(400).json({ error: "Ação disponível somente para participantes." });
+    // The member's own participation is verified below, independently of
+    // optional delegated management permissions.
     try {
       const child = await resolveAuthenticatedFilho(supabaseAdmin, ctx.user.id);
       if (!child?.id) return res.status(403).json({ error: "Perfil de filho não encontrado." });

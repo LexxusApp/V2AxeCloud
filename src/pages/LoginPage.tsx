@@ -2,7 +2,14 @@
 import Login from '../views/Login';
 import { supabase } from '../lib/supabase';
 import { isPasswordRecoveryUrl } from '../lib/authRecovery';
-import { goToDashboard, goToResetPassword } from '../lib/navigation';
+import { navigateTo, goToResetPassword } from '../lib/navigation';
+import { readPersistedFilhoFlag } from '../lib/appSessionAnchors';
+
+function openSignedInSpace(userId: string) {
+  // The member login must select the personal space before the pilot's
+  // server-side mode switch. The server still validates the member record.
+  navigateTo(readPersistedFilhoFlag(userId) ? '/dashboard?space=member' : '/dashboard', true);
+}
 
 /** Tela de login em /entrar — redireciona para o painel se já houver sessão. */
 export default function LoginPage() {
@@ -18,7 +25,7 @@ export default function LoginPage() {
     void supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setChecked(true);
-      if (data.session?.user && !isPasswordRecoveryUrl()) goToDashboard();
+      if (data.session?.user && !isPasswordRecoveryUrl()) openSignedInSpace(data.session.user.id);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
@@ -27,7 +34,7 @@ export default function LoginPage() {
         return;
       }
       if (session?.user && event !== 'INITIAL_SESSION' && !isPasswordRecoveryUrl()) {
-        goToDashboard();
+        openSignedInSpace(session.user.id);
       }
     });
 

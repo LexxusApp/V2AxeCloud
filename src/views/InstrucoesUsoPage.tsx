@@ -509,7 +509,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
               <p className="text-xs text-[#1b1813]/60">Nossa equipe de suporte responde diretamente pelo WhatsApp.</p>
             </div>
             <a
-              href="https://wa.me/5515996959720?text=Ol%C3%A1!%20Estou%20com%20d%C3%BAvidas%20sobre%20o%20acesso%20ao%20Ax%C3%A9Cloud."
+              href="https://wa.me/5511920033501?text=Ol%C3%A1!%20Estou%20com%20d%C3%BAvidas%20sobre%20o%20acesso%20ao%20Ax%C3%A9Cloud."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#166534] text-white text-xs font-bold hover:bg-[#14532d] transition-colors shadow-xs"

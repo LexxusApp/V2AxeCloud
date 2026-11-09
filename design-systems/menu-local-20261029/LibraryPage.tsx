@@ -44,6 +44,7 @@ import "./house-shared.css";
 import "./library.css";
 const LibraryPdf = lazy(() => import("./LibraryPdf"));
 import { authFetch } from "../../src/lib/authenticatedFetch";
+import { readPdfBytes } from "../../src/lib/pdfSourceReader";
 type Props = {
   state: LocalLibrary;
   onChange: (state: LocalLibrary) => void;
@@ -83,14 +84,8 @@ function usePdfUrl(source?: string | File) {
           if (alive) setUrl(source);
           return;
         }
-        const file =
-          source instanceof File
-            ? source
-            : await authFetch(source).then((response) => {
-                if (!response.ok)
-                  throw new Error("O download do PDF não foi autorizado.");
-                return response.blob();
-              });
+        const bytes = await readPdfBytes(source);
+        const file = new Blob([bytes], { type: "application/pdf" });
         if (alive) {
           objectUrl = URL.createObjectURL(file);
           setUrl(objectUrl);

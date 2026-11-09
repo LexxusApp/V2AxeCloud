@@ -3,6 +3,7 @@ import { isConsoleGlobalAdmin } from "./consoleAdmin.js";
 import { resolveFilhoRowIdForFinance } from "./resolveFilhoRowIdForFinance.js";
 import { digitsOnlyCpf, isValidFilhoCpfCadastro } from "../../lib/brCpf.js";
 import { normalizeBrWhatsAppNational } from "../../src/lib/whatsappPhone.js";
+import { readActiveDelegation } from './delegatedAccess.js';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -178,17 +179,7 @@ export async function assertZeladorTenantAccess(
   userId: string,
   tenantId: string
 ): Promise<boolean> {
-  const PILOT_TEST_TENANT_ID = "fad75b91-d2eb-4805-b5a3-c19e8a073bed";
-  if (tenantId === PILOT_TEST_TENANT_ID) {
-    const { data: coAdmin } = await supabaseAdmin
-      .from("piloto_coadministradores")
-      .select("ativo")
-      .eq("tenant_id", PILOT_TEST_TENANT_ID)
-      .eq("user_id", userId)
-      .eq("ativo", true)
-      .maybeSingle();
-    if (coAdmin?.ativo) return true;
-  }
+  if (await readActiveDelegation(supabaseAdmin,userId,tenantId)) return true;
   // A member binding wins over a stale leader profile, including shadow/email
   // accounts. Resolve it before trusting perfil_lider (same precedence as Library).
   if (await resolveFilhoHouseRefs(supabaseAdmin, { id: userId })) return false;

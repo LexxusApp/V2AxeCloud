@@ -5,6 +5,8 @@ import { normalizeQueryTenantId, resolveFilhoHouseRefs, resolveFinanceiroTenantS
 import { resolveFilhoRowIdForFinance } from './resolveFilhoRowIdForFinance.js';
 import { fetchFinanceiroRowsForFilho } from './fetchFinanceiroRowsForFilho.js';
 import { safeErrorMessage } from './safeError.js';
+import {readActiveDelegation} from './delegatedAccess.js';
+import {grantAllows} from '../../lib/delegatedPolicy.js';
 export function registerTransactionReadRoute(app: Express, { supabaseAdmin }: { supabaseAdmin: SupabaseClient }) {
   const resolveFinanceiroTenantScope = (client: SupabaseClient, userId: string, role: string, tenant: string) => resolveScope(client,userId,role,tenant);
   // API Route: Get Transactions (Bypasses RLS)
@@ -18,8 +20,12 @@ export function registerTransactionReadRoute(app: Express, { supabaseAdmin }: { 
       if (paginated && (!Number.isSafeInteger(pageOffset) || pageOffset < 0 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 500)) return res.status(400).json({ error: 'Paginação inválida.' });
       const userId = authUser.id;
       const actualChild = await resolveFilhoHouseRefs(supabaseAdmin, authUser);
-      const userRoleStr = actualChild ? 'filho' : String(userRole || "").toLowerCase();
       const tenantIdRaw = normalizeQueryTenantId(tenantId);
+      const requestedRole=String(userRole||'').toLowerCase();
+      const delegation=actualChild&&requestedRole==='admin'&&tenantIdRaw
+        ?await readActiveDelegation(supabaseAdmin,userId,tenantIdRaw):null;
+      const delegatedFinance=Boolean(delegation&&grantAllows(delegation.permissoes,'finance','visualizar'));
+      const userRoleStr = actualChild && !delegatedFinance ? 'filho' : requestedRole;
       const limNum = limit ? Number(limit) : 150;
 
       if (userRoleStr === "filho") {

@@ -10,11 +10,11 @@ const path=PILOT_TENANT+'/private/'+id+'.pdf',pdf='%PDF-1.4\ntechnical test';
 const json=(value:any,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 function fixture(actor=PILOT_TENANT){
  const calls:any[]=[];let base:any={data:[]},rows:any[]=[],storageFailures=0,finalizeFail=false;
- const env={API:{fetch:async(request:Request)=>{const url=new URL(request.url);calls.push({service:url.pathname});if(url.pathname==='/api/public-config')return json({supabaseUrl:'https://test.invalid',supabaseAnonKey:'public-test-key'});if(url.pathname==='/api/tenant-info')return json(actor===MEMBER_PILOT.userId?{tenant_id:PILOT_TENANT,role:'filho'}:{tenant_id:PILOT_TENANT,role:'admin',status:'active'});if(url.pathname==='/api/v1/filho/profile')return json({data:{id:MEMBER_PILOT.memberId,user_id:MEMBER_PILOT.userId,tenant_id:PILOT_TENANT,email:MEMBER_PILOT.email,status:'Ativo'}});if(url.pathname==='/api/v1/library/materials')return json(base);return new Response('legacy-pdf');}}};
+ const env={API:{fetch:async(request:Request)=>{const url=new URL(request.url);calls.push({service:url.pathname});if(url.pathname==='/api/public-config')return json({supabaseUrl:'https://test.invalid',supabaseAnonKey:'public-test-key'});if(url.pathname==='/api/tenant-info')return json(actor===MEMBER_PILOT.userId?{tenant_id:PILOT_TENANT,role:'filho'}:{tenant_id:PILOT_TENANT,role:'admin',status:'active'});if(url.pathname==='/api/v1/filho/profile')return json({data:{id:MEMBER_PILOT.memberId,user_id:MEMBER_PILOT.userId,tenant_id:PILOT_TENANT,email:MEMBER_PILOT.email,status:'Ativo'}});if(url.pathname==='/api/v1/library/materials')return json(base);if(url.pathname==='/api/v1/_pilot_private_pdf_fetch'){assert.equal(url.searchParams.get('tenantId'),PILOT_TENANT);assert.equal(url.searchParams.get('path'),path);if(storageFailures>0){storageFailures--;return json({error:'Service temporarily unavailable'},503);}return new Response(pdf);}return new Response('legacy-pdf');}}};
  const fetcher=async(input:any,init:any={})=>{
   const url=new URL(String(input)),method=init.method||'GET';calls.push({path:url.pathname,method,body:init.body});
   if(url.pathname==='/auth/v1/user')return json({id:actor,email:actor===MEMBER_PILOT.userId?MEMBER_PILOT.email:PILOT_EMAIL});
-  if(url.pathname==='/rest/v1/filhos_de_santo')return json([{id:MEMBER_PILOT.memberId}]);
+  if(url.pathname==='/rest/v1/rpc/piloto_referencias_membros')return json([{id:MEMBER_PILOT.memberId}]);
   if(url.pathname==='/rest/v1/piloto_biblioteca_privada'){
    if(method==='DELETE'){rows=[];return json([]);}return json(rows);
   }
@@ -22,7 +22,11 @@ function fixture(actor=PILOT_TENANT){
    const input=JSON.parse(init.body);rows=[{id,tenant_id:PILOT_TENANT,destinatario:input.p_destinatario,titulo:input.p_titulo,descricao:input.p_descricao,categoria:input.p_categoria,sha256:input.p_sha256,storage_path:path,size_bytes:pdf.length}];
    if(finalizeFail){finalizeFail=false;return json({message:'Response lost after commit'},503);}return json({id,visibilidade:'individual'});
   }
-  if(url.pathname.startsWith('/storage/v1/object/')){if(storageFailures>0){storageFailures--;return json({error:'Storage failed'},500);}return method==='GET'?new Response(pdf):json({});}
+  if(url.pathname.startsWith('/storage/v1/object/')){
+   if(method==='GET')assert.ok(url.pathname.startsWith('/storage/v1/object/authenticated/piloto_biblioteca_privada/'),'Private PDFs require authenticated Storage downloads');
+   if(method==='POST')assert.ok(url.pathname.startsWith('/storage/v1/object/piloto_biblioteca_privada/'),'Storage upload endpoint unchanged');
+   if(storageFailures>0){storageFailures--;return json({error:'Storage failed'},500);}return method==='GET'?new Response(pdf):json({});
+  }
   throw Error('Unexpected request: '+url.pathname);
  };
  const run=(request:Request)=>handlePilotLibrary(request,env,fetcher);

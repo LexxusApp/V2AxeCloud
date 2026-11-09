@@ -4,6 +4,8 @@ import {isPilotMember} from '../../cloudflare/member-pilot-policy.js';
 import type {User} from '@supabase/supabase-js';
 export type MemberSession={user:User;tenant:Record<string,any>;member:Record<string,any>};
 let connected:MemberSession;
+const sessionListeners=new Set<()=>void>();
+export const onMemberSessionChange=(listener:()=>void)=>{sessionListeners.add(listener);return()=>{sessionListeners.delete(listener);};};
 export const memberSession=()=>{if(!connected)throw Error('Entre na sua conta para continuar.');return connected;};
 export async function connectMember(signal:AbortSignal){
  const {data:{session},error}=await supabase.auth.getSession();signal.throwIfAborted();if(error)throw error;
@@ -17,7 +19,8 @@ export async function connectMember(signal:AbortSignal){
  if(!isPilotMember(session.user,tenant,member)){location.replace('/dashboard?classic=1');return false;}
  connected={user:session.user,tenant,member};
  supabase.auth.onAuthStateChange((event,next)=>{if(event==='SIGNED_OUT'||next&&next.user.id!==connected.user.id)location.replace('/entrar');});
- const renew=async()=>{if(document.visibilityState==='hidden')return;try{const response=await authFetch('/api/pilot/interface-access?space=member',{method:'POST',cache:'no-store'});if(response.status>=500)return;const result=await response.json();if(!result.enabled||result.interface!=='member')location.replace('/dashboard?classic=1');}catch{/* Connectivity never triggers a logout. */}};
- setInterval(()=>void renew(),600000);document.addEventListener('visibilitychange',()=>void renew());
+ let renewing=false,verifiedAt=Date.now();
+ const renew=async()=>{if(document.visibilityState==='hidden'||renewing||Date.now()-verifiedAt<60_000)return;renewing=true;try{const response=await authFetch('/api/pilot/interface-access?space=member',{method:'POST',cache:'no-store'});if(response.status>=500)return;const result=await response.json();if(!response.ok||!result.enabled||result.interface!=='member'||!isPilotMember(connected.user,result.profile,result.member)){location.replace('/dashboard?classic=1');return;}verifiedAt=Date.now();connected={...connected,tenant:result.profile,member:result.member};sessionListeners.forEach(listener=>listener());}catch{/* Connectivity never triggers a logout. */}finally{renewing=false;}};
+ setInterval(()=>void renew(),60_000);document.addEventListener('visibilitychange',()=>void renew());
  return true;
 }

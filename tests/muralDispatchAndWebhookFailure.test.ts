@@ -135,3 +135,13 @@ describe("humanizeTipoMensagem", () => {
     assert.equal(humanizeTipoMensagem("aviso_portal_conta_axecloud"), "Convite do Portal");
   });
 });
+
+describe("muralDispatchSummaryWhatsApp template safety", () => {
+  it("garante que nenhum texto livre seja tentado e usa template oficial", async () => {
+    const fs = await import("node:fs");
+    const code = fs.readFileSync("api/lib/muralDispatchSummaryWhatsApp.ts", "utf8");
+    assert.doesNotMatch(code, /sendMetaCloudText/, "muralDispatchSummaryWhatsApp não deve chamar sendMetaCloudText");
+    assert.match(code, /resolveResumoDisparoGiraTemplateName/, "deve resolver template oficial de resumo");
+    assert.match(code, /aviso_geral_axecloud/, "deve possuir fallback aviso_geral_axecloud");
+  });
+});

@@ -20,12 +20,13 @@ import { apiReadRateLimit } from "./rateLimit.js";
 import {
   parseDiretorioCityRoute,
   slugifyCidadeOnly,
+  parseDiretorioSlugVariants,
   slugifyTerreiroNome,
 } from "./diretorioSlug.js";
 
 const TABLE = "terreiros_diretorio";
 const SELECT =
-  "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, tipo, verified_at";
+  "nome, endereco, telefone, foto_url, owner_photo_url, link_maps, cidade, estado, slug, cidade_slug, bairro, tipo, latitude, longitude, claimed_by_tenant_id, verified_at";
 
 function sitemapLastModified(rawModified: string): string | undefined {
   if (rawModified && !Number.isNaN(new Date(rawModified).getTime())) {
@@ -54,6 +55,10 @@ function mapSeoRow(row: Record<string, unknown>): DiretorioSeoTerreiro {
     estado,
     cidadeSlug,
     cidadeUrl: estado && cidadeSlug ? `/terreiros/${estado.toLowerCase()}/${cidadeSlug}` : null,
+    bairro: row.bairro ? String(row.bairro).trim() : null,
+    latitude: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : null,
+    longitude: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : null,
+    verificada: Boolean(row.verified_at || row.claimed_by_tenant_id),
   };
 }
 
@@ -147,10 +152,10 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
     apiReadRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = slugifyTerreiroNome(String(req.params.slug || ""));
-        if (!slug) return res.status(400).send("Slug inválido");
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+        if (!variants.length) return res.status(400).send("Slug inválido");
 
-        const { data, error } = await sb.from(TABLE).select(SELECT).eq("slug", slug).maybeSingle();
+        const { data, error } = await sb.from(TABLE).select(SELECT).in("slug", variants).limit(1).maybeSingle();
         if (error) throw error;
         if (!data) return res.status(404).send("Não encontrado");
 
@@ -172,8 +177,8 @@ export function registerDiretorioSeoRoutes(app: Express, { supabaseAdmin: sb }: 
             .select(SELECT)
             .eq("cidade_slug", cidadeSlug)
             .eq("estado", estado)
-            .neq("slug", slug)
-            .limit(6);
+            .neq("slug", String(data.slug || variants[0]))
+            .limit(24);
           if (siblings) {
             siblingTerreiros = siblings
               .filter((r) => isDiretorioListingPublishable(r as Record<string, unknown>))

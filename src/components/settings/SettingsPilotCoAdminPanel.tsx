@@ -27,7 +27,7 @@ export function SettingsPilotCoAdminPanel({
   const [revokingId, setRevokingId] = useState<string | null>(null);
 
   async function loadList() {
-    if (tenantId !== 'fad75b91-d2eb-4805-b5a3-c19e8a073bed') {
+    if (!tenantId) {
       setLoading(false);
       return;
     }
@@ -92,7 +92,7 @@ export function SettingsPilotCoAdminPanel({
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-black tracking-tight text-white">Responsáveis pelo sistema</h3>
                 <span className="rounded-full border border-[#F4C430]/25 bg-[#F4C430]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[.12em] text-[#FFE58A]">
-                  Piloto controlado
+                  Permissões por área
                 </span>
               </div>
               <p className="mt-1 max-w-2xl text-xs font-semibold leading-relaxed text-[#D5E2D8]">

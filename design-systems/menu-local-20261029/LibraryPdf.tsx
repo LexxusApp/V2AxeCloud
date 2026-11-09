@@ -3,26 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { authFetch } from '../../src/lib/authenticatedFetch';
+import { readPdfBytes } from '../../src/lib/pdfSourceReader';
 
 type LoadedPage = { number: number; page: PDFPageProxy; baseWidth: number; baseHeight: number };
 
 async function readPdfSource(source: string | File): Promise<Uint8Array> {
-  if (source instanceof File) return new Uint8Array(await source.arrayBuffer());
-  if (!source) throw new Error('MISSING_SOURCE');
-
-  const load = () => source.startsWith('/api/') ? authFetch(source) : fetch(source);
-  let response = await load();
-  if ([502, 503, 504].includes(response.status)) {
-    await response.body?.cancel().catch(() => {});
-    response = await load();
-  }
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 5 || new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') {
-    throw new Error('INVALID_PDF');
-  }
-  return bytes;
+  return readPdfBytes(source);
 }
 
 function openingError(reason: unknown) {
@@ -108,86 +94,78 @@ export default function LibraryPdf({ source, title }: { source: string | File; t
     let animationFrame = 0;
     const measure = (measured: number) => {
       const next = Math.max(170, Math.floor(measured - 28));
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => {
-        setWidth(current => Math.abs(current - next) < 12 ? current : next);
-      });
+      setWidth((current) => (Math.abs(current - next) < 12 ? current : next));
     };
     measure(element.getBoundingClientRect().width);
-    const observer = new ResizeObserver(entries => {
-      measure(entries[0]?.contentRect.width || element.getBoundingClientRect().width);
+    const observer = new ResizeObserver((entries) => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => measure(entries[0]?.contentRect.width || 0));
     });
     observer.observe(element);
     return () => {
-      cancelAnimationFrame(animationFrame);
+      window.cancelAnimationFrame(animationFrame);
       observer.disconnect();
     };
   }, []);
 
   useEffect(() => {
-    if (!pdf || loadedPage?.number === page) return;
+    if (!pdf) return;
     let cancelled = false;
-    setDrawing(true);
-    void pdf.getPage(page).then(nextPage => {
-      if (cancelled) return;
-      const viewport = nextPage.getViewport({ scale: 1 });
-      setLoadedPage({ number: page, page: nextPage, baseWidth: viewport.width, baseHeight: viewport.height });
-    }).catch(reason => {
-      if (!cancelled) {
-        setDrawing(false);
-        setError(openingError(reason));
+    async function loadPage() {
+      try {
+        const target = await pdf!.getPage(page);
+        if (!cancelled) {
+          const viewport = target.getViewport({ scale: 1 });
+          setLoadedPage({ number: page, page: target, baseWidth: viewport.width, baseHeight: viewport.height });
+        }
+      } catch {
+        if (!cancelled) setError('Não foi possível carregar a página solicitada.');
       }
-    });
-    return () => { cancelled = true; };
-  }, [loadedPage?.number, page, pdf]);
+    }
+    void loadPage();
+    return () => {
+      cancelled = true;
+    };
+  }, [pdf, page]);
 
   useEffect(() => {
-    if (!pdf || !loadedPage || loadedPage.number !== page || width <= 0) return;
+    if (!loadedPage || !canvas.current || !width) return;
     let cancelled = false;
-    let renderTask: import('pdfjs-dist').RenderTask | undefined;
+    let renderTask: ReturnType<PDFPageProxy['render']> | undefined;
     setDrawing(true);
     setPageText('');
 
     async function draw() {
       try {
-        const scale = width / loadedPage!.baseWidth * zoom;
-        const viewport = loadedPage!.page.getViewport({ scale });
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
-        const buffer = document.createElement('canvas');
-        buffer.width = Math.ceil(viewport.width * ratio);
-        buffer.height = Math.ceil(viewport.height * ratio);
-        const context = buffer.getContext('2d');
-        if (!context) throw new Error('Canvas indisponível');
-        renderTask = loadedPage!.page.render({
-          canvas: buffer,
-          canvasContext: context,
-          viewport,
-          transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
-        });
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const displayWidth = Math.max(170, Math.floor(width * zoom));
+        const scale = displayWidth / loadedPage!.baseWidth;
+        const viewport = loadedPage!.page.getViewport({ scale: scale * dpr });
+        const target = canvas.current;
+        if (!target) return;
+        target.width = Math.floor(viewport.width);
+        target.height = Math.floor(viewport.height);
+        target.style.width = `${displayWidth}px`;
+        target.style.height = `${Math.floor(displayWidth * (loadedPage!.baseHeight / loadedPage!.baseWidth))}px`;
+
+        const context = target.getContext('2d');
+        if (!context) throw new Error('CONTEXT_UNAVAILABLE');
+        renderTask = loadedPage!.page.render({ canvas: target, canvasContext: context, viewport } as any);
         await renderTask.promise;
-        if (cancelled || !canvas.current) return;
-        const element = canvas.current;
-        element.width = buffer.width;
-        element.height = buffer.height;
-        element.style.width = `${viewport.width}px`;
-        element.style.height = `${viewport.height}px`;
-        const visible = element.getContext('2d');
-        if (!visible) throw new Error('Canvas indisponível');
-        visible.clearRect(0, 0, element.width, element.height);
-        visible.drawImage(buffer, 0, 0);
-        setHasRendered(true);
-        setDrawing(false);
-        setError('');
-        try {
-          const content = await loadedPage!.page.getTextContent();
-          if (!cancelled) setPageText(content.items.map(item => 'str' in item ? item.str : '').join(' '));
-        } catch {
-          if (!cancelled) setPageText('');
-        }
-      } catch (reason) {
-        if (!cancelled && !(reason instanceof Error && reason.name === 'RenderingCancelledException')) {
+        const content = await loadedPage!.page.getTextContent().catch(() => null);
+        if (!cancelled) {
+          const text = (content?.items || [])
+            .map((item: any) => (typeof item?.str === 'string' ? item.str : ''))
+            .filter(Boolean)
+            .join(' ');
+          setPageText(text.slice(0, 1500));
           setDrawing(false);
-          setError('Não foi possível exibir esta página. Tente abrir o arquivo novamente.');
+          setHasRendered(true);
+        }
+      } catch (reason: any) {
+        if (!cancelled && reason?.name !== 'RenderingCancelledException') {
+          setDrawing(false);
+          setError('Não foi possível renderizar a página deste PDF.');
         }
       }
     }
@@ -195,38 +173,83 @@ export default function LibraryPdf({ source, title }: { source: string | File; t
     void draw();
     return () => {
       cancelled = true;
-      renderTask?.cancel();
+      if (renderTask) renderTask.cancel();
     };
-  }, [loadedPage, page, pdf, width, zoom]);
+  }, [loadedPage, width, zoom]);
 
-  const displayWidth = loadedPage && width > 0 ? width * zoom : 0;
-  const displayHeight = loadedPage && displayWidth > 0 ? displayWidth * loadedPage.baseHeight / loadedPage.baseWidth : 0;
-  const changePage = (next: number) => {
-    setDrawing(true);
-    setPage(next);
-  };
+  const total = pdf?.numPages || 1;
 
-  return <div className="lb-pdf">
-    <div className="lb-pdf-toolbar">
-      <div>
-        <button aria-label="Página anterior" disabled={!pdf || page <= 1 || drawing} onClick={() => changePage(page - 1)}><ChevronLeft size={18} /></button>
-        <span aria-live="polite">{pdf ? `Página ${page} de ${pdf.numPages}` : 'Abrindo PDF'}</span>
-        <button aria-label="Próxima página" disabled={!pdf || page >= pdf.numPages || drawing} onClick={() => changePage(page + 1)}><ChevronRight size={18} /></button>
+  if (error) {
+    return (
+      <div className="lb-pdf-error" role="alert">
+        <p>{error}</p>
+        <button
+          className="wf-button secondary"
+          onClick={() => {
+            setError('');
+            setLoading(true);
+            setRetry((value) => value + 1);
+          }}
+        >
+          <RefreshCw size={15} />
+          Tentar abrir novamente
+        </button>
       </div>
-      <label>Zoom
-        <select aria-label="Zoom do PDF" value={zoom} onChange={event => { setDrawing(true); setZoom(Number(event.target.value)); }}>
-          <option value={0.75}>75%</option><option value={1}>Ajustar</option><option value={1.25}>125%</option><option value={1.5}>150%</option><option value={2}>200%</option><option value={3}>300%</option>
-        </select>
-      </label>
+    );
+  }
+
+  return (
+    <div className="lb-pdf-viewer">
+      <div className="lb-pdf-toolbar" role="toolbar" aria-label="Controles de leitura do documento">
+        <div className="lb-pdf-pager">
+          <button
+            className="icon-button"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <span>
+            {loading ? 'Abrindo PDF' : `Página ${page} de ${total}`}
+          </span>
+          <button
+            className="icon-button"
+            disabled={page >= total}
+            onClick={() => setPage((current) => Math.min(total, current + 1))}
+            aria-label="Próxima página"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        <div className="lb-pdf-zoom">
+          <label htmlFor="lb-zoom-select">Zoom</label>
+          <select
+            id="lb-zoom-select"
+            value={zoom}
+            onChange={(event) => setZoom(Number(event.target.value))}
+          >
+            <option value={1}>Ajustar</option>
+            <option value={1.25}>125%</option>
+            <option value={1.5}>150%</option>
+          </select>
+        </div>
+      </div>
+      <div className="lb-pdf-canvas-wrap" ref={frame} tabIndex={0} aria-label={`${title}, leitura em tela`}>
+        {loading && <PageLoading variant="document" label="Carregando páginas do PDF…" />}
+        <canvas
+          ref={canvas}
+          className="lb-pdf-canvas"
+          style={{ display: hasRendered ? 'block' : 'none', opacity: drawing ? 0.6 : 1 }}
+          aria-label={`${title}, página ${page}`}
+        />
+      </div>
+      {pageText && (
+        <details className="lb-pdf-text-extract">
+          <summary>Ler texto extraído desta página</summary>
+          <p>{pageText}</p>
+        </details>
+      )}
     </div>
-    <div className="lb-pdf-frame" ref={frame} tabIndex={0} aria-label={`Leitura do PDF: ${title}`} aria-busy={loading || drawing}>
-      {error ? <div className="lb-pdf-error" role="alert"><p>{error}</p><button className="wf-button secondary" onClick={() => setRetry(value => value + 1)}><RefreshCw size={16} />Tentar abrir novamente</button></div> : <>
-        {loading && <PageLoading variant="document" label="Abrindo documento…"/>}
-        {drawing && hasRendered && <span className="lb-pdf-page-progress" role="status">Preparando página {page}…</span>}
-        <canvas ref={canvas} role="img" aria-label={`${title}, página ${page}`} style={{ width: displayWidth > 0 ? `${displayWidth}px` : undefined, height: displayHeight > 0 ? `${displayHeight}px` : undefined, visibility: hasRendered ? 'visible' : 'hidden' }} />
-      </>}
-    </div>
-    <details className="lb-pdf-text"><summary>Ler texto extraído desta página</summary><p>{pageText || 'Sem texto extraído nesta página. O documento pode conter apenas imagens; use seu leitor de PDF para outros recursos.'}</p></details>
-    <p className="lb-pdf-access">A visualização mostra a página do arquivo. Para usar seu leitor de PDF, baixe o documento.</p>
-  </div>;
+  );
 }

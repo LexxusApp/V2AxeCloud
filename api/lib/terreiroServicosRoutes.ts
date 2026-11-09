@@ -1,9 +1,11 @@
+import {resolveDelegatedModuleTenant} from './delegatedAccess.js';
+import { parseDiretorioSlugVariants } from "./diretorioSlug.js";
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { apiReadRateLimit, sensitiveActionRateLimit } from "./rateLimit.js";
 import { requireAuthOrRespond } from "./requireAuth.js";
 
-type Deps = { supabaseAdmin: SupabaseClient };
+type Deps = { supabaseAdmin: SupabaseClient; resolveLeaderId?: (id: string) => Promise<string> };
 
 const MAX_SERVICOS = 20;
 
@@ -22,20 +24,62 @@ function isValidUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
-export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb }: Deps) {
+async function resolveTerreiro(sb: SupabaseClient, userId: string, resolveLeaderId?: (id: string) => Promise<string>, level: 'visualizar'|'gerenciar'='visualizar', create=false) {
+  const managementTenant=await resolveDelegatedModuleTenant(sb,userId,'radar',level);
+  const leaderId = resolveLeaderId ? await resolveLeaderId(managementTenant) : managementTenant;
+  let { data, error } = await sb
+    .from("terreiros_diretorio")
+    .select("id, whatsapp_atendimento, telefone")
+    .eq("claimed_by_tenant_id", leaderId)
+    .order("verified_at", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data && create) {
+    const { data: leader } = await sb
+      .from("perfil_lider")
+      .select("nome_terreiro, cidade_publica, estado_publico, public_slug, whatsapp_publico")
+      .eq("id", leaderId)
+      .maybeSingle();
+    if (leader) {
+      const baseSlug = String(leader.nome_terreiro || "terreiro").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const newSlug = leader.public_slug || `${baseSlug}-${leaderId.replace(/-/g, "").slice(0, 8)}`;
+      const { data: created } = await sb
+        .from("terreiros_diretorio")
+        .insert({
+          nome: leader.nome_terreiro || "Terreiro",
+          cidade: leader.cidade_publica || "São Paulo",
+          estado: leader.estado_publico || "SP",
+          tipo: "terreiro",
+          slug: newSlug,
+          claimed_by_tenant_id: leaderId,
+          publicacao_status: "rascunho",
+        })
+        .select("id, whatsapp_atendimento, telefone")
+        .maybeSingle();
+      if (created) data = created;
+    }
+  }
+  return data;
+}
+
+export function registerTerreiroServicosRoutes(app: Express, deps: Deps) {
+  const { supabaseAdmin: sb, resolveLeaderId } = deps;
   // ─── Público: listar serviços disponíveis de um terreiro pelo slug ────────
   app.get(
     "/api/v1/public/diretorio/terreiro/:slug/servicos",
     apiReadRateLimit,
     async (req: Request, res: Response) => {
       try {
-        const slug = String(req.params.slug || "").trim().toLowerCase().slice(0, 200);
-        if (!slug) return res.status(400).json({ error: "Slug inválido." });
+        const variants = parseDiretorioSlugVariants(String(req.params.slug || ""));
+        if (!variants.length) return res.status(400).json({ error: "Slug inválido." });
 
         const { data: terreiro, error: tErr } = await sb
           .from("terreiros_diretorio")
           .select("id, telefone, whatsapp_atendimento, publicacao_status")
-          .eq("slug", slug)
+          .in("slug", variants)
+          .limit(1)
           .maybeSingle();
         if (tErr) throw tErr;
         if (!terreiro) return res.status(404).json({ error: "Terreiro não encontrado." });
@@ -72,15 +116,7 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
       const user = await requireAuthOrRespond(sb, req, res);
       if (!user) return;
       try {
-        const { data: terreiro, error: tErr } = await sb
-          .from("terreiros_diretorio")
-          .select("id, whatsapp_atendimento, telefone")
-          .eq("claimed_by_tenant_id", user.id)
-          .order("verified_at", { ascending: false, nullsFirst: false })
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (tErr) throw tErr;
+        const terreiro = await resolveTerreiro(sb, user.id, resolveLeaderId);
         if (!terreiro) return res.json({ claimed: false, servicos: [], whatsappAtendimento: null });
 
         const { data: servicos, error: sErr } = await sb
@@ -112,6 +148,8 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
       const user = await requireAuthOrRespond(sb, req, res);
       if (!user) return;
       try {
+        const managementTenant=await resolveDelegatedModuleTenant(sb,user.id,'radar','gerenciar');
+        const leaderId = resolveLeaderId ? await resolveLeaderId(managementTenant) : managementTenant;
         const body = req.body && typeof req.body === "object" ? req.body : {};
         const raw = String(body.whatsappAtendimento || "").replace(/\D/g, "").slice(0, 15);
         const whatsappAtendimento = raw.length >= 10 ? raw : null;
@@ -119,7 +157,7 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
         const { error } = await sb
           .from("terreiros_diretorio")
           .update({ whatsapp_atendimento: whatsappAtendimento })
-          .eq("claimed_by_tenant_id", user.id);
+          .eq("claimed_by_tenant_id", leaderId);
         if (error) throw error;
         return res.json({ success: true, whatsappAtendimento });
       } catch (error: unknown) {
@@ -137,16 +175,8 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
       const user = await requireAuthOrRespond(sb, req, res);
       if (!user) return;
       try {
-        const { data: terreiro, error: tErr } = await sb
-          .from("terreiros_diretorio")
-          .select("id")
-          .eq("claimed_by_tenant_id", user.id)
-          .order("verified_at", { ascending: false, nullsFirst: false })
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (tErr) throw tErr;
-        if (!terreiro) return res.status(403).json({ error: "Nenhum perfil reivindicado nesta conta." });
+        const terreiro = await resolveTerreiro(sb, user.id, resolveLeaderId,'gerenciar',true);
+        if (!terreiro) return res.status(403).json({ error: "Nenhum perfil da casa nesta conta." });
 
         const { count, error: countErr } = await sb
           .from("terreiro_servicos")
@@ -195,16 +225,8 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
         const servicoId = String(req.params.id || "");
         if (!isValidUuid(servicoId)) return res.status(400).json({ error: "ID inválido." });
 
-        const { data: terreiro, error: tErr } = await sb
-          .from("terreiros_diretorio")
-          .select("id")
-          .eq("claimed_by_tenant_id", user.id)
-          .order("verified_at", { ascending: false, nullsFirst: false })
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (tErr) throw tErr;
-        if (!terreiro) return res.status(403).json({ error: "Nenhum perfil reivindicado nesta conta." });
+        const terreiro = await resolveTerreiro(sb, user.id, resolveLeaderId,'gerenciar');
+        if (!terreiro) return res.status(403).json({ error: "Nenhum perfil da casa nesta conta." });
 
         const body = req.body && typeof req.body === "object" ? req.body : {};
         const parsed = parseServico(body);
@@ -246,16 +268,8 @@ export function registerTerreiroServicosRoutes(app: Express, { supabaseAdmin: sb
         const servicoId = String(req.params.id || "");
         if (!isValidUuid(servicoId)) return res.status(400).json({ error: "ID inválido." });
 
-        const { data: terreiro, error: tErr } = await sb
-          .from("terreiros_diretorio")
-          .select("id")
-          .eq("claimed_by_tenant_id", user.id)
-          .order("verified_at", { ascending: false, nullsFirst: false })
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (tErr) throw tErr;
-        if (!terreiro) return res.status(403).json({ error: "Nenhum perfil reivindicado nesta conta." });
+        const terreiro = await resolveTerreiro(sb, user.id, resolveLeaderId,'gerenciar');
+        if (!terreiro) return res.status(403).json({ error: "Nenhum perfil da casa nesta conta." });
 
         const { error: delErr } = await sb
           .from("terreiro_servicos")

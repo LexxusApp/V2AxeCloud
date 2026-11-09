@@ -83,7 +83,7 @@ const GREETING_VARIANTS: Array<(nome: string) => string> = [
 ];
 
 const CLOSING_VARIANTS = [
-  "Qualquer dúvida, fale com a diretoria do terreiro.",
+  "Axé e bênçãos da casa!",
   "Estamos à disposição.",
   "Conte conosco.",
   "Axé!",

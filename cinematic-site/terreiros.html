@@ -1901,6 +1901,18 @@ function syncUrlEstado(uf, cidadeSlug = "") {
   }
 }
 
+function embaralhaArray(arr) {
+  const copia = arr.slice();
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = copia[i];
+    copia[i] = copia[j];
+    copia[j] = tmp;
+  }
+  return copia;
+}
+
+
 async function carregaTodos() {
   grade.innerHTML = '<p class="estado">abrindo o mapeamento completo…</p>';
   contagem.textContent = "";
@@ -1910,7 +1922,7 @@ async function carregaTodos() {
   marcaChipEstado("");
   // Visão "Todos": monta fichas leves do mapa estático — zero waterfall de API por UF.
   if (!todosPontos.length) await carregaPontosMapa();
-  itens = todosPontos.map((p) => ({
+  const mapeados = todosPontos.map((p) => ({
     slug: p.slug,
     nome: p.nome,
     cidade: p.cidade,
@@ -1920,6 +1932,8 @@ async function carregaTodos() {
     instagramUrl: p.instagramUrl,
     fotoUrl: p.fotoUrl || detalhesPopupPorSlug.get(p.slug)?.fotoUrl || null,
   }));
+  // Embaralha para que nunca comece estaticamente pelas mesmas casas de "Abadia de Goiás"
+  itens = embaralhaArray(mapeados);
   totalItens = itens.length || totaisMapa.exact || 0;
   listaCompleta = true;
   visiveis = 6;
@@ -1940,7 +1954,7 @@ async function carregaEstado(uf) {
       estado: String(data.estado || key).toUpperCase(),
       nomeEstado: data.nomeEstado || nomeEstado(key),
     };
-    itens = data.items || [];
+    itens = embaralhaArray(data.items || []);
     totalItens = Number(data.total) || itens.length;
     listaCompleta = itens.length >= totalItens;
     visiveis = 6;
@@ -2064,6 +2078,10 @@ function desenha() {
   }
 
   atualizaMapa(filtrados);
+  desenhaCartoes(filtrados);
+}
+
+function desenhaCartoes(filtrados) {
   const empty = $("#empty-state");
   if (!filtrados.length) {
     grade.replaceChildren();
@@ -2072,20 +2090,24 @@ function desenha() {
   }
   empty.hidden = true;
 
+  const totalExibido = !termo && !listaCompleta ? totalItens : filtrados.length;
+
   const fatia = filtrados.slice(0, visiveis);
+
   fatia.forEach((c) => {
     if (!c.fotoUrl && detalhesPopupPorSlug.has(c.slug)) {
       const d = detalhesPopupPorSlug.get(c.slug);
       if (d?.fotoUrl) c.fotoUrl = d.fotoUrl;
     }
   });
+
   grade.innerHTML = fatia.map((c) => {
     const foto = urlSegura(c.fotoUrl);
     const perfil = perfilLocal(c);
     const local = [c.cidade, c.estado].filter(Boolean).join(", ");
     const endereco = c.endereco || c.bairro || local || "Localização disponível no perfil";
     return `
-    <a class="house-card" href="${esc(perfil || "#mapa")}" ${perfil ? `data-profile-click="${esc(c.slug)}"` : ""}>
+    <a class="house-card visivel" href="${esc(perfil || "#mapa")}" ${perfil ? `data-profile-click="${esc(c.slug)}"` : ""}>
       <div class="house-card-media">${foto ? `<img src="${esc(foto)}" alt="Foto de ${esc(c.nome)}" width="296" height="348" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />` : ""}</div>
       <div class="house-card-content">
         <p class="house-card-city">${esc(local || "Brasil")}</p>
@@ -2099,23 +2121,15 @@ function desenha() {
     ? `<div class="mais-wrap"><button class="mais" id="mais">Mostrar mais casas (${(totalExibido - visiveis).toLocaleString("pt-BR")})</button></div>`
     : "");
 
-  const cards = document.querySelectorAll(".house-card");
-  if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach((entry, index) => {
-        if (!entry.isIntersecting) return;
-        window.setTimeout(() => entry.target.classList.add("visivel"), (index % 6) * 55);
-        obs.unobserve(entry.target);
-      });
-    }, { threshold: .08 });
-    cards.forEach((card) => obs.observe(card));
-  } else {
-    cards.forEach((card) => card.classList.add("visivel"));
+  const cards = grade.querySelectorAll(".house-card");
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    cards.forEach((card, index) => {
+      card.classList.remove("visivel");
+      window.setTimeout(() => card.classList.add("visivel"), index * 35);
+    });
   }
 
   void enriqueceFotosCards(fatia);
-
-
 
   const mais = document.getElementById("mais");
   if (mais) mais.addEventListener("click", async () => {
@@ -2237,7 +2251,11 @@ $("#search-form").addEventListener("submit", (event) => {
 });
 $("#buscar").addEventListener("input", (event) => {
   $(".clear-search").hidden = !event.currentTarget.value;
+  if (event.currentTarget.value.trim()) {
+    paraRotacaoAutomatica();
+  }
 });
+
 $(".clear-search").addEventListener("click", () => {
   $("#buscar").value = "";
   $(".clear-search").hidden = true;

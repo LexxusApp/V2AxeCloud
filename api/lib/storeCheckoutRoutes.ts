@@ -4,6 +4,8 @@ import { requireAuthOrRespond } from './requireAuth.js';
 import { assertUserCanAccessTenant, assertZeladorTenantAccess, isValidUuid, normalizeFilhoRequestTenantId, normalizeQueryTenantId, resolveAuthenticatedFilho } from './tenantAccess.js';
 import { safeErrorMessage } from './safeError.js';
 import { buildPixPayload } from './pixPayload.js';
+import {readActiveDelegation} from './delegatedAccess.js';
+import {grantAllows} from '../../lib/delegatedPolicy.js';
 
 type Deps = { supabaseAdmin: SupabaseClient; resolveLeaderId: (id: string) => Promise<string> };
 
@@ -22,7 +24,9 @@ export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
       if(error) throw error;
       if(data) child=data;
     }
-    const manager = !child && await assertZeladorTenantAccess(sb, user.id, tenant);
+    const managementRequested=req.query.userRole==='admin'||req.body?.userRole==='admin';
+    const delegation=child&&managementRequested?await readActiveDelegation(sb,user.id,tenant):null;
+    const manager = child ? Boolean(delegation&&grantAllows(delegation.permissoes,'store',req.method==='GET'?'visualizar':'gerenciar')) : await assertZeladorTenantAccess(sb,user.id,tenant);
     if (!child && !manager) { res.status(403).json({ error: 'Perfil não autorizado.' }); return null; }
     return { user, tenant, child, manager };
   }
@@ -65,8 +69,8 @@ export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
         return res.status(400).json({ error: 'Carrinho inválido. Recarregue a página e confira os produtos e quantidades.' });
       }
       if (!ctx.manager && method === 'dinheiro') return res.status(403).json({ error: 'Somente o responsável pode registrar recebimento em dinheiro.' });
-      if (ctx.child && filhoId && filhoId !== ctx.child.id) return res.status(403).json({ error: 'Não é possível comprar em nome de outro membro.' });
-      const member = ctx.child?.id || (ctx.manager && filhoId ? String(filhoId) : null);
+      if (!ctx.manager && ctx.child && filhoId && filhoId !== ctx.child.id) return res.status(403).json({ error: 'Não é possível comprar em nome de outro membro.' });
+      const member = ctx.manager ? (filhoId?String(filhoId):null) : ctx.child?.id;
       if (member && !isValidUuid(member)) return res.status(400).json({ error: 'Membro inválido.' });
       if (method === 'mensalidade' && !member) return res.status(400).json({ error: 'Selecione um membro para comprar na caderneta.' });
       const { data: order, error } = await sb.rpc('checkout_loja_seguro', {
@@ -84,7 +88,7 @@ export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
     try {
       const ctx = await access(req, res); if (!ctx) return;
       let query = sb.from('loja_pedidos').select('id,pedido_id,created_at,filho_nome,tipo,metodo_pagamento,resumo_itens,valor_total,pedido:pedidos!pedido_id(id,status,metodo_pagamento,total,checkout_id,financeiro_id)').eq('tenant_id', ctx.tenant);
-      if (ctx.child) query = query.eq('filho_id', ctx.child.id);
+      if (ctx.child&&!ctx.manager) query = query.eq('filho_id', ctx.child.id);
       const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
       if (error) throw error;
       res.setHeader('Cache-Control','private, no-store');
@@ -96,7 +100,7 @@ export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
       const ctx = await access(req, res); if (!ctx) return;
       if (!isValidUuid(req.params.id)) return res.status(400).json({ error: 'Pedido inválido.' });
       let query = sb.from('pedidos').select('*').eq('id', req.params.id).eq('tenant_id', ctx.tenant);
-      if (ctx.child) query = query.eq('filho_id', ctx.child.id);
+      if (ctx.child&&!ctx.manager) query = query.eq('filho_id', ctx.child.id);
       const { data: order, error } = await query.maybeSingle();
       if (error) throw error;
       if (!order) return res.status(404).json({ error: 'Pedido não encontrado.' });

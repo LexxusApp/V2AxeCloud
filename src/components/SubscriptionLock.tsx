@@ -1,4 +1,4 @@
-﻿import { authFetch } from '../lib/authenticatedFetch';
+import { authFetch } from '../lib/authenticatedFetch';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { AuthScreenBackground } from './AuthScreenBackground';
 import { performFastLogout } from '../lib/logout';
 import { supabase } from '../lib/supabase';
+import { DeleteAccountModal } from './account/DeleteAccountModal';
 
 interface SubscriptionLockProps {
   plan?: string;
@@ -45,6 +46,8 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
   const [error, setError] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const pollAccessActive = useCallback(async () => {
     if (!tenantId) return false;
@@ -93,6 +96,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
         }
         if (cancelled) return;
         setTenantId(uid);
+        setUserEmail(data.session?.user?.email || null);
 
         const ctxRes = await authFetch(
           `/api/v1/checkout/efi/context?tenantId=${encodeURIComponent(uid)}`,
@@ -215,7 +219,7 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
 
   const handleSupport = () => {
     window.open(
-      'https://wa.me/558481232810?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Il%C3%AA%20As%C3%A9',
+      'https://wa.me/5511920033501?text=Ol%C3%A1,%20minha%20assinatura%20est%C3%A1%20suspensa%20e%20preciso%20de%20ajuda%20para%20renovar%20meu%20plano%20no%20Ax%C3%A9Cloud',
       '_blank'
     );
   };
@@ -360,6 +364,14 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
               {isPending ? 'Sair e entrar com outra conta' : 'Voltar ao login'}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setDeleteModalOpen(true)}
+              className="mt-3 flex w-full justify-center text-center text-[11px] font-semibold text-rose-400/90 hover:text-rose-300 underline underline-offset-4 transition"
+            >
+              Não deseja renovar? Cancelar e excluir minha conta
+            </button>
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -374,6 +386,12 @@ export default function SubscriptionLock({ plan, subscriptionStatus }: Subscript
           </>
         )}
       </motion.div>
+    
+      <DeleteAccountModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        userEmail={userEmail}
+      />
     </motion.div>
   );
 }

@@ -34,12 +34,12 @@ test('the actual dashboard shows verified people while finance and agenda are st
 test('manager startup reuses the profile already authenticated by the gate rather than querying the house twice',async()=>{
  const calls:string[]=[];
  const api=load('design-systems/menu-local-20261029/remote/session.ts',{'../../../src/lib/supabase':{supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'leader',email:'leader@example.invalid'}}}}),onAuthStateChange(){}}}},'../../../src/lib/authenticatedFetch':{authFetch:async(url:string)=>{calls.push(url);return Response.json({enabled:true,profile});}},'../uploadTransport':{}});
- assert.equal(await api.connectPreview(),true);assert.deepEqual(calls,['/api/pilot/interface-access']);assert.equal(api.previewSession().profile.nome,profile.nome);
+ assert.equal(await api.connectPreview(),true);assert.deepEqual(calls,['/api/pilot/interface-access?space=manager']);assert.equal(api.previewSession().profile.nome,profile.nome);
 });
 test('pilot repeats a failed read once, never repeats a financial write, and keeps access outages out of classic fallback',async()=>{
  let calls=0,status=200;
  const deps={'../../../src/lib/supabase':{supabase:{auth:{getSession:async()=>({data:{session:{user:{id:'leader'}}}}),onAuthStateChange(){}}}},'../../../src/lib/authenticatedFetch':{authFetch:async(url:string)=>{
-   if(url==='/api/pilot/interface-access')return Response.json({enabled:true,profile},{status});
+   if(url.startsWith('/api/pilot/interface-access'))return Response.json({enabled:true,profile},{status});
    calls++;return calls===1?new Response('Temporary failure',{status:500}):Response.json({success:true});
  }},'../uploadTransport':{}};
  const api=load('design-systems/menu-local-20261029/remote/session.ts',deps);await api.connectPreview();
@@ -50,11 +50,11 @@ test('pilot repeats a failed read once, never repeats a financial write, and kee
 test('member startup reuses only the server-verified exact member relationship and performs one access request',async()=>{
  const user={id:MEMBER_PILOT.userId,email:MEMBER_PILOT.authEmail},tenant={role:'filho',tenant_id:MEMBER_PILOT.tenantId},member={id:MEMBER_PILOT.memberId,user_id:user.id,tenant_id:tenant.tenant_id,email:MEMBER_PILOT.email,status:'Ativo'},calls:string[]=[];
  const api=load('design-systems/member-pilot-20261102/session.ts',{'../../src/lib/supabase':{supabase:{auth:{getSession:async()=>({data:{session:{user}}}),onAuthStateChange(){}}}},'../../src/lib/authenticatedFetch':{authFetch:async(url:string)=>{calls.push(url);return Response.json({enabled:true,interface:'member',profile:tenant,member});}},'../../cloudflare/member-pilot-policy.js':{isPilotMember}});
- assert.equal(await api.connectMember(new AbortController().signal),true);assert.deepEqual(calls,['/api/pilot/interface-access']);assert.equal(api.memberSession().member.id,member.id);
+ assert.equal(await api.connectMember(new AbortController().signal),true);assert.deepEqual(calls,['/api/pilot/interface-access?space=member']);assert.equal(api.memberSession().member.id,member.id);
 });
 test('financial history starts concurrently with member reads, but mapping waits for both verified responses',async()=>{
  const members=deferred(),finance=deferred(),started:string[]=[];
- const api=load('design-systems/menu-local-20261029/remote/runtime.tsx',{'../../../src/lib/supabase':{},'./session':{previewSession:()=>({userId:'leader'}),scoped:(url:string)=>url,request:()=>{started.push('members');return members.promise;}},'./readModels':{memberFromServer:(row:any)=>row,financeFromServer:(rows:any,people:any)=>({mapped:{rows,people}})},'./financeRead':{readFinance:()=>{started.push('finance');return finance.promise;}},'../operations':{}});
+ const api=load('design-systems/menu-local-20261029/remote/runtime.tsx',{'../../../src/lib/supabase':{},'./session':{previewSession:()=>({userId:'leader'}),scoped:(url:string)=>url,request:()=>{started.push('members');return members.promise;}},'./readModels':{memberFromServer:(row:any)=>row,financeFromServer:(rows:any,people:any)=>({mapped:{rows,people}})},'./financeRead':{readFinance:()=>{started.push('finance');return finance.promise;}},'../operations':{},'../../../cloudflare/pilot-granular-policy.js':{grantAllows:()=>false}});
  const pending=api.loadResource('finance');await Promise.resolve();await Promise.resolve();assert.deepEqual(started.sort(),['finance','members']);finance.resolve([{id:'real-debt'}]);await Promise.resolve();assert.equal(api.readValue('mapped'),undefined);members.resolve({data:[{id:'real-person'}]});await pending;assert.equal(api.readValue('mapped').people[0].id,'real-person');assert.equal(api.readValue('mapped').rows[0].id,'real-debt');
 });
 function financeFixture(body:any,status=200){let apiCalls=0,sweeps=0;const rows=[{id:'debt',valor:102}];const builder:any={select(){return this;},or(){return this;},order(){return this;},limit(){return this;},gt(){return this;},then(resolve:any){sweeps++;return Promise.resolve({data:rows,error:null}).then(resolve);}};const api=load('design-systems/menu-local-20261029/remote/financeRead.ts',{'../../../src/lib/supabase':{supabase:{from:()=>builder}},'./session':{previewSession:()=>({tenantId:'own-house'}),scoped:(url:string)=>url+'?tenantId=own-house&userRole=admin'},'../../../src/lib/authenticatedFetch':{authFetch:async()=>{apiCalls++;return Response.json(body,{status});}},'../../../src/lib/financialTransactions':{fetchAllFinancialTransactions}});return {api,calls:()=>apiCalls,sweeps:()=>sweeps};}

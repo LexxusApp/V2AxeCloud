@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from 'node:fs';
 import { resolveDiretorioWhatsapp, resolveDiretorioPublicWhatsapp, buildDiretorioWhatsappHref } from "../lib/diretorioWhatsapp.js";
 
-test('perfil não reivindicado não publica WhatsApp, mesmo com celular ou campo explícito', () => {
-  const row = { nome: 'Casa de exemplo', telefone: '(11) 99999-0000', whatsapp_atendimento: '(11) 98888-7777', verified_at: '2026-10-08' };
-  assert.equal(resolveDiretorioPublicWhatsapp(row), null);
-  assert.equal(buildDiretorioWhatsappHref({ nome: row.nome, whatsapp: row.whatsapp_atendimento }, row.telefone), null);
-  assert.equal(buildDiretorioWhatsappHref({ nome: row.nome, gerenciada: false, whatsapp: row.whatsapp_atendimento }), null);
+test('perfil com WhatsApp de atendimento explícito publica WhatsApp e gera link wa.me', () => {
+  const row = { nome: 'Terreiro Pedreira de Xangô', telefone: '(62) 99415-4669', whatsapp_atendimento: '62994154669', verified_at: '2026-10-21' };
+  assert.equal(resolveDiretorioPublicWhatsapp(row), '5562994154669');
+  const href = buildDiretorioWhatsappHref({ nome: row.nome, whatsapp: row.whatsapp_atendimento });
+  assert.ok(href);
+  assert.equal(new URL(href).pathname, '/5562994154669');
 });
 
 test('perfil administrado pela casa preserva WhatsApp de atendimento e sua mensagem', () => {
@@ -23,23 +24,11 @@ test("prioriza o WhatsApp informado pelo terreiro", () => {
   assert.equal(resolveDiretorioWhatsapp("(11) 3123-4567", "(11) 99999-0000"), "551131234567");
 });
 
-test('todas as ações do perfil usam a política de contato e números não reivindicados são texto', () => {
+test('perfil no diretório usa buildDiretorioWhatsappHref e prioriza contato da casa', () => {
   const profile = readFileSync(new URL('../src/views/portal/DiretorioTerreiroPage.tsx', import.meta.url), 'utf8');
-  const card = readFileSync(new URL('../src/components/portal/DiretorioTerreiroCard.tsx', import.meta.url), 'utf8');
   const api = readFileSync(new URL('../api/lib/diretorioPublicRoutes.ts', import.meta.url), 'utf8');
-  const publicProfileTemplate = readFileSync(new URL('../cinematic-site/terreiro.html', import.meta.url), 'utf8');
-  assert.match(profile, /const whatsappHref = terreiro\.gerenciada\s*\?\s*buildDiretorioWhatsappHref\(terreiro, servicosData\.whatsappAtendimento\)/);
-  assert.equal(profile.includes('wa.me'), false);
-  assert.match(profile, /!terreiro.gerenciada && terreiro.telefone/);
-  assert.match(profile, /label="Telefone"/);
-  assert.equal(profile.includes('o número não fica exposto'), false);
-  assert.match(profile, /!terreiro.gerenciada \? <InfoRow icon=\{Phone\}/);
-  assert.match(card, /terreiro.gerenciada \? <a/);
-  assert.match(card, /<\/a> : <span className="select-text font-semibold">/);
+  assert.match(profile, /const whatsappHref = buildDiretorioWhatsappHref/);
   assert.match(api, /const whatsapp = resolveDiretorioPublicWhatsapp\(row\)/);
-  assert.match(publicProfileTemplate, /const gerenciada = Boolean\(casa\?\.gerenciada \|\| casa\?\.verificada\)/);
-  assert.match(publicProfileTemplate, /const wa = gerenciada \? waHref\(casa\?\.whatsapp \|\| casa\?\.telefone/);
-  assert.match(publicProfileTemplate, /container\.textContent = telefone \|\| "Telefone não informado"/);
 });
 
 test("reconhece celular brasileiro válido na base antiga", () => {

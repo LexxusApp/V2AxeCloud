@@ -716,7 +716,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
                       autoComplete="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Ex: 11912276156"
+                      placeholder="Ex: 11920033501"
                       disabled={loading || status === 'PAIRING'}
                       className="w-full rounded-xl border border-white/10 bg-[#121212] px-4 py-3 font-mono text-sm text-white outline-none transition-colors placeholder:text-gray-600 focus:border-emerald-500 disabled:opacity-60"
                     />
@@ -799,7 +799,7 @@ export default function WhatsAppConfig({ embedded = false }: WhatsAppConfigProps
                             inputMode="numeric"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            placeholder="11912276156"
+                            placeholder="11920033501"
                             disabled={loading || status === 'PAIRING'}
                             className="w-full rounded-xl border border-white/10 bg-background px-3 py-2.5 font-mono text-sm text-white outline-none focus:border-emerald-500 disabled:opacity-60"
                           />

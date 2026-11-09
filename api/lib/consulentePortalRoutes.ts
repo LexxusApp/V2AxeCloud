@@ -1,3 +1,4 @@
+import {resolveDelegatedModuleTenant} from './delegatedAccess.js';
 import { randomBytes } from "crypto";
 import type { Express, Request, Response } from "express";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -173,20 +174,56 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     const user = await requireAuthOrRespond(sb, req, res);
     if (!user) return;
     try {
-      const { data, error } = await sb
+      const managementTenant=await resolveDelegatedModuleTenant(sb,user.id,'radar',req.method==='GET'?'visualizar':'gerenciar');
+      const leaderId = await resolveLeaderId(managementTenant);
+      let { data, error } = await sb
         .from("terreiros_diretorio")
         .select("id, nome, endereco, telefone, owner_photo_url, cover_photo_url, gallery_photo_urls, link_maps, instagram_url, descricao_publica, orientacoes_visita, tradicao, publicacao_status, cidade, estado, slug, bairro, latitude, longitude, gira_horarios, verified_at, updated_at")
-        .eq("claimed_by_tenant_id", user.id)
+        .eq("claimed_by_tenant_id", leaderId)
         .order("verified_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      if (!data) return res.json({ claimed: false, profile: null });
+
+      if (!data) {
+        const { data: leader } = await sb
+          .from("perfil_lider")
+          .select("id, nome_terreiro, cidade_publica, estado_publico, bairro_publico, whatsapp_publico, descricao_publica, tradicao, foto_url, public_slug")
+          .eq("id", leaderId)
+          .maybeSingle();
+
+        if (leader) {
+          const baseSlug = slugifyPublicSlug(leader.nome_terreiro || "terreiro") || "terreiro";
+          const newSlug = leader.public_slug || `${baseSlug}-${leaderId.replace(/-/g, "").slice(0, 8)}`;
+          const { data: created, error: createError } = await sb
+            .from("terreiros_diretorio")
+            .insert({
+              nome: leader.nome_terreiro || "Terreiro",
+              cidade: leader.cidade_publica || "São Paulo",
+              estado: leader.estado_publico || "SP",
+              bairro: leader.bairro_publico || null,
+              telefone: leader.whatsapp_publico ? normalizeWhatsapp(leader.whatsapp_publico) : null,
+              descricao_publica: leader.descricao_publica || null,
+              tradicao: (leader.tradicao || "mista").toLowerCase(),
+              owner_photo_url: leader.foto_url || null,
+              slug: newSlug,
+              cidade_slug: slugifyPublicSlug(leader.cidade_publica || "São Paulo"),
+              tipo: "terreiro",
+              claimed_by_tenant_id: leaderId,
+              publicacao_status: "rascunho",
+            })
+            .select("id, nome, endereco, telefone, owner_photo_url, cover_photo_url, gallery_photo_urls, link_maps, instagram_url, descricao_publica, orientacoes_visita, tradicao, publicacao_status, cidade, estado, slug, bairro, latitude, longitude, gira_horarios, verified_at, updated_at")
+            .maybeSingle();
+          if (!createError && created) data = created;
+        }
+      }
+
+      if (!data) return res.json({ claimed: true, profile: null });
       const { data: identity } = await sb
         .from("perfil_lider")
         .select("foto_url")
-        .eq("id", user.id)
+        .eq("id", leaderId)
         .maybeSingle();
 
             const metrics = {
@@ -324,18 +361,44 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     const user = await requireAuthOrRespond(sb, req, res);
     if (!user) return;
     try {
-      const { data: current, error: currentError } = await sb
+      const managementTenant=await resolveDelegatedModuleTenant(sb,user.id,'radar',req.method==='GET'?'visualizar':'gerenciar');
+      const leaderId = await resolveLeaderId(managementTenant);
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      let { data: current, error: currentError } = await sb
         .from("terreiros_diretorio")
         .select("id, nome, endereco, telefone, cidade, estado, bairro, link_maps, instagram_url, latitude, longitude, gira_horarios, owner_photo_url, cover_photo_url, gallery_photo_urls, descricao_publica, orientacoes_visita, tradicao, publicacao_status")
-        .eq("claimed_by_tenant_id", user.id)
+        .eq("claimed_by_tenant_id", leaderId)
         .order("verified_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (currentError) throw currentError;
-      if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });
 
-      const body = req.body && typeof req.body === "object" ? req.body : {};
+      if (!current) {
+        const { data: leader } = await sb
+          .from("perfil_lider")
+          .select("nome_terreiro, cidade_publica, estado_publico, tradicao, whatsapp_publico, public_slug")
+          .eq("id", leaderId)
+          .maybeSingle();
+        const baseSlug = slugifyPublicSlug(body.nome || leader?.nome_terreiro || "terreiro") || "terreiro";
+        const newSlug = leader?.public_slug || `${baseSlug}-${leaderId.replace(/-/g, "").slice(0, 8)}`;
+        const { data: created, error: createErr } = await sb
+          .from("terreiros_diretorio")
+          .insert({
+            nome: String(body.nome || leader?.nome_terreiro || "Terreiro").trim().slice(0, 180),
+            cidade: String(body.cidade || leader?.cidade_publica || "São Paulo").trim().slice(0, 120),
+            estado: String(body.estado || leader?.estado_publico || "SP").trim().toUpperCase().slice(0, 2),
+            tipo: "terreiro",
+            slug: newSlug,
+            cidade_slug: slugifyPublicSlug(String(body.cidade || leader?.cidade_publica || "São Paulo")),
+            claimed_by_tenant_id: leaderId,
+            publicacao_status: "rascunho",
+          })
+          .select("id, nome, endereco, telefone, cidade, estado, bairro, link_maps, instagram_url, latitude, longitude, gira_horarios, owner_photo_url, cover_photo_url, gallery_photo_urls, descricao_publica, orientacoes_visita, tradicao, publicacao_status")
+          .single();
+        if (createErr) throw createErr;
+        current = created;
+      }
       const nome = String(body.nome ?? current.nome ?? "").trim().slice(0, 180);
       const endereco = String(body.endereco ?? current.endereco ?? "").trim().slice(0, 400);
       const telefone = normalizeWhatsapp(String(body.telefone ?? current.telefone ?? "")).slice(0, 15) || null;
@@ -456,7 +519,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
         .from("terreiros_diretorio")
         .update(update)
         .eq("id", current.id)
-        .eq("claimed_by_tenant_id", user.id)
+        .eq("claimed_by_tenant_id", leaderId)
         .select("slug, updated_at, owner_photo_url, cover_photo_url, gallery_photo_urls, descricao_publica, orientacoes_visita, tradicao, publicacao_status")
         .single();
       if (saveError) throw saveError;
@@ -483,17 +546,8 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
     const user = await requireAuthOrRespond(sb, req, res);
     if (!user) return;
     try {
-      const { data: current, error: currentError } = await sb
-        .from("terreiros_diretorio")
-        .select("id")
-        .eq("claimed_by_tenant_id", user.id)
-        .order("verified_at", { ascending: false, nullsFirst: false })
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (currentError) throw currentError;
-      if (!current) return res.status(403).json({ error: "Esta conta ainda não possui um perfil reivindicado." });
-
+      const managementTenant=await resolveDelegatedModuleTenant(sb,user.id,'radar',req.method==='GET'?'visualizar':'gerenciar');
+      const leaderId = await resolveLeaderId(managementTenant);
       const fileData = String(req.body?.fileData || "");
       const fileName = String(req.body?.fileName || "").trim();
       const contentType = String(req.body?.contentType || "image/jpeg");
@@ -502,7 +556,7 @@ export function registerConsulentePortalRoutes(app: Express, deps: Deps) {
       const kindRaw = String(req.body?.kind || "profile").trim().toLowerCase();
       const kind = ["profile", "cover", "gallery", "publication"].includes(kindRaw) ? kindRaw : "profile";
       const ext = (fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const safeName = `diretorio/${user.id}/${kind}-${Date.now()}.${ext}`.slice(0, 180);
+      const safeName = `diretorio/${leaderId}/${kind}-${Date.now()}.${ext}`.slice(0, 180);
       const buffer = Buffer.from(fileData, "base64");
       const safeContentType = assertSafeImageBuffer(buffer, contentType);
       if (buffer.length > 8 * 1024 * 1024) {

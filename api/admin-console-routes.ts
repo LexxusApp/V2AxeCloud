@@ -1974,4 +1974,37 @@ export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRoute
       res.status(code).json({ error: msg });
     }
   });
+
+  app.get("/api/admin-console/sms/balance", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    try {
+      const { getComteleBalance, isComteleConfigured } = await import("./lib/comteleSms.js");
+      const result = await getComteleBalance();
+      res.json({ configured: isComteleConfigured(), ...result });
+    } catch (e: any) {
+      console.error("[admin-console/sms/balance]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao consultar saldo SMS") });
+    }
+  });
+
+  app.post("/api/admin-console/sms/test", async (req, res) => {
+    const ctx = await requireConsoleAdmin(deps, req, res);
+    if (!ctx) return;
+    const body = req.body || {};
+    const phone = String(body.phone || body.telefone || "").trim();
+    const message = String(body.message || body.mensagem || "Teste de SMS AxéCloud via Comtele").trim();
+    if (!phone) {
+      res.status(400).json({ error: "Informe o telefone para o teste de SMS" });
+      return;
+    }
+    try {
+      const { sendComteleSms } = await import("./lib/comteleSms.js");
+      const result = await sendComteleSms({ phone, message, tag: "admin_test" });
+      res.json(result);
+    } catch (e: any) {
+      console.error("[admin-console/sms/test]", e);
+      res.status(500).json({ error: safeErrorMessage(e, "Erro ao enviar SMS de teste") });
+    }
+  });
 }

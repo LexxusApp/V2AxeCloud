@@ -16,7 +16,7 @@ async function fixture(t:any, role='manager') {
  const base=`http://127.0.0.1:${(server.address() as any).port}/api/v1/store/`;
  const request=(path:string,body?:any,auth=true)=>fetch(base+path,{method:body?'POST':'GET',headers:{'content-type':'application/json',...(auth?{authorization:'Bearer store-'+randomUUID()}: {})},body:body?JSON.stringify(body):undefined});
  const payload={tenantId:owner,checkoutId:randomUUID(),items:[{id:product,quantidade:2,preco:0.01,nome:'Nome adulterado'}],method:'reserva'};
- return {request,payload,calls,fail:()=>{failed=true;}};
+ return {request,payload,calls,tables,fail:()=>{failed=true;}};
 }
 test('checkout usa uma única operação transacional, ignora preços do navegador e preserva reserva',async t=>{
  const {request,payload,calls}=await fixture(t);const res=await request('checkout',payload);assert.equal(res.status,200);
@@ -34,6 +34,16 @@ test('filho não registra dinheiro, não compra para outro membro nem confirma r
  assert.equal((await request(`orders/${randomUUID()}/action`,{tenantId:owner,action:'confirmar'})).status,403);
  assert.equal(calls.length,0);
  assert.equal((await request('checkout',{...payload,method:'mensalidade'})).status,200);assert.equal(calls[0].args.p_filho_id,child);
+});
+
+test('co-admin com Loja gerenciável pode registrar venda para outro membro, sem alterar sua identidade pessoal',async t=>{
+ const f=await fixture(t,'child');f.tables.filhos_de_santo[0].status='Ativo';
+ const grant={tenant_id:owner,filho_id:child,user_id:userChild,ativo:true,permissoes:{store:'gerenciar'}};f.tables.piloto_coadministradores=[grant];
+ const response=await f.request('checkout',{...f.payload,userRole:'admin',method:'dinheiro',filhoId:other});assert.equal(response.status,200);
+ assert.equal(f.calls[0].args.p_filho_id,other);
+ assert.equal((await f.request('checkout',{...f.payload,method:'dinheiro',filhoId:other})).status,403,'personal mode is still a member purchase');
+ grant.ativo=false;
+ assert.equal((await f.request('checkout',{...f.payload,userRole:'admin',method:'dinheiro',filhoId:other})).status,403);
 });
 test('bloqueia outra casa, carrinho inválido e resposta de falha não simula sucesso',async t=>{
  const {request,payload,calls,fail}=await fixture(t);

@@ -26,7 +26,10 @@ const pilotConnector=String.raw`function connectPilot({ids,allowManagers,styles,
   if(failures>=3)return;
   hold();feedback('Conectando sua conta…');busy=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
-   const targetSpace=new URLSearchParams(location.search).get('space')==='member'?'member':'manager';
+   const explicitSpace=new URLSearchParams(location.search).get('space');
+   // An unqualified dashboard URL must not grant priority to the manager UI.
+   // The verified backend decides: delegated member by default, owner stays manager.
+   const targetSpace=explicitSpace==='member'?'member':explicitSpace==='manager'?'manager':'auto';
    const response=await fetch('/api/pilot/interface-access?space='+targetSpace,{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store',signal:controller.signal});
    const result=await response.json();
    // A response for an abandoned account must not select the next account's UI.

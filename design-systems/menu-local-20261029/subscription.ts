@@ -2,7 +2,7 @@ import { canonicalPlanSlug, isLifetimePlan, PLAN_NAMES } from '../../src/constan
 import { parseSubscriptionExpiryYmd } from '../../src/lib/subscriptionDue';
 
 export type SubscriptionCycle = 'monthly' | 'annual';
-export type SubscriptionPrice = { cents: number; available: boolean; sandbox: boolean };
+export type SubscriptionPrice = { cents: number; available: boolean; pixAvailable: boolean; sandbox: boolean };
 export type SubscriptionRecord = { id: string; confirmed: boolean; cycle: SubscriptionCycle | null; method: string };
 export type LiveSubscription = {
   tenantId: string; plan: string; planName: string; cycle: SubscriptionCycle;
@@ -20,7 +20,7 @@ export function friendlyPaymentStatus(value: unknown): string {
 }
 function price(config: Record<string, unknown>): SubscriptionPrice {
   if (!Number.isSafeInteger(config.amountCents) || Number(config.amountCents) <= 0) throw new Error('O serviço não confirmou o valor da assinatura. Atualize antes de continuar.');
-  return { cents: Number(config.amountCents), available: config.pixAvailable === true || config.cardAvailable === true, sandbox: config.sandbox === true };
+  return { cents: Number(config.amountCents), available: config.pixAvailable === true || config.cardAvailable === true, pixAvailable: config.pixAvailable === true, sandbox: config.sandbox === true };
 }
 export function subscriptionFromServer(tenantId: string, row: Record<string, unknown>, context: Record<string, unknown>, monthly: Record<string, unknown>, annual: Record<string, unknown>, profile: Record<string, unknown> = {}): LiveSubscription {
   if (!tenantId || !row || !context || row.id !== tenantId || context.tenantId !== tenantId) throw new Error('A assinatura não pertence à casa desta sessão.');

@@ -5,6 +5,7 @@ import type { GiraWhatsAppDispatchResult } from "./cronWhatsAppJobs.js";
 export type GiraDispatchFailedMember = {
   nome: string;
   telefone: string;
+  motivo?: string;
 };
 
 export type GiraDispatchSummaryStats = {
@@ -33,6 +34,29 @@ export function formatPhoneBr(phone: string): string {
   return phone;
 }
 
+export function humanizeSummaryMetaError(msg?: string | null): string {
+  const text = String(msg || "").toLowerCase();
+  if (text.includes("131026") || text.includes("undeliverable")) {
+    return "Número sem WhatsApp ativo (#131026)";
+  }
+  if (text.includes("131049") || text.includes("ecosystem")) {
+    return "Bloqueio temporário pela Meta (#131049 — peça para mandar Oi)";
+  }
+  if (text.includes("130472") || text.includes("experiment")) {
+    return "Restrição temporária na Meta (#130472)";
+  }
+  if (text.includes("131047") || text.includes("re-engagement")) {
+    return "Janela 24h fechada (#131047)";
+  }
+  if (text.includes("131051") || text.includes("unsupported")) {
+    return "Aparelho não suporta (#131051)";
+  }
+  if (text.includes("131021") || text.includes("spam")) {
+    return "Restrito por denúncia (#131021)";
+  }
+  return msg ? "Falha na entrega" : "Erro no envio";
+}
+
 export function buildResumoDisparoGiraText(stats: GiraDispatchSummaryStats): string {
   if (stats.eligible === 0) {
     return "Nenhum membro com WhatsApp cadastrado para receber o aviso.";
@@ -47,14 +71,15 @@ export function buildResumoDisparoGiraText(stats: GiraDispatchSummaryStats): str
 
   if (stats.falhas > 0) {
     const n = stats.falhas;
-    const header = `⚠️ ${n} ${n === 1 ? "número falhou" : "números falharam"} (sem WhatsApp ou número incorreto):`;
+    const header = `⚠️ ${n} ${n === 1 ? "número falhou" : "números falharam"}:`;
     lines.push(header);
 
     if (stats.failedMembers && stats.failedMembers.length > 0) {
       for (const m of stats.failedMembers.slice(0, 8)) {
         const nome = m.nome || "Membro";
         const tel = m.telefone ? ` (${formatPhoneBr(m.telefone)})` : "";
-        lines.push(`• ${nome}${tel}`);
+        const mot = m.motivo ? ` — ${m.motivo}` : "";
+        lines.push(`• ${nome}${tel}${mot}`);
       }
       if (stats.failedMembers.length > 8) {
         lines.push(`• e mais ${stats.failedMembers.length - 8} membro(s)`);
@@ -113,7 +138,7 @@ async function fetchDispatchStats(
 
   const { data, error } = await sb
     .from("whatsapp_logs")
-    .select("external_id, status, filho_id, telefone")
+    .select("external_id, status, filho_id, telefone, mensagem")
     .in("external_id", ids);
 
   if (error) throw error;
@@ -123,7 +148,26 @@ async function fetchDispatchStats(
   let falhas = apiErrors;
   let pendentes = 0;
   const failedFilhoIds: string[] = [];
-  const failedMap = new Map<string, string>();
+  const failedMap = new Map<string, { telefone: string; motivo: string }>();
+
+  // Também busca erros estruturados na tabela whatsapp_deliveries se disponível
+  const deliveryErrorMap = new Map<string, string>();
+  try {
+    const { data: deliveries } = await sb
+      .from("whatsapp_deliveries")
+      .select("external_id, error_code, error_message")
+      .in("external_id", ids);
+    for (const d of deliveries || []) {
+      if (d.external_id && (d.error_code || d.error_message)) {
+        deliveryErrorMap.set(
+          String(d.external_id),
+          `${d.error_code || ""} ${d.error_message || ""}`.trim()
+        );
+      }
+    }
+  } catch {
+    /* fallback para mensagem do log */
+  }
 
   for (const row of rows) {
     const status = String((row as { status?: string }).status || "sent").toLowerCase();
@@ -133,9 +177,14 @@ async function fetchDispatchStats(
       falhas++;
       const fid = (row as { filho_id?: string | null }).filho_id;
       const tel = String((row as { telefone?: string | null }).telefone || "");
+      const extId = String((row as { external_id?: string | null }).external_id || "");
+      const rawError =
+        deliveryErrorMap.get(extId) ||
+        String((row as { mensagem?: string | null }).mensagem || "");
+      const motivo = humanizeSummaryMetaError(rawError);
       if (fid) {
         failedFilhoIds.push(String(fid));
-        failedMap.set(String(fid), tel);
+        failedMap.set(String(fid), { telefone: tel, motivo });
       }
     } else {
       pendentes++;
@@ -152,9 +201,11 @@ async function fetchDispatchStats(
       .select("id, nome")
       .in("id", failedFilhoIds);
     for (const f of filhos || []) {
+      const info = failedMap.get(String(f.id));
       failedMembers.push({
         nome: String(f.nome || "Membro").trim(),
-        telefone: failedMap.get(String(f.id)) || "",
+        telefone: info?.telefone || "",
+        motivo: info?.motivo || "Falha na entrega",
       });
     }
   }

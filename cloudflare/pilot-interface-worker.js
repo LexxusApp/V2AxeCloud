@@ -1,13 +1,13 @@
-import {isPilotManager,isPilotCoAdmin,PILOT_TENANT,PILOT_PREFIX,PILOT_MANAGERS} from './pilot-interface-policy.js';
+import {isPilotManager,PILOT_TENANT,PILOT_PREFIX,PILOT_MANAGERS} from './pilot-interface-policy.js';
 import {canUseMemberInterface,memberInterfaceRolloutMode,MEMBER_PILOT,MEMBER_PREFIX} from './member-pilot-policy.js';
-import {signedMemberCookie,validMemberCookie,readMemberCookie,memberCookieHeader} from './member-pilot-cookie.js';
+import {signedMemberCookie,validMemberCookie,readMemberCookie,memberCookieIdentity,memberCookieHeader} from './member-pilot-cookie.js';
 import {pilotBootstrap} from './pilot-bootstrap.js';
 import {handlePilotLibrary} from './pilot-library.js';
 import {handlePilotSupport} from './pilot-support.js';
 import {handlePilotNotices} from './pilot-notices.js';
 import {handlePilotRadar} from './pilot-radar.js';
 import {requirePilotOperationAccess} from './pilot-operation-access.js';
-import {isDelegatedPilotCoAdmin} from './pilot-coadmin-access.js';
+import {readDelegatedPilotPermissions} from './pilot-coadmin-access.js';
 const COOKIE='__Host-axecloud-pilot';
 const TTL=3600;
 const rolloutMode=env=>env.INTERFACE_ROLLOUT_MODE==='managers'?'managers':'pilot';
@@ -30,10 +30,30 @@ async function authenticatedPilotVersion(request,env){
  if(request.method!=='GET')return json({error:'Método não permitido.'},405);
  try{
   const access=await requirePilotOperationAccess(request,env,fetch,{allowMember:true});
-  const target=new URL(request.url);target.pathname=access.role==='member'?'/member/pilot-version.json':'/pilot-version.json';target.search='';
+  // A delegated co-admin also passes the manager authorization checks. The
+  // version must reflect the displayed interface, not the strongest role.
+  let viewingMember=false;
+  try{
+   const referringPage=new URL(request.headers.get('referer')||'');
+   viewingMember=referringPage.origin===new URL(request.url).origin
+    && /^\/dashboard\/?$/.test(referringPage.pathname)
+    && referringPage.searchParams.get('space')==='member';
+  }catch{}
+  const memberCookie=viewingMember
+   ?await memberCookieIdentity(readMemberCookie(request),env.PILOT_COOKIE_SECRET)
+   :null;
+  const verifiedMemberView=Boolean(
+   memberCookie&&access.member
+   &&memberCookie.user===access.user?.id
+   &&memberCookie.member===access.member.id
+   &&memberCookie.tenant===access.tenantId
+  );
+  const target=new URL(request.url);
+  target.pathname=access.role==='member'||verifiedMemberView?'/member/pilot-version.json':'/pilot-version.json';
+  target.search='';
   const asset=await env.ASSETS.fetch(new Request(target,request));
   if(!asset.ok)return json({error:'Versão indisponível.'},503);
-  const headers=new Headers(asset.headers);headers.set('Cache-Control','private, no-store, no-cache, must-revalidate');headers.set('Vary','Authorization');headers.set('X-Content-Type-Options','nosniff');
+  const headers=new Headers(asset.headers);headers.set('Cache-Control','private, no-store, no-cache, must-revalidate');headers.set('Vary','Authorization, Cookie, Referer');headers.set('X-Content-Type-Options','nosniff');
   return new Response(asset.body,{status:asset.status,headers});
  }catch(error){return json({error:error?.message||'Não foi possível verificar a atualização.'},error?.status||503);}
 }
@@ -66,16 +86,34 @@ async function checkAccess(request,env){
   const profile=await profileResponse.json();
   const url=new URL(request.url);
   const requestedSpace=url.searchParams.get('space');
-  const coAdminEligible=await isDelegatedPilotCoAdmin({user,profile,config,authorization,fetcher:fetch});
+  const delegation=await readDelegatedPilotPermissions({user,profile,config,authorization,fetcher:fetch});
+  const coAdminEligible=Boolean(delegation);
+  if(coAdminEligible&&requestedSpace!=='manager'){
+   // The same verified account has two distinct roles. Resolve the actual
+   // member record before switching; the manager role from tenant-info must
+   // never be mistaken for proof of an active member relationship.
+   const memberResponse=await read(new Request('https://axecloud.com.br/api/v1/filho/profile',{headers:{Authorization:authorization}}));
+   if(memberResponse.status>=500)throw Error('member profile unavailable');
+   const member=memberResponse.ok?(await memberResponse.json()).data:null;
+   const memberProfile={...profile,role:'filho',is_co_admin:true,tenant_id:delegation.tenantId,permissoes:delegation.permissions};
+   if(!canUseMemberInterface(user,memberProfile,member,memberInterfaceRolloutMode(env)))return json({enabled:false,error:'Vínculo de membro indisponível.'},403);
+   if(!env.PILOT_COOKIE_SECRET)throw Error('secret');
+   const tenantId=String(member.tenant_id||member.tenantId),memberId=String(member.id);
+   const response=json({enabled:true,interface:'member',tenantId,memberId,profile:memberProfile,member,isCoAdmin:true});
+   response.headers.append('Set-Cookie',memberCookieHeader(await signedMemberCookie(env.PILOT_COOKIE_SECRET,{user:user.id,member:memberId,tenant:tenantId})));
+   response.headers.append('Set-Cookie',cookieHeader(await signedCookie(env.PILOT_COOKIE_SECRET,tenantId)));
+   return response;
+  }
   const coAdmin=coAdminEligible&&requestedSpace==='manager';
 
   if(coAdmin){
-   const tenantId=PILOT_TENANT;
+   const tenantId=delegation.tenantId;
+   if(mode!=='managers'&&tenantId!==PILOT_TENANT)return deny({enabled:false},403);
    profile.role='admin';
    profile.cargo=profile.cargo||'Co-Administrador';
    profile.is_co_admin=true;
+   profile.permissoes=delegation.permissions;
    profile.tenant_id=tenantId;
-   profile.nome_terreiro=profile.nome_terreiro||'Terreiro de Teste';
    if(!env.PILOT_COOKIE_SECRET)throw Error('secret');
    let member=null;
    try{
@@ -84,31 +122,23 @@ async function checkAccess(request,env){
        member=(await memberResponse.json()).data;
      }
    }catch{}
-   const memberId=String(member?.id||'');
+   const verifiedMember=canUseMemberInterface(user,{...profile,role:'filho'},member,memberInterfaceRolloutMode(env));
+   if(!verifiedMember)return deny({enabled:false,error:'Seu vínculo de membro não está ativo.'},403);
+   const memberId=verifiedMember?String(member.id):'';
    const managerCookieVal=await signedCookie(env.PILOT_COOKIE_SECRET,tenantId);
-   const memberCookieVal=memberId?await signedMemberCookie(env.PILOT_COOKIE_SECRET,{user:user.id,member:memberId,tenant:tenantId}):null;
-
-   if(requestedSpace==='member'){
-     const response=json({enabled:true,interface:'member',tenantId,memberId,profile,member,isCoAdmin:true});
-     if(memberCookieVal)response.headers.append('Set-Cookie',memberCookieHeader(memberCookieVal));
-     response.headers.append('Set-Cookie',cookieHeader(managerCookieVal));
-     return response;
-   }
-   const response=json({enabled:true,interface:'manager',tenantId,profile,member,isCoAdmin:true},200,{'Set-Cookie':cookieHeader(managerCookieVal)});
+   const memberCookieVal=verifiedMember?await signedMemberCookie(env.PILOT_COOKIE_SECRET,{user:user.id,member:memberId,tenant:tenantId}):null;
+   const response=json({enabled:true,interface:'manager',tenantId,profile,member:verifiedMember?member:null,isCoAdmin:true},200,{'Set-Cookie':cookieHeader(managerCookieVal)});
    if(memberCookieVal)response.headers.append('Set-Cookie',memberCookieHeader(memberCookieVal));
    return response;
   }
 
-  if(String(profile?.role||'').toLowerCase()==='filho'){
-   if(coAdminEligible){
-    profile.is_co_admin=true;
-    profile.cargo=profile.cargo||'Co-Administrador';
-    profile.tenant_id=PILOT_TENANT;
-   }
+  if(String(profile?.role||'').toLowerCase()==='filho'||profile?.is_co_admin===true){
+   profile.role='filho';profile.is_co_admin=false;profile.permissoes={};
    const memberResponse=await read(new Request('https://axecloud.com.br/api/v1/filho/profile',{headers:{Authorization:authorization}}));
    if(memberResponse.status>=500)throw Error('profile unavailable');
    const member=memberResponse.ok?(await memberResponse.json()).data:null;
    if(!canUseMemberInterface(user,profile,member,memberInterfaceRolloutMode(env)))return deny({enabled:false});
+   if(requestedSpace==='manager')return deny({enabled:false,error:'O acesso de gestão foi revogado. Continue no seu espaço de membro.',code:'DELEGATION_REVOKED'},403);
    if(!env.PILOT_COOKIE_SECRET)throw Error('secret');
    const tenantId=String(member.tenant_id||member.tenantId),memberId=String(member.id);
    const response=json({enabled:true,interface:'member',tenantId,memberId,profile,member,isCoAdmin:coAdminEligible});
@@ -154,7 +184,7 @@ export default {async fetch(request,env){
   const target=new URL(request.url);target.pathname='/member/'+url.pathname.slice(MEMBER_PREFIX.length);target.search='';
   const response=secure(await env.ASSETS.fetch(new Request(target,request)),true);response.headers.set('X-AxeCloud-Interface','member-pilot');return response;
  }
- if(memberAllowed&&/^\/dashboard\/?$/.test(url.pathname)&&url.searchParams.get('space')==='member'&&!url.searchParams.has('classic')){
+ if(memberAllowed&&/^\/dashboard\/?$/.test(url.pathname)&&url.searchParams.get('space')!=='manager'&&!url.searchParams.has('classic')){
   const target=new URL(request.url);target.pathname='/member/index.html';target.search='';
   const response=secure(await env.ASSETS.fetch(new Request(target,request)),true);response.headers.set('X-AxeCloud-Interface','member-pilot');return response;
  }
@@ -164,7 +194,7 @@ export default {async fetch(request,env){
   const target=new URL(request.url);target.pathname='/'+url.pathname.slice(PILOT_PREFIX.length);target.search='';
   return secure(await env.ASSETS.fetch(new Request(target,request)),true);
  }
- if(allowed&&/^\/dashboard\/?$/.test(url.pathname)&&!url.searchParams.has('classic')){
+ if(allowed&&/^\/dashboard\/?$/.test(url.pathname)&&url.searchParams.get('space')!=='member'&&!url.searchParams.has('classic')){
   const target=new URL(request.url);target.pathname='/index.html';target.search='';
   return secure(await env.ASSETS.fetch(new Request(target,request)),true);
  }

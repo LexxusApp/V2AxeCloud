@@ -34,3 +34,14 @@ test('sessão e posse valem no servidor; filho não ganha visão da casa declara
   const response=await f.request(base+'&limit=500&offset=0','member');assert.equal(response.status,200);const data=await response.json();assert.deepEqual(data.data.map((row:any)=>row.id),['00000']);
   assert.equal((await f.request(base+'&limit=501&offset=-1')).status,400);
 });
+
+test('co-admin com Financeiro liberado consulta a casa; o modo pessoal e a revogação continuam limitados ao próprio membro',async t=>{
+ const f=await setup(t);f.tables.filhos_de_santo[0].status='Ativo';
+ const grant={tenant_id:owner,filho_id:child,user_id:childAuth,ativo:true,permissoes:{finance:'visualizar'}};
+ f.tables.piloto_coadministradores=[grant];
+ const management=await f.request(base+'&limit=500&offset=0','member');assert.equal(management.status,200);
+ const snapshot=await management.json();assert.equal(snapshot.ledgerRevision,'v1:1');assert.equal(snapshot.hasMore,true);assert.equal(snapshot.data.length,499);
+ const personal='/api/transactions?tenantId='+owner+'&userRole=filho';
+ assert.deepEqual((await(await f.request(personal,'member')).json()).data.map((row:any)=>row.id),['00000']);
+ grant.ativo=false;const revoked=await(await f.request(base,'member')).json();assert.equal(revoked.ledgerRevision,undefined);assert.deepEqual(revoked.data.map((row:any)=>row.id),['00000']);
+});

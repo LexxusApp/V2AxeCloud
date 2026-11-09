@@ -1,6 +1,7 @@
 import {checked} from './helpers';
 import { supabase } from '../../../src/lib/supabase';
 import { previewSession, request } from './session';
+import { initialAccount } from './initial';
 import { publishValue, readValue, registerLoader, registerWriter, refreshResource } from './runtime';
 import type { AccountSetup } from '../completion';
 import type { WhatsAppDispatch, DispatchStatus, DispatchKind } from '../whatsappDispatches';
@@ -9,6 +10,13 @@ const photoUploads=new WeakMap<File,string>();
 export const fileBase64=(file:File)=>new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('Não foi possível ler o arquivo.'));reader.readAsDataURL(file);});
 registerLoader('account',async()=>{
   const session=previewSession();
+  if(session.profile?.is_co_admin === true){
+    // The delegate has no owner profile. Do not fetch owner-only settings under
+    // the member's auth UID: that produced 406/404 and blocked the entire page.
+    publishValue('accountRow',{foto_url:session.profile?.foto_url||null});
+    publishValue('account',initialAccount());
+    return;
+  }
   const [{data:p,error},status,config,portal]=await Promise.all([supabase.from('perfil_lider').select('*').eq('id',session.userId).single(),request('/api/whatsapp/status'),request('/api/whatsapp/config'),request('/api/v1/settings/portal-consulente')]);
   if(error||!p)throw new Error(error?.message||'Perfil não encontrado.');
   publishValue('accountRow',p);publishValue('whatsappConfig',config);
@@ -19,6 +27,7 @@ registerLoader('account',async()=>{
 });
 registerWriter('account',async(next:AccountSetup,before:AccountSetup,operation)=>{
   const session=previewSession();
+  if(session.profile?.is_co_admin === true)throw new Error('Somente o zelador titular pode alterar a identidade e as configurações da casa.');
   if(same(next.profile,before.profile)&&same(next.whatsapp,before.whatsapp)){publishValue('account',next);return;}
   if(!same(next.whatsapp,before.whatsapp)){
     if(next.whatsapp.connected!==before.whatsapp.connected)throw new Error('O WhatsApp usa o canal oficial da plataforma. Este botão não pode simular pareamento nem desligar o serviço compartilhado.');

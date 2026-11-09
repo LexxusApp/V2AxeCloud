@@ -34,7 +34,7 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsAppTemplateType, string> = 
     'Olá, {{nome_filho}}! Passando para lembrar que a sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} do {{nome_terreiro}} venceu em {{data_vencimento}} e consta em aberto.\n\nCaso já tenha regularizado, por favor entre em contato com o zelador para dar baixa. Axé!',
   ),
   cobranca_mensalidade: withAutoFooter(
-    'Olá, {{nome_filho}}! Lembrete privado da mensalidade de {{mes_ano}} (R$ {{valor}}) no {{nome_terreiro}}. Sua contribuição fortalece a casa — qualquer dúvida, fale com a diretoria. Axé!',
+    'Olá, {{nome_filho}}! Lembramos que sua mensalidade de {{mes_ano}} no valor de R$ {{valor}} ainda consta pendente no {{nome_terreiro}}. Quando puder, regularize pelo portal da casa. Axé!',
   ),
   mensalidade_disponivel: withAutoFooter(
     'Olá, {{nome_filho}}! A mensalidade de {{mes_ano}} no valor de R$ {{valor_mensalidade}} já está disponível para pagamento no {{nome_terreiro}}. Sua contribuição fortalece a casa. Axé!',

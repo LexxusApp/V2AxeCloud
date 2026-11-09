@@ -31,6 +31,9 @@ import {
   clearRememberedLoginEmail,
   readRememberedLoginEmail,
   writeRememberedLoginEmail,
+  clearRememberedMemberLogin,
+  readRememberedMemberLogin,
+  writeRememberedMemberLogin,
   readRememberLoginPreference,
   writeRememberLoginPreference,
 } from '../lib/loginRemember';
@@ -79,29 +82,38 @@ function humanizeAuthError(err: unknown): string {
   const lower = msg.toLowerCase();
   if (!msg) return 'Não foi possível efetuar o login. Tente novamente em instantes.';
 
-  if (lower.includes('failed to fetch') || lower === 'load failed' || lower.includes('networkerror')) {
+  if (lower.includes('failed to fetch') || lower === 'load failed' || lower.includes('networkerror') || lower.includes('network request failed')) {
     return 'Não conseguimos conectar ao servidor. Verifique sua internet, aguarde alguns segundos e tente de novo.';
   }
   if (lower.includes('timeout') || lower.includes('aborted')) {
     return 'O servidor demorou para responder. Tente novamente em alguns instantes.';
   }
-  if (lower.includes('invalid login credentials') || lower.includes('invalid email or password')) {
+  if (lower.includes('502') || lower.includes('503') || lower.includes('504') || lower.includes('bad gateway') || lower.includes('service unavailable') || msg.startsWith('<!')) {
+    return 'O servidor está sendo atualizado no momento. Tente entrar novamente em alguns instantes.';
+  }
+  if (lower.includes('invalid login credentials') || lower.includes('invalid email or password') || lower.includes('invalid_grant')) {
     return 'E-mail ou senha incorretos. Confira os dados e tente de novo.';
   }
-  if (lower.includes('registro ou cpf incorretos') || lower.includes('invalid_credentials')) {
+  if (lower.includes('registro ou cpf incorretos') || lower.includes('identificação ou cpf') || lower.includes('invalid_credentials')) {
     return 'Identificação ou 6 dígitos do CPF não encontrados. Confira os dados ou procure a zeladoria.';
   }
   if (lower.includes('email not confirmed')) {
     return 'Confirme seu e-mail antes de entrar.';
   }
   if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('muitas tentativas')) {
-    return 'Muitas tentativas seguidas. Aguarde alguns instantes e tente de novo.';
+    return 'Muitas tentativas seguidas. Aguarde 1 minuto e tente de novo.';
   }
   if (lower.includes('jwt') && lower.includes('expir')) {
     return 'Sua sessão expirou. Faça login novamente.';
   }
   if (lower.includes('user banned') || lower.includes('user_banned')) {
     return 'Conta bloqueada. Entre em contato com o suporte.';
+  }
+  if (lower.includes('password should be at least')) {
+    return 'A senha precisa ter pelo menos 6 caracteres.';
+  }
+  if (lower.includes('authapierror') || lower.includes('internal server error') || lower.includes('database error')) {
+    return 'Instabilidade temporária no acesso. Tente novamente em instantes.';
   }
   return msg;
 }
@@ -111,6 +123,7 @@ function persistFilhoFlag(isFilho: boolean, userId?: string | null) {
     if (isFilho) {
       localStorage.setItem(FILHO_FLAG_KEY, 'true');
       if (userId) localStorage.setItem(FILHO_FLAG_USER_KEY, userId);
+      else localStorage.removeItem(FILHO_FLAG_USER_KEY);
       return;
     }
     localStorage.removeItem(FILHO_FLAG_KEY);
@@ -158,7 +171,7 @@ export default function Login() {
   const [role, setRole] = useState<LoginRole>(bootMode);
   const [email, setEmail] = useState(() => readRememberedLoginEmail() || '');
   const [password, setPassword] = useState('');
-  const [childId, setChildId] = useState('');
+  const [childId, setChildId] = useState(() => readRememberedMemberLogin() || '');
   const [cpfPrefix, setCpfPrefix] = useState('');
   const [rememberMe, setRememberMe] = useState(readRememberLoginPreference);
   const [loading, setLoading] = useState(false);
@@ -182,11 +195,18 @@ export default function Login() {
   const isMembro = role === 'membro';
 
   useEffect(() => {
-    if (isMembro) return;
     writeRememberLoginPreference(rememberMe);
-    if (rememberMe) writeRememberedLoginEmail(email);
-    else clearRememberedLoginEmail();
-  }, [email, rememberMe, isMembro]);
+    if (rememberMe) {
+      if (isMembro) {
+        if (childId.trim()) writeRememberedMemberLogin(childId.trim());
+      } else {
+        if (email.trim()) writeRememberedLoginEmail(email.trim());
+      }
+    } else {
+      if (isMembro) clearRememberedMemberLogin();
+      else clearRememberedLoginEmail();
+    }
+  }, [email, childId, rememberMe, isMembro]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -416,6 +436,7 @@ export default function Login() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     const filhoSurface = role === 'membro';
     setLoading(true);
     setError(null);
@@ -425,8 +446,11 @@ export default function Login() {
       if (!filhoSurface) {
         persistFilhoFlag(false);
         const loginEmail = email.trim();
-        if (!loginEmail.includes('@')) {
+        if (!loginEmail || !loginEmail.includes('@')) {
           throw new Error('Informe o e-mail cadastrado pelo zelador para entrar.');
+        }
+        if (!password) {
+          throw new Error('Digite sua senha para entrar.');
         }
         const { error: signErr } = await supabase.auth.signInWithPassword({
           email: loginEmail,
@@ -441,6 +465,11 @@ export default function Login() {
         }
       } else {
         const inputTrimmed = childId.trim();
+        if (rememberMe) {
+          writeRememberedMemberLogin(inputTrimmed);
+        } else {
+          clearRememberedMemberLogin();
+        }
         const isEmailInput = inputTrimmed.includes('@');
         const digitsOnly = inputTrimmed.replace(/\D/g, '');
         const normPhone = normalizeLoginPhone(inputTrimmed);
@@ -472,6 +501,9 @@ export default function Login() {
           throw new Error(data.error || 'Identificação ou CPF não encontrados.');
         }
 
+        // A navegação por SIGNED_IN ocorre dentro de setSession. Marcar o
+        // modo membro antes da sessão impede abrir a zeladoria por engano.
+        persistFilhoFlag(true);
         if (data.access_token && data.refresh_token) {
           const { error: signInError } = await supabase.auth.setSession({
             access_token: data.access_token,
@@ -1035,7 +1067,7 @@ export default function Login() {
                         required
                         maxLength={6}
                         inputMode="numeric"
-                        autoComplete="one-time-code"
+                        autoComplete="current-password"
                         value={cpfPrefix}
                         onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -1067,6 +1099,24 @@ export default function Login() {
                         />
                       ))}
                     </div>
+                  </div>
+
+                  {/* Remember Me & Session Info Membro */}
+                  <div className="flex items-center justify-between text-xs text-zinc-400 pt-0.5">
+                    <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setRememberMe(checked);
+                          if (!checked) clearRememberedMemberLogin();
+                        }}
+                        className="accent-[#c48a00] h-4 w-4 rounded cursor-pointer"
+                      />
+                      <span>Lembrar meu acesso neste aparelho</span>
+                    </label>
+                    <span className="text-[11px] text-zinc-500">Sessão segura</span>
                   </div>
 
                   {/* Footer note */}
@@ -1204,7 +1254,7 @@ export default function Login() {
                 Guia detalhado do membro
               </a>
               <a
-                href="https://wa.me/5511999999999"
+                href="https://wa.me/5511920033501?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20para%20acessar%20o%20Ax%C3%A9Cloud"
                 target="_blank"
                 rel="noreferrer"
                 className="text-zinc-400 hover:text-white"

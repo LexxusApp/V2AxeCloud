@@ -29,15 +29,17 @@ function fixture(actor=PILOT_TENANT){
    for(const key of ['id','storage_path']){const filter=url.searchParams.get(key);if(filter?.startsWith('eq.'))result=result.filter(row=>row[key]===filter.slice(3));if(filter?.startsWith('gt.')&&!repeatPage)result=result.filter(row=>row[key]>filter.slice(3));}
    return json([...result].sort((a,b)=>a.id.localeCompare(b.id)).slice(0,Number(url.searchParams.get('limit'))||1000));
   }
-  if(url.pathname==='/rest/v1/filhos_de_santo')return json([{id:recipient}]);
-  if(url.pathname.startsWith('/storage/v1/object/piloto_biblioteca_privada/')){
+  if(url.pathname==='/rest/v1/rpc/piloto_referencias_membros')return json([{id:recipient}]);
+  if(url.pathname.startsWith('/storage/v1/object/piloto_biblioteca_privada/')||url.pathname.startsWith('/storage/v1/object/authenticated/piloto_biblioteca_privada/')){
    const key=decodeURIComponent(url.pathname.split('/piloto_biblioteca_privada/')[1]);
    if(method==='POST'){
+     assert.ok(url.pathname.startsWith('/storage/v1/object/piloto_biblioteca_privada/'),'Uploads must not use the authenticated download route');
     assert.equal(init.headers['x-upsert'],'false');
     if(storageFail)return json({},503);
     if(files.has(key))return json({},409);
     files.set(key,new TextDecoder().decode(init.body));return json({});
    }
+   assert.ok(url.pathname.startsWith('/storage/v1/object/authenticated/piloto_biblioteca_privada/'),'Private downloads must use object.get_authenticated');
    return files.has(key)?new Response(files.get(key)):json({},404);
   }
   if(url.pathname==='/rest/v1/rpc/piloto_revisar_pdf'){
@@ -86,7 +88,7 @@ test('response loss retries the same committed revision without duplicate storag
 test('legacy conversion, unavailable migration, member writes, stale edit and mismatched staged bytes fail closed',async()=>{
  const f=fixture();f.setRows([]);assert.equal((await f.run(f.edit({file:replacement}))).status,409);assert.equal(f.calls.some(c=>c.method==='POST'&&c.url.pathname.startsWith('/storage/')),false);
  const g=fixture();g.disable();assert.equal((await g.run(g.edit())).status,409);assert.equal(g.calls.some(c=>c.url.pathname.includes('/storage/')),false);
- const m=fixture(MEMBER_PILOT.userId);assert.equal((await m.run(m.edit())).status,403);assert.equal(m.calls.some(c=>c.url.pathname.includes('/rest/')),false);
+ const m=fixture(MEMBER_PILOT.userId);assert.equal((await m.run(m.edit())).status,403);assert.equal(m.calls.some(c=>c.url.pathname.includes('/piloto_biblioteca_privada')||c.url.pathname.startsWith('/storage/')),false);
  const stale=fixture();stale.rows[0].retired_at='retired';assert.equal((await stale.run(stale.edit())).status,409);
  const collision=fixture();collision.files.set(path(next),replacement);assert.equal((await collision.run(collision.edit())).status,503);assert.equal(collision.rows[0].retired_at,null);
 });

@@ -5,10 +5,11 @@ import {refreshResource,isResourceWriting} from './runtime';
 import {createRefreshLoop} from '../refreshLoop';
 import {unreadChatAlerts} from '../chatAlertModels';
 import type {ChatConversationSummary} from '../../../src/lib/chatTypes';
-export function useChatAlerts(active:boolean){
+export function useChatAlerts(active:boolean,enabled=true){
  const {tenantId,userId}=previewSession(),[rows,setRows]=useState<ChatConversationSummary[]>([]),[error,setError]=useState('');
  const activeRef=useRef(active),signature=useRef(''),refresh=useRef(()=>{});activeRef.current=active;
  useEffect(()=>{
+  if(!enabled){setRows([]);setError('');return;}
   let alive=true;
   const loop=createRefreshLoop({available:()=>document.visibilityState!=='hidden'&&navigator.onLine!==false,refresh:async()=>{
    try{
@@ -23,7 +24,7 @@ export function useChatAlerts(active:boolean){
   const channel=supabase.channel('pilot-manager-chat-alerts:'+userId).on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages',filter:'tenant_id=eq.'+tenantId},resume).on('postgres_changes',{event:'UPDATE',schema:'public',table:'chat_conversations',filter:'tenant_id=eq.'+tenantId},resume).subscribe();
   window.addEventListener('online',resume);document.addEventListener('visibilitychange',resume);
   return()=>{alive=false;loop.stop();void supabase.removeChannel(channel);window.removeEventListener('online',resume);document.removeEventListener('visibilitychange',resume);refresh.current=()=>{};};
- },[tenantId,userId]);
+ },[tenantId,userId,enabled]);
  useEffect(()=>{if(active){signature.current='';refresh.current();}},[active]);
  return {alerts:unreadChatAlerts(rows),error,refresh:useCallback(()=>refresh.current(),[])};
 }

@@ -34,6 +34,17 @@ async function setup(t:any) {
   return {calls,tables,request:(route:string,role='owner',options:RequestInit={})=>fetch(base+route,{...options,headers:headers[role]||{}}),setPdf:(valid:boolean)=>{pdfValid=valid;},setRpc:(value:any)=>{rpcResult=value;},setRemoveError:(value:any)=>{removeError=value;}};
 }
 const list='/api/v1/library/materials?tenantId='+house;
+
+test('co-admin de Biblioteca usa a visão da gestão apenas com permissão atual e seleção explícita de modo',async t=>{
+ const f=await setup(t);f.tables.filhos_de_santo.find(row=>row.id===sibling)!.status='Ativo';
+ const grant={tenant_id:house,filho_id:sibling,user_id:siblingAuth,ativo:true,permissoes:{library:'visualizar'}};
+ f.tables.piloto_coadministradores=[grant];
+ const management=await f.request(list+'&userRole=admin','sibling');assert.equal(management.status,200);
+ assert.equal((await management.json()).data.length,2);
+ assert.deepEqual((await(await f.request(list,'sibling')).json()).data.map((row:any)=>row.id),['shared']);
+ grant.ativo=false;
+ assert.deepEqual((await(await f.request(list+'&userRole=admin','sibling')).json()).data.map((row:any)=>row.id),['shared']);
+});
 test('listagem exige sessão/casa e entrega somente materiais autorizados, sem links reutilizáveis nem outros destinatários',async t=>{
   const f=await setup(t);assert.equal((await f.request(list,'anonymous')).status,401);
   let response=await f.request(list,'member');assert.equal(response.status,200);let json=await response.json();

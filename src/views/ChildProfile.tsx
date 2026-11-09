@@ -8,6 +8,7 @@ import { AppPageShell } from '../components/app/AppTopNav';
 import { hasPlanAccess } from '../constants/plans';
 import { ChildProfileV3View } from '../components/child-profile/ChildProfileV3View';
 import { resolveChildWhatsAppPhone } from '../lib/whatsappPhone';
+import { isValidTelefoneBr } from '../lib/formatTelefone';
 import { ObligationScheduleModal } from '../components/child-profile/ObligationScheduleModal';
 import { ChildProfileEditModal } from '../components/child-profile/ChildProfileEditModal';
 import BodyPortal from '../components/BodyPortal';
@@ -317,6 +318,15 @@ export default function ChildProfile({ childId, setActiveTab, user, tenantData, 
     if (!child) return;
     setIsSaving(true);
     try {
+      if (editData.whatsapp_phone) {
+        const cleanPhone = String(editData.whatsapp_phone).replace(/\D/g, '');
+        if (cleanPhone && !isValidTelefoneBr(cleanPhone)) {
+          showHouseToast('Informe um número de WhatsApp válido com DDD (ex: (11) 98765-4321).', 'error');
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Filter out fields that might not exist in the DB yet to prevent errors
       const updatePayload = {
         ...editData,

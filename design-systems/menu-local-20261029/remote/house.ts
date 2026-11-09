@@ -7,6 +7,12 @@ import { singleChange,equal,tableRows,checked } from './helpers';
 import type { DemoGira } from '../giras';
 import type { HouseObligation,HouseAttendance } from '../house';
 registerLoader('giras',async()=>{
+  const session=previewSession();
+  if(session.profile.is_co_admin===true&&!['visualizar','gerenciar'].includes(session.profile.permissoes?.giras)){
+    const {data,error}=await supabase.rpc('piloto_referencias_giras',{p_tenant:session.tenantId});
+    if(error)throw error;if(!Array.isArray(data))throw Error('Não foi possível carregar as referências da agenda.');
+    publishValue('giras',data.map(giraFromServer));return;
+  }
   const {data}=await request(scoped('/api/events'));if(!Array.isArray(data))throw new Error('Resposta de agenda inválida.');
   const [participants,tickets,preparations]=await Promise.all([tableRows('evento_participantes'),tableRows('evento_senhas'),tableRows('piloto_gira_preparacao','*','event_id')]);
   publishValue('eventRows',data);publishValue('participants',participants);publishValue('ticketRows',tickets);
@@ -59,7 +65,7 @@ registerWriter('obligations',async(next:HouseObligation[],before:HouseObligation
     if(row.attachment&&row.attachment!==old?.attachment){const file=row.attachment;operation?.files([{id:row.id,name:file.name,bytes:file.size}]);operation?.file(row.id,{phase:'preparing'});const upload=await request('/api/v1/obrigacao-pdf/upload-url','POST',{tenantId,childId:row.memberId,fileName:file.name,contentType:'application/pdf'});await uploadSignedFile('biblioteca_estudos',upload.path,upload.token,file,operation,row.id);path=upload.path;}
     const payload={titulo:row.title,data:row.date,hora:row.time,tipo:'Obrigação',descricao:`${row.description}\n\n=== METADADOS ===\nFILHO_ID:${row.memberId}`,status_confirmacao:row.done?'Confirmado':'Pendente',pdf_storage_path:path};
     if(old)await checked(supabase.from('calendario_axe').update(payload).eq('tenant_id',tenantId).eq('id',row.id).select('id').single());
-    else await checked(supabase.from('calendario_axe').insert({...payload,id:row.id,tenant_id:tenantId,lider_id:userId,...(row.created?{created_at:row.created}:{})}).select('id').single());
+    else await checked(supabase.from('calendario_axe').insert({...payload,id:row.id,tenant_id:tenantId,lider_id:tenantId,...(row.created?{created_at:row.created}:{})}).select('id').single());
     if(row.attachment&&row.attachment!==old?.attachment)operation?.file(row.id,{phase:'done',progress:1});
     if(row.reminder&&(!old||!old.reminder))await request('/api/push-direct','POST',{childId:row.memberId,title:'Novo compromisso da casa',body:`${row.title} · ${row.date}`,url:'/dashboard#obrigacoes'});
   }await refreshResource('obligations');

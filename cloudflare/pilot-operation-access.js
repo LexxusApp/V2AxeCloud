@@ -1,6 +1,7 @@
-import {PILOT_TENANT,isPilotManager,isPilotCoAdmin,PILOT_MANAGERS} from './pilot-interface-policy.js';
+import {PILOT_TENANT,isPilotManager} from './pilot-interface-policy.js';
 import {canUseMemberInterface,memberOperationRolloutMode} from './member-pilot-policy.js';
-import {isDelegatedPilotCoAdmin} from './pilot-coadmin-access.js';
+import {readDelegatedPilotPermissions} from './pilot-coadmin-access.js';
+import {grantAllows} from './pilot-granular-policy.js';
 
 const fail=(message,status,code)=>Object.assign(new Error(message),{status,code});
 const unavailable=()=>fail('Não foi possível validar o acesso ao piloto. Tente novamente.',503,'PILOT_ACCESS_UNAVAILABLE');
@@ -46,18 +47,37 @@ export async function requirePilotOperationAccess(request,env,fetcher=fetch,{all
  try{
   const query=new URLSearchParams({userId:user.id,email:user.email||''});
   const read=path=>env.API.fetch(new Request('https://axecloud.com.br'+path,{headers:{Authorization:authorization,'Cache-Control':'no-cache'},cache:'no-store',signal:AbortSignal.timeout(10000)})).then(readJson);
-  const profile=await read('/api/tenant-info?'+query),memberRole=String(profile?.role||'').toLowerCase()==='filho';
-  const memberBody=allowMember&&memberRole?await read('/api/v1/filho/profile'):null;
-  const member=memberBody?.data||null;
-  const coAdmin=await isDelegatedPilotCoAdmin({user,profile,config,authorization,fetcher});
-  if (coAdmin) {
-    profile.role = 'admin';
-    profile.cargo = 'Co-Administrador';
-    profile.is_co_admin = true;
-    profile.tenant_id = PILOT_TENANT;
+  const profile=await read('/api/tenant-info?'+query);
+  let member=null;
+  if(allowMember){
+   try{const m=await env.API.fetch(new Request('https://axecloud.com.br/api/v1/filho/profile',{headers:{Authorization:authorization}}));
+    if(m.ok)member=(await m.json())?.data||null;
+   }catch{}
   }
-  const manager=isPilotManager(user,profile,mode),authorizedMember=allowMember&&canUseMemberInterface(user,profile,member,memberOperationRolloutMode(env));
-  if(!manager&&!authorizedMember)throw fail('O vínculo desta conta não autoriza a operação no piloto.',403,'PILOT_ACCESS_DENIED');
+  const delegation=await readDelegatedPilotPermissions({user,profile,config,authorization,fetcher});
+  const coAdmin=Boolean(delegation);
+  if(coAdmin){
+   profile.role='admin';profile.cargo='Co-Administrador';profile.is_co_admin=true;
+   profile.tenant_id=delegation.tenantId;profile.permissoes=delegation.permissions;
+  }
+  const path=new URL(request.url).pathname;
+  const needed=path.startsWith('/api/pilot/library/')?'library'
+   :path.startsWith('/api/pilot/notices')?'communications'
+   :path.startsWith('/api/pilot/radar')?'radar'
+   :path.startsWith('/api/v1/cantina')?'cantina':null;
+  const level=['GET','HEAD'].includes(request.method)?'visualizar':'gerenciar';
+  const hasManagerPermission=!coAdmin||(needed?grantAllows(delegation.permissions,needed,level):['/api/pilot/version','/api/pilot/refresh'].includes(path));
+  const liveMember=canUseMemberInterface(user,{...profile,role:'filho'},member,memberOperationRolloutMode(env));
+  // Every delegate must still be a live member. Fetch the binding even for
+  // manager-only operations; a stale profile flag can never restore access.
+  if(coAdmin&&!member){
+   const m=await read('/api/v1/filho/profile');member=m?.data||null;
+  }
+  const delegatedManager=coAdmin&&canUseMemberInterface(user,{...profile,role:'filho'},member,memberOperationRolloutMode(env))
+   &&(mode==='managers'||delegation.tenantId===PILOT_TENANT);
+  const manager=(isPilotManager(user,profile,mode)||delegatedManager)&&hasManagerPermission;
+  const authorizedMember=allowMember&&liveMember;
+  if(!manager&&!authorizedMember)throw fail('O zelador não concedeu permissão para esta operação.',403,'PILOT_PERMISSION_DENIED');
   const callerTenant=String(profile?.tenant_id||(manager?user.id:(member?.tenant_id||member?.tenantId||PILOT_TENANT))).trim().toLowerCase();
   if(tenantIds.length&&tenantIds[0].trim().toLowerCase()!==callerTenant)throw fail('Acesso negado a esta casa.',403,'PILOT_ACCESS_DENIED');
   return {...identity,profile,member,manager,role:manager?'manager':'member',tenantId:callerTenant,rollout:mode,memberRollout:memberOperationRolloutMode(env)};

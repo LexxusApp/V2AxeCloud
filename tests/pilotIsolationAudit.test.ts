@@ -114,7 +114,7 @@ test('audit: cookies alone do not authorize library or support, and foreign tena
   const path=handler===handlePilotLibrary?'/api/pilot/library/materials':'/api/pilot/support';const f=edgeFixture();
   const anonymous=await handler(new Request(ORIGIN+path,{headers:{Cookie:'__Host-axecloud-pilot='+await signedCookie(SECRET)}}),f.env,f.fetcher);assert.equal(anonymous.status,401);assert.equal(f.calls.length,0);
   assert.equal((await handler(request(path+'?tenantId='+OTHER),f.env,f.fetcher)).status,403);
-  assert.equal(f.calls.some(call=>call.path.startsWith('/rest/')),false);
+  assert.equal(f.calls.some(call=>call.path.startsWith('/rest/')&&call.path!=='/rest/v1/piloto_coadministradores'),false);
  }
 });
 
@@ -124,7 +124,7 @@ test('audit: member cannot mutate private PDFs or access manager support, even w
   const input=request(path,method);input.headers.set('Cookie','__Host-axecloud-pilot='+await signedCookie(SECRET));
   const response=await (path.includes('library')?handlePilotLibrary:handlePilotSupport)(input,f.env,f.fetcher);assert.equal(response.status,403);
  }
- assert.equal(f.calls.some(call=>call.path.startsWith('/rest/')),false);
+ assert.equal(f.calls.some(call=>call.path.startsWith('/rest/')&&call.path!=='/rest/v1/piloto_coadministradores'),false);
 });
 
 test('audit: RLS-empty private PDF lookup never reads Storage; foreign prefix is delegated to legacy authorization',async()=>{

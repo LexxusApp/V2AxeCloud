@@ -5,6 +5,8 @@ import { assertZeladorTenantAccess, normalizeQueryTenantId, isValidUuid } from "
 import { safeErrorMessage } from "./safeError.js";
 import { randomUUID } from "node:crypto";
 import { registerCantinaMenuRoutes } from './cantinaMenuRoutes.js';
+import {readActiveDelegation} from './delegatedAccess.js';
+import {grantAllows} from '../../lib/delegatedPolicy.js';
 
 type Deps = {
   supabaseAdmin: SupabaseClient;
@@ -43,6 +45,8 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
     if (!zeladorOk) return res.status(403).json({ error: "Acesso negado" });
 
     try {
+      const delegation=await readActiveDelegation(supabaseAdmin,user.id,tenantPk);
+      const storeVisible=!delegation||grantAllows(delegation.permissoes,'store','visualizar')||grantAllows(delegation.permissoes,'finance','visualizar');
       // 1. Carrega filhos de santo
       const filhos:any[]=[];
       for(let from=0;;from+=1000){
@@ -57,7 +61,7 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
       for (let from=0;;from+=1000) {
         const {data,error}=await supabaseAdmin.from('financeiro')
           .select('id,data,data_venda,data_pagamento,descricao,valor,status,categoria,tipo,filho_id,created_at,cantina_itens')
-          .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`).in('categoria',['Cantina','Loja'])
+          .or(`tenant_id.eq.${tenantPk},lider_id.eq.${tenantPk}`).in('categoria',storeVisible?['Cantina','Loja']:['Cantina'])
           .order('id',{ascending:true}).range(from,from+999);
         if(error) throw error;
         transacoes.push(...(data || []));
@@ -66,11 +70,11 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
       transacoes.sort((a,b)=>String(b.created_at || b.data).localeCompare(String(a.created_at || a.data)));
 
       // 3. Carrega produtos da cantina / loja para catálogo
-      const { data: produtos } = await supabaseAdmin
+      const { data: produtos } = storeVisible ? await supabaseAdmin
         .from("produtos")
         .select("id, nome, preco, categoria, estoque_atual")
         .eq("tenant_id", tenantPk)
-        .order("nome", { ascending: true });
+        .order("nome", { ascending: true }) : {data:[]};
 
       const currentMonthPrefix = todayYmd().slice(0, 7); // YYYY-MM
       const validTx = (transacoes || []).filter(
@@ -117,7 +121,7 @@ export function registerCantinaRoutes(app: Express, deps: Deps) {
           nome: f.nome || "Sem nome",
           foto_url: f.foto_url || null,
           cargo: f.cargo || "Filho de Santo",
-          whatsapp_phone: f.whatsapp_phone || null,
+          whatsapp_phone: delegation&&!grantAllows(delegation.permissoes,'members','visualizar')?null:f.whatsapp_phone || null,
           limite_lojinha: limite,
           bloquear_fiado_loja: Boolean(f.bloquear_fiado_loja),
           saldo_pendente: Number(saldoPendente.toFixed(2)),

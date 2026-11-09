@@ -15,6 +15,24 @@ export function slugifyTerreiroNome(nome: string): string {
   return base || "terreiro";
 }
 
+/**
+ * Retorna variantes válidas de um slug para busca flexível no diretório.
+ * Trata tanto slugs limpos quanto legados com hífen duplo gerados por hash/sufixo.
+ */
+export function parseDiretorioSlugVariants(raw: string): string[] {
+  const trimmed = String(raw || "").trim().toLowerCase();
+  if (!trimmed || !trimmed.replace(/-+/g, "")) return [];
+  const normalized = slugifyTerreiroNome(trimmed);
+  const sanitizedRaw = trimmed.replace(/[^a-z0-9-]+/g, "").replace(/^-+|-+$/g, "").slice(0, 100);
+  const variants = new Set<string>();
+  if (normalized && normalized.length >= 2 && normalized !== "terreiro") variants.add(normalized);
+  if (sanitizedRaw && sanitizedRaw.length >= 2) variants.add(sanitizedRaw);
+  if (variants.size === 0 && (normalized === "terreiro" || trimmed === "terreiro")) {
+    variants.add("terreiro");
+  }
+  return Array.from(variants);
+}
+
 export function slugifyCidadeOnly(cidade: string): string {
   return slugifyDiretorioText(cidade, 60) || "cidade";
 }
@@ -56,7 +74,7 @@ export function isValidDiretorioUf(uf: string): boolean {
 
 /** Gera slug único entre os já usados (ex.: nome, nome-2). */
 export function uniqueTerreiroSlug(base: string, used: Set<string>): string {
-  let slug = slugifyTerreiroNome(base);
+  const slug = slugifyTerreiroNome(base).replace(/-+$/, "");
   if (!used.has(slug)) {
     used.add(slug);
     return slug;

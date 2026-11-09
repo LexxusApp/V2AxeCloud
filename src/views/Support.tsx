@@ -169,7 +169,7 @@ export default function Support({ user, tenantData }: SupportProps) {
           description="Canais prioritários para tirar dúvidas sobre a plataforma, solicitar configurações litúrgicas ou receber apoio técnico rápido."
           actions={
             <a
-              href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20no%20Ax%C3%A9Cloud"
+              href="https://wa.me/5511920033501?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20no%20Ax%C3%A9Cloud"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-950/60 px-4 py-2.5 text-xs font-black text-emerald-200 shadow-md backdrop-blur-md transition hover:bg-emerald-900/80 hover:text-white hover:border-emerald-300"

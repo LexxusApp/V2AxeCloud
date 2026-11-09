@@ -92,7 +92,7 @@ test('operation authorization remains pilot-only by default and becomes tenant-b
  assert.equal(access.manager,true);assert.equal(access.tenantId,OTHER_MANAGER_ID);assert.equal(access.rollout,'managers');
  await assert.rejects(()=>requirePilotOperationAccess(request(PILOT_TENANT),{API:api,PILOT_OPERATION_ROLLOUT_MODE:'managers'},fetcher),/Acesso negado/);
  house={...otherManagerProfile,role:'filho'};
- await assert.rejects(()=>requirePilotOperationAccess(request(),{API:api,PILOT_OPERATION_ROLLOUT_MODE:'managers'},fetcher),/não autoriza/);
+ await assert.rejects(()=>requirePilotOperationAccess(request(),{API:api,PILOT_OPERATION_ROLLOUT_MODE:'managers'},fetcher),/não concedeu permissão/);
 });
 
 test('pilot routes dispatch notices and radar to their secure handlers', async () => {

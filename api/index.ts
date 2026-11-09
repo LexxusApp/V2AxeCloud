@@ -36,7 +36,7 @@ import { canReadLibraryMaterial, libraryMaterialResponse } from '../lib/libraryA
 import { resolveLibraryReader } from './lib/libraryAudienceAccess.js';
 import { registerTransactionReadRoute } from './lib/transactionReadRoute.js';
 import { registerLibraryRoutes } from './lib/libraryRoutes.js';
-import { parseWaReminderIntervalDays, userCanModifyCalendarEvent } from "./lib/calendarAccess.js";
+import { parseWaReminderIntervalDays, userCanModifyCalendarEvent, calendarManagementContext } from "./lib/calendarAccess.js";
 import { registerAdminConsoleRoutes } from "./admin-console-routes.js";
 import { registerGrowthProspectingRoutes } from "./lib/growthProspecting.js";
 import { handleAuditTick } from "./lib/audit/cronTick.js";
@@ -96,6 +96,8 @@ import {
 } from "./lib/supabaseServerEnv.js";
 import { resolvePerfilLiderEmail } from "./lib/perfilLiderEmail.js";
 import { verifyUser as verifyUserLib } from "./lib/verifyUser.js";
+import { delegatedAccessMiddleware } from './lib/delegatedMiddleware.js';
+import { resolveDelegatedModuleTenant } from './lib/delegatedAccess.js';
 import {
   normalizeQueryTenantId as normalizeQueryTenantIdLib,
   resolveLeaderId as resolveLeaderIdLib,
@@ -1326,6 +1328,7 @@ async function startServer() {
   });
 
   app.use(createFeatureFailureMiddleware(supabaseAdmin));
+  app.use(delegatedAccessMiddleware(supabaseAdmin));
   registerFeatureFailureRoutes(app, {
     supabaseAdmin,
     verifyUser: (token) => verifyUserLib(supabaseAdmin, token),
@@ -1747,7 +1750,7 @@ async function startServer() {
           quantidade_atual: Number(quantidade_atual) || 0,
           quantidade_minima: Number(quantidade_minima) || 5,
           categoria,
-          lider_id: user.id,
+          lider_id: effectiveTenant,
           tenant_id: effectiveTenant,
           created_at: new Date().toISOString()
         })
@@ -2198,7 +2201,7 @@ async function startServer() {
         p_competencia_date: compDate,
         p_payment_date: paymentDate,
         p_tenant_id: tenant_id,
-        p_lider_id: user.id,
+        p_lider_id: resolvedTenant,
       };
 
       const { data: rpcId, error: rpcErr } = await supabaseAdmin.rpc("confirm_mensalidade_payment", rpcArgs);
@@ -2257,7 +2260,7 @@ async function startServer() {
         data: paymentDate,
         descricao: `Mensalidade - ${nome} (competência ${compDate}) (ID:${filho_id})`,
         tenant_id,
-        lider_id: user.id,
+        lider_id: tenant_id,
         filho_id,
         status: "pago",
         data_vencimento: compDate,
@@ -3435,6 +3438,77 @@ async function startServer() {
     }
   });
 
+  /** Cancelamento voluntário da assinatura ou teste gratuito pelo zelador titular */
+  app.post("/api/v1/subscription/cancel", sensitiveActionRateLimit, async (req, res) => {
+    try {
+      const user = await requireApiUser(supabaseAdmin, req, res);
+      if (!user) return;
+
+      const { data: profile, error: pErr } = await supabaseAdmin
+        .from("perfil_lider")
+        .select("id, tenant_id, role, nome_terreiro, email")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (pErr || !profile) {
+        return res.status(404).json({ error: "Perfil não encontrado." });
+      }
+
+      if (profile.role === "filho") {
+        return res.status(403).json({ error: "Apenas o zelador titular pode cancelar a assinatura da casa." });
+      }
+
+      const tenantId = String(profile.tenant_id || user.id).trim();
+
+      const { data: currentSub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("id", tenantId)
+        .maybeSingle();
+
+      if (!currentSub) {
+        return res.status(404).json({ error: "Assinatura não encontrada para este terreiro." });
+      }
+
+      const { error: updateErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update({
+          status: "cancelled",
+          pending_since: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", tenantId);
+
+      if (updateErr) {
+        return res.status(500).json({ error: safeErrorMessage(updateErr, "Erro ao cancelar assinatura.") });
+      }
+
+      void logEvent(supabaseAdmin, {
+        eventType: "subscription.cancelled",
+        userId: user.id,
+        userEmail: user.email || profile.email,
+        targetType: "subscription",
+        targetId: tenantId,
+        description: `Zelador cancelou a assinatura do terreiro "${profile.nome_terreiro || tenantId}".`,
+        metadata: {
+          previousStatus: currentSub.status,
+          plan: currentSub.plan,
+          expires_at: currentSub.expires_at,
+          reason: req.body?.reason || "Solicitação voluntária pelo painel",
+        },
+        req,
+      });
+
+      return res.json({
+        success: true,
+        message: "Assinatura cancelada com sucesso. Nenhuma cobrança futura de renovação será realizada.",
+      });
+    } catch (error: any) {
+      console.error("[subscription-cancel]", error);
+      return res.status(500).json({ error: safeErrorMessage(error, "Erro ao cancelar assinatura.") });
+    }
+  });
+
   // GET /api/tenant-info: em produção via api/public.ts (rewrite); localmente também neste Express.
   app.get("/api/tenant-info", (req, res) => {
     void handleTenantInfoRoute(req as Parameters<typeof handleTenantInfoRoute>[0], res);
@@ -3735,8 +3809,8 @@ async function startServer() {
   registerFundamentosRoutes(app, { supabaseAdmin });
   registerPreceitoRoutes(app, { supabaseAdmin });
   registerAdvancedManagementRoutes(app, { supabaseAdmin });
-  registerTerreiroServicosRoutes(app, { supabaseAdmin });
-  registerDirectoryProfilePublicationsRoutes(app, { supabaseAdmin });
+  registerTerreiroServicosRoutes(app, { supabaseAdmin, resolveLeaderId });
+  registerDirectoryProfilePublicationsRoutes(app, { supabaseAdmin, resolveLeaderId });
   registerAdminMetricsRoutes(app, { supabaseAdmin });
   registerChatRoutes(app, {
     supabaseAdmin,
@@ -4003,19 +4077,11 @@ async function startServer() {
         return res.status(403).json({ error: "Operação proibida" });
       }
 
-      const filhoSelf = await resolveAuthenticatedFilho(supabaseAdmin, user.id);
-      if (filhoSelf) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-
-      // Buscar o tenant_id real do usuário no banco (NUNCA confiar no tenantId do body)
-      const { data: userProfile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('tenant_id')
-        .eq('id', userId)
-        .single();
-      
-      const tenantId = userProfile?.tenant_id;
+      // Resolve the caller's actual house and live member-module grant. A
+      // delegated member does not have (or need) an owner profile of their own.
+      const ownScope=await resolveTenantAccessForUserLib(supabaseAdmin,user.id,user.email);
+      const delegatedTenant=await resolveDelegatedModuleTenant(supabaseAdmin,user.id,'members','gerenciar');
+      const tenantId=delegatedTenant===user.id?ownScope.tenantId:delegatedTenant;
       if (!tenantId) return res.status(403).json({ error: "Tenant não configurado" });
 
       const zeladorOk = await assertZeladorOrGlobalAdmin(supabaseAdmin, user, String(tenantId));
@@ -4032,7 +4098,7 @@ async function startServer() {
       }
       const dataToInsert: Record<string, unknown> = {
         ...allowed,
-        lider_id: userId,
+        lider_id: await resolveLeaderId(tenantId),
         tenant_id: tenantId,
       };
 
@@ -4057,7 +4123,8 @@ async function startServer() {
       const phone = String(data.whatsapp_phone || "").replace(/\D/g, "");
       if (phone.length >= 10) {
         void sendWhatsAppForTenant(supabaseAdmin, {
-          tenantId: userId,
+          tenantId,
+          actorUserId:user.id,
           tipo: "dados_acesso",
           filhoId: String(data.id),
           variables: {
@@ -4114,32 +4181,9 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const { data: sub } = await supabaseAdmin
-        .from('subscriptions')
-        .select('plan, status, expires_at')
-        .eq('id', user.id)
-        .maybeSingle();
-        
-      const { data: profile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global, tenant_id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const isGlobalAdmin = !!profile?.is_admin_global;
-      const role = String(user.user_metadata?.role || "").toLowerCase();
-      if (role === "filho") {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-
-      const tenant_id = profile?.tenant_id || user.id;
-      const zeladorOk = await assertZeladorTenantAccess(supabaseAdmin, resolveLeaderId, user.id, tenant_id);
-      if (!isGlobalAdmin && !zeladorOk) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-      if (!isGlobalAdmin && !isSubscriptionAccessActive(sub)) {
-        return res.status(403).json({ error: "Assinatura inativa" });
-      }
+      const context=await calendarManagementContext(supabaseAdmin,user);
+      if('error' in context)return res.status(context.status).json({error:context.error});
+      const {tenantId:tenant_id,isGlobalAdmin}=context;
 
       const rawBanner = req.body?.banner_url;
       const banner_url =
@@ -4179,7 +4223,7 @@ async function startServer() {
           ? { senhas_public_token: newPublicToken() }
           : {}),
         ...(banner_url ? { banner_url } : {}),
-        lider_id: user.id,
+        lider_id: tenant_id,
         tenant_id,
       };
 
@@ -4225,7 +4269,7 @@ async function startServer() {
       if (error) throw error;
 
       // Push + aviso WA em background: a gira já está salva; não segurar a resposta HTTP.
-      void sendPushNotification(profile?.tenant_id || user.id, {
+      void sendPushNotification(tenant_id, {
         title: `Novo evento: ${req.body.titulo}`,
         body: `${req.body.data} às ${req.body.hora}`,
         url: '/calendar'
@@ -4256,26 +4300,9 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const { data: sub } = await supabaseAdmin
-        .from('subscriptions')
-        .select('plan, status, expires_at')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const { data: profile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global, tenant_id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const isGlobalAdmin = !!profile?.is_admin_global;
-      const role = String(user.user_metadata?.role || "").toLowerCase();
-      if (role === "filho") {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-      if (!isGlobalAdmin && !isSubscriptionAccessActive(sub)) {
-        return res.status(403).json({ error: "Assinatura inativa" });
-      }
+      const context=await calendarManagementContext(supabaseAdmin,user);
+      if('error' in context)return res.status(context.status).json({error:context.error});
+      const {tenantId:tenant_id,isGlobalAdmin}=context;
 
       const access = await userCanModifyCalendarEvent(supabaseAdmin, user, req.params.id);
       if (access.notFound) {
@@ -4379,26 +4406,9 @@ async function startServer() {
       const user = await requireApiUser(supabaseAdmin, req, res);
       if (!user) return;
 
-      const { data: sub } = await supabaseAdmin
-        .from('subscriptions')
-        .select('plan, status, expires_at')
-        .eq('id', user.id)
-        .maybeSingle();
-        
-      const { data: profile } = await supabaseAdmin
-        .from('perfil_lider')
-        .select('is_admin_global, tenant_id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const isGlobalAdmin = !!profile?.is_admin_global;
-      const role = String(user.user_metadata?.role || "").toLowerCase();
-      if (role === "filho") {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-      if (!isGlobalAdmin && !isSubscriptionAccessActive(sub)) {
-        return res.status(403).json({ error: "Assinatura inativa" });
-      }
+      const context=await calendarManagementContext(supabaseAdmin,user);
+      if('error' in context)return res.status(context.status).json({error:context.error});
+      const {tenantId:tenant_id,isGlobalAdmin}=context;
 
       const access = await userCanModifyCalendarEvent(supabaseAdmin, user, req.params.id);
       if (access.notFound) {
@@ -4625,7 +4635,7 @@ async function startServer() {
         .eq("tenant_id", access.tenantId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const reader = await resolveLibraryReader(supabaseAdmin, access.user, access.tenantId);
+      const reader = await resolveLibraryReader(supabaseAdmin, access.user, access.tenantId,req.query.userRole==='admin');
       res.json({ data: (data || []).filter(row => canReadLibraryMaterial(row, reader)).map(row => libraryMaterialResponse(row, reader)) });
     } catch (error: any) {
       console.error("[SERVER] Error fetching library:", error.message || error);

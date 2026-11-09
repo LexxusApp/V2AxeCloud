@@ -9,6 +9,7 @@ import {
 import { usePlansCatalog } from '../../hooks/usePlansCatalog';
 import { formatPriceBRL } from '../../lib/plansDisplay';
 import { useSubscriptionBillingCycle } from '../../hooks/useSubscriptionBillingCycle';
+import { CancelSubscriptionModal } from '../account/CancelSubscriptionModal';
 
 type SettingsSubscriptionPanelProps = {
   tenantData: Record<string, unknown> | null | undefined;
@@ -56,6 +57,7 @@ function statusBadge(status: string | undefined, isLifetime: boolean, isTrial: b
 
 export function SettingsSubscriptionPanel({ tenantData, onRenew }: SettingsSubscriptionPanelProps) {
   const [renewError, setRenewError] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const { plans: plansConfig, loading: fetchingPlans } = usePlansCatalog();
 
   const planKey = canonicalPlanSlug(String(tenantData?.plan || ''));
@@ -179,19 +181,33 @@ export function SettingsSubscriptionPanel({ tenantData, onRenew }: SettingsSubsc
                   {renewError}
                 </p>
               ) : null}
-              <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => handleRenew()}
-                className="flex min-h-11 w-fit min-w-[13rem] items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-3 text-sm font-black text-[#080A0D] shadow-md shadow-primary/20 transition-all hover:bg-[#fde047]"
-              >
-                <Zap className="h-4 w-4 shrink-0" />
-                {isTrial
-                  ? billingCycle === 'annual'
-                    ? 'Assinar plano anual agora'
-                    : 'Assinar agora'
-                  : 'Renovar assinatura'}
-              </button>
+              <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => handleRenew()}
+                  className="flex min-h-11 w-fit min-w-[13rem] items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-3 text-sm font-black text-[#080A0D] shadow-md shadow-primary/20 transition-all hover:bg-[#fde047]"
+                >
+                  <Zap className="h-4 w-4 shrink-0" />
+                  {isTrial
+                    ? billingCycle === 'annual'
+                      ? 'Assinar plano anual agora'
+                      : 'Assinar agora'
+                    : 'Renovar assinatura'}
+                </button>
+
+                {status !== 'cancelled' ? (
+                  <button
+                    type="button"
+                    onClick={() => setCancelModalOpen(true)}
+                    className="text-xs font-semibold text-rose-400 hover:text-rose-300 underline underline-offset-4 transition py-2"
+                  >
+                    {isTrial ? 'Cancelar teste gratuito' : 'Cancelar assinatura'}
+                  </button>
+                ) : (
+                  <span className="rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-1.5 text-xs font-bold text-rose-300">
+                    Assinatura cancelada (sem renovação)
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -208,6 +224,16 @@ export function SettingsSubscriptionPanel({ tenantData, onRenew }: SettingsSubsc
             </div>
           </div>
       </div>
+    
+      <CancelSubscriptionModal
+        open={cancelModalOpen}
+        onOpenChange={setCancelModalOpen}
+        isTrial={isTrial}
+        expiresAt={expiresAt}
+        onSuccess={() => {
+          if (tenantData) tenantData.status = 'cancelled';
+        }}
+      />
     </div>
   );
 }
