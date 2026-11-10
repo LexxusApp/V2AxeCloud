@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/outfit";
 import "./globals.css";
 import "./cinematic.css";
 
