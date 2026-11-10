@@ -464,19 +464,11 @@ async function sendMetaTemplateMessage(
     console.log(`[WHATSAPP] template Evolution (${templateName}) → ${phone.slice(0, 4)}…`);
     return out;
   } catch (err) {
-    const fallback = String(opts?.fallbackText || "").trim();
-    if (!fallback) throw err;
     console.error(
-      `[WHATSAPP] template Meta falhou (${templateName}), fallback texto:`,
+      `[WHATSAPP] template Meta falhou (${templateName}):`,
       err instanceof Error ? err.message : err
     );
-    return sendWhatsAppTextMessage(phone, fallback, {
-      tipo,
-      tenantId: opts?.tenantId,
-      filhoId: opts?.filhoId,
-      nomeMembro,
-      sb: opts?.sb,
-    });
+    throw err;
   }
 }
 
@@ -737,6 +729,12 @@ export async function logAndSendWhatsApp(
       }
     );
   } else {
+    if (isMetaCloudDirectConfigured()) {
+      throw httpError(
+        `Nenhum template Meta homologado para o tipo "${tipo}". Envio de texto livre bloqueado para evitar erro #131047.`,
+        422
+      );
+    }
     sent = await sendWhatsAppTextMessage(phone, textToSend, {
       tipo,
       tenantId,

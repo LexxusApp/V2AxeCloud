@@ -218,20 +218,7 @@ export async function dispatchZeladorWelcomeWhatsApp(opts: {
           resolveMetaTemplateLanguage(),
           components
         );
-        const senha = String(opts.senha || "").trim();
-        if (senha) {
-          const site = String(opts.site || "https://axecloud.com.br").trim();
-          const followUp =
-            `🔐 Acesso ao painel:\nSite: ${site}\nE-mail: ${opts.email}\nSenha: ${senha}\n\n— Equipe AxéCloud`;
-          try {
-            await sendMetaCloudText(opts.msisdn, followUp);
-          } catch (followErr: unknown) {
-            console.warn(
-              "[welcome] follow-up senha após template falhou:",
-              followErr instanceof Error ? followErr.message : followErr
-            );
-          }
-        }
+
         return {
           channel: "meta_template",
           messageId: out?.messageId,

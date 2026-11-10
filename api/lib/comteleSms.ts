@@ -369,6 +369,8 @@ export async function triggerSmsFallbackForFailedDelivery(
     metaError?: string | null;
     tenantId?: string | null;
     filhoId?: string | null;
+    nomeMembro?: string | null;
+    nomeTerreiro?: string | null;
   }
 ): Promise<{ sent: boolean; requestId?: string; reason?: string }> {
   if (!isComteleConfigured()) {
@@ -396,12 +398,12 @@ export async function triggerSmsFallbackForFailedDelivery(
   }
 
   // Busca dados completos do membro e do terreiro para personalizar o SMS
-  let nomeMembro = "";
+  let nomeMembro = opts.nomeMembro ? opts.nomeMembro.trim().split(" ")[0] : "";
   let matricula = "";
   let email = "";
-  let nomeTerreiro = "";
+  let nomeTerreiro = opts.nomeTerreiro ? opts.nomeTerreiro.trim() : "";
 
-  if (opts.filhoId) {
+  if (opts.filhoId && (!nomeMembro || !matricula || !email)) {
     try {
       const { data: filho } = await sb
         .from("filhos_de_santo")
@@ -410,9 +412,9 @@ export async function triggerSmsFallbackForFailedDelivery(
         .maybeSingle();
 
       if (filho) {
-        nomeMembro = String(filho.nome || "").trim().split(" ")[0]; // Primeiro nome (ex.: "Janiel", "Gisele")
+        if (!nomeMembro) nomeMembro = String(filho.nome || "").trim().split(" ")[0]; // Primeiro nome (ex.: "Janiel", "Gisele")
         matricula = formatFilhoMatricula(String(filho.id), filho.data_entrada);
-        email = filho.email ? String(filho.email).trim() : "";
+        if (!email) email = filho.email ? String(filho.email).trim() : "";
       }
     } catch {
       /* fallback se não conseguir consultar */
@@ -420,12 +422,12 @@ export async function triggerSmsFallbackForFailedDelivery(
   }
 
   const tid = opts.tenantId;
-  if (tid) {
+  if (tid && !nomeTerreiro) {
     try {
       const { data: lider } = await sb
         .from("perfil_lider")
         .select("nome_terreiro")
-        .eq("id", tid)
+        .or(`id.eq.${tid},tenant_id.eq.${tid}`)
         .maybeSingle();
 
       if (lider?.nome_terreiro) {

@@ -326,6 +326,23 @@ export async function sendAdminMensalidadeDispatch(
       results.push({ filhoId: target.filhoId, nome: target.nome, ok: true });
     } catch (error) {
       failed += 1;
+      try {
+        const { triggerSmsFallbackForFailedDelivery } = await import("./comteleSms.js");
+        void triggerSmsFallbackForFailedDelivery(sb, {
+          phone: target.phone,
+          tipo,
+          mensagemOriginal: message,
+          metaError: error instanceof Error ? error.message : "Falha no disparo WhatsApp",
+          tenantId: preview.tenantId,
+          filhoId: target.filhoId,
+          nomeMembro: target.nome,
+          nomeTerreiro: preview.nomeTerreiro,
+        }).catch((err) => {
+          console.warn("[ADMIN MENSALIDADE] falha ao disparar fallback SMS:", err);
+        });
+      } catch {
+        /* ignore */
+      }
       results.push({
         filhoId: target.filhoId,
         nome: target.nome,

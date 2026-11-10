@@ -203,37 +203,8 @@ export async function applyMetaCloudStatusUpdates(
           }
         }
 
-        // Notificação automática ao zelador quando qualquer mensagem importante falha na Meta (ex.: #131026, #131049)
-        // Gira possui recibo consolidado automático (resumo_disparo_gira_axecloud)
-        // com a lista completa de sucessos e falhas, dispensando alertas individuais por médium.
-        const isImportant =
-          tipoRow === "dados_acesso" ||
-          tipoRow === "transmissao_aviso" ||
-          tipoRow === "mural_aviso" ||
-          tipoRow === "broadcast" ||
-          tipoRow.includes("mensalidade") ||
-          tipoRow.includes("portal");
-
-        if (isImportant && row.tenant_id && (row.filho_id || row.telefone)) {
-          try {
-            const { notifyZeladorFalhaEntregaMembro } = await import(
-              "./falhaAcessoMembroZeladorWhatsApp.js"
-            );
-            void notifyZeladorFalhaEntregaMembro(sb, {
-              tenantId: String(row.tenant_id),
-              filhoId: row.filho_id ? String(row.filho_id) : null,
-              telefoneFilho: row.telefone,
-              tipo: row.tipo,
-              metaError: errText,
-              sourceExternalId: event.id,
-              mensagemOriginal: row.mensagem,
-            }).catch((notifyErr: unknown) => {
-              console.warn("[WHATSAPP] falha ao notificar zelador de falha de entrega:", notifyErr);
-            });
-          } catch {
-            /* ignore */
-          }
-        }
+        // NUNCA disparar alertas individuais em texto livre/meta_text para o zelador ao falhar entrega de médium.
+        // O médium com falha já recebe contingência homologada via SMS Comtele (isSmsEligible acima).
       }
     }
 
