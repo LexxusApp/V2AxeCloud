@@ -271,6 +271,27 @@ async function findAuthUserByEmail(sb: SupabaseClient, email: string): Promise<a
   return null;
 }
 
+async function isZeladorAuthUser(sb: SupabaseClient, user: any): Promise<boolean> {
+  if (!user || !user.id) return false;
+  const role = user.user_metadata?.role;
+  if (role === "admin" || role === "lider" || role === "zelador") return true;
+
+  try {
+    const { data: lider } = await sb
+      .from("perfil_lider")
+      .select("id, role, nome_terreiro")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (lider && lider.nome_terreiro && lider.nome_terreiro !== "Meu Terreiro") {
+      return true;
+    }
+  } catch {
+    /* best-effort */
+  }
+  return false;
+}
+
 async function resolveFilhoAuthUser(
   sb: SupabaseClient,
   child: { id: string; user_id?: string | null; nome?: string | null },
@@ -280,12 +301,24 @@ async function resolveFilhoAuthUser(
 
   if (child.user_id) {
     const { data: userData } = await sb.auth.admin.getUserById(child.user_id);
-    if (userData?.user) return userData.user;
+    if (userData?.user) {
+      if (await isZeladorAuthUser(sb, userData.user)) {
+        console.warn(`[AUTH] child.user_id (${child.user_id}) pertence a um Zelador/Admin. Ignorando para não sobrescrever o líder.`);
+      } else {
+        return userData.user;
+      }
+    }
   }
 
   for (const email of emails) {
     const byEmail = await findAuthUserByEmail(sb, email);
-    if (byEmail) return byEmail;
+    if (byEmail) {
+      if (await isZeladorAuthUser(sb, byEmail)) {
+        console.warn(`[AUTH] email (${email}) pertence a um Zelador/Admin. Ignorando para não sobrescrever.`);
+        continue;
+      }
+      return byEmail;
+    }
   }
   return null;
 }
@@ -294,6 +327,11 @@ async function resolveFilhoAuthUser(
 async function cleanupShadowFilhoPerfilLider(sb: SupabaseClient, userId: string): Promise<void> {
   if (!userId) return;
   try {
+    const { data: userData } = await sb.auth.admin.getUserById(userId);
+    if (userData?.user && (await isZeladorAuthUser(sb, userData.user))) {
+      console.warn(`[AUTH] cleanupShadowFilhoPerfilLider abortado: usuário ${userId} é Zelador.`);
+      return;
+    }
     await sb
       .from("perfil_lider")
       .delete()
@@ -400,7 +438,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
     const generatedPassword = generateFilhoPassword();
     const authUser = await resolveFilhoAuthUser(supabaseAdmin, child, childIdRaw);
 
-    if (authUser) {
+    if (authUser && !(await isZeladorAuthUser(supabaseAdmin, authUser))) {
       const updateFields: any = {
         password: generatedPassword,
         email_confirm: true,
@@ -436,7 +474,7 @@ export async function handleFilhoLoginRoute(req: any, res: any) {
       const msg = String(createError.message || "").toLowerCase();
       if (msg.includes("already")) {
         const recovered = await resolveFilhoAuthUser(supabaseAdmin, child, childIdRaw);
-        if (recovered) {
+        if (recovered && !(await isZeladorAuthUser(supabaseAdmin, recovered))) {
           const { error: retryUpdateError } = await supabaseAdmin.auth.admin.updateUserById(recovered.id, {
             password: generatedPassword,
             email: fakeEmail,
