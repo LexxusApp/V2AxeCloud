@@ -11,6 +11,8 @@ import NotificationCenter from "./NotificationCenter";
 import PageLoading from "../shared/PageLoading";
 import FinancialTabs from "./FinancialTabs";
 import PilotUpdateBanner from "../shared/PilotUpdateBanner";
+import PwaInstallAction from "../shared/PwaInstallAction";
+import {initPilotPwa} from "../shared/initPilotPwa";
 import "../shared/page-loading.css";
 import "./financial-tabs.css";
 import { useChatAlerts } from "./remote/chatAlerts";
@@ -820,6 +822,7 @@ function Prototype() {
         ?.focus(),
     );
     const outside = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest('.axe-pwa-dialog,.axe-pwa-overlay')) return;
       if (
         event.target instanceof Node &&
         !profileBox.current?.contains(event.target)
@@ -827,6 +830,7 @@ function Prototype() {
         setProfileOpen(false);
     };
     const keyboard = (event: KeyboardEvent) => {
+      if (document.querySelector('.axe-pwa-dialog')) return;
       if (event.key === "Escape") {
         event.preventDefault();
         setProfileOpen(false);
@@ -1072,6 +1076,7 @@ function Prototype() {
               onBlur={(event) => {
                 if (
                   event.relatedTarget instanceof Node &&
+                  !(event.relatedTarget instanceof Element && event.relatedTarget.closest('.axe-pwa-dialog')) &&
                   !event.currentTarget.contains(event.relatedTarget)
                 )
                   setProfileOpen(false);
@@ -1153,6 +1158,7 @@ function Prototype() {
                     <ArrowRight size={15} />
                   </button>
                 )}
+                  <PwaInstallAction iconSize={17} />
                   <button onClick={() => navigate("suporte")}>
                     <CircleHelp size={17} />
                     Suporte
@@ -1999,6 +2005,7 @@ function Prototype() {
 }
 
 // Keep one React root when this standalone entry is refreshed during local design edits.
+initPilotPwa();
 const root =
   (import.meta.hot?.data.reactRoot as Root | undefined) ??
   createRoot(document.getElementById("root")!);

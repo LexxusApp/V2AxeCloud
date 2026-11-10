@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {preloadPanel} from './pilot-loading-html.mjs';
 import {createPilotBuildId,writePilotVersion} from './pilot-build-version.mjs';
+import {pilotPwaPlugin} from './pilot-pwa.mjs';
 const root=path.resolve('design-systems/member-pilot-20261102'),outDir=path.resolve('artifacts/pilot-release-20261101/dist/member');
 const renderers={FilhoMonthlyExperience:'Monthly',FilhoGirasExperience:'Agenda',FilhoLibraryExperience:'Library',FilhoStoreExperience:'Store',FilhoNoticeExperience:'Notices',FilhoChatExperience:'Chat'};
 // Only this build replaces presentation components. Original controllers, auth and
@@ -31,7 +32,7 @@ export async function buildMemberPilot(requestedBuildId){
  const buildId=requestedBuildId||createPilotBuildId();
  fs.rmSync(path.join(outDir,'assets'),{recursive:true,force:true});
  fs.rmSync(path.join(outDir,'index.html'),{force:true});
- await build({configFile:false,root,base:'/assets/member-pilot-20261102/',envDir:process.cwd(),publicDir:false,define:{__PILOT_BUILD_ID__:JSON.stringify(buildId)},plugins:[memberPresentationPlugin(),react(),tailwind()],resolve:{dedupe:['react','react-dom']},build:{outDir,emptyOutDir:false,copyPublicDir:false}});
+ await build({configFile:false,root,base:'/assets/member-pilot-20261102/',envDir:process.cwd(),publicDir:false,define:{__PILOT_BUILD_ID__:JSON.stringify(buildId)},plugins:[memberPresentationPlugin(),pilotPwaPlugin(),react(),tailwind()],resolve:{dedupe:['react','react-dom']},build:{outDir,emptyOutDir:false,copyPublicDir:false}});
  fs.copyFileSync(path.resolve('public/trident-cropped.png'),path.join(outDir,'trident-cropped.png'));
  fs.copyFileSync(path.resolve('node_modules/pdfjs-dist/build/pdf.worker.min.mjs'),path.join(outDir,'pdf.worker.min.mjs'));
  preloadPanel(outDir,'/assets/member-pilot-20261102/');

@@ -39,10 +39,19 @@ export async function isInstalledRelatedWebApp(
       // Só o próprio PWA está listado em related_applications; qualquer webapp
       // instalado retornado aqui é o AxéCloud. Ainda assim confirmamos por id/url.
       if (app.id === manifestId || app.id === normalizedId) return true;
-      if (typeof app.url === 'string' && app.url.startsWith(normalizedId)) return true;
-      return true;
+      try {
+        return !!app.url && new URL(app.url).href === new URL('/manifest.webmanifest', manifestId).href;
+      } catch {
+        return false;
+      }
     });
   } catch {
     return false;
   }
+}
+
+export function isIosPwaDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 }

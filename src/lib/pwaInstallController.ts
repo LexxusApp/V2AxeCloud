@@ -1,4 +1,4 @@
-import { isInstalledRelatedWebApp, isStandalonePwa } from './pwaInstall';
+import { isInstalledRelatedWebApp, isStandalonePwa, isIosPwaDevice } from './pwaInstall';
 
 export type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -16,6 +16,7 @@ const EARLY_INSTALL_EVENT = 'axecloud:beforeinstallprompt';
 let initialized = false;
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let installedHint = false;
+let installing = false;
 const listeners = new Set<Listener>();
 
 function adoptEarlyDeferredPrompt(): void {
@@ -23,6 +24,7 @@ function adoptEarlyDeferredPrompt(): void {
   const early = (window as WindowWithEarlyInstall).__axecloudDeferredInstall;
   if (!early) return;
   deferredPrompt = early;
+  installedHint = false;
   notify();
 }
 
@@ -74,13 +76,8 @@ export function initPwaInstallController(): void {
   mqls.forEach((mql) => mql.addEventListener('change', onDisplayChange));
 
   window.addEventListener('beforeinstallprompt', (event) => {
-    // Desktop: não chamar preventDefault — o Chrome mostra o ícone na omnibox.
-    // Mobile (< lg): captura o evento para o botão «Instalar» do menu.
-    const deferForCustomUi =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(max-width: 1023px)').matches;
-    if (!deferForCustomUi) return;
     event.preventDefault();
+    installedHint = false;
     deferredPrompt = event as BeforeInstallPromptEvent;
     (window as WindowWithEarlyInstall).__axecloudDeferredInstall = deferredPrompt;
     notify();
@@ -89,6 +86,7 @@ export function initPwaInstallController(): void {
   window.addEventListener('appinstalled', () => {
     installedHint = true;
     deferredPrompt = null;
+    (window as WindowWithEarlyInstall).__axecloudDeferredInstall = null;
     notify();
   });
 
@@ -116,21 +114,26 @@ export function isPwaInstalled(): boolean {
 }
 
 export async function triggerPwaInstall(): Promise<'accepted' | 'dismissed' | 'unavailable' | 'ios'> {
-  const isIos =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-    !(window as Window & { MSStream?: unknown }).MSStream;
-
-  if (isIos) return 'ios';
+  if (isPwaInstalled() || installing) return 'unavailable';
+  if (isIosPwaDevice()) return 'ios';
 
   if (deferredPrompt) {
-    await deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      deferredPrompt = null;
-      installedHint = true;
+    const prompt = deferredPrompt;
+    // O evento é de uso único, inclusive quando o usuário cancela.
+    deferredPrompt = null;
+    (window as WindowWithEarlyInstall).__axecloudDeferredInstall = null;
+    installing = true;
+    notify();
+    try {
+      // Precisa acontecer antes de qualquer await para preservar o gesto do usuário.
+      await prompt.prompt();
+      return (await prompt.userChoice).outcome;
+    } catch {
+      return 'unavailable';
+    } finally {
+      installing = false;
       notify();
     }
-    return choice.outcome;
   }
 
   return 'unavailable';
