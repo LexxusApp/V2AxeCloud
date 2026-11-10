@@ -19,3 +19,14 @@
 Logs e capturas locais: `artifacts/pwa-install-check/`. O pacote de publicação e as verificações de produção ficam em `artifacts/pwa-deploy/`.
 
 A publicação autorizada usa a fonte da versão dos painéis já publicada, com somente o patch de instalação aplicado. Os builds e os testes de lógica e navegador foram repetidos nesse pacote isolado. O código do Worker atual e os donos das rotas são preservados; a API e o aplicativo de entrada não precisam ser publicados.
+
+## Publicação concluída
+
+- Worker: `axecloud-interface-pilot`, versão `72694748-69b9-4505-bf3a-ae128c595842`.
+- Build dos dois painéis: `pilot-mwb6ptrx-e8a2f701`.
+- Commit da implementação na main: `7b5f75e`.
+- Auditoria pós-publicação: 118 padrões de rota e respectivos donos preservados; código do Worker idêntico ao publicado anteriormente; versões de API e aplicativo de entrada preservadas. A Cloudflare recriou os identificadores internos das sete rotas desse Worker, mantendo os mesmos padrões e destinos.
+- Verificação HTTP: `/entrar`, `/dashboard`, manifest, service worker e ícones 192/512 retornaram 200; identidade e configuração do manifest preservadas.
+- Evidências: `artifacts/pwa-deploy/deploy.log`, `production-after.json` e `http-checks.json`.
+
+Abas já abertas devem ser atualizadas para carregar o novo menu. As verificações de clique usaram os bundles publicados em ensaio local com APIs fictícias; a confirmação nativa foi simulada, sem instalação em aparelhos físicos.
