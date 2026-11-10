@@ -2100,6 +2100,45 @@ export default {
       }
       forwarded = activeRequest;
     }
+
+    if (url.pathname === "/api/plans" && (request.method === "GET" || request.method === "HEAD")) {
+      const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
+      try {
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+        const fetchPromise = container.fetch(forwarded).catch(() => null);
+        const result = await Promise.race([fetchPromise, timeoutPromise]);
+        if (result && result.ok) {
+          return result;
+        }
+      } catch {}
+      return Response.json(
+        {
+          success: true,
+          plans: {
+            premium: {
+              name: "Premium",
+              price: 69.9,
+              description: "Gestão espiritual e financeira completa para o seu terreiro. Plano renovável.",
+              annual_price: 699,
+            },
+            vita: {
+              name: "Plano Vita",
+              price: 49.9,
+              description: "Vitalício — acesso completo sem expiração.",
+            },
+          },
+        },
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "public, max-age=60, s-maxage=300, stale-while-revalidate=3600",
+            "x-axecloud-runtime": "cloudflare-edge-resilient",
+          },
+        }
+      );
+    }
+
     const container = env.AXECLOUD_API_CONTAINER.getByName("primary");
 
     let response: Response | null = null;
