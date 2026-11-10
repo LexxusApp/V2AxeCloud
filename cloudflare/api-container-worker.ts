@@ -2052,6 +2052,36 @@ export default {
         { headers: { "cache-control": "no-store", "x-axecloud-runtime": "cloudflare-edge" } }
       );
     }
+    if (url.pathname === "/api/public-config") {
+      const supabaseUrl = String(
+        env.VITE_SUPABASE_URL || env.SUPABASE_URL || "https://vlaojhfwhqmwudqsumpi.supabase.co"
+      ).trim();
+      const supabaseAnonKey = String(
+        env.VITE_SUPABASE_ANON_KEY ||
+        env.SUPABASE_ANON_KEY ||
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsYW9qaGZ3aHFtd3VkcXN1bXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDQxNjQsImV4cCI6MjA5MDc4MDE2NH0.OpCpDOzdgxUQGi1lGBC9z9icEgG3985sEm9Lf0zDC3w"
+      ).trim();
+      const vapidPublicKey = String(
+        env.VITE_VAPID_PUBLIC_KEY ||
+        env.VAPID_PUBLIC_KEY ||
+        "BMx22DCBAKTcSAB9uEZN6mTalKEANYB67LKm1I9_TD-5VRscGtgE2e6mCRVg86DOJ1dIh-MpPdcFZnPUwVoYNIU"
+      ).trim();
+
+      return Response.json(
+        {
+          supabaseUrl,
+          supabaseAnonKey,
+          vapidPublicKey,
+        },
+        {
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "cache-control": "public, max-age=300, s-maxage=3600",
+            "x-axecloud-runtime": "cloudflare-edge",
+          },
+        }
+      );
+    }
     if (url.pathname.startsWith("/api/prospecting/") && env.PROSPECT_API) {
       return env.PROSPECT_API.fetch(request);
     }
