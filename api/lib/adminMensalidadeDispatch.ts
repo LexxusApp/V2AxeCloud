@@ -293,13 +293,14 @@ export async function sendAdminMensalidadeDispatch(
   let reviewSkipped = 0;
   const results: Array<{ filhoId: string; nome: string; ok: boolean; error?: string }> = [];
   for (const target of targets) {
+    const isOverdue = Boolean(target.vencimento && target.vencimento < calendar.ymd);
+    const tipo = isOverdue ? "mensalidade_vencida" : "cobranca_mensalidade";
+    let message = "";
     try {
       await assertFilhoBelongsToTerreiro(sb, preview.leaderId, {
         tenant_id: preview.tenantId,
         lider_id: preview.leaderId,
       });
-      const isOverdue = Boolean(target.vencimento && target.vencimento < calendar.ymd);
-      const tipo = isOverdue ? "mensalidade_vencida" : "cobranca_mensalidade";
       const variables = {
         nome_filho: target.nome,
         nome_terreiro: preview.nomeTerreiro,
@@ -309,7 +310,7 @@ export async function sendAdminMensalidadeDispatch(
         valor_mensalidade: target.valorFmt,
         data_vencimento: target.vencimentoBr,
       };
-      const message = buildWhatsAppMessage(preview.templates, tipo, variables);
+      message = buildWhatsAppMessage(preview.templates, tipo, variables);
       if(target.financeiroId&&!(await withoutReceiptReviews(sb,[{id:target.financeiroId}])).length){reviewSkipped++;continue;}
       await logAndSendWhatsApp(sb, {
         tenantId: preview.tenantId,
