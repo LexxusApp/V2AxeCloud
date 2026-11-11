@@ -111,7 +111,7 @@ export default function TerreiroProfilePage() {
                   <Calendar className="h-4 w-4" />
                   Eventos públicos
                 </a>
-                {terreiro.whatsapp ? (
+                {terreiro.gerenciada && terreiro.whatsapp ? (
                   <a
                     href={`https://wa.me/55${terreiro.whatsapp.replace(/\D/g, '')}`}
                     target="_blank"

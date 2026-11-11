@@ -27,7 +27,7 @@ test("prioriza o WhatsApp informado pelo terreiro", () => {
 test('perfil no diretório usa buildDiretorioWhatsappHref e prioriza contato da casa', () => {
   const profile = readFileSync(new URL('../src/views/portal/DiretorioTerreiroPage.tsx', import.meta.url), 'utf8');
   const api = readFileSync(new URL('../api/lib/diretorioPublicRoutes.ts', import.meta.url), 'utf8');
-  assert.match(profile, /const whatsappHref = buildDiretorioWhatsappHref/);
+  assert.match(profile, /const whatsappHref = (?:terreiro\.gerenciada[\s\S]{0,140})?buildDiretorioWhatsappHref/);
   assert.match(api, /const whatsapp = resolveDiretorioPublicWhatsapp\(row\)/);
 });
 

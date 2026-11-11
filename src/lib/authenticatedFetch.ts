@@ -86,7 +86,7 @@ async function performAuthenticatedFetch(input: RequestInfo | URL, init: Request
   const trackFailureIfNeeded = (res: Response) => {
     if (res.status >= 400 && res.status !== 401 && res.status !== 404) {
       const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
-      if (!urlStr.includes("/telemetry/failure")) {
+      if (!urlStr.includes("/telemetry/failure") && !urlStr.includes("/pilot/version") && !urlStr.includes("pilot-version.json")) {
         const method = (init.method || "GET").toUpperCase();
         const contentType = res.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
