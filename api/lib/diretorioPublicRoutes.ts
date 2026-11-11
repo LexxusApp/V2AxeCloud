@@ -679,7 +679,7 @@ export function registerDiretorioPublicRoutes(app: Express, { supabaseAdmin: sb 
         }
 
         const publicItem = mapRow(data as Record<string, unknown>);
-        if (publicItem.tipo !== "terreiro" || !publicItem.hasWhatsapp) {
+        if (publicItem.tipo !== "terreiro" || !publicItem.gerenciada || !publicItem.hasWhatsapp) {
           return res.status(404).json({ error: "WhatsApp não disponível para este terreiro." });
         }
 
