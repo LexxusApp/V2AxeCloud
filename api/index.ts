@@ -69,6 +69,8 @@ import { registerEventNotificationRoutes } from "./lib/eventNotificationRoutes.j
 import { registerGiraOperationsRoutes, newPublicToken } from "./lib/giraOperationsRoutes.js";
 import { registerEfiCheckoutRoutes } from "./lib/efiCheckoutRoutes.js";
 import { readMensalidadesForChildren, insertMensalidadesBatch, singleFlightMensalidadeSync } from "./lib/mensalidadeSyncBatch.js";
+import { monthlyAmountOnDate } from "../lib/manualFinance.js";
+import { brazilFinancialToday } from "../src/lib/financialOverview.js";
 import { registerManualFinanceRoutes } from "./lib/manualFinanceRoutes.js";
 import { registerFinancialCaixinhaRoutes } from "./lib/financialCaixinhaRoutes.js";
 import { registerFinanceiroValidarComprovanteRoutes } from "./lib/financeiroValidarComprovanteRoutes.js";
@@ -849,8 +851,12 @@ async function liquidarMensalidadePendente(
   }
   if (String(row.categoria || "") !== "Mensalidade") throw new Error("Tipo de lançamento inválido");
 
-  const paymentDate = new Date().toISOString().split("T")[0];
-  const v = Number.isFinite(valorOverride) && (valorOverride as number) > 0 ? (valorOverride as number) : Number(row.valor) || 0;
+  const paymentDate = brazilFinancialToday();
+  const expected = monthlyAmountOnDate(Number(row.valor) || 0, row.data_vencimento, row.mensalidade_multa, paymentDate);
+  const v = Number.isFinite(valorOverride) && (valorOverride as number) > 0 ? (valorOverride as number) : expected;
+  if (row.mensalidade_multa && v !== expected) {
+    throw new Error("O valor da mensalidade mudou. Atualize a lista antes de dar baixa ou confirme o comprovante pela data efetiva do pagamento.");
+  }
   if (v <= 0) throw new Error("Valor inválido");
 
   const filhoId = deriveMensalidadeFilhoId(row);
@@ -873,6 +879,7 @@ async function liquidarMensalidadePendente(
   if (supportsStatus) up.status = "pago";
   let upd = supabaseAdmin.from("financeiro").update(up).eq("id", financeiroId);
   if (supportsStatus) upd = upd.eq("status", "pendente");
+  if (row.mensalidade_multa) upd = upd.eq("valor", row.valor).eq("mensalidade_multa", JSON.stringify(row.mensalidade_multa)).eq("data_vencimento", row.data_vencimento);
   const { data: changedRows, error: upErr } = await upd.select("id");
   if (upErr) throw upErr;
   if (changedRows?.length !== 1) throw new Error("A mensalidade mudou durante a baixa. Atualize a lista antes de tentar novamente.");
@@ -1273,7 +1280,7 @@ async function ensureSubscriptionForMural(zeladorId: string, logicalTenant: stri
 async function startServer() {
   console.log("[SERVER] Iniciando processo de boot...");
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
 
   app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
