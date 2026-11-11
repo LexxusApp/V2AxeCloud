@@ -1,4 +1,4 @@
-import { monthlyDueShortcut } from '../../lib/financialOverview';
+import { brazilFinancialToday, monthlyDueShortcut } from '../../lib/financialOverview';
 import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowUpRight, ArrowDownRight, Plus, X, CheckCircle2, Clock3 } from 'lucide-react';
@@ -250,15 +250,16 @@ export function FinancialEntryModal({ open, onOpenChange, dueDay = 10, formData,
                       const base = parseFloat(formData.valor) || 0;
                       const jVal = parseFloat(formData.jurosValor || '0') || 0;
                       if (base <= 0 || jVal <= 0 || !formData.jurosTipo || formData.jurosTipo === 'nenhum') return null;
-                      let extra = 0;
-                      if (formData.jurosTipo === 'valor') extra = jVal;
-                      if (formData.jurosTipo === 'porcentagem') extra = (base * jVal) / 100;
+                      const overdue = Boolean(formData.data) && formData.data < brazilFinancialToday();
+                      const fee = formData.jurosTipo === 'valor' ? jVal : (base * jVal) / 100;
+                      const extra = overdue ? fee : 0;
                       const total = base + extra;
                       return (
                         <div className="mt-2.5 rounded-lg bg-amber-100/90 border border-amber-300 p-2.5 text-xs flex items-center justify-between font-medium text-amber-950">
                           <span>
                             Base: <strong>{formatBRL(base)}</strong> + Juros: <strong>{formatBRL(extra)}</strong>
-                            {formData.jurosTipo === 'porcentagem' ? ` (${jVal}%)` : ''}
+                            {overdue && formData.jurosTipo === 'porcentagem' ? ` (${jVal}%)` : ''}
+                            {!overdue && formData.status !== 'pago' && <small className="block">O acréscimo entra após o vencimento.</small>}
                           </span>
                           <span className="font-black text-emerald-800 text-sm">
                             Total: {formatBRL(total)}

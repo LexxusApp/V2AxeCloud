@@ -39,7 +39,7 @@ registerWriter('charges',async(next:MonthlyCharge[],before:MonthlyCharge[])=>{
       if(charge.memberId!==old.memberId||charge.reference!==old.reference)throw new Error('Para preservar a competência, esta edição mantém o membro e o mês originais. Nenhuma cobrança foi movida.');
       const raw=(readValue<any[]>('financeRows')||[]).find(row=>row.id===old.id);
       if(!raw||raw.status!=='pendente')throw new Error('A situação da mensalidade mudou. Atualize antes de editar.');
-      const payload=buildManualFinanceEntry({tipo:'entrada',categoria:'Mensalidade',descricao:charge.description,valor:charge.baseCents/100,data:charge.dueDate,filho_id:charge.memberId,status:'pendente',jurosTipo:({none:'nenhum',fixed:'valor',percent:'porcentagem'}as const)[charge.interestMode],jurosValor:charge.interestValue.replace(',','.')});
+      const payload=buildManualFinanceEntry({tipo:'entrada',categoria:'Mensalidade',descricao:charge.description,valor:charge.baseCents/100,data:charge.dueDate,filho_id:charge.memberId,status:'pendente',jurosTipo:({none:'nenhum',fixed:'valor',percent:'porcentagem'}as const)[charge.interestMode],jurosValor:charge.interestValue.replace(',','.')},charge.dueDate);
       await checked(supabase.from('financeiro').update({...payload,lancamento_manual:true}).eq('id',old.id).eq('tenant_id',tenantId).eq('status',raw.status).eq('valor',raw.valor).eq('descricao',raw.descricao).select('id').single());
     }
   }else{

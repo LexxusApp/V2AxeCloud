@@ -25,8 +25,12 @@ export function financeFromServer(rows: Record<string, any>[], members: DemoMemb
     const dueDate = String(row.data_vencimento || row.data || '').slice(0,10);
     const totalCents = cents(row.valor);
     const feeMatch = String(row.descricao || '').match(/\(\+\s*(?:(\d+(?:\.\d+)?)%:\s*)?R\$\s*([\d.]+)\s+juros\/multa\)/i);
+    const fee = row.mensalidade_multa;
     const extraCents = feeMatch ? cents(feeMatch[2]) : 0;
-    return { id:String(row.id),memberId,memberName:names.get(memberId)||'',description:cleanManualDescription(row.descricao),reference:dueDate.slice(0,7),dueDate,baseCents:totalCents-extraCents,extraCents,totalCents,interestMode:feeMatch?.[1]?'percent':extraCents?'fixed':'none',interestValue:feeMatch?.[1] || (extraCents ? String(extraCents/100) : ''),status:paid?'paid':'pending',createdAt:Date.parse(row.created_at || row.data) || 0,source:'manual',...(paid ? {receivedDate:String(row.data_pagamento || row.data).slice(0,10),paidAt:Date.parse(row.data_pagamento || row.data)} : {}) };
+    const baseCents = fee ? cents(fee.base) : totalCents - extraCents;
+    const interestMode = fee ? (fee.tipo === 'porcentagem' ? 'percent' : 'fixed') : feeMatch?.[1] ? 'percent' : extraCents ? 'fixed' : 'none';
+    const interestValue = fee ? String(fee.taxa) : feeMatch?.[1] || (extraCents ? String(extraCents / 100) : '');
+    return { id:String(row.id),memberId,memberName:names.get(memberId)||'',description:cleanManualDescription(row.descricao),reference:dueDate.slice(0,7),dueDate,baseCents,extraCents,totalCents,interestMode,interestValue,feeAfterDue:Boolean(fee),status:paid?'paid':'pending',createdAt:Date.parse(row.created_at || row.data) || 0,source:'manual',...(paid ? {receivedDate:String(row.data_pagamento || row.data).slice(0,10),paidAt:Date.parse(row.data_pagamento || row.data)} : {}) };
   });
   const ledger: LedgerEntry[] = live.filter(countsTowardSaldo).map(row=>({id:String(row.id),description:cleanManualDescription(row.descricao),date:String(row.data_pagamento || row.data).slice(0,10),category:row.categoria || '',kind:normalizeMovimentoTipo(row.tipo)==='saida'?'expense':'income',cents:cents(row.valor),memberId:row.filho_id || undefined,memberName:names.get(row.filho_id),createdAt:Date.parse(row.created_at || row.data)||0,source:String(row.categoria || '').toLowerCase()==='mensalidade'?'monthly':String(row.categoria || '').toLowerCase()==='cantina'?'cantina':String(row.categoria || '').toLowerCase()==='loja'?'store':'manual'}));
   return { charges, cashLedger:ledger, manualCash:ledger.filter(row=>row.source==='manual') as CashEntry[] };

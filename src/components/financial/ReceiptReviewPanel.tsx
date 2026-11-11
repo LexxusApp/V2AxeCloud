@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {AlertCircle,CheckCircle2,Clock3,FileImage,Loader2,X} from 'lucide-react';
 import BodyPortal from '../BodyPortal';
-import {receiptStatusLabel,validateReceiptDecision,type ReceiptReview} from '../../../lib/receiptReview';
+import {receiptAmountOnDate,receiptStatusLabel,validateReceiptDecision,type ReceiptReview} from '../../../lib/receiptReview';
 import {receiptRequest,signalReceiptUpdate,type ReceiptFeed} from '../../lib/receiptReviewClient';
 import {showHouseToast} from '../../lib/houseToast';
 const input='w-full rounded-xl border border-[#C8C0AF] bg-white px-3 py-2.5 text-sm text-[#17251D] focus:outline-none focus:ring-2 focus:ring-amber-500';
@@ -17,7 +17,7 @@ function ReceiptDialog({row,tenantId,admin,onClose,onChanged}:{row:ReceiptReview
   async function decide(kind:'aprovar'|'rejeitar'){
     if(saving)return;setError('');
     try{
-      const payload=kind==='aprovar'?validateReceiptDecision(fields,row.valor_atual??row.submitted_value,row.alerts.length>0||row.analysis_status!=='concluida',new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):{motivo:fields.motivo.trim()};
+      const payload=kind==='aprovar'?validateReceiptDecision(fields,receiptAmountOnDate(row,fields.data_pagamento),row.alerts.length>0||row.analysis_status!=='concluida',new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):{motivo:fields.motivo.trim()};
       if(kind==='rejeitar'&&fields.motivo.trim().length<3)throw Error('Informe o motivo da rejeição.');
       setSaving(true);await receiptRequest(`/api/v1/financial/comprovantes/${row.id}/${kind}?tenantId=${encodeURIComponent(tenantId)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       showHouseToast(kind==='aprovar'?'Recebimento confirmado e mensalidade quitada.':'Comprovante rejeitado. O motivo já está disponível ao membro.');signalReceiptUpdate();onChanged();onClose();
@@ -31,7 +31,7 @@ function ReceiptDialog({row,tenantId,admin,onClose,onChanged}:{row:ReceiptReview
         <p className="mt-3 text-xs text-[#5F675C]">Enviado em {dateTime(row.created_at)} · Brasília</p>
       </section>
       <section className="min-w-0 space-y-4" aria-label="Conferência do recebimento">
-        <div className="rounded-xl border border-[#D8D0BE] bg-[#F4F0E6] p-4"><p className="text-sm">Total integral da mensalidade</p><strong className="text-2xl">{money(row.valor_atual??row.submitted_value)}</strong><p className="mt-1 text-xs text-[#5F675C]">Competência: {row.competencia?new Date(row.competencia+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Cadastro financeiro'}</p></div>
+        <div className="rounded-xl border border-[#D8D0BE] bg-[#F4F0E6] p-4"><p className="text-sm">Total integral da mensalidade</p><strong className="text-2xl">{money(receiptAmountOnDate(row,fields.data_pagamento))}</strong><p className="mt-1 text-xs text-[#5F675C]">Competência: {row.competencia?new Date(row.competencia+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Cadastro financeiro'}</p></div>
         {row.alerts.length>0&&<div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><h3 className="mb-2 flex items-center gap-2 font-bold"><AlertCircle size={17}/>Pontos para conferir</h3><ul className="list-disc space-y-1 pl-5">{row.alerts.map(message=><li key={message}>{message}</li>)}</ul></div>}
         {row.analysis_status!=='concluida'&&<p className="text-sm text-[#5F675C]">A leitura da IA está {row.analysis_status==='pendente'?'pendente':'indisponível'}. A imagem continua disponível para conferência manual.</p>}
         {editable?<>

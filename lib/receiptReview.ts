@@ -1,3 +1,5 @@
+import { monthlyAmountOnDate, type MonthlyLateFee } from './manualFinance.js';
+
 export type ReceiptStatus = 'em_analise' | 'aceito' | 'rejeitado' | 'encerrado';
 export type ReceiptAnalysis = {
   valor?: number | null; data?: string | null; cpf_pagador?: string | null;
@@ -9,8 +11,15 @@ export type ReceiptReview = {
   status: ReceiptStatus; created_at: string; decided_at: string | null; decision_reason: string | null;
   analysis_status: 'pendente' | 'concluida' | 'indisponivel'; analysis: ReceiptAnalysis; alerts: string[];
   submitted_value: number; valor_atual?: number; competencia?: string; approved_fields?: Record<string, unknown> | null;
+  mensalidade_multa?: MonthlyLateFee | null;
   legacy?: boolean;
 };
+export function receiptAmountOnDate(row: ReceiptReview, date: string): number {
+  const amount = row.valor_atual ?? row.submitted_value;
+  if (row.status !== 'em_analise' || !date) return amount;
+  return monthlyAmountOnDate(amount, row.competencia, row.mensalidade_multa, date);
+}
+
 export const receiptStatusLabel: Record<ReceiptStatus,string> = {
   em_analise:'Aguardando análise do zelador',aceito:'Pagamento confirmado',rejeitado:'Comprovante rejeitado',encerrado:'Mensalidade encerrada por outra via',
 };

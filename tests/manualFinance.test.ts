@@ -5,13 +5,22 @@ import { countsTowardSaldo } from '../src/lib/financeiroSaldo.ts';
 import { isPaidMensalidadeFinanceRow } from '../src/lib/mensalidadeFinanceRow.ts';
 const input = { tipo:'entrada',valor:'100',categoria:'Mensalidade',data:'2026-09-10',descricao:'Atraso de setembro',filho_id:'11111111-1111-4111-8111-111111111111',status:'pendente' };
 test('mensalidade manual atrasada mantém membro, vencimento e juros sem virar receita recebida',()=>{
- const row=buildManualFinanceEntry({...input,jurosTipo:'porcentagem',jurosValor:'2'});
+ const row=buildManualFinanceEntry({...input,jurosTipo:'porcentagem',jurosValor:'2'},'2026-09-11');
  assert.equal(row.valor,102);assert.equal(row.data_vencimento,'2026-09-10');assert.equal(row.filho_id,input.filho_id);
  assert.equal(isPendingMonthlyEntry(row),true);assert.equal(countsTowardSaldo(row),false);assert.equal(isPaidMensalidadeFinanceRow(row),false);
  assert.match(row.descricao,/2%/);assert.match(row.descricao,/vencimento 2026-09-10/);
 });
+test('mantém o valor base até o dia do vencimento e registra a multa para depois', () => {
+ for (const date of ['2026-09-09', '2026-09-10']) {
+  const row = buildManualFinanceEntry({...input,jurosTipo:'porcentagem',jurosValor:'2'}, date);
+  assert.equal(row.valor, 100);
+  assert.deepEqual(row.mensalidade_multa, {base:100,extra:2,tipo:'porcentagem',taxa:2});
+  assert.doesNotMatch(row.descricao, /juros/);
+ }
+ assert.equal(buildManualFinanceEntry({...input,status:'pago',jurosTipo:'valor',jurosValor:5}, '2026-09-10').valor, 100);
+});
 test('mensalidade quitada aparece no histórico e compõe caixa, sem voltar como pendência',()=>{
- const row=buildManualFinanceEntry({...input,status:'pago',jurosTipo:'valor',jurosValor:'5.50'});
+ const row=buildManualFinanceEntry({...input,status:'pago',jurosTipo:'valor',jurosValor:'5.50'},'2026-09-11');
  assert.equal(row.valor,105.5);assert.equal(isPendingMonthlyEntry(row),false);assert.equal(countsTowardSaldo(row),true);assert.equal(isPaidMensalidadeFinanceRow(row),true);
  assert.match(row.descricao,/competência 2026-09-10/);assert.doesNotMatch(row.descricao,/vencimento/);
 });

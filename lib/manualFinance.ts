@@ -1,9 +1,28 @@
+import { brazilFinancialToday } from '../src/lib/financialOverview.js';
+
 export type ManualFinanceInput = {
   tipo: string; valor: string | number; categoria: string; data: string; descricao: string;
   filho_id?: string | null; status?: string; jurosTipo?: string; jurosValor?: string | number;
 };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export function buildManualFinanceEntry(input: ManualFinanceInput) {
+export type MonthlyLateFee = {
+  base: number;
+  extra: number;
+  tipo: 'valor' | 'porcentagem';
+  taxa: number;
+};
+
+export function monthlyAmountOnDate(
+  currentAmount: number,
+  dueDate: string | undefined,
+  fee: MonthlyLateFee | null | undefined,
+  date: string,
+): number {
+  if (!fee || !dueDate) return currentAmount;
+  return date > dueDate ? Math.round((fee.base + fee.extra) * 100) / 100 : fee.base;
+}
+
+export function buildManualFinanceEntry(input: ManualFinanceInput, asOf?: string) {
   if (!['entrada', 'saida'].includes(input.tipo)) throw new Error('Selecione entrada ou saída.');
   const valor = Number(input.valor);
   if (!Number.isFinite(valor) || valor <= 0) throw new Error('Informe um valor maior que zero.');
@@ -18,18 +37,27 @@ export function buildManualFinanceEntry(input: ManualFinanceInput) {
   if (monthly && !filho_id) throw new Error('Selecione o filho de santo para vincular a mensalidade.');
   if (monthly && input.tipo !== 'entrada') throw new Error('Mensalidade é uma entrada. Para despesas, selecione outra categoria.');
   if (monthly && input.status && !['pago', 'pendente'].includes(input.status)) throw new Error('Situação da mensalidade inválida.');
-  let extra = 0;
+  const status = monthly ? (input.status || 'pendente') : 'pago';
+  const base = Math.round(valor * 100) / 100;
+  let fee: MonthlyLateFee | null = null;
   let suffix = '';
   if (monthly && input.jurosTipo && input.jurosTipo !== 'nenhum') {
     const interest = Number(input.jurosValor);
     if (!['valor', 'porcentagem'].includes(input.jurosTipo) || !Number.isFinite(interest) || interest < 0) throw new Error('Informe juros ou multa válidos.');
-    extra = input.jurosTipo === 'porcentagem' ? valor * interest / 100 : interest;
-    suffix = ` (+ ${input.jurosTipo === 'porcentagem' ? interest + '%: ' : ''}R$ ${(Math.round(extra * 100) / 100).toFixed(2)} juros/multa)`;
+    const mode = input.jurosTipo as MonthlyLateFee['tipo'];
+    const extra = Math.round((mode === 'porcentagem' ? base * interest : interest * 100)) / 100;
+    if (extra > 0) fee = { base, extra, tipo: mode, taxa: interest };
   }
-  const total = Math.round((valor + extra) * 100) / 100;
-  if (!Number.isFinite(total) || total > 999999999) throw new Error('Valor do lançamento fora do limite permitido.');
-  const status = monthly ? (input.status || 'pendente') : 'pago';
+  if (base <= 0 || !Number.isFinite(base + (fee?.extra ?? 0)) || base + (fee?.extra ?? 0) > 999999999) {
+    throw new Error('Valor do lançamento fora do limite permitido.');
+  }
+  const total = fee ? monthlyAmountOnDate(base, date, fee, asOf ?? brazilFinancialToday()) : base;
+  if (fee && total > base) {
+    const percent = fee.tipo === 'porcentagem' ? fee.taxa + '%: ' : '';
+    suffix = ` (+ ${percent}R$ ${fee.extra.toFixed(2)} juros/multa)`;
+  }
   return { tipo: input.tipo, valor: total, categoria, data: date, filho_id, status,
+    ...(monthly ? { mensalidade_multa: fee } : {}),
     data_vencimento: monthly ? date : null,
     descricao: `${descricao}${suffix}${monthly ? ` (${status === 'pago' ? 'competência' : 'vencimento'} ${date})` : ''}${filho_id ? ` (ID:${filho_id})` : ''}` };
 }

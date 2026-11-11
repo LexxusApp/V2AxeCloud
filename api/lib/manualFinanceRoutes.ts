@@ -11,7 +11,12 @@ export function registerManualFinanceRoutes(app: Express, { supabaseAdmin }: { s
     if (!tenantId) return res.status(400).json({ error: 'Selecione o terreiro do lançamento.' });
     if (!(await assertZeladorTenantAccess(supabaseAdmin, user.id, tenantId))) return res.status(403).json({ error: 'Acesso negado.' });
     let payload;
-    try { payload = buildManualFinanceEntry(req.body || {}); }
+    try {
+      const input = req.body || {};
+      // The database applies the fee using the payment or statement date.
+      // Keep the original request stable even if the client retries after midnight.
+      payload = buildManualFinanceEntry(input, String(input.data || ''));
+    }
     catch (error) { return res.status(400).json({ error: (error as Error).message }); }
     const requestId = String(req.body?.requestId || '');
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) return res.status(400).json({ error: 'Atualize a página e tente novamente para identificar o lançamento.' });

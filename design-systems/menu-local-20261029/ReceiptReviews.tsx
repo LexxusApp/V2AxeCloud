@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,FileImage,RefreshCw} from 'lucide-react';
-import {receiptStatusLabel,type ReceiptReview} from '../../lib/receiptReview';
+import {receiptAmountOnDate,receiptStatusLabel,type ReceiptReview} from '../../lib/receiptReview';
 import {receiptRequest,signalReceiptUpdate,type ReceiptFeed} from '../../src/lib/receiptReviewClient';
 import PageLoading from '../shared/PageLoading';
 import {financialMoney} from './finance';
@@ -24,7 +24,7 @@ function ReceiptDecision({row,tenantId,onClose,onConfirmed}:{row:ReceiptReview;t
   }
   return <WorkflowDialog open onOpenChange={open=>{if(!open&&!lock.current)onClose();}} title={editable?'Conferir comprovante':'Comprovante da mensalidade'} description={`${row.nome||'Membro'} · ${receiptStatusLabel[row.status]}`}>
     <div className="rr-document">{row.legacy?<p>A imagem não está disponível neste comprovante antigo.</p>:imageError?<p className="wf-error" role="alert">{imageError} <button type="button" onClick={()=>setImageRetry(value=>value+1)}>Tentar novamente</button></p>:!image?<PageLoading variant="inline" label="Carregando comprovante privado…"/>:<><img src={image} alt={`Comprovante de ${row.nome||'mensalidade'}`} onError={()=>setImageError('Não foi possível abrir a imagem.')}/><a className="wf-button secondary" href={image} target="_blank" rel="noopener noreferrer">Abrir imagem</a></>}</div>
-    <p className="rr-meta">Enviado em {stamp(row.created_at)} · Brasília</p><div className="wf-confirm-summary"><span>Total integral da mensalidade</span><strong>{money(row.valor_atual??row.submitted_value)}</strong></div>
+    <p className="rr-meta">Enviado em {stamp(row.created_at)} · Brasília</p><div className="wf-confirm-summary"><span>Total integral da mensalidade</span><strong>{money(receiptAmountOnDate(row,fields.data_pagamento))}</strong></div>
     {!!row.alerts.length&&<div className="rr-alerts"><strong>Confira antes de decidir</strong><ul>{row.alerts.map(message=><li key={message}>{message}</li>)}</ul></div>}
     {editable?<form className="rr-fields" onSubmit={event=>{event.preventDefault();void decide('aprovar');}} noValidate><p>A IA sugere os dados. Confira o crédito na conta da casa antes de confirmar o recebimento.</p>{row.analysis_status!=='concluida'&&<p>A leitura da IA está {row.analysis_status==='pendente'?'pendente':'indisponível'}. Confira a imagem manualmente.</p>}
       <fieldset disabled={!!saving}><div className="wf-pair"><label className="wf-field">Valor recebido (R$)<input inputMode="decimal" value={fields.valor} onChange={event=>setFields({...fields,valor:event.target.value})}/></label><label className="wf-field">Data efetiva do pagamento<input type="date" max={financialToday()} value={fields.data_pagamento} onChange={event=>setFields({...fields,data_pagamento:event.target.value})}/></label></div>

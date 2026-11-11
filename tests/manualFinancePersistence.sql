@@ -24,6 +24,25 @@ begin
  p := jsonb_build_object('tipo','entrada','valor',105.5,'categoria','Mensalidade','data','2000-02-10','descricao','Quitação manual (competência 2000-02-10)','filho_id',child,'status','pago');
  r2 := registrar_lancamento_manual(actor,t,gen_random_uuid(),p);
  if r2.id<>r.id or r2.valor<>105.5 or r2.status<>'pago' or r2.data_pagamento is null then raise exception 'Automatic charge not replaced safely'; end if;
+ -- A future charge stores the fee but exposes only the amount due on time.
+ p := jsonb_build_object('tipo','entrada','valor',100,'categoria','Mensalidade','data','2099-12-10',
+   'descricao','Regressão multa (vencimento 2099-12-10) (ID:'||child||')','filho_id',child,'status','pendente',
+   'mensalidade_multa',jsonb_build_object('base',100,'extra',2,'tipo','porcentagem','taxa',2));
+ r := registrar_lancamento_manual(actor,t,gen_random_uuid(),p);
+ if r.valor<>100 or r.mensalidade_multa is null or r.descricao like '%juros/multa%' then
+   raise exception 'Future charge includes a premature fee or lost its fee settings';
+ end if;
+ if public.valor_mensalidade_na_data(r.valor,r.data_vencimento,r.mensalidade_multa,'2099-12-10')<>100
+    or public.valor_mensalidade_na_data(r.valor,r.data_vencimento,r.mensalidade_multa,'2099-12-11')<>102 then
+   raise exception 'Fee did not start on the day after the due date';
+ end if;
+ -- A manual payment uses its receipt date while keeping the original request stable.
+ p := p || jsonb_build_object('data','2000-03-10','status','pago',
+   'descricao','Regressão multa quitada (competência 2000-03-10) (ID:'||child||')');
+ r := registrar_lancamento_manual(actor,t,gen_random_uuid(),p);
+ if r.valor<>102 or r.status<>'pago' or r.descricao not like '%juros/multa%' then
+   raise exception 'Manual payment did not use the amount due on the receipt date';
+ end if;
  select id into other_child from filhos_de_santo where tenant_id is distinct from t and lider_id is distinct from actor limit 1;
  if other_child is not null then begin perform registrar_lancamento_manual(actor,t,gen_random_uuid(),p||jsonb_build_object('filho_id',other_child)); raise exception 'Cross-tenant member accepted'; exception when insufficient_privilege then null; end; end if;
  if has_function_privilege('authenticated','public.registrar_lancamento_manual(uuid,uuid,uuid,jsonb)','EXECUTE') or has_function_privilege('anon','public.registrar_lancamento_manual(uuid,uuid,uuid,jsonb)','EXECUTE') then raise exception 'Private function exposed'; end if;

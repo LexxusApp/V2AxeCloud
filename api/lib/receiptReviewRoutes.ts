@@ -7,6 +7,7 @@ import {comprovanteVisionRateLimit,sensitiveActionRateLimit} from './rateLimit.j
 import {safeErrorMessage} from './safeError.js';
 import {extractComprovanteFieldsFromImage,validateComprovanteImage,valoresMensalidadeCoincidem} from './comprovanteVisionExtract.js';
 import {comprovanteBeneficiarioMatches,cpfComprovanteMatches,normalizeComprovanteDate} from './comprovanteValidation.js';
+import {monthlyAmountOnDate} from '../../lib/manualFinance.js';
 import {validateReceiptDecision,type ReceiptAnalysis} from '../../lib/receiptReview.js';
 import {resolveFilhoRowIdForFinance} from './resolveFilhoRowIdForFinance.js';
 
@@ -72,10 +73,10 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
     if(!rows.length)return [];
     const [children,finance]=await Promise.all([
       sb.from('filhos_de_santo').select('id,nome').in('id',[...new Set(rows.map(r=>r.filho_id))]),
-      sb.from('financeiro').select('id,valor,data,data_vencimento,status').in('id',[...new Set(rows.map(r=>r.financeiro_id))]),
+      sb.from('financeiro').select('id,valor,data,data_vencimento,status,mensalidade_multa').in('id',[...new Set(rows.map(r=>r.financeiro_id))]),
     ]);if(children.error)throw children.error;if(finance.error)throw finance.error;
     const names=new Map((children.data||[]).map(c=>[c.id,c.nome]));const debts=new Map((finance.data||[]).map(f=>[f.id,f]));
-    return rows.map(row=>{const f=debts.get(row.financeiro_id);return {...dto(row),nome:names.get(row.filho_id)||'Membro',valor_atual:Number(f?.valor??row.submitted_value),competencia:String(f?.data_vencimento||f?.data||'').slice(0,10)};});
+    return rows.map(row=>{const f=debts.get(row.financeiro_id);return {...dto(row),nome:names.get(row.filho_id)||'Membro',valor_atual:Number(f?.valor??row.submitted_value),mensalidade_multa:f?.mensalidade_multa??null,competencia:String(f?.data_vencimento||f?.data||'').slice(0,10)};});
   }
   function sendSubmission(res:Response,row:any,v2:boolean){
     const reviewing=row.status==='em_analise';
@@ -137,7 +138,9 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
           analysis=await deadline((deps.extract||extractComprovanteFieldsFromImage)(buffer,mime));
           const pixRefs=[...new Set([ctx.tenant,ctx.child.tenant_id].filter(id=>UUID.test(String(id))))];
           const {data:pix,error:pixError}=await sb.from('configuracoes_pix').select('nome_beneficiario').or(pixRefs.map(id=>`terreiro_id.eq.${id}`).join(',')).limit(1).maybeSingle();
-          alerts=buildReceiptAlerts(analysis,String(ctx.child.cpf||''),pixError?'':String(pix?.nome_beneficiario||''),Number(finance.valor));
+          const paidDate=normalizeComprovanteDate(analysis.data||'')||today();
+          const expected=monthlyAmountOnDate(Number(finance.valor),finance.data_vencimento,finance.mensalidade_multa,paidDate);
+          alerts=buildReceiptAlerts(analysis,String(ctx.child.cpf||''),pixError?'':String(pix?.nome_beneficiario||''),expected);
         }catch{analysisStatus='indisponivel';alerts=['A IA não conseguiu ler este arquivo. Confira a imagem e preencha os dados do recebimento.'];}
         const update=await sb.from('mensalidade_comprovante_envios').update({analysis,alerts,analysis_status:analysisStatus}).eq('id',row.id).eq('status','em_analise').select('*').maybeSingle();
         if(update.error)console.error('[receipt-review] análise não persistida',{code:update.error.code});
@@ -194,8 +197,9 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
       const ctx=await access(req,res);if(!ctx)return;if(ctx.child)fail('O membro não pode confirmar a própria mensalidade.',403);
       const row=await getReview(String(req.params.id),ctx);let fields:Record<string,unknown>=req.body||{};
       if(action==='aprovar'&&row.status!=='aceito'){
-        const {data:finance,error}=await sb.from('financeiro').select('valor').eq('id',row.financeiro_id).maybeSingle();if(error)throw error;if(!finance)fail('Mensalidade não encontrada.',404);
-        try{fields=validateReceiptDecision(fields,finance.valor,(row.alerts||[]).length>0||row.analysis_status!=='concluida',today());}catch(error){fail(safeErrorMessage(error),422);}
+        const {data:finance,error}=await sb.from('financeiro').select('valor,data_vencimento,mensalidade_multa').eq('id',row.financeiro_id).maybeSingle();if(error)throw error;if(!finance)fail('Mensalidade não encontrada.',404);
+        const expected=monthlyAmountOnDate(Number(finance.valor),finance.data_vencimento,finance.mensalidade_multa,String(fields.data_pagamento||today()));
+        try{fields=validateReceiptDecision(fields,expected,(row.alerts||[]).length>0||row.analysis_status!=='concluida',today());}catch(error){fail(safeErrorMessage(error),422);}
       }
       const {data,error}=await sb.rpc('decidir_envio_comprovante',{p_actor:ctx.user.id,p_envio:row.id,p_decisao:action==='aprovar'?'aceito':'rejeitado',p_fields:fields});if(error)throw error;
       const decision=resultRow(data);if(!decision?.id)throw Error('O banco não confirmou a decisão.');
