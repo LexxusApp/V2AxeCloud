@@ -192,7 +192,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
               chave_pix: pixData.chave_pix,
               tipo_chave: pixData.tipo_chave,
               nome_beneficiario: pixData.nome_beneficiario,
-              cidade: 'BRASIL'
+              cidade: pixData.cidade
             };
             setPixConfig(snapPix);
           } else {
@@ -322,7 +322,7 @@ export default function MensalidadeFilho({ user, tenantData, setActiveTab }: Men
           chave_pix: data.chave_pix,
           tipo_chave: data.tipo_chave,
           nome_beneficiario: data.nome_beneficiario,
-          cidade: 'BRASIL'
+          cidade: data.cidade
         });
         if (data.dia_vencimento) setDiaVencimento(Number(data.dia_vencimento));
       } else {

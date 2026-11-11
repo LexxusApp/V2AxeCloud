@@ -12,6 +12,7 @@ test("PixPayload: calcula CRC-16 e payload EMV padrão BACEN", () => {
   const payload = buildPixPayload(
     {
       chave_pix: "11999999999",
+      tipo_chave: "telefone",
       nome_beneficiario: "Terreiro do Caboclo",
       cidade: "Sao Paulo",
     },
@@ -22,7 +23,7 @@ test("PixPayload: calcula CRC-16 e payload EMV padrão BACEN", () => {
 
   assert.ok(payload.startsWith("000201"));
   assert.ok(payload.includes("br.gov.bcb.pix"));
-  assert.ok(payload.includes("11999999999"));
+  assert.ok(payload.includes("+5511999999999"));
   assert.ok(payload.includes("89.90"));
   assert.equal(payload.length > 50, true);
 });

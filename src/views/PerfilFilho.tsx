@@ -401,9 +401,9 @@ export default function PerfilFilho({ user, tenantData, setActiveTab }: PerfilFi
       if (data?.chave_pix) {
         setPixConfig({
           chave_pix: data.chave_pix,
-          tipo_chave: data.tipo_chave || 'cpf',
+          tipo_chave: data.tipo_chave,
           nome_beneficiario: data.nome_beneficiario || '',
-          cidade: 'BRASIL',
+          cidade: data.cidade,
         });
       } else {
         setPixConfig(null);

@@ -29,6 +29,7 @@ interface SacredPixConfigViewProps {
     chave_pix: string;
     tipo_chave: string;
     nome_beneficiario: string;
+    cidade?: string;
     dia_vencimento: string;
   };
   setPixConfig: React.Dispatch<React.SetStateAction<{
@@ -36,6 +37,7 @@ interface SacredPixConfigViewProps {
     chave_pix: string;
     tipo_chave: string;
     nome_beneficiario: string;
+    cidade?: string;
     dia_vencimento: string;
   }>>;
   handleSavePixConfig: (e: React.FormEvent) => void;
@@ -285,7 +287,7 @@ export const SacredPixConfigView: React.FC<SacredPixConfigViewProps> = ({
 
               {/* Dynamic QR Code Box */}
               <div className="my-5 flex flex-col items-center justify-center p-5 rounded-lg bg-white text-slate-900 shadow-inner">
-                <PixQrCode config={{ ...pixConfig, cidade: 'BRASIL' }} value={Number(pixConfig.valor_mensalidade)} description="Contribuicao da casa" />
+                <PixQrCode config={pixConfig} value={Number(pixConfig.valor_mensalidade)} description="Contribuicao da casa" />
                 <p className="mt-2 text-xs font-black text-slate-800">
                   {formatBRL(Number(pixConfig.valor_mensalidade) || 0)}
                 </p>

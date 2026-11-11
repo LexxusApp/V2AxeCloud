@@ -4,6 +4,7 @@ import { requireAuthOrRespond } from './requireAuth.js';
 import { assertUserCanAccessTenant, assertZeladorTenantAccess, isValidUuid, normalizeFilhoRequestTenantId, normalizeQueryTenantId, resolveAuthenticatedFilho } from './tenantAccess.js';
 import { safeErrorMessage } from './safeError.js';
 import { buildPixPayload } from './pixPayload.js';
+import { normalizePixKey } from '../../src/lib/pixPayload.js';
 import {readActiveDelegation} from './delegatedAccess.js';
 import {grantAllows} from '../../lib/delegatedPolicy.js';
 
@@ -39,17 +40,11 @@ export function registerStoreCheckoutRoutes(app: Express, deps: Deps) {
     const { data, error } = await sb.from('configuracoes_pix').select('chave_pix,tipo_chave,nome_beneficiario').eq('terreiro_id', order.tenant_id).maybeSingle();
     if (error) throw error;
     if (!data?.chave_pix) return null;
-    const keyType=String(data.tipo_chave || '').toLowerCase();
-    let key=String(data.chave_pix).trim();
-    if(['cpf','cnpj'].includes(keyType)) key=key.replace(/\D/g,'');
-    if(['telefone','celular','phone'].includes(keyType)) {
-      const digits=key.replace(/\D/g,'');key='+'+([10,11].includes(digits.length)?'55'+digits:digits);
-    }
-    if(keyType==='email')key=key.toLowerCase();
-    if(!key || key.length>77)throw new Error('Revise a chave Pix da casa.');
-    const config={...data,chave_pix:key};
+    const key = normalizePixKey(data.chave_pix, data.tipo_chave);
+    const { data: leader } = await sb.from('perfil_lider').select('cidade').eq('id', order.tenant_id).maybeSingle();
+    const config = { ...data, chave_pix: key, cidade: leader?.cidade };
     const txid = String(order.id).replace(/-/g, '').slice(0, 25);
-    return { ...config, cidade: 'BRASIL', txid, payload: buildPixPayload(config, Number(order.total), txid, ''), confirmacao: 'responsavel' };
+    return { ...config, txid, payload: buildPixPayload(config, Number(order.total), txid, ''), confirmacao: 'responsavel' };
   }
   app.get('/api/v1/store/me', async (req,res) => {
     try {

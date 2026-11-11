@@ -58,8 +58,8 @@ export default function PixPaymentModal({
 
     if (canvasRef.current) {
       QRCode.toCanvas(canvasRef.current, payload, {
-        width: 192,
-        margin: 2,
+        width: 240,
+        margin: 4,
         color: { dark: '#000000', light: '#ffffff' },
         errorCorrectionLevel: 'M',
       }).catch(() => setPixError('Não foi possível gerar a imagem. Use o código Pix Copia e Cola.'));
