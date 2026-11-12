@@ -7,6 +7,7 @@ import { createRateLimit } from "./rateLimit.js";
 type Actor = { user: User; profile?: { id: string; tenant_id: string | null; nome_terreiro: string | null; zelador: string | null } };
 type Authenticate = (req: Request, res: Response) => Promise<Actor | null>;
 const summaryFields = "id,protocol,subject,house_name,owner_name,status,waiting_on,created_at,updated_at";
+const detailFields = `${summaryFields},description` as const;
 const messageFields = "id,author_role,body,created_at";
 const limitWrites = createRateLimit({
   windowMs: 60_000, max: 30, keyPrefix: "support-messages",
@@ -39,7 +40,7 @@ export function registerAdminSupportRoutes(app: Express, db: SupabaseClient, aut
 function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, authenticate: Authenticate, admin: boolean) {
   const scoped = (req: Request, res: Response, actor: Actor) => {
     const id = String(req.params.id || "");
-    let query = db.from("support_tickets").select(summaryFields + ",description").eq("id", id);
+    let query = db.from("support_tickets").select(detailFields).eq("id", id);
     if (!admin) query = query.eq("owner_id", actor.user.id);
     return query.maybeSingle().then(({ data, error }) => {
       if (error) throw error;
@@ -146,7 +147,7 @@ function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, au
       .update({ status, updated_at: new Date().toISOString(), ...(status === "open" ? { waiting_on: "support" } : {}) })
       .eq("id", ticket.id).eq("updated_at", version).eq("status", ticket.status);
     if (!admin) update = update.eq("owner_id", actor.user.id);
-    const { data, error } = await update.select(summaryFields + ",description").maybeSingle();
+    const { data, error } = await update.select(detailFields).maybeSingle();
     if (error) throw error;
     if (!data) return res.status(409).json({ error: "O chamado foi atualizado. Confira o histórico e tente novamente." });
     return res.json({ ticket: data });
