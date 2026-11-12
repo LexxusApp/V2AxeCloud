@@ -3,11 +3,12 @@ import type { Express, Request, RequestHandler, Response } from "express";
 import { requireAuthOrRespond } from "./requireAuth.js";
 import { isValidUuid, resolveFilhoHouseRefs } from "./tenantAccess.js";
 import { createRateLimit } from "./rateLimit.js";
+import { isSupportCategory } from "../../lib/supportCategories.js";
 
 type Actor = { user: User; profile?: { id: string; tenant_id: string | null; nome_terreiro: string | null; zelador: string | null } };
 type Authenticate = (req: Request, res: Response) => Promise<Actor | null>;
 const summaryFields = "id,protocol,subject,house_name,owner_name,status,waiting_on,created_at,updated_at";
-const detailFields = `${summaryFields},description` as const;
+const detailFields = `${summaryFields},description,category` as const;
 const messageFields = "id,author_role,body,created_at";
 const limitWrites = createRateLimit({
   windowMs: 60_000, max: 30, keyPrefix: "support-messages",
@@ -100,6 +101,10 @@ function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, au
       const id = clean(req.body?.id);
       const subject = clean(req.body?.subject);
       const description = clean(req.body?.description);
+      const category = clean(req.body?.category);
+      if (category && !isSupportCategory(category)) {
+        return res.status(422).json({ error: "Selecione um tipo de solicitação válido." });
+      }
       if (!profile || !isValidUuid(id) || subject.length < 3 || subject.length > 120 ||
           description.length < 5 || description.length > 4000) {
         return res.status(422).json({ error: "Informe o assunto e descreva o problema." });
@@ -107,13 +112,13 @@ function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, au
       const { error } = await db.from("support_tickets").upsert({
         id, owner_id: user.id, tenant_id: profile.tenant_id || profile.id,
         house_name: profile.nome_terreiro || "Terreiro",
-        owner_name: profile.zelador || user.email || "Zeladoria", subject, description,
+        owner_name: profile.zelador || user.email || "Zeladoria", subject, description, category: category || null,
       }, { onConflict: "id", ignoreDuplicates: true });
       if (error) throw error;
       const { data, error: readError } = await db.from("support_tickets")
-        .select("id,subject,description").eq("id", id).eq("owner_id", user.id).maybeSingle();
+        .select("id,subject,description,category").eq("id", id).eq("owner_id", user.id).maybeSingle();
       if (readError) throw readError;
-      if (!data || data.subject !== subject || data.description !== description) {
+      if (!data || data.subject !== subject || data.description !== description || data.category !== (category || null)) {
         return res.status(409).json({ error: "Este protocolo já está em uso." });
       }
       return res.status(201).json({ id });

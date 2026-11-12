@@ -29,6 +29,7 @@ import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
 import { isPaidMensalidadeFinanceRow } from '../lib/mensalidadeFinanceRow';
 import { useNotificationInbox } from '../hooks/useNotificationInbox';
+import { useSupportRealtime } from '../hooks/useSupportRealtime';
 import { canonicalNotificationId, notificationDay, notificationDisplayDate, notificationInstant, formatNotificationDate, sortNotificationDates } from '../lib/notificationInbox';
 import {
   GIRA_REMINDER_FEATURE_NOTIF_ID,
@@ -572,6 +573,7 @@ export default function NotificationPanel({
   const scope = `${userId || ''}:${tenantId || ''}`;
   const { store: inbox, snapshot: inboxState } = useNotificationInbox(userId, tenantId);
   const reloadRef = useRef<() => void>(() => {});
+  useSupportRealtime(supabase, !isFilho && tenantId ? userId : null, () => reloadRef.current());
 
   useEffect(() => {
     setRawItems([]);
@@ -606,8 +608,13 @@ export default function NotificationPanel({
     }
     let cancelled = false;
     let inFlight = false;
-    const load = async () => {
-      if (inFlight) return;
+    let queued = false;
+    const load = async (queueIfBusy = false) => {
+      if (cancelled) return;
+      if (inFlight) {
+        queued ||= queueIfBusy;
+        return;
+      }
       inFlight = true;
       setLoading(true);
       try {
@@ -649,10 +656,16 @@ export default function NotificationPanel({
         console.warn('[notifications] load:', error);
       } finally {
         inFlight = false;
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          if (queued) {
+            queued = false;
+            void load();
+          }
+        }
       }
     };
-    reloadRef.current = () => { void load(); void inbox.sync(); };
+    reloadRef.current = () => { void load(true); void inbox.sync(); };
     void load();
     const interval = window.setInterval(() => { if (!document.hidden) void load(); }, 30_000);
     const refreshOnFocus = () => void load();

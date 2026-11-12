@@ -352,7 +352,9 @@ export default function AppViewRouter({
     case "radar":
       return <Radar />;
     case "suporte":
-      return <Support />;
+      return <Support userId={session.user.id} requester={{
+        name: tenantData?.zelador, house: tenantData?.nome_terreiro || tenantData?.nome,
+      }} />;
     case "library":
       return (
         <Library

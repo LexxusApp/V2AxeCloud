@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { AppPageShell } from '../components/app/AppTopNav';
 import { AxePageHeader } from '../components/shared/AxePageScaffold';
 import { SupportDesk } from '../components/support/SupportDesk';
+import { useSupportRealtime } from '../hooks/useSupportRealtime';
+import { supabase } from '../lib/supabase';
+import type { SupportRequester } from '../components/support/SupportIntake';
 import { authFetch } from '../lib/authenticatedFetch';
 import { SUPPORT_OPEN_TICKET, takeSupportTicket } from '../lib/supportNavigation';
 
@@ -12,7 +15,9 @@ async function supportRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return data;
 }
 
-export default function Support() {
+export default function Support({ userId, requester }: { userId: string; requester: SupportRequester }) {
+  const [activityVersion, setActivityVersion] = useState(0);
+  useSupportRealtime(supabase, userId, () => setActivityVersion(value => value + 1));
   const [ticket, setTicket] = useState<{ id: string }>();
   useEffect(() => {
     const open = () => {
@@ -25,8 +30,8 @@ export default function Support() {
   }, []);
   return <AppPageShell>
     <div className="space-y-6">
-      <AxePageHeader title="Suporte" description="Abra um chamado e acompanhe as respostas da equipe AxéCloud." />
-      <SupportDesk request={supportRequest} requestedTicket={ticket} />
+      <AxePageHeader title="Suporte" description="Tire dúvidas sobre o AxéCloud e acompanhe seus atendimentos." />
+      <SupportDesk request={supportRequest} requestedTicket={ticket} requester={requester} activityVersion={activityVersion} />
     </div>
   </AppPageShell>;
 }

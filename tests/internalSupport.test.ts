@@ -80,9 +80,10 @@ test('internal support preserves the thread, sends one reply alert and isolates 
     return { status: response.status, ...await response.json() };
   }
   try {
-    const ticket = { id: randomUUID(), subject: 'Acesso ao financeiro', description: 'Preciso de ajuda no financeiro.' };
+    const ticket = { id: randomUUID(), subject: 'Acesso ao financeiro', description: 'Preciso de ajuda no financeiro.', category: 'financeiro' };
     assert.equal((await call(support)).status, 401);
     assert.equal((await call(support, child, ticket)).status, 403);
+    assert.equal((await call(support, owner, { ...ticket, category: 'outra' })).status, 422);
     assert.equal((await call(support, owner, ticket)).status, 201);
     assert.equal((await call(support, owner, ticket)).status, 201);
     assert.equal((await call(support, owner)).tickets.length, 1);
@@ -97,6 +98,7 @@ test('internal support preserves the thread, sends one reply alert and isolates 
     assert.equal((await call(adminThread, admin, reply)).status, 201);
     const thread = await call(support + '/' + ticket.id, owner);
     assert.equal(thread.ticket.description, ticket.description);
+    assert.equal(thread.ticket.category, 'financeiro');
     assert.equal(thread.ticket.protocol, 1);
     assert.equal(thread.ticket.waiting_on, 'owner');
     assert.equal(thread.messages.length, 1);

@@ -8,6 +8,8 @@ import { planExpiryLabel, type GalleryUsage } from "./shellSummary";
 import "./remote/shell";
 import "./shell-summary.css";
 import NotificationCenter, { type HouseNotification } from "./NotificationCenter";
+import { supabase } from "../../src/lib/supabase";
+import { useSupportRealtime } from "../../src/hooks/useSupportRealtime";
 import { useNotificationInbox } from "../../src/hooks/useNotificationInbox";
 import { canonicalNotificationId } from "../../src/lib/notificationInbox";
 import PageLoading from "../shared/PageLoading";
@@ -474,6 +476,11 @@ function Prototype() {
   }, []);
   const [sourceNotifications] = useRemoteState<HouseNotification[]>("notifications", []);
   const { userId, tenantId, profile } = previewSession();
+  const [supportActivity, setSupportActivity] = useState(0);
+  useSupportRealtime(supabase, profile.is_co_admin ? null : userId, () => {
+    setSupportActivity(value => value + 1);
+    void loadResource("notifications", true);
+  });
   const { store: noticeInbox, snapshot: noticeState } = useNotificationInbox(
     profile.is_co_admin ? null : userId, tenantId,
   );
@@ -1205,7 +1212,7 @@ function Prototype() {
                                           : tab === "settings"
                                             ? "A identidade da casa e os canais que aproximam a corrente."
                                             : tab === "suporte"
-                                              ? "Acompanhe o andamento dos seus chamados e as respostas da equipe AxéCloud."
+                                              ? "Tire dúvidas sobre o AxéCloud e acompanhe seus atendimentos."
                                               : tab === "library"
                                                 ? "Leituras da corrente e estudos reservados para cada caminho."
                                                 : "Uma navegação mais clara para cada rotina da casa."}
@@ -1709,7 +1716,8 @@ function Prototype() {
                     )}
                     {tab === "suporte" && (
                       isUserCoAdmin ? <p>O suporte da plataforma é atendido com a conta do zelador.</p> : (
-                        <SupportDesk request={requestSupport} requestedTicket={supportRequest} />
+                        <SupportDesk request={requestSupport} requestedTicket={supportRequest} activityVersion={supportActivity}
+                          requester={{ name: profile.nome_zelador || profile.zelador, house: profile.nome_terreiro || profile.nome }} />
                       )
                     )}
                   </React.Suspense>

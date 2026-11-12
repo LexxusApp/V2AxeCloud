@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Inbox, LifeBuoy, Plus, RefreshCw, RotateCcw, UserRound } from 'lucide-react';
+import { SupportIntake, type SupportDraft, type SupportRequester } from './SupportIntake';
+import { supportCategories, type SupportCategory } from '../../../lib/supportCategories';
 import './supportDesk.css';
 
 type Status = 'open' | 'closed';
@@ -8,15 +10,18 @@ type Ticket = {
   status: Status; waiting_on: 'owner' | 'support'; created_at: string; updated_at: string;
 };
 type Message = { id: string; author_role: 'owner' | 'support'; body: string; created_at: string };
-type Thread = { ticket: Ticket & { description: string }; messages: Message[] };
+type Thread = { ticket: Ticket & { description: string; category: SupportCategory | null }; messages: Message[] };
 type TicketList = { tickets: Ticket[]; total: number; hasMore: boolean };
 type Props = {
   admin?: boolean;
   request: <T>(path: string, init?: RequestInit) => Promise<T>;
   requestedTicket?: { id: string };
+  requester?: SupportRequester;
+  activityVersion?: number;
 };
 
 const pageSize = 12;
+const emptyDraft: SupportDraft = { category: '', subject: '', description: '' };
 const day = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'America/Sao_Paulo' });
 const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' });
 const protocol = (ticket: Ticket) => 'AX-' + String(ticket.protocol).padStart(6, '0');
@@ -81,14 +86,13 @@ function TicketTable({ tickets, admin, open }: { tickets: Ticket[]; admin: boole
   </table>;
 }
 
-export function SupportDesk({ admin = false, request, requestedTicket }: Props) {
+export function SupportDesk({ admin = false, request, requestedTicket, requester, activityVersion = 0 }: Props) {
   const base = admin ? '/api/admin-console/support' : '/api/v1/support';
   const [selected, setSelected] = useState<string | null>(requestedTicket?.id || null);
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(!admin && !requestedTicket);
   const [filter, setFilter] = useState<Status>('open');
   const [page, setPage] = useState(0);
-  const [subject, setSubject] = useState('');
-  const [description, setDescription] = useState('');
+  const [draft, setDraft] = useState(emptyDraft);
   const [reply, setReply] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -98,8 +102,8 @@ export function SupportDesk({ admin = false, request, requestedTicket }: Props) 
   const heading = useRef<HTMLHeadingElement>(null);
   const moveFocus = useRef(false);
   const showingList = !creating && !selected;
-  const list = usePolling<TicketList>(request, showingList ? base + '?status=' + filter + '&page=' + page + '&limit=' + pageSize : null, revision, 15_000).result;
-  const conversation = usePolling<Thread>(request, selected ? base + '/' + selected : null, revision, 7_500);
+  const list = usePolling<TicketList>(request, showingList ? base + '?status=' + filter + '&page=' + page + '&limit=' + pageSize : null, revision + activityVersion, 15_000).result;
+  const conversation = usePolling<Thread>(request, selected ? base + '/' + selected : null, revision + activityVersion, 7_500);
   const thread = conversation.result?.data;
 
   useEffect(() => { if (requestedTicket) open(requestedTicket.id); }, [requestedTicket]);
@@ -125,17 +129,18 @@ export function SupportDesk({ admin = false, request, requestedTicket }: Props) 
 
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (busy || (creating ? subject.trim().length < 3 || description.trim().length < 5 : !thread || thread.ticket.status === 'closed' || !reply.trim())) return;
-    const draft = JSON.stringify(creating ? [subject.trim(), description.trim()] : [selected, reply.trim()]);
-    const id = attempt.current?.draft === draft ? attempt.current.id : crypto.randomUUID();
-    attempt.current = { id, draft };
+    if (busy || (creating ? !draft.category || draft.subject.trim().length < 3 || draft.description.trim().length < 5 : !thread || thread.ticket.status === 'closed' || !reply.trim())) return;
+    const fingerprint = JSON.stringify(creating
+      ? [draft.category, draft.subject.trim(), draft.description.trim()]
+      : [selected, reply.trim()]);
+    const id = attempt.current?.draft === fingerprint ? attempt.current.id : crypto.randomUUID();
+    attempt.current = { id, draft: fingerprint };
     setBusy(true);
     setError('');
     try {
       if (creating) {
-        await request(base, post({ id, subject, description }));
-        setSubject('');
-        setDescription('');
+        await request(base, post({ id, ...draft }));
+        setDraft(emptyDraft);
         setPage(0);
         setFilter('open');
         open(id);
@@ -198,16 +203,14 @@ export function SupportDesk({ admin = false, request, requestedTicket }: Props) 
         </div>)}
       </div>
     </> : <>
-      <button className="sd-back" type="button" disabled={busy} onClick={() => open(null)}><ArrowLeft size={16} /> {admin ? 'Todos os chamados' : 'Meus chamados'}</button>
       {creating ? <>
-        <header className="sd-heading"><h2 ref={heading} tabIndex={-1}>Novo chamado</h2></header>
-        <form className="sd-panel sd-new" onSubmit={send}>
-          <label>Assunto<input required minLength={3} maxLength={120} value={subject} disabled={busy} placeholder="Ex. Dúvida sobre mensalidades" onChange={event => setSubject(event.target.value)} /></label>
-          <label>Descrição<textarea required minLength={5} maxLength={4000} rows={6} value={description} disabled={busy} placeholder="Descreva o que aconteceu e em qual parte do sistema." onChange={event => setDescription(event.target.value)} /></label>
-          {error && <p className="sd-error" role="alert">{error}</p>}
-          <div className="sd-actions"><button className="sd-button" type="button" disabled={busy} onClick={() => open(null)}>Cancelar</button><button className="sd-button is-primary" disabled={busy}>{busy ? 'Abrindo…' : 'Abrir chamado'}</button></div>
-        </form>
+        <header className="sd-heading">
+          <h2 ref={heading} tabIndex={-1}>Abrir chamado</h2>
+          <button className="sd-button" type="button" disabled={busy} onClick={() => open(null)}><Inbox size={17} /> Meus chamados</button>
+        </header>
+        <SupportIntake draft={draft} onDraft={setDraft} requester={requester} busy={busy} error={error} onSubmit={send} />
       </> : <>
+        <button className="sd-back" type="button" disabled={busy} onClick={() => open(null)}><ArrowLeft size={16} /> {admin ? 'Todos os chamados' : 'Meus chamados'}</button>
         {conversation.result?.error && <p className="sd-feedback" role="alert">{conversation.result.error} <button className="sd-button" onClick={refresh}>Tentar novamente</button></p>}
         {!thread && !conversation.result?.error && <p className="sd-feedback" role="status">Carregando chamado…</p>}
         {thread && <>
@@ -230,6 +233,7 @@ export function SupportDesk({ admin = false, request, requestedTicket }: Props) 
               <div><dt>Aberto em</dt><dd>{dateTime.format(new Date(thread.ticket.created_at))}</dd></div>
               <div><dt>Última atualização</dt><dd>{dateTime.format(new Date(thread.ticket.updated_at))}</dd></div>
               <div><dt>Terreiro</dt><dd>{thread.ticket.house_name}</dd></div>
+              {thread.ticket.category && <div><dt>Tipo de solicitação</dt><dd>{supportCategories[thread.ticket.category]}</dd></div>}
               {admin && <div><dt>Solicitante</dt><dd>{thread.ticket.owner_name}</dd></div>}
             </dl>
           </section>

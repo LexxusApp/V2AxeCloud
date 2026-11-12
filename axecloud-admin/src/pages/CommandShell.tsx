@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { admin, auditStatusBadgeClass, eventTypeBadgeClass } from "@/lib/adminTheme";
+import { SUPPORT_ADMIN_AUDIENCE, useSupportRealtime } from "../../../src/hooks/useSupportRealtime";
 import { SupportDesk } from "../../../src/components/support/SupportDesk";
 import { WhatsAppPanel } from "./WhatsAppPanel";
 import { WhatsAppInboxPanel } from "./WhatsAppInboxPanel";
@@ -161,6 +162,8 @@ export function CommandShell({ session }: { session: Session }) {
     return "overview";
   }, []);
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [supportActivity, setSupportActivity] = useState(0);
+  useSupportRealtime(supabase, tab === "support" ? SUPPORT_ADMIN_AUDIENCE : null, () => setSupportActivity(value => value + 1));
   const [overview, setOverview] = useState<Overview | null>(null);
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [plansCatalog, setPlansCatalog] = useState<Record<string, unknown>>({});
@@ -621,7 +624,7 @@ export function CommandShell({ session }: { session: Session }) {
         )}
         {tab === "demo" && <DemoAccountPanel />}
         {tab === "failures" && <TenantFailuresPanel onMessage={setMsg} />}
-        {tab === "support" && <SupportDesk admin request={apiJson} />}
+        {tab === "support" && <SupportDesk admin request={apiJson} activityVersion={supportActivity} />}
         {tab === "payments" && <PaymentsPanel />}
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}

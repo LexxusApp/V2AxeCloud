@@ -1,0 +1,43 @@
+.si-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.si-form { overflow: hidden; }
+.si-header { display: flex; align-items: flex-start; gap: 12px; padding: 21px 23px 17px; }
+.si-header svg, .si-faq h3 svg, .si-gira h3 svg { color: var(--sd-primary); flex-shrink: 0; }
+.si-header h3 { font-size: 1.04rem; font-weight: 750; }
+.si-header p { margin-top: 4px; color: var(--sd-muted); font-size: .83rem; }
+.si-requester {
+  display: flex; flex-wrap: wrap; gap: 10px 30px; padding: 12px 23px;
+  background: var(--sd-tint); border-block: 1px solid var(--sd-border);
+}
+.si-requester dt { font-size: .74rem; color: var(--sd-muted); }
+.si-requester dd { font-size: .87rem; font-weight: 650; }
+.si-form form { display: grid; gap: 14px; padding: 19px 23px 22px; }
+.si-form label { display: grid; gap: 6px; }
+.support-desk .si-form select {
+  width: 100%; padding: 10px 12px; font: inherit; font-size: .95rem; font-weight: 400;
+  color: var(--sd-text); background: var(--sd-paper); border: 1px solid var(--sd-border); border-radius: 7px;
+}
+.si-help { display: grid; gap: 14px; }
+.si-help h3 { display: flex; align-items: center; gap: 9px; font-size: .94rem; font-weight: 750; }
+.si-guide { padding: 17px 19px; border-radius: 12px; background: #194636; color: #fff; }
+.si-guide ol { list-style: decimal; padding-left: 20px; margin: 11px 0 0; color: #e4eee8; font-size: .83rem; line-height: 1.6; }
+.si-guide li + li { margin-top: 3px; }
+.si-faq { padding: 16px 18px 7px; }
+.si-faq h3 { margin-bottom: 9px; }
+.si-faq details { border-top: 1px solid var(--sd-border); }
+.si-faq summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; cursor: pointer; font-size: .82rem; font-weight: 650; list-style: none; }
+.si-faq summary::-webkit-details-marker { display: none; }
+.si-faq summary svg { flex-shrink: 0; color: var(--sd-muted); }
+.si-faq details[open] summary svg { transform: rotate(180deg); }
+.si-faq details p { padding: 0 0 11px; font-size: .81rem; line-height: 1.5; color: var(--sd-muted); }
+.si-gira { border-inline-start: 3px solid #b79347; padding: 4px 0 5px 13px; }
+.si-gira p { margin-top: 4px; color: var(--sd-muted); font-size: .81rem; line-height: 1.5; }
+.si-form select:focus-visible, .si-faq summary:focus-visible { outline: 2px solid #438c72; outline-offset: 3px; }
+@container (max-width: 760px) {
+  .si-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .si-form form, .si-header, .si-requester { padding-inline: 15px; }
+}
