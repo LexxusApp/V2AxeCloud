@@ -1,4 +1,4 @@
-import {receiptRequest,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
+import {openReceiptInbox,receiptRequest,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   Flame,
   HandHeart,
   Info,
+  LifeBuoy,
   RefreshCw,
   ShoppingBag,
   Sparkles,
@@ -22,6 +23,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { authFetch } from '../lib/authenticatedFetch';
+import { openSupportTicket } from '../lib/supportNavigation';
 import { fetchMinhasParticipacoes } from '../lib/giraOperations';
 import { resolveStoreTenantPk } from '../lib/resolveStoreTenantPk';
 import { loadObrigacoesSeen } from '../hooks/useObrigacoesUnread';
@@ -39,12 +41,14 @@ export const COMPLETE_WHATSAPP_NOTIF_ID = 'account_complete_whatsapp_v1';
 
 export interface AppNotification {
   id: string;
-  type: 'payment' | 'reza' | 'event' | 'obligation' | 'store' | 'wafail' | 'library' | 'system' | 'trial' | 'info';
+  type: 'payment' | 'reza' | 'event' | 'obligation' | 'store' | 'wafail' | 'library' | 'system' | 'trial' | 'info' | 'support';
   title: string;
   body: string;
   read: boolean;
   created_at: string;
   dateLabel?: string;
+  ticketId?: string;
+  target?: string;
 }
 
 interface NotificationPanelProps {
@@ -70,6 +74,10 @@ const TYPE_META: Record<
   AppNotification['type'],
   { icon: ReactNode; label: string; iconClass: string; surfaceClass: string }
 > = {
+  support: {
+    icon: <LifeBuoy className="h-4 w-4" />, label: 'Suporte',
+    iconClass: 'text-emerald-300', surfaceClass: 'border-emerald-400/20 bg-emerald-400/10',
+  },
   payment: {
     icon: <CreditCard className="h-4 w-4" />,
     label: 'Mensalidade',
@@ -182,6 +190,30 @@ function notificationTarget(type: AppNotification['type'], isFilho: boolean): st
 }
 
 type RawNotification = Omit<AppNotification, 'read'>;
+
+async function loadHouseNotifications(tenantId: string): Promise<RawNotification[]> {
+  const response = await authFetch(`/api/notifications?tenantId=${encodeURIComponent(tenantId)}&limit=100`);
+  const result = await response.json();
+  if (!response.ok || !Array.isArray(result.data)) throw new Error('Não foi possível carregar os avisos da casa.');
+  return result.data.map((row: { id: string; tipo: string; mensagem: string; created_at: string }) => {
+    const confirmation = row.tipo === 'gira_presenca_confirmada';
+    const request = row.tipo === 'gira_presenca_solicitada';
+    const library = row.tipo === 'biblioteca_duvida';
+    return {
+      id: `aviso:${row.id}`,
+      type: confirmation || request ? 'event' : library ? 'library' : 'info',
+      title: confirmation ? 'Presença confirmada na gira' : request ? 'Pedido de presença na gira' : library ? 'Dúvida na biblioteca' : 'Aviso da casa',
+      body: row.mensagem || '', created_at: row.created_at,
+    };
+  });
+}
+
+async function loadSupportNotifications(): Promise<RawNotification[]> {
+  const response = await authFetch('/api/v1/support/notifications');
+  const result = await response.json();
+  if (!response.ok || !Array.isArray(result.data)) throw new Error('Não foi possível carregar os avisos do suporte.');
+  return result.data;
+}
 
 function buildTrialFollowup(tenantData: NotificationPanelProps['tenantData']): RawNotification | null {
   if (tenantData?.is_trial !== true || !tenantData.expires_at) return null;
@@ -579,14 +611,18 @@ export default function NotificationPanel({
       inFlight = true;
       setLoading(true);
       try {
-        const [base,receipts]=await Promise.allSettled([
-          isFilho?loadFilhoNotifications(tenantId):loadZeladorNotifications(tenantId,userId??null),
+        const [base, receipts, house, support] = await Promise.allSettled([
+          isFilho ? loadFilhoNotifications(tenantId) : loadZeladorNotifications(tenantId, userId ?? null),
           receiptRequest(`/api/v1/financial/comprovantes/eventos?tenantId=${encodeURIComponent(tenantId)}`),
+          isFilho ? Promise.resolve([]) : loadHouseNotifications(tenantId),
+          isFilho ? Promise.resolve([]) : loadSupportNotifications(),
         ]);
         const result=base.status==='fulfilled'?base.value:{items:[],partial:true};
-        const receiptItems=receipts.status==='fulfilled'?(receipts.value.data||[]):[];
-        if(receipts.status==='rejected')result.partial=true;
-        const items = [...result.items,...receiptItems];
+        const items = [...result.items];
+        if (receipts.status === 'fulfilled') items.push(...(receipts.value.data || []));
+        if (house.status === 'fulfilled') items.push(...house.value);
+        if (support.status === 'fulfilled') items.push(...support.value);
+        result.partial ||= [receipts, house, support].some(source => source.status === 'rejected');
         if (!isFilho) {
           const trialFollowup = buildTrialFollowup(tenantData);
           if (trialFollowup) items.unshift(trialFollowup);
@@ -618,11 +654,15 @@ export default function NotificationPanel({
     };
     reloadRef.current = () => { void load(); void inbox.sync(); };
     void load();
-    const interval = window.setInterval(() => void load(), 120_000);
+    const interval = window.setInterval(() => { if (!document.hidden) void load(); }, 30_000);
+    const refreshOnFocus = () => void load();
+    window.addEventListener('focus', refreshOnFocus);
     const refreshReceipt=()=>void load();window.addEventListener(RECEIPT_UPDATED,refreshReceipt);
     return () => {
       cancelled = true;
-      window.clearInterval(interval);window.removeEventListener(RECEIPT_UPDATED,refreshReceipt);
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshOnFocus);
+      window.removeEventListener(RECEIPT_UPDATED,refreshReceipt);
     };
   }, [isFilho, tenantId, tenantData?.expires_at, tenantData?.is_trial, tenantData?.whatsapp_missing, userId, whatsappResolved, inbox, scope]);
 
@@ -666,7 +706,15 @@ export default function NotificationPanel({
       setFeatureModalOpen(true);
       return;
     }
-    onNavigate?.(notificationTarget(notification.type, isFilho));
+    if (notification.ticketId) {
+      openSupportTicket(notification.ticketId, onNavigate);
+      return;
+    }
+    if (notification.target === 'financial-mensalidades' && !isFilho) {
+      openReceiptInbox(onNavigate);
+      return;
+    }
+    onNavigate?.(notification.target || notificationTarget(notification.type, isFilho));
   };
 
   const popover = open ? (

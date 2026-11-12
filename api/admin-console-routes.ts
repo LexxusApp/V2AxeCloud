@@ -51,6 +51,7 @@ import { generateSecureAccessPassword } from "./lib/accessPassword.js";
 import { validateStrongPassword } from "../lib/passwordPolicy.js";
 import { rejectCompromisedPassword } from "./lib/pwnedPassword.js";
 import { registerDiretorioClaimAdminRoutes } from "./lib/diretorioClaimAdminRoutes.js";
+import { registerAdminSupportRoutes } from "./lib/supportRoutes.js";
 import { registerAdminPaymentRoutes } from "./lib/adminPaymentRoutes.js";
 import { registerFeatureFailureRoutes } from "./lib/featureFailureMonitor.js";
 
@@ -124,6 +125,7 @@ async function requireConsoleAdmin(
 
 export function registerAdminConsoleRoutes(app: Express, deps: AdminConsoleRouteDeps) {
   registerDiretorioClaimAdminRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
+  registerAdminSupportRoutes(app, deps.supabaseAdmin, (req, res) => requireConsoleAdmin(deps, req, res));
   registerAdminPaymentRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
   registerFeatureFailureRoutes(app, deps, (req, res) => requireConsoleAdmin(deps, req, res));
 

@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {AlertCircle,CheckCircle2,Clock3,FileImage,Loader2,X} from 'lucide-react';
 import BodyPortal from '../BodyPortal';
-import {receiptAmountOnDate,receiptStatusLabel,validateReceiptDecision,type ReceiptReview} from '../../../lib/receiptReview';
+import {receiptAmountOnDate,receiptStatusLabel,validateReceiptDecision,receiptNeedsJustification,type ReceiptReview} from '../../../lib/receiptReview';
 import {receiptRequest,signalReceiptUpdate,type ReceiptFeed} from '../../lib/receiptReviewClient';
 import {showHouseToast} from '../../lib/houseToast';
 const input='w-full rounded-xl border border-[#C8C0AF] bg-white px-3 py-2.5 text-sm text-[#17251D] focus:outline-none focus:ring-2 focus:ring-amber-500';
@@ -10,14 +10,14 @@ const money=(v:unknown)=>new Intl.NumberFormat('pt-BR',{style:'currency',currenc
 const dateTime=(s:string)=>new Date(s).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'});
 function ReceiptDialog({row,tenantId,admin,onClose,onChanged}:{row:ReceiptReview;tenantId:string;admin:boolean;onClose:()=>void;onChanged:()=>void}){
   const dialog=useRef<HTMLDialogElement>(null);const [image,setImage]=useState(''),[imageError,setImageError]=useState(''),[error,setError]=useState(''),[saving,setSaving]=useState(false);
-  const [fields,setFields]=useState({valor:row.analysis.valor==null?'':String(row.analysis.valor),data_pagamento:String(row.analysis.data||'').slice(0,10),beneficiario:row.analysis.beneficiario||'',id_transacao:row.analysis.id_transacao||'',motivo:'',confirmo_recebimento:false});
+  const [fields,setFields]=useState({valor:'',data_pagamento:'',beneficiario:'',id_transacao:'',motivo:'',confirmo_recebimento:false});
   const editable=admin&&row.status==='em_analise';
   useEffect(()=>{dialog.current?.showModal();return()=>dialog.current?.close();},[]);
   useEffect(()=>{if(row.legacy)return;let alive=true;void receiptRequest(`/api/v1/financial/comprovantes/${row.id}/arquivo?tenantId=${encodeURIComponent(tenantId)}`).then(body=>{if(!/^https?:\/\//.test(body.url))throw Error('Endereço do arquivo inválido.');if(alive)setImage(body.url);}).catch(e=>{if(alive)setImageError(e.message);});return()=>{alive=false;};},[row.id,tenantId,row.legacy]);
   async function decide(kind:'aprovar'|'rejeitar'){
     if(saving)return;setError('');
     try{
-      const payload=kind==='aprovar'?validateReceiptDecision(fields,receiptAmountOnDate(row,fields.data_pagamento),row.alerts.length>0||row.analysis_status!=='concluida',new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):{motivo:fields.motivo.trim()};
+      const payload=kind==='aprovar'?validateReceiptDecision(fields,receiptAmountOnDate(row,fields.data_pagamento),receiptNeedsJustification(row),new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):{motivo:fields.motivo.trim()};
       if(kind==='rejeitar'&&fields.motivo.trim().length<3)throw Error('Informe o motivo da rejeição.');
       setSaving(true);await receiptRequest(`/api/v1/financial/comprovantes/${row.id}/${kind}?tenantId=${encodeURIComponent(tenantId)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       showHouseToast(kind==='aprovar'?'Recebimento confirmado e mensalidade quitada.':'Comprovante rejeitado. O motivo já está disponível ao membro.');signalReceiptUpdate();onChanged();onClose();
@@ -33,13 +33,12 @@ function ReceiptDialog({row,tenantId,admin,onClose,onChanged}:{row:ReceiptReview
       <section className="min-w-0 space-y-4" aria-label="Conferência do recebimento">
         <div className="rounded-xl border border-[#D8D0BE] bg-[#F4F0E6] p-4"><p className="text-sm">Total integral da mensalidade</p><strong className="text-2xl">{money(receiptAmountOnDate(row,fields.data_pagamento))}</strong><p className="mt-1 text-xs text-[#5F675C]">Competência: {row.competencia?new Date(row.competencia+'T12:00:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'}):'Cadastro financeiro'}</p></div>
         {row.alerts.length>0&&<div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><h3 className="mb-2 flex items-center gap-2 font-bold"><AlertCircle size={17}/>Pontos para conferir</h3><ul className="list-disc space-y-1 pl-5">{row.alerts.map(message=><li key={message}>{message}</li>)}</ul></div>}
-        {row.analysis_status!=='concluida'&&<p className="text-sm text-[#5F675C]">A leitura da IA está {row.analysis_status==='pendente'?'pendente':'indisponível'}. A imagem continua disponível para conferência manual.</p>}
         {editable?<>
-          <p className="text-sm text-[#5F675C]">Confira o crédito na conta do terreiro. A IA apenas sugere os dados abaixo; você pode corrigir a leitura.</p>
+          <p className="text-sm text-[#5F675C]">Confira o crédito na conta do terreiro e preencha os dados do pagamento.</p>
           <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm font-semibold">Valor recebido (R$)<input className={input} inputMode="decimal" value={fields.valor} onChange={e=>setFields({...fields,valor:e.target.value})}/></label><label className="space-y-1 text-sm font-semibold">Data efetiva do pagamento<input className={input} type="date" value={fields.data_pagamento} onChange={e=>setFields({...fields,data_pagamento:e.target.value})}/></label></div>
           <label className="block space-y-1 text-sm font-semibold">Beneficiário conferido<input className={input} maxLength={200} value={fields.beneficiario} onChange={e=>setFields({...fields,beneficiario:e.target.value})}/></label>
           <label className="block space-y-1 text-sm font-semibold">Identificador bancário / E2E<input className={input} maxLength={128} value={fields.id_transacao} onChange={e=>setFields({...fields,id_transacao:e.target.value})}/></label>
-          <label className="block space-y-1 text-sm font-semibold">Motivo / justificativa<textarea className={input} rows={3} maxLength={500} value={fields.motivo} onChange={e=>setFields({...fields,motivo:e.target.value})}/><span className="block text-xs font-normal text-[#5F675C]">Obrigatório para rejeitar ou confirmar quando houver alertas ou leitura indisponível.</span></label>
+          <label className="block space-y-1 text-sm font-semibold">Motivo / justificativa<textarea className={input} rows={3} maxLength={500} value={fields.motivo} onChange={e=>setFields({...fields,motivo:e.target.value})}/><span className="block text-xs font-normal text-[#5F675C]">{receiptNeedsJustification(row) ? 'Obrigatório para este comprovante antigo e para rejeitar.' : 'Obrigatório para rejeitar.'}</span></label>
           <label className="flex min-h-11 items-start gap-3 rounded-xl border border-[#C8C0AF] p-3 text-sm"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[#175B43]" checked={fields.confirmo_recebimento} onChange={e=>setFields({...fields,confirmo_recebimento:e.target.checked})}/><span>Conferi e confirmo o recebimento do valor integral na conta do terreiro.</span></label>
           {error&&<p role="alert" className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-900">{error}</p>}
           <div className="flex flex-wrap gap-3"><button type="button" disabled={saving||!fields.confirmo_recebimento} onClick={()=>void decide('aprovar')} className={action+' flex-1 border-[#175B43] bg-[#175B43] text-white'}>{saving?<Loader2 className="h-4 w-4 animate-spin"/>:<CheckCircle2 size={18}/>}Confirmar recebimento</button><button type="button" disabled={saving} onClick={()=>void decide('rejeitar')} className={action+' bg-white text-red-800'}>Rejeitar</button></div>

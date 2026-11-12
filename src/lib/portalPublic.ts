@@ -1,4 +1,5 @@
 export type PublicTerreiro = {
+  gerenciada?: boolean;
   slug: string;
   nome: string;
   fotoUrl: string | null;

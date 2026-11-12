@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { apiJson, setAccessToken } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { admin, auditStatusBadgeClass, eventTypeBadgeClass } from "@/lib/adminTheme";
+import { SupportDesk } from "../../../src/components/support/SupportDesk";
 import { WhatsAppPanel } from "./WhatsAppPanel";
 import { WhatsAppInboxPanel } from "./WhatsAppInboxPanel";
 import { TenantDrawer } from "./TenantDrawer";
@@ -620,6 +621,7 @@ export function CommandShell({ session }: { session: Session }) {
         )}
         {tab === "demo" && <DemoAccountPanel />}
         {tab === "failures" && <TenantFailuresPanel onMessage={setMsg} />}
+        {tab === "support" && <SupportDesk admin request={apiJson} />}
         {tab === "payments" && <PaymentsPanel />}
         {tab === "plans" && <PlansEditor initial={plansCatalog} />}
         {tab === "whatsapp" && <WhatsAppPanel />}

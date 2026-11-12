@@ -506,7 +506,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
           <div className="mt-8 pt-6 border-t border-[#1b1813]/8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-center sm:text-left">
               <p className="text-xs font-bold text-[#1b1813]">Ainda precisa de auxílio?</p>
-              <p className="text-xs text-[#1b1813]/60">Nossa equipe de suporte responde diretamente pelo WhatsApp.</p>
+              <p className="text-xs text-[#1b1813]/60">Abra um chamado no menu Suporte e acompanhe as respostas no sistema.</p>
             </div>
             <a
               href="https://wa.me/5511920033501?text=Ol%C3%A1!%20Estou%20com%20d%C3%BAvidas%20sobre%20o%20acesso%20ao%20Ax%C3%A9Cloud."

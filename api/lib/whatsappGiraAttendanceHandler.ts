@@ -258,6 +258,7 @@ export async function applyGiraAttendanceResponse(
       .from("evento_participantes")
       .update({
         status: action,
+        resposta_membro: true,
         responded_at: nowIso,
         justificativa: action === "recusado" ? "Informou ausência via WhatsApp" : null,
       })
@@ -272,6 +273,7 @@ export async function applyGiraAttendanceResponse(
         filho_id: filhoId,
         tenant_id: tenantId,
         status: action,
+        resposta_membro: true,
         responded_at: nowIso,
         checkin_token: checkinToken,
         justificativa: action === "recusado" ? "Informou ausência via WhatsApp" : null,

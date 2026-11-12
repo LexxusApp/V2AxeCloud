@@ -352,13 +352,7 @@ export default function AppViewRouter({
     case "radar":
       return <Radar />;
     case "suporte":
-      return (
-        <Support
-          user={session.user}
-          tenantData={tenantData}
-          setActiveTab={navigateToTab}
-        />
-      );
+      return <Support />;
     case "library":
       return (
         <Library

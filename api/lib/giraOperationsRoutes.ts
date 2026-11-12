@@ -596,6 +596,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
               status: "pendente",
               responded_at: new Date().toISOString(),
               justificativa: "Aguardando aprovação",
+              resposta_membro: true,
             })
             .eq("event_id", eventId)
             .eq("filho_id", filhoId);
@@ -611,6 +612,7 @@ export function registerGiraOperationsRoutes(app: Express, deps: Deps) {
         .from("evento_participantes")
         .update({
           status: targetStatus,
+          resposta_membro: role === "filho",
           responded_at: new Date().toISOString(),
           justificativa: action === "declinar" ? String(req.body?.justificativa || "") : null,
         })

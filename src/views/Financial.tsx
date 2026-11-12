@@ -44,7 +44,7 @@ import FinanceiroBasico from '../components/FinanceiroBasico';
 import CantinaView from '../components/financial/CantinaView';
 import { SacredOverviewView } from '../components/financial/SacredOverviewView';
 import ReceiptReviewPanel from '../components/financial/ReceiptReviewPanel';
-import {useReceiptReviews,RECEIPT_UPDATED} from '../lib/receiptReviewClient';
+import {useReceiptReviews,RECEIPT_UPDATED,OPEN_RECEIPT_INBOX,takeReceiptInboxRequest} from '../lib/receiptReviewClient';
 import { SacredMensalidadesView } from '../components/financial/SacredMensalidadesView';
 import { SacredPixConfigView } from '../components/financial/SacredPixConfigView';
 import { FinancialEntryModal } from '../components/financial/FinancialEntryModal';
@@ -263,6 +263,13 @@ export default function Financial({
     setActiveView(initialView);
   }, [initialView]);
   const [mensalidadesTab, setMensalidadesTab] = useState<'pendentes' | 'pagas' | 'comprovantes'>('pendentes');
+  useEffect(() => {
+    if (activeView !== 'mensalidades') return;
+    const open = () => { if (takeReceiptInboxRequest()) setMensalidadesTab('comprovantes'); };
+    open();
+    window.addEventListener(OPEN_RECEIPT_INBOX, open);
+    return () => window.removeEventListener(OPEN_RECEIPT_INBOX, open);
+  }, [activeView]);
   const receiptFeed=useReceiptReviews(userId,tenantId,Boolean(userId&&tenantId&&isSessionReady&&userRole!=='filho'&&activeView==='mensalidades'));
   const [mensalidades, setMensalidades] = useState<MensalidadeZeladorRow[]>([]);
   const [mensalidadesValorEdits, setMensalidadesValorEdits] = useState<Record<string, string>>({});

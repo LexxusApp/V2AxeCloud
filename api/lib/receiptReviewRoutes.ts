@@ -3,12 +3,11 @@ import type {SupabaseClient,User} from '@supabase/supabase-js';
 import {createHash,randomUUID} from 'node:crypto';
 import {requireAuthOrRespond} from './requireAuth.js';
 import {assertUserCanAccessTenant,assertZeladorTenantAccess,normalizeFilhoRequestTenantId,resolveFilhoHouseRefs} from './tenantAccess.js';
-import {comprovanteVisionRateLimit,sensitiveActionRateLimit} from './rateLimit.js';
+import {comprovanteUploadRateLimit,sensitiveActionRateLimit} from './rateLimit.js';
 import {safeErrorMessage} from './safeError.js';
-import {extractComprovanteFieldsFromImage,validateComprovanteImage,valoresMensalidadeCoincidem} from './comprovanteVisionExtract.js';
-import {comprovanteBeneficiarioMatches,cpfComprovanteMatches,normalizeComprovanteDate} from './comprovanteValidation.js';
+import {validateComprovanteImage} from './comprovanteImage.js';
 import {monthlyAmountOnDate} from '../../lib/manualFinance.js';
-import {validateReceiptDecision,type ReceiptAnalysis} from '../../lib/receiptReview.js';
+import {validateReceiptDecision,receiptNeedsJustification} from '../../lib/receiptReview.js';
 import {resolveFilhoRowIdForFinance} from './resolveFilhoRowIdForFinance.js';
 
 const BUCKET='mensalidade-comprovantes';
@@ -17,7 +16,6 @@ const STATUS=new Set(['em_analise','aceito','rejeitado','encerrado']);
 type Deps={supabaseAdmin:SupabaseClient;resolveLeaderId:(id:string)=>Promise<string>;
   liquidarMensalidadePendente?:unknown;
   notifyMensalidadeConfirmadaWhatsApp:(sb:SupabaseClient,args:{tenantId:string;zeladorId:string;filhoId:string;nome:string;valor:number;competencia:string})=>Promise<void>;
-  extract?:typeof extractComprovanteFieldsFromImage;
 };
 type Access={user:User;tenant:string;child:any|null};
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -36,19 +34,6 @@ function dto(row:any){
     created_at:row.created_at,decided_at:row.decided_at,decision_reason:row.decision_reason,
     analysis_status:row.analysis_status,analysis:a,alerts:row.alerts||[],submitted_value:Number(row.submitted_value),approved_fields:row.approved_fields,legacy:Boolean(row.legacy)};
 }
-async function deadline<T>(work:Promise<T>,ms=20_000):Promise<T>{let timer:ReturnType<typeof setTimeout>;try{return await Promise.race([work,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(Error('Leitura indisponível no momento')),ms);})]);}finally{clearTimeout(timer!);}}
-
-export function buildReceiptAlerts(analysis:ReceiptAnalysis,cpf:string,beneficiario:string,dueValue:number):string[]{
-  const alerts:string[]=[];
-  if(!analysis.valor||!valoresMensalidadeCoincidem(dueValue,analysis.valor))alerts.push('Valor lido ausente ou diferente do total da mensalidade.');
-  if(!cpfComprovanteMatches(cpf,analysis.cpf_pagador||''))alerts.push('CPF ausente, incompleto ou diferente do cadastro; confira quem realizou o pagamento.');
-  if(!beneficiario||!comprovanteBeneficiarioMatches(beneficiario,analysis.beneficiario||''))alerts.push('Beneficiário não conferido com a configuração do terreiro.');
-  if(analysis.estado_pagamento!=='concluido')alerts.push(analysis.estado_pagamento==='agendado'?'A imagem indica pagamento agendado; confira o crédito na conta.':analysis.estado_pagamento==='cancelado'?'A imagem indica cancelamento; confira o crédito na conta.':'A imagem não confirma que o pagamento foi concluído.');
-  const date=normalizeComprovanteDate(analysis.data||'');if(!date||date>today())alerts.push('Data de pagamento ausente, inválida ou futura.');
-  const id=String(analysis.id_transacao||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(id.length<10||id.length>128)alerts.push('Identificador bancário ausente ou ilegível.');
-  return alerts;
-}
-
 export function registerReceiptReviewRoutes(app:Express,deps:Deps){
   const sb=deps.supabaseAdmin;
   async function access(req:Request,res:Response):Promise<Access|null>{
@@ -85,7 +70,7 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
     return res.status(202).json({success:v2,status:row.status,requires_review:reviewing,data:dto(row),message,...(!v2?{error:message}:{}),replayed:Boolean(row.replayed)});
   }
 
-  app.post('/api/v1/financeiro/validar-comprovante',comprovanteVisionRateLimit,async(req,res)=>{
+  app.post('/api/v1/financeiro/validar-comprovante',comprovanteUploadRateLimit,async(req,res)=>{
     let uploadedPath:string|null=null;let registered=false;
     try{
       const ctx=await access(req,res);if(!ctx)return;
@@ -130,22 +115,8 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
       uploadedPath=`${ctx.tenant}/${ctx.child.id}/${randomUUID()}.${extension}`;
       const upload=await sb.storage.from(BUCKET).upload(uploadedPath,buffer,{contentType:mime,upsert:false});if(upload.error)throw upload.error;
       const {data,error}=await sb.rpc('registrar_envio_comprovante',{p_actor:ctx.user.id,p_tenant:ctx.tenant,p_filho:ctx.child.id,p_financeiro:financeiroId,p_request:requestId,p_path:uploadedPath,p_sha:sha,p_mime:mime,p_size:buffer.length});
-      if(error)throw error;let row=resultRow(data);if(!row?.id)throw Error('O banco não confirmou o recebimento do comprovante.');registered=true;
+      if(error)throw error;const row=resultRow(data);if(!row?.id)throw Error('O banco não confirmou o recebimento do comprovante.');registered=true;
       if(row.storage_path!==uploadedPath){await sb.storage.from(BUCKET).remove([uploadedPath]);uploadedPath=null;}
-      if(!row.replayed){
-        let analysis:ReceiptAnalysis={},alerts:string[]=[],analysisStatus='concluida';
-        try{
-          analysis=await deadline((deps.extract||extractComprovanteFieldsFromImage)(buffer,mime));
-          const pixRefs=[...new Set([ctx.tenant,ctx.child.tenant_id].filter(id=>UUID.test(String(id))))];
-          const {data:pix,error:pixError}=await sb.from('configuracoes_pix').select('nome_beneficiario').or(pixRefs.map(id=>`terreiro_id.eq.${id}`).join(',')).limit(1).maybeSingle();
-          const paidDate=normalizeComprovanteDate(analysis.data||'')||today();
-          const expected=monthlyAmountOnDate(Number(finance.valor),finance.data_vencimento,finance.mensalidade_multa,paidDate);
-          alerts=buildReceiptAlerts(analysis,String(ctx.child.cpf||''),pixError?'':String(pix?.nome_beneficiario||''),expected);
-        }catch{analysisStatus='indisponivel';alerts=['A IA não conseguiu ler este arquivo. Confira a imagem e preencha os dados do recebimento.'];}
-        const update=await sb.from('mensalidade_comprovante_envios').update({analysis,alerts,analysis_status:analysisStatus}).eq('id',row.id).eq('status','em_analise').select('*').maybeSingle();
-        if(update.error)console.error('[receipt-review] análise não persistida',{code:update.error.code});
-        if(update.data)row=update.data;
-      }
       return sendSubmission(res,row,v2);
     }catch(error){if(uploadedPath&&!registered){try{
       // A lost RPC response may already have committed. Never delete its persisted image.
@@ -180,7 +151,7 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
       q=ctx.child?q.eq('filho_id',ctx.child.id).neq('tipo','enviado'):q.eq('tipo','enviado');
       const {data,error}=await q;if(error)throw error;
       res.setHeader('Cache-Control','private, no-store');
-      return res.json({data:(data||[]).map(row=>({id:`comprovante:${row.envio_id}:${row.tipo}`,type:'payment',created_at:row.created_at,
+      return res.json({data:(data||[]).map(row=>({id:`comprovante:${row.envio_id}:${row.tipo}`,type:'payment',created_at:row.created_at,target:ctx.child?'financial':'financial-mensalidades',
         title:row.tipo==='enviado'?'Comprovante aguardando análise':row.tipo==='aceito'?'Pagamento confirmado':row.tipo==='rejeitado'?'Comprovante precisa de atenção':'Mensalidade encerrada por outra via',
         body:row.tipo==='enviado'?'Confira o comprovante no Financeiro antes de confirmar a baixa.':'Consulte o resultado e o motivo na sua mensalidade.'}))});
     }catch(error){return errorResponse(res,error);}
@@ -199,7 +170,7 @@ export function registerReceiptReviewRoutes(app:Express,deps:Deps){
       if(action==='aprovar'&&row.status!=='aceito'){
         const {data:finance,error}=await sb.from('financeiro').select('valor,data_vencimento,mensalidade_multa').eq('id',row.financeiro_id).maybeSingle();if(error)throw error;if(!finance)fail('Mensalidade não encontrada.',404);
         const expected=monthlyAmountOnDate(Number(finance.valor),finance.data_vencimento,finance.mensalidade_multa,String(fields.data_pagamento||today()));
-        try{fields=validateReceiptDecision(fields,expected,(row.alerts||[]).length>0||row.analysis_status!=='concluida',today());}catch(error){fail(safeErrorMessage(error),422);}
+        try{fields=validateReceiptDecision(fields,expected,receiptNeedsJustification(row),today());}catch(error){fail(safeErrorMessage(error),422);}
       }
       const {data,error}=await sb.rpc('decidir_envio_comprovante',{p_actor:ctx.user.id,p_envio:row.id,p_decisao:action==='aprovar'?'aceito':'rejeitado',p_fields:fields});if(error)throw error;
       const decision=resultRow(data);if(!decision?.id)throw Error('O banco não confirmou a decisão.');

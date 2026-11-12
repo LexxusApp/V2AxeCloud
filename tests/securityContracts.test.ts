@@ -160,14 +160,13 @@ test("aliases do webhook Meta compartilham o mesmo handler autenticado", () => {
   assert.doesNotMatch(serverSource, /app\.post\("\/webhook\/meta"/);
 });
 
-test("chave privada do Gemini permanece somente no servidor", () => {
+test("chave privada do Gemini fica fora do bundle e comprovantes não são enviados para IA", () => {
   const viteConfig = readFileSync("vite.config.ts", "utf8");
-  const visionServer = readFileSync("api/lib/comprovanteVisionExtract.ts", "utf8");
+  const receiptServer = readFileSync("api/lib/receiptReviewRoutes.ts", "utf8") + readFileSync("api/lib/comprovanteImage.ts", "utf8");
 
   assert.doesNotMatch(viteConfig, /GEMINI_API_KEY|GOOGLE_GEMINI_API_KEY/);
   assert.doesNotMatch(viteConfig, /process\.env\.(?:[A-Z0-9_]*(?:SECRET|PRIVATE|TOKEN)|GEMINI_API_KEY)/);
-  assert.match(visionServer, /process\.env\.GEMINI_API_KEY/);
-  assert.match(visionServer, /new GoogleGenerativeAI\(apiKey\)/);
+  assert.doesNotMatch(receiptServer, /Gemini|generative-ai|generateContent|extractComprovante/i);
 });
 
 test("todos os fluxos de criação de conta rejeitam senhas conhecidas em vazamentos", () => {

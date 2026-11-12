@@ -1,6 +1,19 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {authFetch} from './authenticatedFetch';
 import {readReceiptPage,type ReceiptReview} from '../../lib/receiptReview';
+let openReceiptInboxPending = false;
+export const OPEN_RECEIPT_INBOX = 'axecloud:open-receipt-inbox';
+export function openReceiptInbox(navigate?: (tab: string) => void) {
+  openReceiptInboxPending = true;
+  navigate?.('financial-mensalidades');
+  window.dispatchEvent(new Event(OPEN_RECEIPT_INBOX));
+}
+export function takeReceiptInboxRequest() {
+  const pending = openReceiptInboxPending;
+  openReceiptInboxPending = false;
+  return pending;
+}
+
 export const RECEIPT_UPDATED='axecloud:receipt-review-updated';
 export async function receiptRequest(url:string,init:RequestInit={},timeout=25_000){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);

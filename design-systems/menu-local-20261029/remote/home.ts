@@ -3,6 +3,8 @@ import { previewSession, request, scoped } from './session';
 import { registerLoader, registerWriter, publishValue, readValue, refreshResource, ensureResource } from './runtime';
 import type { LiveDashboard } from '../DashboardPage';
 import { giraTimestamp } from '../giras';
+import { supabase } from '../../../src/lib/supabase';
+import type { HouseNotification } from '../NotificationCenter';
 
 registerLoader('dashboardRadar',async()=>{publishValue('radarSummary',await request(scoped('/api/v1/settings/directory-profile')));});
 registerLoader('dashboardWhatsApp',async()=>{const history=await request('/api/whatsapp/logs?limit=50');if(!Array.isArray(history.logs))throw new Error('Histórico do WhatsApp indisponível.');publishValue('whatsappLogs',history.logs);});
@@ -49,21 +51,55 @@ function notificationTab(row:any){
 function notificationTitle(row:any){
   if(String(row.titulo||'').trim())return String(row.titulo).trim();
   const kind=String(row.tipo||'');
+  if (kind === 'gira_presenca_confirmada') return 'Presença confirmada na gira';
+  if (kind === 'gira_presenca_solicitada') return 'Pedido de presença na gira';
   return /bibliotec/i.test(kind)?'Nova atividade na Biblioteca':/preceito|orienta/i.test(kind)?'Pedido de orientação':/gira/i.test(kind)?'Atualização de gira':/financeir|mensal/i.test(kind)?'Atualização financeira':'Novo aviso da casa';
 }
-registerLoader('notifications',async()=>{
-  const {data}=await request(scoped('/api/notifications?limit=100'));
-  if(!Array.isArray(data))throw new Error('Não foi possível consultar as notificações.');
-  publishValue('notifications',data.map((row:any)=>({id:row.id,title:notificationTitle(row),description:row.mensagem||row.descricao||'',time:row.created_at?new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(new Date(row.created_at)):'Data não informada',tab:notificationTab(row),read:row.lida===true})));
+const notificationDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' });
+type Notice = HouseNotification & { createdAt: string };
+const timestamp = (value: string) => value && Number.isFinite(Date.parse(value)) ? notificationDate.format(new Date(value)) : 'Data não informada';
+
+registerLoader('notifications', async () => {
+  const scope = previewSession();
+  if (scope.profile.is_co_admin) { publishValue('notifications', []); return; }
+  const paths = [
+    scoped('/api/notifications?limit=100'),
+    '/api/v1/support/notifications',
+    scoped('/api/v1/financial/comprovantes/eventos'),
+  ];
+  const results = await Promise.allSettled(paths.map(path => request(path)));
+  if (results.every(result => result.status === 'rejected')) throw new Error('Não foi possível consultar as notificações.');
+  const rows: Notice[] = results.flatMap((result, index) => {
+    if (result.status !== 'fulfilled' || !Array.isArray(result.value.data)) return [];
+    return result.value.data.map((row: any) => ({
+      id: index === 0 ? 'aviso:' + row.id : row.id,
+      title: index === 0 ? notificationTitle(row) : row.title,
+      description: index === 0 ? row.mensagem || row.descricao || '' : row.body,
+      time: timestamp(row.created_at), createdAt: row.created_at,
+      tab: index === 0 ? notificationTab(row) : row.target || 'suporte',
+      ticketId: row.ticketId, read: row.lida === true,
+    }));
+  });
+  const { data, error } = await supabase.rpc('sync_notification_inbox', { p_tenant_id: scope.tenantId });
+  if (error) throw error;
+  if (previewSession().userId !== scope.userId || previewSession().tenantId !== scope.tenantId) return;
+  const state = new Map<string, { read_at: string | null; dismissed_at: string | null }>(
+    (data || []).map(row => [row.notification_id, row]),
+  );
+  const previous = results.some(result => result.status === 'rejected') ? readValue<Notice[]>('notifications') || [] : [];
+  publishValue('notifications', [...new Map([...previous, ...rows].map(row => [row.id, row])).values()]
+    .filter(row => !state.get(row.id)?.dismissed_at)
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .map(row => ({ ...row, read: row.read || Boolean(state.get(row.id)?.read_at) })));
 });
-registerWriter('notifications',async(next:any[],before:any[])=>{
-  const previous=new Map(before.map(row=>[row.id,row]));
-  const read=next.filter(row=>row.read&&previous.has(row.id)&&!previous.get(row.id).read);
-  if(!read.length)return;
-  let failure:unknown;
-  // Only the chosen IDs may be marked read. A new unseen notice arriving while
-  // the request is running must not be included by a server-wide read-all.
-  for(let offset=0;offset<read.length;offset+=4){const results=await Promise.allSettled(read.slice(offset,offset+4).map(async row=>{const result=await request(`/api/notifications/${encodeURIComponent(row.id)}/read`,'PATCH',{tenantId:previewSession().tenantId});if(result.success!==true)throw Error('Não foi possível confirmar a leitura deste aviso. Tente novamente.');}));const failed=results.find(result=>result.status==='rejected');if(failed?.status==='rejected'){failure=failed.reason;break;}}
-  try{await refreshResource('notifications');}catch(reason){if(!failure)failure=reason;}
-  if(failure)throw failure;
+
+registerWriter('notifications', async (next: Notice[], before: Notice[]) => {
+  const previous = new Map(before.map(row => [row.id, row]));
+  const read = next.filter(row => row.read && previous.get(row.id)?.read === false);
+  if (!read.length) return;
+  const { error } = await supabase.rpc('sync_notification_inbox', {
+    p_tenant_id: previewSession().tenantId, p_actions: read.map(row => ({ id: row.id, action: 'read' })),
+  });
+  if (error) throw error;
+  await refreshResource('notifications');
 });

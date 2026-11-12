@@ -3,7 +3,6 @@ import {canUseMemberInterface,memberInterfaceRolloutMode,MEMBER_PILOT,MEMBER_PRE
 import {signedMemberCookie,validMemberCookie,readMemberCookie,memberCookieIdentity,memberCookieHeader} from './member-pilot-cookie.js';
 import {pilotBootstrap} from './pilot-bootstrap.js';
 import {handlePilotLibrary} from './pilot-library.js';
-import {handlePilotSupport} from './pilot-support.js';
 import {handlePilotNotices} from './pilot-notices.js';
 import {handlePilotRadar} from './pilot-radar.js';
 import {requirePilotOperationAccess} from './pilot-operation-access.js';
@@ -160,7 +159,7 @@ export default {async fetch(request,env){
  }
  if(url.pathname==='/api/pilot/version')return authenticatedPilotVersion(request,env);
  if(url.pathname==='/api/pilot/refresh')return refreshPilotAssets(request,env);
- if(/^\/api\/pilot\/support\/?$/.test(url.pathname))return handlePilotSupport(request,env);
+ if(/^\/api\/pilot\/support\/?$/.test(url.pathname))return json({error:'Atualize o painel e abra o menu Suporte para acessar seus chamados.'},410);
  if(url.pathname.startsWith('/api/pilot/library/'))return handlePilotLibrary(request,env);
  if(/^\/api\/pilot\/notices(\/.*)?$/.test(url.pathname))return handlePilotNotices(request,env);
  if(/^\/api\/pilot\/radar\/?$/.test(url.pathname))return handlePilotRadar(request,env);

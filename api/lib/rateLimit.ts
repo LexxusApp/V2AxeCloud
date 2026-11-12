@@ -125,7 +125,7 @@ export const sensitiveActionRateLimit = createRateLimit({
   message: { error: "Limite de ações sensíveis excedido. Aguarde alguns minutos." },
 });
 
-export const comprovanteVisionRateLimit = createRateLimit({
+export const comprovanteUploadRateLimit = createRateLimit({
   windowMs: 15 * 60 * 1000,
   max: 12,
   keyPrefix: "comprovante-vision",

@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBase),
     },
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: { "@": path.resolve(__dirname, "src") },
     },
     server: {

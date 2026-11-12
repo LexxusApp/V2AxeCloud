@@ -231,13 +231,15 @@ import {
   radarProfileDraft,
   type AccountSetup,
   type LocalRadar,
-  type LocalSupport,
 } from "./completion";
 import { radarDraftEqual } from "./radarLogic";
 const RadarPage = safeLazy(() => import("./RadarPage"));
 const SettingsPage = safeLazy(() => import("./SettingsPage"));
 const SubscriptionPage = safeLazy(() => import("./SubscriptionPage"));
-const SupportPage = safeLazy(() => import("./SupportPage"));
+const SupportDesk = safeLazy(() => import("../../src/components/support/SupportDesk").then(module => ({ default: module.SupportDesk })));
+function requestSupport<T>(path: string, init?: RequestInit) {
+  return request<T>(path, init?.method, init?.body ? JSON.parse(String(init.body)) : undefined);
+}
 const StorePage = safeLazy(() => import("./StorePage"));
 const LibraryPage = safeLazy(() => import("./LibraryPage"));
 import type { LocalGallery } from "./gallery";
@@ -487,6 +489,14 @@ function Prototype() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [supportRequest, setSupportRequest] = useState<{ id: string }>();
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden) void loadResource("notifications", true); };
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, []);
+  useEffect(() => { if (noticeOpen) void loadResource("notifications", true); }, [noticeOpen]);
   const [notifications, setNotifications] = useRemoteState<
     typeof originalNotifications
   >("notifications", []);
@@ -611,10 +621,6 @@ function Prototype() {
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, []);
-  const [support, setSupport] = useRemoteState<LocalSupport>("support", {
-    draft: { category: "Uso do sistema", subject: "", text: "" },
-    tickets: [],
-  });
   const [shop, setShop] = useRemoteState<LocalShop>("shop", {
     cart: {},
     cartId: crypto.randomUUID(),
@@ -1715,18 +1721,9 @@ function Prototype() {
                       />
                     )}
                     {tab === "suporte" && (
-                      <SupportPage
-                        profile={account.profile}
-                        state={support}
-                        onChange={(next) => {
-                          if (next.tickets !== support.tickets)
-                            return change("Atualizando pedido de suporte", () =>
-                              setSupport(next),
-                            );
-                          else return setSupport(next);
-                        }}
-                        onNavigate={navigate}
-                      />
+                      isUserCoAdmin ? <p>O suporte da plataforma é atendido com a conta do zelador.</p> : (
+                        <SupportDesk request={requestSupport} requestedTicket={supportRequest} />
+                      )
                     )}
                   </React.Suspense>
                 )}
@@ -1870,6 +1867,10 @@ function Prototype() {
           )
         }
         onNavigate={navigate}
+        onOpenTicket={(id) => {
+          setSupportRequest({ id });
+          navigate("suporte");
+        }}
         onOpenConversation={(id) => {
           setChatRequest((previous) => ({ id, version: previous.version + 1 }));
           navigate("chat");

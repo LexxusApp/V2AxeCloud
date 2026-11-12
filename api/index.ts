@@ -3521,6 +3521,12 @@ async function startServer() {
     void handleTenantInfoRoute(req as Parameters<typeof handleTenantInfoRoute>[0], res);
   });
 
+  // O piloto público é roteado pelo edge. A origem responde a chamadas legadas.
+  app.all(["/api/pilot/*", "/api/pilot"], (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ enabled: false, message: "Piloto integrado ao sistema oficial." });
+  });
+
   // API Route: List Tenants (Admin only)
   app.get("/api/admin/tenants", async (req, res) => {
     try {
@@ -4659,10 +4665,14 @@ async function startServer() {
     }
     const { tipo, lida, limit } = req.query;
     try {
+      const { data: profile, error: profileError } = await supabaseAdmin.from("perfil_lider")
+        .select("id,tenant_id").eq("id", await resolveLeaderId(access.tenantId)).maybeSingle();
+      if (profileError) throw profileError;
+      const refs = [...new Set([access.tenantId, profile?.id, profile?.tenant_id].filter(Boolean))];
       let query = supabaseAdmin
         .from("notificacoes")
         .select("*")
-        .eq("tenant_id", access.tenantId)
+        .in("tenant_id", refs)
         .order("created_at", { ascending: false });
       if (tipo) query = query.eq("tipo", tipo as string);
       if (lida !== undefined) query = query.eq("lida", lida === "true");

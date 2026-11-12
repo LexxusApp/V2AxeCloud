@@ -8,8 +8,8 @@ import ts from 'typescript';
 import * as React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as validation from '../lib/receiptReview';
-import * as imageValidation from '../api/lib/comprovanteVisionExtract';
-import * as bankValidation from '../api/lib/comprovanteValidation';
+import * as manualFinance from '../lib/manualFinance';
+import * as imageValidation from '../api/lib/comprovanteImage';
 import {safeErrorMessage} from '../api/lib/safeError';
 import sharp from 'sharp';
 
@@ -30,7 +30,7 @@ const row=()=>({id:receipt,financeiro_id:debt,filho_id:child,tenant_id:owner,sub
 function fixture(withReceipt=true){
  const tables:Record<string,any[]>={filhos_de_santo:[{id:child,user_id:member,tenant_id:owner,lider_id:owner,nome:'QA sem telefone',cpf:'12345678900',telefone:null}],financeiro:[{id:debt,filho_id:child,tenant_id:owner,lider_id:owner,categoria:'Mensalidade',status:'pendente',valor:102,data:'1904-01-10',data_vencimento:'1904-01-10'}],mensalidade_comprovante_envios:withReceipt?[row()]:[],financeiro_comprovantes:[],configuracoes_pix:[{terreiro_id:owner,nome_beneficiario:'Casa QA'}]};
  const calls:{name:string;args:any}[]=[],writes:string[]=[],storage:string[]=[],notices:any[]=[];
- let rpcResult:any={data:{id:receipt,status:'aceito',valor:102,competencia:'1904-01-10',replayed:false}},offline=false;
+ let rpcResult:any={data:{id:receipt,status:'aceito',valor:102,competencia:'1904-01-10',replayed:false}};
  function from(table:string){
   const filters:((r:any)=>boolean)[]=[];let single=false,patch:any;
   const q:any={select(){return q;},eq(key:string,value:any){filters.push(r=>r[key]===value);return q;},neq(key:string,value:any){filters.push(r=>r[key]!==value);return q;},in(key:string,values:any[]){filters.push(r=>values.includes(r[key]));return q;},or(value:string){const parts=value.split(',').map(s=>s.split('.eq.'));filters.push(r=>parts.some(([k,v])=>r[k]===v));return q;},limit(){return q;},order(){return q;},maybeSingle(){single=true;return q;},update(value:any){writes.push(table);patch=value;return q;},then(resolve:any){const rows=(tables[table]||[]).filter(r=>filters.every(f=>f(r)));if(patch)rows.forEach(r=>Object.assign(r,patch));return Promise.resolve({data:single?rows[0]||null:rows,count:rows.length,error:null}).then(resolve);}};return q;
@@ -41,18 +41,18 @@ function fixture(withReceipt=true){
  const {registerReceiptReviewRoutes}=load('api/lib/receiptReviewRoutes.ts',{
   './requireAuth.js':{requireAuthOrRespond:async(_sb:any,req:any)=>req.user},
   './tenantAccess.js':{normalizeFilhoRequestTenantId:async(_sb:any,_user:any,id:string)=>id,assertUserCanAccessTenant:async(_sb:any,_user:any,id:string)=>id===owner,assertZeladorTenantAccess:async(_sb:any,id:string)=>id===owner,resolveFilhoHouseRefs:async()=>null},
-  './rateLimit.js':{comprovanteVisionRateLimit:()=>{},sensitiveActionRateLimit:()=>{}},
-  './safeError.js':{safeErrorMessage},'./comprovanteVisionExtract.js':imageValidation,'./comprovanteValidation.js':bankValidation,'../../lib/receiptReview.js':validation,
+  './rateLimit.js':{comprovanteUploadRateLimit:()=>{},sensitiveActionRateLimit:()=>{}},
+  './safeError.js':{safeErrorMessage},'./comprovanteImage.js':imageValidation,'../../lib/receiptReview.js':validation,'../../lib/manualFinance.js':manualFinance,
   './resolveFilhoRowIdForFinance.js':{resolveFilhoRowIdForFinance:async(_sb:any,{jwtUserId}:any)=>jwtUserId===member?child:null},
  });
- registerReceiptReviewRoutes(app,{supabaseAdmin:sb,resolveLeaderId:async()=>owner,extract:async()=>{if(offline)throw Error('IA indisponível');return {valor:102,data:'1904-02-29',beneficiario:'Casa QA',cpf_pagador:'12345678900',id_transacao:full.id_transacao,estado_pagamento:'concluido'};},notifyMensalidadeConfirmadaWhatsApp:async(_sb:any,args:any)=>{notices.push(args);}});
+ registerReceiptReviewRoutes(app,{supabaseAdmin:sb,resolveLeaderId:async()=>owner,notifyMensalidadeConfirmadaWhatsApp:async(_sb:any,args:any)=>{notices.push(args);}});
  async function call(method:string,path:string,body:any={},who=owner,query:Record<string,string>={tenantId:owner}){
   let status=200,result:any;const headers:Record<string,string>={};
   const response:any={status(value:number){status=value;return response;},json(value:any){result=value;return response;},setHeader(key:string,value:string){headers[key]=value;return response;}};
   await routes.get(method+' '+path)({body,query,params:{id:receipt},user:{id:who,email:'qa@example.invalid'}},response);
   return {status,body:result,headers};
  }
- return {tables,calls,writes,storage,notices,call,setRPC:(result:any)=>{rpcResult=result;},offline:()=>{offline=true;}};
+ return {tables,calls,writes,storage,notices,call,setRPC:(result:any)=>{rpcResult=result;}};
 }
 const approve='/api/v1/financial/comprovantes/:id/aprovar',reject='/api/v1/financial/comprovantes/:id/rejeitar',submit='/api/v1/financeiro/validar-comprovante';
 
@@ -79,13 +79,13 @@ test('human rejection forwards only to the atomic decision and never invokes pay
  assert.equal(result.status,200);assert.equal(ctx.calls[0].args.p_decisao,'rejeitado');assert.equal(ctx.calls[0].args.p_actor,owner);assert.equal(ctx.notices.length,0);assert.equal(ctx.tables.financeiro[0].status,'pendente');
 });
 
-test('upload and AI outage preserve pending debt; accepted hash is blocked before upload; request replay preserves timestamp',async()=>{
+test('manual upload preserves pending debt; accepted hash is blocked before upload; request replay preserves timestamp',async()=>{
  const bytes=await sharp({create:{width:4,height:4,channels:3,background:'#ffffff'}}).png().toBuffer();
  const payload={workflow:'manual_review_v1',tenant_id:owner,financeiro_id:debt,request_id:randomUUID(),fileData:bytes.toString('base64'),contentType:'image/png'};
- const ctx=fixture(false);ctx.offline();
- ctx.setRPC((_name:string,args:any)=>{const saved={...row(),request_id:args.p_request,arquivo_sha256:args.p_sha,storage_path:args.p_path,analysis_status:'pendente'};ctx.tables.mensalidade_comprovante_envios.push(saved);return {data:saved};});
+ const ctx=fixture(false);
+ ctx.setRPC((_name:string,args:any)=>{const saved={...row(),request_id:args.p_request,arquivo_sha256:args.p_sha,storage_path:args.p_path,analysis_status:'manual'};ctx.tables.mensalidade_comprovante_envios.push(saved);return {data:saved};});
  const sent=await ctx.call('POST',submit,payload,member);
- assert.equal(sent.status,202);assert.equal(sent.body.requires_review,true);assert.equal(sent.body.data.analysis_status,'indisponivel');assert.equal(ctx.notices.length,0);assert.equal(ctx.tables.financeiro[0].status,'pendente');assert.deepEqual(ctx.writes,['mensalidade_comprovante_envios']);
+ assert.equal(sent.status,202);assert.equal(sent.body.requires_review,true);assert.equal(sent.body.data.analysis_status,'manual');assert.equal(ctx.notices.length,0);assert.equal(ctx.tables.financeiro[0].status,'pendente');assert.deepEqual(ctx.writes,[]);
  const retried=await ctx.call('POST',submit,payload,member);assert.equal(retried.body.replayed,true);assert.equal(retried.body.data.created_at,sent.body.data.created_at);assert.equal(ctx.storage.length,1);assert.equal(ctx.calls.length,1);assert.equal(ctx.calls[0].name,'registrar_envio_comprovante');
  const duplicate=fixture(false);duplicate.tables.financeiro_comprovantes.push({id:randomUUID(),arquivo_sha256:createHash('sha256').update(bytes).digest('hex')});
  assert.equal((await duplicate.call('POST',submit,payload,member)).status,409);assert.equal(duplicate.storage.length,0);assert.equal(duplicate.calls.length,0);

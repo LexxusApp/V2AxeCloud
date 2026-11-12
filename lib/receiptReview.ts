@@ -9,7 +9,7 @@ export type ReceiptAnalysis = {
 export type ReceiptReview = {
   id: string; financeiro_id: string; filho_id: string; nome?: string;
   status: ReceiptStatus; created_at: string; decided_at: string | null; decision_reason: string | null;
-  analysis_status: 'pendente' | 'concluida' | 'indisponivel'; analysis: ReceiptAnalysis; alerts: string[];
+  analysis_status: 'manual' | 'pendente' | 'concluida' | 'indisponivel'; analysis: ReceiptAnalysis; alerts: string[];
   submitted_value: number; valor_atual?: number; competencia?: string; approved_fields?: Record<string, unknown> | null;
   mensalidade_multa?: MonthlyLateFee | null;
   legacy?: boolean;
@@ -49,4 +49,8 @@ export function validateReceiptDecision(body: Record<string,unknown>, dueValue: 
   if(body.confirmo_recebimento!==true)throw Error('Confirme o recebimento na conta do terreiro.');
   if(reason.length>500||(needsReason&&reason.length<3))throw Error('Justifique a confirmação dos alertas ou da leitura indisponível.');
   return {valor:cents/100,data_pagamento:date,id_transacao:transaction,beneficiario:name,motivo:reason,confirmo_recebimento:true};
+}
+
+export function receiptNeedsJustification(row: Pick<ReceiptReview, 'alerts' | 'analysis_status'>): boolean {
+  return (row.alerts || []).length > 0 || row.analysis_status === 'pendente' || row.analysis_status === 'indisponivel';
 }

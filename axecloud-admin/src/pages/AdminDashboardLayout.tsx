@@ -11,6 +11,7 @@ import {
   HardDrive,
   Gauge,
   Inbox,
+  LifeBuoy,
   BadgeCheck,
   LayoutDashboard,
   LogOut,
@@ -41,6 +42,7 @@ export type AdminNavTab =
   | "payments"
   | "whatsapp"
   | "wa-inbox"
+  | "support"
   | "growth"
   | "claims"
   | "ranking"
@@ -54,6 +56,7 @@ type NavItem = { id: AdminNavTab; label: string; icon: LucideIcon; tone: IconTon
 const MAIN_NAV: NavItem[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard, tone: "blue" },
   { id: "tenants", label: "Terreiros", icon: Building2, tone: "violet" },
+  { id: "support", label: "Suporte", icon: LifeBuoy, tone: "teal" },
   { id: "failures", label: "Falhas de Uso", icon: AlertTriangle, tone: "rose" },
   { id: "payments", label: "Pagamentos", icon: WalletCards, tone: "emerald" },
   { id: "plans", label: "Mensalidades", icon: CreditCard, tone: "emerald" },
