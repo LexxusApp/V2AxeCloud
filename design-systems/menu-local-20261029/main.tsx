@@ -7,7 +7,9 @@ import SidebarUsage from "./SidebarUsage";
 import { planExpiryLabel, type GalleryUsage } from "./shellSummary";
 import "./remote/shell";
 import "./shell-summary.css";
-import NotificationCenter from "./NotificationCenter";
+import NotificationCenter, { type HouseNotification } from "./NotificationCenter";
+import { useNotificationInbox } from "../../src/hooks/useNotificationInbox";
+import { canonicalNotificationId } from "../../src/lib/notificationInbox";
 import PageLoading from "../shared/PageLoading";
 import FinancialTabs from "./FinancialTabs";
 import PilotUpdateBanner from "../shared/PilotUpdateBanner";
@@ -300,32 +302,6 @@ const normalize = (s: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
-const originalNotifications = [
-  {
-    id: "pix",
-    title: "Comprovante aguardando revisão",
-    description: "Mariana enviou um comprovante de mensalidade.",
-    time: "29 out, 09:12",
-    tab: "financial-mensalidades",
-    read: false,
-  },
-  {
-    id: "gira",
-    title: "Presença confirmada",
-    description: "Joana confirmou presença na Gira de Caboclo.",
-    time: "29 out, 08:40",
-    tab: "calendar",
-    read: false,
-  },
-  {
-    id: "member",
-    title: "Cadastro atualizado",
-    description: "Rafael completou os dados do perfil.",
-    time: "28 out, 17:35",
-    tab: "children",
-    read: true,
-  },
-];
 function getTab() {
   const candidate=managerTab(location,items.map(item=>item.id));
   return allowedNav(candidate)?candidate:'dashboard';
@@ -496,10 +472,21 @@ function Prototype() {
     window.addEventListener("focus", refresh);
     return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, []);
-  useEffect(() => { if (noticeOpen) void loadResource("notifications", true); }, [noticeOpen]);
-  const [notifications, setNotifications] = useRemoteState<
-    typeof originalNotifications
-  >("notifications", []);
+  const [sourceNotifications] = useRemoteState<HouseNotification[]>("notifications", []);
+  const { userId, tenantId, profile } = previewSession();
+  const { store: noticeInbox, snapshot: noticeState } = useNotificationInbox(
+    profile.is_co_admin ? null : userId, tenantId,
+  );
+  useEffect(() => {
+    if (noticeOpen) {
+      void loadResource("notifications", true);
+      void noticeInbox.sync();
+    }
+  }, [noticeOpen, noticeInbox]);
+  const notifications = React.useMemo(() => sourceNotifications.flatMap(row => {
+    const state = noticeState.records[canonicalNotificationId(row.id)];
+    return state?.dismissed_at ? [] : [{ ...row, read: row.read || Boolean(state?.read_at) }];
+  }), [sourceNotifications, noticeState.records]);
   const [newOpen, setNewOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [exiting, setExiting] = useState(false);
@@ -1859,13 +1846,9 @@ function Prototype() {
         chatError={chatAlerts.error}
         onRefreshChat={chatAlerts.refresh}
         focus={dialogFocus("notifications")}
-        onRead={(ids) =>
-          setNotifications((list) =>
-            list.map((row) =>
-              ids.includes(row.id) ? { ...row, read: true } : row,
-            ),
-          )
-        }
+        onRead={(ids) => noticeInbox.markRead(ids)}
+        readSyncFailed={noticeState.error && Object.keys(noticeState.pending).length > 0}
+        onRetryRead={() => void noticeInbox.sync()}
         onNavigate={navigate}
         onOpenTicket={(id) => {
           setSupportRequest({ id });

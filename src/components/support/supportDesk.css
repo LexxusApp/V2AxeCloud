@@ -33,6 +33,12 @@
 .sd-button:not(:disabled):hover, .sd-icon:not(:disabled):hover { background: var(--sd-tint); }
 .sd-button.is-primary { background: var(--sd-primary); border-color: var(--sd-primary); color: white; }
 .sd-button.is-primary:not(:disabled):hover { background: #104833; }
+.support-desk :is(.sd-back, .sd-subject, .sd-filters button) {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
 .sd-back { justify-self: start; color: var(--sd-muted); min-height: 36px; }
 .sd-back:hover { color: var(--sd-text); }
 .sd-toolbar {
@@ -58,7 +64,7 @@
 .sd-table tbody tr:hover { background: var(--sd-tint); }
 .sd-table .sd-icon { min-height: 36px; width: 36px; }
 .sd-code { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.sd-subject { display: block; text-align: left; font-weight: 700; font-size: .9rem; line-height: 1.35; overflow-wrap: anywhere; }
+.sd-subject { display: block; padding: 0; text-align: left; font-weight: 700; font-size: .9rem; line-height: 1.35; overflow-wrap: anywhere; }
 .sd-subject:hover { text-decoration: underline; text-underline-offset: 3px; }
 .sd-house { display: block; margin-top: 3px; color: var(--sd-muted); font-size: .75rem; font-weight: 500; }
 .sd-badge { display: inline-flex; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 5px; padding: 4px 7px; font-size: .72rem; line-height: 1.25; font-weight: 750; white-space: nowrap; }

@@ -3,7 +3,6 @@ import { previewSession, request, scoped } from './session';
 import { registerLoader, registerWriter, publishValue, readValue, refreshResource, ensureResource } from './runtime';
 import type { LiveDashboard } from '../DashboardPage';
 import { giraTimestamp } from '../giras';
-import { supabase } from '../../../src/lib/supabase';
 import type { HouseNotification } from '../NotificationCenter';
 
 registerLoader('dashboardRadar',async()=>{publishValue('radarSummary',await request(scoped('/api/v1/settings/directory-profile')));});
@@ -80,26 +79,9 @@ registerLoader('notifications', async () => {
       ticketId: row.ticketId, read: row.lida === true,
     }));
   });
-  const { data, error } = await supabase.rpc('sync_notification_inbox', { p_tenant_id: scope.tenantId });
-  if (error) throw error;
-  if (previewSession().userId !== scope.userId || previewSession().tenantId !== scope.tenantId) return;
-  const state = new Map<string, { read_at: string | null; dismissed_at: string | null }>(
-    (data || []).map(row => [row.notification_id, row]),
-  );
+  const current = previewSession();
+  if (current.userId !== scope.userId || current.tenantId !== scope.tenantId) return;
   const previous = results.some(result => result.status === 'rejected') ? readValue<Notice[]>('notifications') || [] : [];
   publishValue('notifications', [...new Map([...previous, ...rows].map(row => [row.id, row])).values()]
-    .filter(row => !state.get(row.id)?.dismissed_at)
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-    .map(row => ({ ...row, read: row.read || Boolean(state.get(row.id)?.read_at) })));
-});
-
-registerWriter('notifications', async (next: Notice[], before: Notice[]) => {
-  const previous = new Map(before.map(row => [row.id, row]));
-  const read = next.filter(row => row.read && previous.get(row.id)?.read === false);
-  if (!read.length) return;
-  const { error } = await supabase.rpc('sync_notification_inbox', {
-    p_tenant_id: previewSession().tenantId, p_actions: read.map(row => ({ id: row.id, action: 'read' })),
-  });
-  if (error) throw error;
-  await refreshResource('notifications');
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)));
 });

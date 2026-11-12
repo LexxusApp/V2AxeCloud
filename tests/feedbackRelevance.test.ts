@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
-import {createElement} from 'react';
+import {Children, createElement, isValidElement, type ReactElement, type ReactNode} from 'react';
+import {NotificationInbox, type InboxRecord} from '../src/lib/notificationInbox';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {createOperationStore,isRemoteMutation,operationPending} from '../design-systems/menu-local-20261029/operations';
 import {createActivityAutoDismiss,announceBackgroundDispatch} from '../design-systems/menu-local-20261029/activityLifecycle';
@@ -29,36 +30,6 @@ test('read markers are quiet, and only a new failure from background dispatches 
  for(const status of ['queued','sending','accepted','sent','delivered','read','unknown'])assert.equal(announceBackgroundDispatch(status),false);assert.equal(announceBackgroundDispatch('failed'),true);
 });
 function load(file:string,deps:Record<string,unknown>){const exports:any={},code=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;runInNewContext(code,{exports,require:(name:string)=>name.endsWith('.css')?{}:deps[name]??require(name),Promise,Error,Map,Set,Date});return exports;}
-function notificationWriter(error: Error | null = null) {
- const calls: any[] = [], writers: Record<string, any> = {};
- let refreshes = 0;
- load('design-systems/menu-local-20261029/remote/home.ts', {
-  './session': { previewSession: () => ({ tenantId: 'own' }) },
-  './runtime': { registerLoader() {}, registerWriter: (key: string, writer: any) => { writers[key] = writer; }, refreshResource: async () => { refreshes++; } },
-  '../../../src/lib/supabase': { supabase: { rpc: async (name: string, args: any) => { calls.push(JSON.stringify([name, args])); return { error }; } } },
-  '../giras': {},
- });
- return { write: writers.notifications, calls, refreshes: () => refreshes };
-}
-test('reading only selected notices never marks an unseen incoming notice or uses a tenant-wide read-all', async () => {
- const f = notificationWriter();
- const before = [{ id: 'a', read: false }, { id: 'b', read: false }];
- await f.write([{ id: 'a', read: true }, { id: 'b', read: false }, { id: 'new-incoming', read: true }], before);
- assert.deepEqual(f.calls.map(value => JSON.parse(value)), [['sync_notification_inbox', {
-  p_tenant_id: 'own', p_actions: [{ id: 'a', action: 'read' }],
- }]]);
- assert.equal(f.refreshes(), 1);
-});
-test('an already-read list makes no request and an atomic write failure does not confirm reads', async () => {
- const empty = notificationWriter();
- await empty.write([{ id: 'a', read: true }], [{ id: 'a', read: true }]);
- assert.equal(empty.calls.length, 0);
- assert.equal(empty.refreshes(), 0);
- const f = notificationWriter(Error('Falha ao marcar'));
- await assert.rejects(f.write([{ id: 'a', read: true }], [{ id: 'a', read: false }]), /Falha ao marcar/);
- assert.equal(f.calls.length, 1);
- assert.equal(f.refreshes(), 0);
-});
 test('background delivery updates stay quiet; a transition to failure alerts once and stays dismissed after acknowledgment',async()=>{
  const store=createOperationStore(),loaders:Record<string,any>={};let rows=[{id:'log',externalId:'message',status:'sent',title:'Aviso',recipient:'Membro',memberId:'member'}];
  const query:any={select(){return this;},eq(){return this;},order(){return this;},limit:async()=>({data:rows,error:null})};
@@ -74,37 +45,70 @@ test('a chat-only notification list never offers an irrelevant mark-notices-read
  html=renderToStaticMarkup(createElement(Center,{...props,notifications:[{id:'notice',read:false,title:'Aviso da casa',description:'Novo comunicado',time:'Hoje',tab:'mural'}]}));assert.match(html,/Marcar avisos como lidos/);assert.match(html,/>Marcar como lida</);
 });
 
-test('a read notification is restored from the server as read after a new session load', async () => {
- const loaders: Record<string, any> = {}, writers: Record<string, any> = {};
+test('the notification panel marks immediately and opens a ticket while the read is still saving', async () => {
+ const Center = load('design-systems/menu-local-20261029/NotificationCenter.tsx', {
+  '@radix-ui/react-dialog': Object.fromEntries(
+   ['Root', 'Portal', 'Overlay', 'Content', 'Title', 'Description', 'Close'].map(key => [key, 'div']),
+  ),
+ }).default;
+ const stamp = '2026-11-12T22:50:00.000Z';
+ let confirm!: (rows: InboxRecord[]) => void;
+ const store = new NotificationInbox('test', () => new Promise(resolve => { confirm = resolve; }));
+ const events: string[] = [];
+ const notices = [
+  { id: 'one', title: 'Resposta do suporte', description: 'Ajuda', time: 'Hoje', tab: 'suporte', ticketId: 'ticket', read: false },
+  { id: 'two', title: 'Comprovante recebido', description: 'Mensalidade', time: 'Hoje', tab: 'financial', read: false },
+ ];
+ function getButtons(node: ReactNode): ReactElement<any>[] {
+  return Children.toArray(node).flatMap(child => {
+   if (!isValidElement<{ children?: ReactNode }>(child)) return [];
+   return child.type === 'button' ? [child] : getButtons(child.props.children);
+  });
+ }
+ const buttons = getButtons(Center({
+  open: true, notifications: notices, chatAlerts: [],
+  onOpenChange: (open: boolean) => events.push(String(open)),
+  onRead: (ids: string[]) => store.markRead(ids),
+  onOpenTicket: (id: string) => events.push(id),
+ }));
+ const readButtons = buttons.filter(button => button.props.className === 'notice-mark-one');
+ readButtons[1].props.onClick();
+ assert.ok(store.getSnapshot().records.two.read_at);
+ assert.equal(store.getSnapshot().pending.two, 'read');
+ assert.equal(store.getSnapshot().records.one, undefined);
+ buttons.find(button => button.props.className === 'notice-row ')!.props.onClick();
+ assert.ok(store.getSnapshot().records.one.read_at);
+ assert.deepEqual(events, ['false', 'ticket']);
+ const pending = store.sync();
+ confirm([{ notification_id: 'two', first_seen_at: stamp, read_at: stamp, dismissed_at: null }]);
+ await pending;
+ assert.ok(store.getSnapshot().records.one.read_at);
+ assert.equal(store.getSnapshot().pending.one, 'read');
+ const retry = store.sync();
+ confirm([{ notification_id: 'one', first_seen_at: stamp, read_at: stamp, dismissed_at: null }]);
+ await retry;
+ assert.deepEqual(store.getSnapshot().pending, {});
+});
+
+test('the notification feed combines support, house and receipt sources independently of read synchronization', async () => {
+ const loaders: Record<string, any> = {};
  let published: any[] = [];
- const read = new Set<string>();
- const row = { id: 'notice', tipo: 'biblioteca_duvida', mensagem: 'Nova dúvida', link: 'library', lida: false, created_at: '2026-11-05T12:00:00Z' };
+ const row = { id: 'notice', tipo: 'biblioteca_duvida', mensagem: 'Nova dúvida', link: 'library', lida: true, created_at: '2026-11-05T12:00:00Z' };
  const reply = { id: 'suporte:message', ticketId: 'ticket', title: 'Nova resposta do suporte', body: 'Ajuda', created_at: '2026-11-06T12:00:00Z' };
  const receipt = { id: 'comprovante:receipt:enviado', title: 'Comprovante aguardando análise', target: 'financial-mensalidades', created_at: '2026-11-04T12:00:00Z' };
  const request = async (url: string) => ({ data: [url.includes('/support/') ? reply : url.includes('/comprovantes/') ? receipt : row] });
- const rpc = async (_name: string, args: any) => {
-  for (const action of args.p_actions || []) read.add(action.id);
-  return { data: [...read].map(id => ({ notification_id: id, read_at: 'now', dismissed_at: null })), error: null };
- };
  load('design-systems/menu-local-20261029/remote/home.ts', {
   './session': { previewSession: () => ({ tenantId: 'own', userId: 'owner', profile: {} }), request, scoped: (url: string) => url },
-  './runtime': { registerLoader: (key: string, fn: any) => { loaders[key] = fn; }, registerWriter: (key: string, fn: any) => { writers[key] = fn; }, publishValue: (_key: string, value: any) => { published = value; }, readValue: () => [], refreshResource: async (key: string) => loaders[key]() },
-  '../../../src/lib/supabase': { supabase: { rpc } },
+  './runtime': { registerLoader: (key: string, fn: any) => { loaders[key] = fn; }, registerWriter() {}, publishValue: (_key: string, value: any) => { published = value; }, readValue: () => [] },
   '../giras': {},
  });
  await loaders.notifications();
  assert.equal(published.length, 3);
  assert.equal(published[0].ticketId, 'ticket');
- assert.equal(published[1].tab, 'library');
- assert.equal(published[2].tab, 'financial-mensalidades');
  assert.equal(published[0].read, false);
- const before = published;
- await writers.notifications([{ ...before[0], read: true }, ...before.slice(1)], before);
- assert.equal(published[0].read, true);
- published = [];
- await loaders.notifications();
- assert.equal(published[0].read, true);
- assert.equal(published[1].read, false);
+ assert.equal(published[1].tab, 'library');
+ assert.equal(published[1].read, true);
+ assert.equal(published[2].tab, 'financial-mensalidades');
 });
 
 test('an unsent cantina cart does not announce a saved bookkeeping operation',()=>{
