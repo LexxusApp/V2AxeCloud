@@ -487,7 +487,7 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
                   <CheckCircle2 className="w-4 h-4 text-[#166534] shrink-0 mt-0.5" />
                   <div>
                     <strong className="block text-[#1b1813] font-bold">Como funciona a confirmação de pagamentos Pix?</strong>
-                    <span>Quando você cadastra a chave Pix em Configurações, o comprovante enviado pelo membro é conciliado automaticamente pelo CPF registrado.</span>
+                    <span>Quando o membro anexa o comprovante, o zelador recebe um aviso no sino. A baixa acontece depois que a zeladoria confere e confirma o recebimento.</span>
                   </div>
                 </div>
 
@@ -506,16 +506,16 @@ export default function InstrucoesUsoPage({ audience: initialAudience = 'zelador
           <div className="mt-8 pt-6 border-t border-[#1b1813]/8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-center sm:text-left">
               <p className="text-xs font-bold text-[#1b1813]">Ainda precisa de auxílio?</p>
-              <p className="text-xs text-[#1b1813]/60">Abra um chamado no menu Suporte e acompanhe as respostas no sistema.</p>
+              <p className="text-xs text-[#1b1813]/60">{isMembro
+                ? 'Abra o chat do AxéCloud para falar com a zeladoria da sua casa.'
+                : 'Abra um chamado no menu Suporte e acompanhe as respostas no sistema.'}</p>
             </div>
             <a
-              href="https://wa.me/5511920033501?text=Ol%C3%A1!%20Estou%20com%20d%C3%BAvidas%20sobre%20o%20acesso%20ao%20Ax%C3%A9Cloud."
-              target="_blank"
-              rel="noopener noreferrer"
+              href={isMembro ? loginHref : '/suporte'}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#166534] text-white text-xs font-bold hover:bg-[#14532d] transition-colors shadow-xs"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Falar com o Suporte</span>
+              <span>{isMembro ? 'Entrar como membro' : 'Abrir suporte'}</span>
             </a>
           </div>
         </div>
