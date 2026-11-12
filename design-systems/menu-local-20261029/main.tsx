@@ -1218,7 +1218,7 @@ function Prototype() {
                                           : tab === "settings"
                                             ? "A identidade da casa e os canais que aproximam a corrente."
                                             : tab === "suporte"
-                                              ? "Orientações e pedidos de ajuda, com espaço para explicar o que aconteceu."
+                                              ? "Acompanhe o andamento dos seus chamados e as respostas da equipe AxéCloud."
                                               : tab === "library"
                                                 ? "Leituras da corrente e estudos reservados para cada caminho."
                                                 : "Uma navegação mais clara para cada rotina da casa."}

@@ -28,9 +28,22 @@ begin
   insert into public.support_messages(id, ticket_id, author_id, author_role, body)
   values(reply, ticket, owner, 'support', 'Resposta temporária de teste.') on conflict do nothing;
 
-  if not exists(select from public.support_tickets where id = ticket and updated_at = now())
+  if not exists(select from public.support_tickets where id = ticket and updated_at >= now() and waiting_on = 'owner' and protocol > 0)
     or (select count(*) from public.support_messages where ticket_id = ticket and author_role = 'support') <> 1 then
     raise exception 'A resposta deve ficar no chamado e produzir um único aviso';
+  end if;
+  update public.support_tickets set status = 'closed' where id = ticket;
+  begin
+    insert into public.support_messages(id, ticket_id, author_id, author_role, body)
+    values(gen_random_uuid(), ticket, owner, 'owner', 'Mensagem após finalização.');
+    raise exception 'Chamado finalizado aceitou mensagem' using errcode = '22023';
+  exception when raise_exception then null;
+  end;
+  update public.support_tickets set status = 'open', waiting_on = 'support' where id = ticket;
+  insert into public.support_messages(id, ticket_id, author_id, author_role, body)
+  values(gen_random_uuid(), ticket, owner, 'owner', 'Mensagem após reabertura.');
+  if not exists(select from public.support_tickets where id = ticket and status = 'open' and waiting_on = 'support') then
+    raise exception 'A nova mensagem do zelador precisa aguardar o suporte';
   end if;
   if has_table_privilege('authenticated', 'public.support_messages', 'select')
     or has_table_privilege('anon', 'public.support_tickets', 'select') then

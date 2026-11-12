@@ -6,7 +6,7 @@ import { createRateLimit } from "./rateLimit.js";
 
 type Actor = { user: User; profile?: { id: string; tenant_id: string | null; nome_terreiro: string | null; zelador: string | null } };
 type Authenticate = (req: Request, res: Response) => Promise<Actor | null>;
-const summaryFields = "id,subject,house_name,owner_name,status,created_at,updated_at";
+const summaryFields = "id,protocol,subject,house_name,owner_name,status,waiting_on,created_at,updated_at";
 const messageFields = "id,author_role,body,created_at";
 const limitWrites = createRateLimit({
   windowMs: 60_000, max: 30, keyPrefix: "support-messages",
@@ -67,12 +67,18 @@ function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, au
 
   app.get(path, route(async (req, res, actor) => {
     const page = Math.max(0, Math.min(1000, Math.floor(Number(req.query.page) || 0)));
-    let query = db.from("support_tickets").select(summaryFields);
+    const limit = Math.max(1, Math.min(30, Math.floor(Number(req.query.limit) || 30)));
+    const status = clean(req.query.status);
+    if (status && status !== "open" && status !== "closed") {
+      return res.status(422).json({ error: "Status de chamado inválido." });
+    }
+    let query = db.from("support_tickets").select(summaryFields, { count: "exact" });
     if (!admin) query = query.eq("owner_id", actor.user.id);
-    const { data, error } = await query.order("updated_at", { ascending: false }).order("id", { ascending: false })
-      .range(page * 30, page * 30 + 30);
+    if (status) query = query.eq("status", status);
+    const { data, error, count } = await query.order("updated_at", { ascending: false }).order("id", { ascending: false })
+      .range(page * limit, (page + 1) * limit - 1);
     if (error) throw error;
-    return res.json({ tickets: data.slice(0, 30), hasMore: data.length > 30 });
+    return res.json({ tickets: data, total: count ?? 0, hasMore: (count ?? 0) > (page + 1) * limit });
   }));
 
   if (!admin) {
@@ -127,6 +133,25 @@ function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, au
     return res.json({ ticket, messages });
   }));
 
+  app.post(path + "/:id/status", limitWrites, route(async (req, res, actor) => {
+    const status = clean(req.body?.status);
+    const version = clean(req.body?.updatedAt);
+    if ((status !== "open" && status !== "closed") || !Number.isFinite(Date.parse(version))) {
+      return res.status(422).json({ error: "Situação do chamado inválida." });
+    }
+    const ticket = await scoped(req, res, actor);
+    if (!ticket) return;
+    if (ticket.status === status) return res.json({ ticket });
+    let update = db.from("support_tickets")
+      .update({ status, updated_at: new Date().toISOString(), ...(status === "open" ? { waiting_on: "support" } : {}) })
+      .eq("id", ticket.id).eq("updated_at", version).eq("status", ticket.status);
+    if (!admin) update = update.eq("owner_id", actor.user.id);
+    const { data, error } = await update.select(summaryFields + ",description").maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(409).json({ error: "O chamado foi atualizado. Confira o histórico e tente novamente." });
+    return res.json({ ticket: data });
+  }));
+
   app.post(path + "/:id/messages", limitWrites, route(async (req, res, actor) => {
     const id = clean(req.body?.id);
     const body = clean(req.body?.body);
@@ -139,6 +164,7 @@ function registerTicketRoutes(app: Express, db: SupabaseClient, path: string, au
       id, ticket_id: req.params.id, body, author_id: actor.user.id,
       author_role: admin ? "support" : "owner",
     }, { onConflict: "id", ignoreDuplicates: true });
+    if (error?.code === "P0001") return res.status(409).json({ error: "Chamado finalizado. Reabra para enviar uma mensagem." });
     if (error) throw error;
     const { data, error: readError } = await db.from("support_messages").select(messageFields)
       .eq("id", id).eq("ticket_id", req.params.id).eq("author_id", actor.user.id).maybeSingle();

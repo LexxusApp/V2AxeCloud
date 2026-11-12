@@ -19,6 +19,7 @@ test('internal support preserves the thread, sends one reply alert and isolates 
     const source = rows[table] || [];
     let matches = (_row: any) => true;
     let single = false, start = 0, end = Infinity;
+    let changes: object | undefined;
     const filter = (predicate: (row: any) => boolean) => {
       const previous = matches;
       matches = row => previous(row) && predicate(row);
@@ -26,6 +27,7 @@ test('internal support preserves the thread, sends one reply alert and isolates 
     };
     const query = {
       select: () => query,
+      update: (value: object) => { changes = value; return query; },
       eq: (field: string, value: unknown) => filter(row => row[field] === value),
       is: (field: string, value: unknown) => filter(row => row[field] === value),
       order: () => query,
@@ -34,15 +36,24 @@ test('internal support preserves the thread, sends one reply alert and isolates 
       maybeSingle: () => { single = true; return query; },
       upsert: async (value: any) => {
         const now = new Date().toISOString();
-        if (!source.some(row => row.id === value.id)) source.push({ status: 'open', created_at: now, updated_at: now, ...value });
+        if (source.some(row => row.id === value.id)) return { error: null };
+        if (table === 'support_messages') {
+          const ticket = rows.support_tickets.find(row => row.id === value.ticket_id)!;
+          if (ticket.status === 'closed') return { error: { code: 'P0001' } };
+          ticket.waiting_on = value.author_role === 'support' ? 'owner' : 'support';
+          ticket.updated_at = now;
+        }
+        source.push({ status: 'open', waiting_on: 'support', protocol: source.length + 1, created_at: now, updated_at: now, ...value });
         return { error: null };
       },
       then(resolve: (result: unknown) => unknown) {
         const items = (table === 'support_messages' ? source.map(row => {
           const ticket = rows.support_tickets.find(ticket => ticket.id === row.ticket_id);
           return { ...row, 'support_tickets.owner_id': ticket?.owner_id, support_tickets: { subject: ticket?.subject } };
-        }) : source).filter(matches).slice(start, end);
-        return Promise.resolve({ data: single ? items[0] || null : items, error: null }).then(resolve);
+        }) : source).filter(matches);
+        if (changes) items.forEach(row => Object.assign(row, changes));
+        const page = items.slice(start, end);
+        return Promise.resolve({ data: single ? page[0] || null : page, count: items.length, error: null }).then(resolve);
       },
     };
     return query;
@@ -86,6 +97,8 @@ test('internal support preserves the thread, sends one reply alert and isolates 
     assert.equal((await call(adminThread, admin, reply)).status, 201);
     const thread = await call(support + '/' + ticket.id, owner);
     assert.equal(thread.ticket.description, ticket.description);
+    assert.equal(thread.ticket.protocol, 1);
+    assert.equal(thread.ticket.waiting_on, 'owner');
     assert.equal(thread.messages.length, 1);
     assert.equal(thread.messages[0].body, reply.body);
     const alerts = (await call(support + '/notifications', owner)).data;
@@ -95,6 +108,20 @@ test('internal support preserves the thread, sends one reply alert and isolates 
 
     const continuation = await call(support + '/' + ticket.id + '/messages', owner, { id: randomUUID(), body: 'Encontrei. Obrigado!' });
     assert.equal(continuation.message.author_role, 'owner');
+    const current = (await call(support + '/' + ticket.id, owner)).ticket;
+    assert.equal(current.waiting_on, 'support');
+    const statusPath = support + '/' + ticket.id + '/status';
+    assert.equal((await call(statusPath, owner, { status: 'closed', updatedAt: '2000-01-01T00:00:00Z' })).status, 409);
+    assert.equal((await call(statusPath, other, { status: 'closed', updatedAt: current.updated_at })).status, 404);
+    const closed = await call(statusPath, owner, { status: 'closed', updatedAt: current.updated_at });
+    assert.equal(closed.ticket.status, 'closed');
+    assert.equal((await call(adminThread, admin, reply)).status, 201);
+    assert.equal((await call(adminThread, admin, { id: randomUUID(), body: 'Nova resposta' })).status, 409);
+    assert.equal((await call(support + '?status=open', owner)).total, 0);
+    assert.equal((await call(support + '?status=closed', owner)).tickets[0].id, ticket.id);
+    const reopened = await call(consolePath + '/' + ticket.id + '/status', admin, { status: 'open', updatedAt: closed.ticket.updated_at });
+    assert.equal(reopened.ticket.status, 'open');
+    assert.equal(reopened.ticket.waiting_on, 'support');
     assert.equal((await call(support + '/notifications', owner)).data.length, 1);
   } finally {
     server.closeAllConnections();
