@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { AxePageHeader } from '../components/shared/AxePageScaffold';
 import { SupportDesk } from '../components/support/SupportDesk';
 import { useSupportRealtime } from '../hooks/useSupportRealtime';
 import { supabase } from '../lib/supabase';
@@ -29,9 +28,6 @@ export default function Support({ userId, requester }: { userId: string; request
     return () => window.removeEventListener(SUPPORT_OPEN_TICKET, open);
   }, []);
   return <AppPageShell>
-    <div className="space-y-6">
-      <AxePageHeader title="Suporte" description="Tire dúvidas sobre o AxéCloud e acompanhe seus atendimentos." />
-      <SupportDesk request={supportRequest} requestedTicket={ticket} requester={requester} activityVersion={activityVersion} />
-    </div>
+    <SupportDesk request={supportRequest} requestedTicket={ticket} requester={requester} activityVersion={activityVersion} />
   </AppPageShell>;
 }

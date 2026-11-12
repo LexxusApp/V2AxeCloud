@@ -174,6 +174,13 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
   }
 
   return <section className="support-desk" aria-label="Central de suporte">
+    {!admin && <header className="si-hero">
+      <div>
+        <h1>Suporte &amp; Assistência do Terreiro</h1>
+        <p>Tire dúvidas sobre a plataforma e acompanhe o atendimento da equipe AxéCloud.</p>
+      </div>
+      {creating && <button type="button" className="sd-button" disabled={busy} onClick={() => open(null)}><Inbox size={17} aria-hidden /> Meus chamados</button>}
+    </header>}
     {showingList ? <>
       <header className="sd-heading">
         <h2 ref={heading} tabIndex={-1}>{admin ? 'Chamados de suporte' : 'Meus chamados'}</h2>
@@ -204,11 +211,7 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
       </div>
     </> : <>
       {creating ? <>
-        <header className="sd-heading">
-          <h2 ref={heading} tabIndex={-1}>Abrir chamado</h2>
-          <button className="sd-button" type="button" disabled={busy} onClick={() => open(null)}><Inbox size={17} /> Meus chamados</button>
-        </header>
-        <SupportIntake draft={draft} onDraft={setDraft} requester={requester} busy={busy} error={error} onSubmit={send} />
+        <SupportIntake headingRef={heading} draft={draft} onDraft={setDraft} requester={requester} busy={busy} error={error} onSubmit={send} />
       </> : <>
         <button className="sd-back" type="button" disabled={busy} onClick={() => open(null)}><ArrowLeft size={16} /> {admin ? 'Todos os chamados' : 'Meus chamados'}</button>
         {conversation.result?.error && <p className="sd-feedback" role="alert">{conversation.result.error} <button className="sd-button" onClick={refresh}>Tentar novamente</button></p>}
