@@ -48,3 +48,29 @@
 .support-message-history small { color: #65745a; font-size: .75rem; }
 .support-message-history p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .support-ticket-detail > .finish-link { margin-top: 16px; }
+
+.support-thread { display: grid; gap: 18px; }
+.support-thread-back { justify-self: start; }
+.support-thread-panel {
+  min-width: 0;
+  padding: clamp(16px, 3vw, 30px);
+  border: 1px solid #d9e1d4;
+  border-radius: 12px;
+  background: #fff;
+}
+.support-thread-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.support-thread-header > div { min-width: 0; }
+.support-thread-header h2 { overflow-wrap: anywhere; scroll-margin-top: 6rem; }
+.support-content h3[tabindex] { scroll-margin-top: 6rem; }
+.support-thread-header p { margin-top: 8px; color: #596b50; }
+.support-thread .support-ticket-detail > section { padding: 18px 0; border-top: 1px solid #d9e1d4; }
+.support-thread-summary p { margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.support-thread-history .support-message-history { margin-bottom: 0; }
+.support-thread-history .support-message-history > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.support-thread-reply { max-width: 48rem; margin-top: 10px; }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, BookOpen, Check, ChevronRight, LifeBuoy, MessageCircle, Plus, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, LifeBuoy, MessageCircle, Plus, Search } from 'lucide-react';
 import { supportCategories } from '../../lib/supportCategories';
 import {
   post, protocol, useSupportQuery, type Status, type SupportDraft, type SupportRequester,
@@ -52,6 +52,9 @@ export default function SupportPage({ request, requester, requestedTicket, activ
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
+  const ticketHeading = useRef<HTMLHeadingElement>(null);
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const returningToList = useRef(false);
   const createAttempt = useRef<{ payload: string; id: string }>(undefined);
   const replyAttempt = useRef<{ payload: string; id: string }>(undefined);
 
@@ -86,6 +89,19 @@ export default function SupportPage({ request, requester, requestedTicket, activ
     }
   }, [list?.data, page]);
 
+  useEffect(() => {
+    if (!ticket && !returningToList.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      const heading = ticket ? ticketHeading.current : listHeading.current;
+      if (heading) {
+        heading.focus({ preventScroll: true });
+        heading.scrollIntoView({ block: 'start' });
+      }
+      returningToList.current = false;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ticket]);
+
   function refresh() {
     setRevision(value => value + 1);
   }
@@ -105,6 +121,7 @@ export default function SupportPage({ request, requester, requestedTicket, activ
   }
 
   function openTicket(id: string | null) {
+    if (id === null) returningToList.current = true;
     setTicket(id);
     setReply('');
     setError('');
@@ -154,6 +171,51 @@ export default function SupportPage({ request, requester, requestedTicket, activ
     });
   }
 
+  if (ticket) return <section className="finish-page support-local support-thread" aria-labelledby="support-thread-title">
+    <button type="button" className="wf-button secondary support-thread-back" disabled={busy} onClick={() => openTicket(null)}>
+      <ArrowLeft size={17} aria-hidden /> Voltar para Meus pedidos
+    </button>
+    <div className="support-thread-panel">
+      <header className="support-thread-header">
+        <div>
+          <h2 id="support-thread-title" ref={ticketHeading} tabIndex={-1}>{thread?.ticket.subject ?? 'Pedido de ajuda'}</h2>
+          {thread && <p>{protocol(thread.ticket)} · {thread.ticket.category && <>{supportCategories[thread.ticket.category]} · </>}
+            <time dateTime={thread.ticket.created_at}>{localDate(thread.ticket.created_at)}</time> · Brasília
+          </p>}
+        </div>
+        {thread && <TicketStatus ticket={thread.ticket} />}
+      </header>
+      {!conversation.result && <p role="status">Carregando pedido…</p>}
+      {conversation.result?.error && <p className="wf-error" role="alert">{conversation.result.error} <button type="button" className="finish-link" onClick={refresh}>Tentar novamente</button></p>}
+      {thread && <div className="support-ticket-detail">
+        <section className="support-thread-summary" aria-label="Descrição do pedido">
+          <h3>Descrição do pedido</h3>
+          <p>{thread.ticket.description}</p>
+        </section>
+        <section className="support-thread-history" aria-label="Histórico do atendimento">
+          <h3>Histórico do atendimento</h3>
+          {!thread.messages.length && <p className="support-thread-empty">Nenhuma mensagem no histórico.</p>}
+          <ol className="support-message-history" aria-live="polite">
+            {thread.messages.map(message => <li key={message.id}>
+              <small>{message.author_role === 'support' ? 'Equipe AxéCloud' : 'Você'} · <time dateTime={message.created_at}>{localDate(message.created_at)}</time> · Brasília</small>
+              <p>{message.body}</p>
+            </li>)}
+          </ol>
+        </section>
+        {thread.ticket.status === 'open' && <form className="support-thread-reply" onSubmit={sendReply}>
+          <label className="wf-field">Complementar pedido
+            <textarea required maxLength={4000} disabled={busy} value={reply} onChange={event => setReply(event.target.value)} />
+          </label>
+          <button className="wf-button secondary" disabled={busy || !reply.trim()}>{busy ? 'Processando…' : 'Enviar complemento ao suporte'}</button>
+        </form>}
+        {error && <p className="wf-error" role="alert">{error}</p>}
+        <button type="button" className="finish-link" disabled={busy} onClick={changeStatus}>
+          {thread.ticket.status === 'open' ? 'Encerrar acompanhamento' : 'Reabrir acompanhamento'}
+        </button>
+      </div>}
+    </div>
+  </section>;
+
   return <div className="finish-page support-local">
     <section className="support-opening">
       <LifeBuoy size={34} aria-hidden />
@@ -197,7 +259,7 @@ export default function SupportPage({ request, requester, requestedTicket, activ
             </button>)}</div> : <WorkflowEmpty title="Nenhuma orientação encontrada." text="Tente outro termo, selecione Todos ou registre um pedido de ajuda." />}
         </> : <>
           <div className="finish-section-head">
-            <div><h3>Seu histórico de pedidos</h3><p>Abra um pedido para acompanhar o status e as respostas da equipe.</p></div>
+            <div><h3 ref={listHeading} tabIndex={-1}>Seu histórico de pedidos</h3><p>Abra um pedido para acompanhar o status e as respostas da equipe.</p></div>
             <label>Situação
               <select value={filter} onChange={event => { setFilter(event.target.value as Status | 'all'); setPage(0); }}>
                 <option value="all">Todos</option><option value="open">Abertos</option><option value="closed">Encerrados</option>
@@ -254,32 +316,5 @@ export default function SupportPage({ request, requester, requestedTicket, activ
       </form>
     </WorkflowDialog>
 
-    <WorkflowDialog overlayClassName="support-dialog-overlay" contentClassName="support-dialog" open={!!ticket} onOpenChange={open => { if (!open && !busy) openTicket(null); }}
-      title={thread?.ticket.subject ?? 'Pedido de ajuda'}
-      description={thread ? [protocol(thread.ticket), thread.ticket.category && supportCategories[thread.ticket.category], localDate(thread.ticket.created_at) + ' · Brasília'].filter(Boolean).join(' · ') : 'Histórico do atendimento'}>
-      {!conversation.result && <p role="status">Carregando pedido…</p>}
-      {conversation.result?.error && <p className="wf-error" role="alert">{conversation.result.error} <button type="button" className="finish-link" onClick={refresh}>Tentar novamente</button></p>}
-      {thread && <div className="support-ticket-detail">
-        <TicketStatus ticket={thread.ticket} />
-        <p>{thread.ticket.description}</p>
-        <h3>Histórico do atendimento</h3>
-        <ol className="support-message-history" aria-live="polite">
-          {thread.messages.map(message => <li key={message.id}>
-            <small>{message.author_role === 'support' ? 'Equipe AxéCloud' : 'Você'} · <time dateTime={message.created_at}>{localDate(message.created_at)}</time> · Brasília</small>
-            <p>{message.body}</p>
-          </li>)}
-        </ol>
-        {thread.ticket.status === 'open' && <form onSubmit={sendReply}>
-          <label className="wf-field">Complementar pedido
-            <textarea required maxLength={4000} disabled={busy} value={reply} onChange={event => setReply(event.target.value)} />
-          </label>
-          <button className="wf-button secondary" disabled={busy || !reply.trim()}>{busy ? 'Processando…' : 'Enviar complemento ao suporte'}</button>
-        </form>}
-        {error && <p className="wf-error" role="alert">{error}</p>}
-        <button type="button" className="finish-link" disabled={busy} onClick={changeStatus}>
-          {thread.ticket.status === 'open' ? 'Encerrar acompanhamento' : 'Reabrir acompanhamento'}
-        </button>
-      </div>}
-    </WorkflowDialog>
   </div>;
 }
