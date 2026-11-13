@@ -20,7 +20,10 @@ test('BFCache closes and restores realtime transport once without removing chann
   const channels=[{}];let disconnects=0,connects=0;
   const cleanup=installRealtimePageLifecycle({getChannels:()=>channels,disconnect:()=>{disconnects++;},connect:()=>{connects++;}},target);
   events.dispatchEvent(new Event('pageshow'));assert.equal(connects,0);
+  doc.visibilityState='hidden';doc.dispatchEvent(new Event('visibilitychange'));assert.equal(disconnects,0);
+  doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));assert.equal(connects,0);
   events.dispatchEvent(new Event('pagehide'));assert.equal(disconnects,1);assert.equal(channels.length,1);
+  doc.dispatchEvent(new Event('freeze'));assert.equal(disconnects,1);
   events.dispatchEvent(new Event('pageshow'));events.dispatchEvent(new Event('pageshow'));assert.equal(connects,1);
   events.dispatchEvent(new Event('pagehide'));nav.onLine=false;events.dispatchEvent(new Event('pageshow'));assert.equal(connects,1);
   nav.onLine=true;events.dispatchEvent(new Event('online'));assert.equal(connects,2);

@@ -6,6 +6,7 @@ export function pilotPwaPlugin() {
     {tag: 'script', children: earlyPwaCapture, injectTo: 'head-prepend'},
     {tag: 'link', attrs: {rel: 'apple-touch-icon', href: '/pwa-192.png'}, injectTo: 'head'},
     {tag: 'meta', attrs: {name: 'apple-mobile-web-app-capable', content: 'yes'}, injectTo: 'head'},
+    {tag: 'meta', attrs: {name: 'mobile-web-app-capable', content: 'yes'}, injectTo: 'head'},
     {tag: 'meta', attrs: {name: 'apple-mobile-web-app-title', content: 'AxéCloud'}, injectTo: 'head'},
   ];}};
 }

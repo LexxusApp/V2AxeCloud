@@ -8,6 +8,7 @@ type Realtime = {
 export function installRealtimePageLifecycle(client: Realtime, target: Window) {
   let suspended = false;
   const hide = () => {
+    if (suspended) return;
     suspended = client.getChannels().length > 0;
     try {
       const conn = (client as any)?.socketAdapter?.socket?.conn;
@@ -23,11 +24,7 @@ export function installRealtimePageLifecycle(client: Realtime, target: Window) {
     if (client.getChannels().length > 0) client.connect();
   };
   const visibility = () => {
-    if (target.document.visibilityState === 'hidden') {
-      hide();
-    } else if (target.document.visibilityState === 'visible') {
-      resume();
-    }
+    if (target.document.visibilityState === 'visible') resume();
   };
   target.addEventListener('pagehide', hide);
   target.addEventListener('pageshow', resume);
