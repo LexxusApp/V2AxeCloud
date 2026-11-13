@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { AppPageShell } from '../components/app/AppTopNav';
-import { SupportDesk } from '../components/support/SupportDesk';
+import SupportPage from '../../design-systems/menu-local-20261029/SupportPage';
+import { AxePageHeader } from '../components/shared/AxePageScaffold';
 import { useSupportRealtime } from '../hooks/useSupportRealtime';
 import { supabase } from '../lib/supabase';
-import type { SupportRequester } from '../components/support/SupportIntake';
+import type { SupportRequester } from '../components/support/supportData';
 import { authFetch } from '../lib/authenticatedFetch';
 import { SUPPORT_OPEN_TICKET, takeSupportTicket } from '../lib/supportNavigation';
 
@@ -14,7 +15,7 @@ async function supportRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return data;
 }
 
-export default function Support({ userId, requester }: { userId: string; requester: SupportRequester }) {
+export default function Support({ userId, requester, onNavigate }: { userId: string; requester: SupportRequester; onNavigate: (id: string) => void }) {
   const [activityVersion, setActivityVersion] = useState(0);
   useSupportRealtime(supabase, userId, () => setActivityVersion(value => value + 1));
   const [ticket, setTicket] = useState<{ id: string }>();
@@ -28,6 +29,7 @@ export default function Support({ userId, requester }: { userId: string; request
     return () => window.removeEventListener(SUPPORT_OPEN_TICKET, open);
   }, []);
   return <AppPageShell>
-    <SupportDesk request={supportRequest} requestedTicket={ticket} requester={requester} activityVersion={activityVersion} />
+    <AxePageHeader title="Suporte" description="Orientações e pedidos de ajuda, com espaço para explicar o que aconteceu." />
+    <SupportPage request={supportRequest} requestedTicket={ticket} requester={requester} activityVersion={activityVersion} onNavigate={onNavigate} />
   </AppPageShell>;
 }

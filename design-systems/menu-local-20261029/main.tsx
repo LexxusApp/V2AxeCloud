@@ -240,7 +240,7 @@ import { radarDraftEqual } from "./radarLogic";
 const RadarPage = safeLazy(() => import("./RadarPage"));
 const SettingsPage = safeLazy(() => import("./SettingsPage"));
 const SubscriptionPage = safeLazy(() => import("./SubscriptionPage"));
-const SupportDesk = safeLazy(() => import("../../src/components/support/SupportDesk").then(module => ({ default: module.SupportDesk })));
+const SupportPage = safeLazy(() => import("./SupportPage"));
 function requestSupport<T>(path: string, init?: RequestInit) {
   return request<T>(path, init?.method, init?.body ? JSON.parse(String(init.body)) : undefined);
 }
@@ -1212,7 +1212,7 @@ function Prototype() {
                                           : tab === "settings"
                                             ? "A identidade da casa e os canais que aproximam a corrente."
                                             : tab === "suporte"
-                                              ? "Tire dúvidas sobre o AxéCloud e acompanhe seus atendimentos."
+                                              ? "Orientações e pedidos de ajuda, com espaço para explicar o que aconteceu."
                                               : tab === "library"
                                                 ? "Leituras da corrente e estudos reservados para cada caminho."
                                                 : "Uma navegação mais clara para cada rotina da casa."}
@@ -1716,7 +1716,7 @@ function Prototype() {
                     )}
                     {tab === "suporte" && (
                       isUserCoAdmin ? <p>O suporte da plataforma é atendido com a conta do zelador.</p> : (
-                        <SupportDesk request={requestSupport} requestedTicket={supportRequest} activityVersion={supportActivity}
+                        <SupportPage request={requestSupport} requestedTicket={supportRequest} activityVersion={supportActivity} onNavigate={navigate}
                           requester={{ name: profile.nome_zelador || profile.zelador, house: profile.nome_terreiro || profile.nome }} />
                       )
                     )}

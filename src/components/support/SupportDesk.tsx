@@ -1,66 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Inbox, LifeBuoy, Plus, RefreshCw, RotateCcw, UserRound } from 'lucide-react';
-import { SupportIntake, type SupportDraft, type SupportRequester } from './SupportIntake';
-import { supportCategories, type SupportCategory } from '../../../lib/supportCategories';
+import { ArrowDownRight, ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Inbox, LifeBuoy, RefreshCw, RotateCcw, UserRound } from 'lucide-react';
+import { post, protocol, useSupportQuery, type Status, type Ticket, type Thread, type TicketList, type SupportRequest } from './supportData';
+import { supportCategories } from '../../../lib/supportCategories';
 import './supportDesk.css';
 
-type Status = 'open' | 'closed';
-type Ticket = {
-  id: string; protocol: number; subject: string; house_name: string; owner_name: string;
-  status: Status; waiting_on: 'owner' | 'support'; created_at: string; updated_at: string;
-};
-type Message = { id: string; author_role: 'owner' | 'support'; body: string; created_at: string };
-type Thread = { ticket: Ticket & { description: string; category: SupportCategory | null }; messages: Message[] };
-type TicketList = { tickets: Ticket[]; total: number; hasMore: boolean };
 type Props = {
   admin?: boolean;
-  request: <T>(path: string, init?: RequestInit) => Promise<T>;
+  request: SupportRequest;
   requestedTicket?: { id: string };
-  requester?: SupportRequester;
   activityVersion?: number;
 };
 
 const pageSize = 12;
-const emptyDraft: SupportDraft = { category: '', subject: '', description: '' };
 const day = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'America/Sao_Paulo' });
 const dateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' });
-const protocol = (ticket: Ticket) => 'AX-' + String(ticket.protocol).padStart(6, '0');
-const post = (body: object): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
-
-function usePolling<T>(request: Props['request'], path: string | null, revision: number, interval: number) {
-  const [result, setResult] = useState<{ path: string; data?: T; error?: string }>();
-  useEffect(() => {
-    if (!path) return;
-    let active = true;
-    let busy = false;
-    const load = async () => {
-      if (busy || document.hidden) return;
-      busy = true;
-      try {
-        const data = await request<T>(path);
-        if (active) setResult({ path, data });
-      } catch (error) {
-        if (active) setResult(current => ({ path, data: current?.path === path ? current.data : undefined,
-          error: error instanceof Error ? error.message : 'Não foi possível carregar. Tente novamente.' }));
-      } finally {
-        busy = false;
-      }
-    };
-    void load();
-    const timer = window.setInterval(load, interval);
-    window.addEventListener('focus', load);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-      window.removeEventListener('focus', load);
-    };
-  }, [path, request, revision, interval]);
-  return {
-    result: result?.path === path ? result : undefined,
-    replace: (data: T) => { if (path) setResult({ path, data }); },
-  };
-}
-
 function StatusBadge({ ticket, admin }: { ticket: Ticket; admin: boolean }) {
   if (ticket.status === 'closed') return <span className="sd-badge is-closed"><Check size={14} /> Finalizado</span>;
   const owner = ticket.waiting_on === 'owner';
@@ -86,13 +39,11 @@ function TicketTable({ tickets, admin, open }: { tickets: Ticket[]; admin: boole
   </table>;
 }
 
-export function SupportDesk({ admin = false, request, requestedTicket, requester, activityVersion = 0 }: Props) {
+export function SupportDesk({ admin = false, request, requestedTicket, activityVersion = 0 }: Props) {
   const base = admin ? '/api/admin-console/support' : '/api/v1/support';
   const [selected, setSelected] = useState<string | null>(requestedTicket?.id || null);
-  const [creating, setCreating] = useState(!admin && !requestedTicket);
   const [filter, setFilter] = useState<Status>('open');
   const [page, setPage] = useState(0);
-  const [draft, setDraft] = useState(emptyDraft);
   const [reply, setReply] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -101,9 +52,9 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
   const attempt = useRef<{ id: string; draft: string } | undefined>(undefined);
   const heading = useRef<HTMLHeadingElement>(null);
   const moveFocus = useRef(false);
-  const showingList = !creating && !selected;
-  const list = usePolling<TicketList>(request, showingList ? base + '?status=' + filter + '&page=' + page + '&limit=' + pageSize : null, revision + activityVersion, 15_000).result;
-  const conversation = usePolling<Thread>(request, selected ? base + '/' + selected : null, revision + activityVersion, 7_500);
+  const showingList = !selected;
+  const list = useSupportQuery<TicketList>(request, showingList ? base + '?status=' + filter + '&page=' + page + '&limit=' + pageSize : null, revision + activityVersion, 15_000).result;
+  const conversation = useSupportQuery<Thread>(request, selected ? base + '/' + selected : null, revision + activityVersion, 7_500);
   const thread = conversation.result?.data;
 
   useEffect(() => { if (requestedTicket) open(requestedTicket.id); }, [requestedTicket]);
@@ -111,16 +62,15 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
     if (!moveFocus.current || !heading.current) return;
     moveFocus.current = false;
     heading.current.focus();
-  }, [creating, selected, thread?.ticket.id]);
+  }, [selected, thread?.ticket.id]);
   useEffect(() => {
     if (page && list?.data && list.data.tickets.length === 0) setPage(Math.max(0, Math.ceil(list.data.total / pageSize) - 1));
   }, [list?.data, page]);
 
   function refresh() { setRevision(value => value + 1); }
-  function open(id: string | null, newTicket = false) {
+  function open(id: string | null) {
     moveFocus.current = true;
     setSelected(id);
-    setCreating(newTicket);
     setConfirmClose(false);
     setError('');
     setReply('');
@@ -129,25 +79,15 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
 
   async function send(event: FormEvent) {
     event.preventDefault();
-    if (busy || (creating ? !draft.category || draft.subject.trim().length < 3 || draft.description.trim().length < 5 : !thread || thread.ticket.status === 'closed' || !reply.trim())) return;
-    const fingerprint = JSON.stringify(creating
-      ? [draft.category, draft.subject.trim(), draft.description.trim()]
-      : [selected, reply.trim()]);
+    if (busy || !thread || thread.ticket.status === 'closed' || !reply.trim()) return;
+    const fingerprint = JSON.stringify([selected, reply.trim()]);
     const id = attempt.current?.draft === fingerprint ? attempt.current.id : crypto.randomUUID();
     attempt.current = { id, draft: fingerprint };
     setBusy(true);
     setError('');
     try {
-      if (creating) {
-        await request(base, post({ id, ...draft }));
-        setDraft(emptyDraft);
-        setPage(0);
-        setFilter('open');
-        open(id);
-      } else {
-        await request(base + '/' + selected + '/messages', post({ id, body: reply }));
-        setReply('');
-      }
+      await request(base + '/' + selected + '/messages', post({ id, body: reply }));
+      setReply('');
       attempt.current = undefined;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Não foi possível enviar. Tente novamente.');
@@ -174,17 +114,9 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
   }
 
   return <section className="support-desk" aria-label="Central de suporte">
-    {!admin && <header className="si-hero">
-      <div>
-        <h1>Suporte &amp; Assistência do Terreiro</h1>
-        <p>Tire dúvidas sobre a plataforma e acompanhe o atendimento da equipe AxéCloud.</p>
-      </div>
-      {creating && <button type="button" className="sd-button" disabled={busy} onClick={() => open(null)}><Inbox size={17} aria-hidden /> Meus chamados</button>}
-    </header>}
     {showingList ? <>
       <header className="sd-heading">
         <h2 ref={heading} tabIndex={-1}>{admin ? 'Chamados de suporte' : 'Meus chamados'}</h2>
-        {!admin && <button type="button" className="sd-button is-primary" onClick={() => open(null, true)}><Plus size={18} /> Novo chamado</button>}
       </header>
       <div className="sd-panel">
         <div className="sd-toolbar">
@@ -206,13 +138,9 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
             </div>
           </nav>
         </> : <div className="sd-empty"><Inbox size={25} aria-hidden /><strong>{filter === 'open' ? 'Nenhum chamado em aberto' : 'Nenhum chamado finalizado'}</strong>
-          {filter === 'open' && !admin && <p>Use “Novo chamado” para pedir ajuda à equipe.</p>}
         </div>)}
       </div>
     </> : <>
-      {creating ? <>
-        <SupportIntake headingRef={heading} draft={draft} onDraft={setDraft} requester={requester} busy={busy} error={error} onSubmit={send} />
-      </> : <>
         <button className="sd-back" type="button" disabled={busy} onClick={() => open(null)}><ArrowLeft size={16} /> {admin ? 'Todos os chamados' : 'Meus chamados'}</button>
         {conversation.result?.error && <p className="sd-feedback" role="alert">{conversation.result.error} <button className="sd-button" onClick={refresh}>Tentar novamente</button></p>}
         {!thread && !conversation.result?.error && <p className="sd-feedback" role="status">Carregando chamado…</p>}
@@ -261,7 +189,6 @@ export function SupportDesk({ admin = false, request, requestedTicket, requester
             </form>}
           </section>
         </>}
-      </>}
     </>}
   </section>;
 }

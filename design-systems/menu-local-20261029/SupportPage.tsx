@@ -1,9 +1,15 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowRight, BookOpen, Check, ChevronRight, LifeBuoy, MessageCircle, Plus, Search } from 'lucide-react';
+import { supportCategories } from '../../lib/supportCategories';
+import {
+  post, protocol, useSupportQuery, type Status, type SupportDraft, type SupportRequester,
+  type SupportRequest, type Thread, type Ticket, type TicketList,
+} from '../../src/components/support/supportData';
 import { WorkflowDialog, WorkflowEmpty, textMatch } from './WorkflowUI';
-import { HouseState, HouseStateTools, type HouseMode } from './HouseStates';
-import { localDate, ticketError, type HouseProfile, type LocalSupport } from './completion';
+import { localDate } from './completion';
 import './completion.css';
+import './support-page.css';
+
 const articles=[
  {id:'member',topic:'Corrente',title:'Como cadastrar e acompanhar um membro?',intro:'O perfil reúne os dados e a trajetória do filho da casa.',steps:['Abra Filhos de Santo e escolha Novo membro.','Informe os dados e salve o cadastro.','Abra o perfil para revisar informações, compromissos e mensalidades.'],tab:'children',action:'Abrir corrente'},
  {id:'monthly',topic:'Financeiro',title:'Qual a diferença entre pendência e valor recebido?',intro:'Uma cobrança em aberto ainda não compõe o saldo em caixa.',steps:['Acesse Mensalidades para acompanhar as cobranças pendentes.','Abra os detalhes e confira membro e valor antes de dar baixa.','O recebimento confirmado passa a aparecer no Financeiro, na data da baixa.'],tab:'financial-mensalidades',action:'Ver mensalidades'},
@@ -14,24 +20,266 @@ const articles=[
  {id:'pix',topic:'Financeiro',title:'Onde configurar a contribuição e a chave Pix?',intro:'A configuração da casa fica separada do histórico já criado.',steps:['Abra Financeiro e Configurações Pix.','Revise chave, nome do recebedor, contribuição e vencimento.','Salve e confira os dados do recebedor antes de orientar um pagamento.'],tab:'financial-configs',action:'Ver configurações Pix'},
  {id:'gira',topic:'Giras',title:'Como organizar o próximo encontro?',intro:'A agenda e a preparação usam os mesmos encontros cadastrados.',steps:['Crie uma gira com data, horário e local.','Confira confirmações da corrente e as tarefas de preparação.','Revise os avisos antes de enviar. As preferências do WhatsApp controlam os lembretes automáticos.'],tab:'calendar',action:'Abrir agenda'},
 ];
-export default function SupportPage({state,onChange,onNavigate,profile}: {profile:HouseProfile;state:LocalSupport;onChange:(s:LocalSupport)=>void|Promise<unknown>;onNavigate:(id:string)=>void}) {
- const safeTickets = Array.isArray(state?.tickets) ? state.tickets : [];
- const safeDraft = state?.draft || {category:'Uso do sistema',subject:'',text:''};
- const[mode,setMode]=useState<HouseMode>('ready'),[view,setView]=useState('help'),[query,setQuery]=useState(''),[topic,setTopic]=useState('Todos'),[filter,setFilter]=useState('all'),[formOpen,setFormOpen]=useState(false),[article,setArticle]=useState<string|null>(null),[ticket,setTicket]=useState<string|null>(null),[error,setError]=useState(''),[feedback,setFeedback]=useState(''),[comment,setComment]=useState('');
- const item=articles.find(a=>a.id===article),selected=safeTickets.find(t=>t.id===ticket); const shown=(mode==='empty'?[]:articles).filter(a=>(topic==='Todos'||a.topic===topic)&&textMatch(`${a.title} ${a.intro} ${a.topic}`,query)); const tickets=(mode==='empty'?[]:safeTickets).filter(t=>filter==='all'||t.status===filter).slice().reverse();
- const[busy,setBusy]=useState(false);const submission=useRef({key:'',id:''}),complement=useRef({key:'',id:''});
- const stable=(ref:{current:{key:string;id:string}},key:string)=>{if(ref.current.key!==key)ref.current={key,id:crypto.randomUUID()};return ref.current.id;};
- const run=async(action:()=>Promise<void>)=>{if(busy)return;setBusy(true);setError('');try{await action();}catch(problem){setError(problem instanceof Error?problem.message:'Não foi possível concluir. Consulte o histórico antes de repetir.');}finally{setBusy(false);}};
- const send=async(e:FormEvent)=>{e.preventDefault();const problem=ticketError(safeDraft);if(problem){setError(problem);return;}const contact={responsible:(safeDraft.responsible??profile.responsible).trim(),house:(safeDraft.house??profile.house).trim(),phone:(safeDraft.phone??profile.phone).replace(/\D/g,'')};if(contact.responsible.length<3||contact.house.length<3||!/^\d{10,13}$/.test(contact.phone)){setError('Confira o nome do responsável, a casa e o WhatsApp com DDD.');return;}const data={...contact,subject:safeDraft.subject.trim(),text:safeDraft.text.trim(),category:safeDraft.category};const id=stable(submission,JSON.stringify(data));await run(async()=>{await onChange({draft:{category:'Uso do sistema',subject:'',text:''},tickets:[...safeTickets,{...data,id,status:'open',created:new Date().toISOString(),messages:[]}]});setFormOpen(false);setView('tickets');setMode('ready');setFilter('all');setFeedback('Pedido salvo. Confira a confirmação de envio no histórico.');});};
- const addComment=async(e:FormEvent)=>{e.preventDefault();if(!selected||selected.status!=='open')return;if(comment.trim().length<5){setError('Escreva pelo menos 5 caracteres para complementar o pedido.');return;}const text=comment.trim(),id=stable(complement,selected.id+text);await run(async()=>{await onChange({...state,tickets:safeTickets.map(t=>t.id===selected.id?{...t,messages:[...t.messages,{id,text,created:new Date().toISOString()}]}:t)});setComment('');});};
- const deliveryLabel=(value?:string)=>value==='confirmed'?'Envio confirmado':value==='failed'?'Envio recusado':value==='sending'?'Envio em andamento':'Envio não confirmado';
- const retry=async(messageId?:string)=>{if(!selected)return;await run(async()=>{await onChange({...state,tickets:safeTickets.map(t=>t.id!==selected.id?t:messageId?{...t,messages:t.messages.map(m=>m.id===messageId?{...m,retry:true}:m)}:{...t,retry:true})});});};
- return <div className="finish-page support-local"><section className="support-opening"><LifeBuoy size={34}/><div><h2>Vamos encontrar<br/><span>o próximo passo.</span></h2><p>Explore orientações rápidas ou organize um pedido de ajuda para a casa.</p></div><label className="support-search"><Search size={21}/><input aria-label="Buscar ajuda" value={query} onChange={e=>{setQuery(e.target.value);setView('help');}} placeholder="Como podemos ajudar?"/></label><small>Orientações e histórico de pedidos da sua casa.</small></section>
- {feedback&&<div className="wf-feedback" role="status"><Check size={17}/><span>{feedback}</span></div>}
- <div className="support-workspace"><aside className="support-index"><div className="finish-tabs" role="group" aria-label="Área de suporte"><button aria-pressed={view==='help'} onClick={()=>setView('help')}>Orientações</button><button aria-pressed={view==='tickets'} onClick={()=>setView('tickets')}>Meus pedidos <span>{safeTickets.length}</span></button></div><div className="support-contact"><MessageCircle size={26}/><h3>Não encontrou a resposta?</h3><p>Descreva o que aconteceu e o resultado que esperava. Evite senhas, documentos pessoais e dados bancários.</p><button className="wf-button" onClick={()=>{setError('');setFormOpen(true);}}><Plus size={17}/>Novo pedido de ajuda</button><small>Envio pelo canal oficial de suporte</small></div></aside><section className="support-content">{mode==='loading'||mode==='error'?<HouseState mode={mode} onReset={()=>setMode('ready')}/>:view==='help'?<><div className="finish-section-head"><div><h3>Um pouco de orientação ajuda.</h3><p>Guias curtos ligados às áreas do sistema.</p></div></div><div className="finish-filter-chips" role="group" aria-label="Assunto da ajuda">{['Todos','Corrente','Financeiro','Biblioteca','Radar','Conta','Giras'].map(t=><button key={t} aria-pressed={topic===t} onClick={()=>setTopic(t)}>{t}</button>)}</div>{!shown.length?<WorkflowEmpty title="Nenhuma orientação encontrada." text="Tente outro termo, selecione Todos ou registre um pedido de ajuda."/>:<div className="support-articles">{shown.map(a=><button key={a.id} onClick={()=>setArticle(a.id)}><BookOpen size={20}/><span><small>{a.topic}</small><strong>{a.title}</strong><span>{a.intro}</span></span><ChevronRight size={19}/></button>)}</div>}</>:<><div className="finish-section-head"><div><h3>Seu histórico de pedidos</h3><p>Pedidos enviados pela sua conta. A equipe responde pelos contatos informados.</p></div><label>Situação<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos</option><option value="open">Abertos</option><option value="closed">Encerrados</option></select></label></div>{!tickets.length?<WorkflowEmpty title="Nenhum pedido neste filtro." text="Ao registrar uma dúvida, assunto e descrição ficam disponíveis aqui."/>:<div className="support-tickets">{tickets.map(t=><button key={t.id} onClick={()=>{setTicket(t.id);setComment('');setError('');}}><span className={`finish-status ${t.status==='open'?'neutral':'positive'}`}>{t.status==='open'?'Em acompanhamento':'Acompanhamento encerrado'}</span><strong>{t.subject}</strong><span>{deliveryLabel(t.delivery)}</span><span>{t.category} · {localDate(t.created)} · Brasília</span><ArrowRight size={18}/></button>)}</div>}</>}</section></div>
- <HouseStateTools mode={mode} onChange={setMode}/><p className="finish-note">Os pedidos enviados ficam salvos na conta. O rascunho ainda não enviado permanece apenas nesta sessão. Encerrar o acompanhamento não cancela um e-mail já enviado.</p>
- <WorkflowDialog open={!!article} onOpenChange={open=>!open&&setArticle(null)} title={item?.title||'Orientação'} description={item?.intro||''}>{item&&<div className="support-guide"><ol>{item.steps.map(step=><li key={step}>{step}</li>)}</ol><button className="wf-button" onClick={()=>{setArticle(null);onNavigate(item.tab);}}>{item.action}<ArrowRight size={17}/></button></div>}</WorkflowDialog>
- <WorkflowDialog open={formOpen} onOpenChange={setFormOpen} title="Organizar um pedido de ajuda" description="O pedido será enviado ao suporte com o contato informado. Confira os dados antes de enviar."><form onSubmit={send}><fieldset disabled={busy} style={{border:0,padding:0,margin:0,minWidth:0}}><label className="wf-field">Zelador(a) / responsável<input required maxLength={80} value={safeDraft.responsible??profile.responsible} onChange={async e=>await onChange({...state,draft:{...safeDraft,responsible:e.target.value}})}/></label><label className="wf-field">Nome do terreiro<input required maxLength={80} value={safeDraft.house??profile.house} onChange={async e=>await onChange({...state,draft:{...safeDraft,house:e.target.value}})}/></label><label className="wf-field">WhatsApp para retorno<input required type="tel" maxLength={20} value={safeDraft.phone??profile.phone} onChange={async e=>await onChange({...state,draft:{...safeDraft,phone:e.target.value}})}/></label><label className="wf-field">Categoria do pedido<select value={safeDraft.category} onChange={async e=>await onChange({...state,draft:{...safeDraft,category:e.target.value}})}>{['Uso do sistema','Financeiro e Pix','Cadastro da corrente','Giras e presença','Acesso à conta','Sugestão'].map(c=><option key={c}>{c}</option>)}</select></label><label className="wf-field">Assunto<input required maxLength={120} value={safeDraft.subject} onChange={async e=>await onChange({...state,draft:{...safeDraft,subject:e.target.value}})}/></label><label className="wf-field">O que aconteceu?<textarea required maxLength={3000} value={safeDraft.text} onChange={async e=>await onChange({...state,draft:{...safeDraft,text:e.target.value}})} placeholder="Qual área você usou, o que tentou fazer e o que apareceu?"/></label><p className="finish-note">Não inclua senhas ou dados sensíveis. O texto e os dados de contato serão enviados à equipe de suporte.</p>{error&&<p className="wf-error" role="alert">{error}</p>}<button className="wf-button" disabled={busy}>{busy?'Enviando pedido…':'Enviar pedido ao suporte'}<Check size={17}/></button></fieldset></form></WorkflowDialog>
- <WorkflowDialog open={!!ticket} onOpenChange={open=>!open&&setTicket(null)} title={selected?.subject||'Pedido de ajuda'} description={selected?`${selected.category} · ${localDate(selected.created)} · Brasília`:''}>{selected&&<div className="support-ticket-detail"><span className="finish-status neutral">{selected.status==='open'?'Em acompanhamento':'Acompanhamento encerrado'}</span><p>{selected.text}</p><p role="status">{deliveryLabel(selected.delivery)}</p>{selected.deliveryError&&<p className="finish-note">{selected.deliveryError}</p>}{selected.delivery==='failed'&&selected.status==='open'&&<button className="wf-button secondary" disabled={busy} onClick={()=>void retry()}>Tentar enviar novamente</button>}{(selected.delivery==='uncertain'||selected.delivery==='sending')&&<p className="finish-note">O pedido foi salvo. Confira o retorno nos contatos informados antes de abrir outro pedido sobre o mesmo assunto.</p>}<p className="finish-note">Protocolo: {selected.id}</p>{selected.responsible&&<p className="finish-note">Contato registrado: {selected.responsible} · {selected.house} · {selected.phone}</p>}<h3>Complementos do pedido</h3>{!selected.messages.length&&<p className="finish-note">Nenhum complemento registrado. As respostas da equipe chegam pelos contatos informados.</p>}{selected.messages.map(m=><div key={m.id}><small>Você · {localDate(m.created)} · Brasília</small><p>{m.text}</p><small>{deliveryLabel(m.delivery)}</small>{m.deliveryError&&<p className="finish-note">{m.deliveryError}</p>}{m.delivery==='failed'&&selected.status==='open'&&<button className="wf-button secondary" disabled={busy} onClick={()=>void retry(m.id)}>Tentar enviar complemento novamente</button>}</div>)}{selected.status==='open'&&<form onSubmit={addComment}><label className="wf-field">Complementar descrição<textarea disabled={busy} required maxLength={2000} value={comment} onChange={e=>setComment(e.target.value)}/></label>{error&&<p className="wf-error" role="alert">{error}</p>}<button className="wf-button secondary" disabled={busy}>{busy?'Processando…':'Enviar complemento ao suporte'}</button></form>}{error&&selected.status!=='open'&&<p className="wf-error" role="alert">{error}</p>}<button className="finish-link" disabled={busy} onClick={()=>void run(async()=>{await onChange({...state,tickets:safeTickets.map(t=>t.id===selected.id?{...t,status:t.status==='open'?'closed':'open'}:t)});})}>{busy?'Processando…':selected.status==='open'?'Encerrar acompanhamento':'Reabrir acompanhamento'}</button></div>}</WorkflowDialog>
- </div>;
+
+const base = '/api/v1/support';
+const pageSize = 12;
+const emptyDraft: SupportDraft = { category: 'duvida', subject: '', description: '' };
+
+function TicketStatus({ ticket }: { ticket: Ticket }) {
+  if (ticket.status === 'closed') return <span className="finish-status positive">Encerrado</span>;
+  return <span className="finish-status neutral">
+    {ticket.waiting_on === 'owner' ? 'Aguardando sua resposta' : 'Aguardando suporte'}
+  </span>;
+}
+
+export default function SupportPage({ request, requester, requestedTicket, activityVersion, onNavigate }: {
+  request: SupportRequest;
+  requester?: SupportRequester;
+  requestedTicket?: { id: string };
+  activityVersion: number;
+  onNavigate: (id: string) => void;
+}) {
+  const [view, setView] = useState<'help' | 'tickets'>(requestedTicket ? 'tickets' : 'help');
+  const [query, setQuery] = useState('');
+  const [topic, setTopic] = useState('Todos');
+  const [filter, setFilter] = useState<Status | 'all'>('all');
+  const [page, setPage] = useState(0);
+  const [formOpen, setFormOpen] = useState(false);
+  const [article, setArticle] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<string | null>(requestedTicket?.id ?? null);
+  const [draft, setDraft] = useState(emptyDraft);
+  const [reply, setReply] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [revision, setRevision] = useState(0);
+  const createAttempt = useRef<{ payload: string; id: string }>(undefined);
+  const replyAttempt = useRef<{ payload: string; id: string }>(undefined);
+
+  const allPath = base + '?page=0&limit=' + pageSize;
+  const listPath = filter === 'all' && page === 0 ? allPath
+    : base + '?page=' + page + '&limit=' + pageSize + (filter === 'all' ? '' : '&status=' + filter);
+  const refreshVersion = revision + activityVersion;
+  const all = useSupportQuery<TicketList>(request, allPath, refreshVersion, 15_000).result;
+  const filtered = useSupportQuery<TicketList>(request, view === 'tickets' && listPath !== allPath ? listPath : null, refreshVersion, 15_000).result;
+  const list = listPath === allPath ? all : filtered;
+  const conversation = useSupportQuery<Thread>(request, ticket ? base + '/' + ticket : null, refreshVersion, 7_500);
+  const thread = conversation.result?.data;
+
+  const item = articles.find(entry => entry.id === article);
+  const shown = articles.filter(entry => (topic === 'Todos' || entry.topic === topic)
+    && textMatch(entry.title + ' ' + entry.intro + ' ' + entry.topic, query));
+
+  useEffect(() => {
+    if (!requestedTicket) return;
+    setFormOpen(false);
+    setArticle(null);
+    setView('tickets');
+    setTicket(requestedTicket.id);
+    setReply('');
+    setError('');
+    replyAttempt.current = undefined;
+  }, [requestedTicket]);
+
+  useEffect(() => {
+    if (page && list?.data && list.data.tickets.length === 0) {
+      setPage(Math.max(0, Math.ceil(list.data.total / pageSize) - 1));
+    }
+  }, [list?.data, page]);
+
+  function refresh() {
+    setRevision(value => value + 1);
+  }
+
+  async function run(action: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await action();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'Não foi possível concluir. Tente novamente.');
+    } finally {
+      refresh();
+      setBusy(false);
+    }
+  }
+
+  function openTicket(id: string | null) {
+    setTicket(id);
+    setReply('');
+    setError('');
+    replyAttempt.current = undefined;
+  }
+
+  function send(event: FormEvent) {
+    event.preventDefault();
+    const payload = { category: draft.category, subject: draft.subject.trim(), description: draft.description.trim() };
+    if (!payload.category || payload.subject.length < 3 || payload.description.length < 5) {
+      setError('Informe a categoria, o assunto e descreva o que aconteceu.');
+      return;
+    }
+    void run(async () => {
+      const fingerprint = JSON.stringify(payload);
+      if (createAttempt.current?.payload !== fingerprint) createAttempt.current = { payload: fingerprint, id: crypto.randomUUID() };
+      const result = await request<{ id: string }>(base, post({ ...payload, id: createAttempt.current.id }));
+      createAttempt.current = undefined;
+      setDraft(emptyDraft);
+      setFormOpen(false);
+      setView('tickets');
+      setFilter('all');
+      setPage(0);
+      openTicket(result.id);
+    });
+  }
+
+  function sendReply(event: FormEvent) {
+    event.preventDefault();
+    const body = reply.trim();
+    if (!thread || thread.ticket.status === 'closed' || !body) return;
+    void run(async () => {
+      if (replyAttempt.current?.payload !== body) replyAttempt.current = { payload: body, id: crypto.randomUUID() };
+      await request(base + '/' + thread.ticket.id + '/messages', post({ id: replyAttempt.current.id, body }));
+      replyAttempt.current = undefined;
+      setReply('');
+    });
+  }
+
+  function changeStatus() {
+    if (!thread) return;
+    void run(async () => {
+      const { id, status, updated_at } = thread.ticket;
+      const result = await request<{ ticket: Thread['ticket'] }>(base + '/' + id + '/status',
+        post({ status: status === 'open' ? 'closed' : 'open', updatedAt: updated_at }));
+      conversation.replace({ ...thread, ticket: result.ticket });
+    });
+  }
+
+  return <div className="finish-page support-local">
+    <section className="support-opening">
+      <LifeBuoy size={34} aria-hidden />
+      <div>
+        <h2>Vamos encontrar<br /><span>o próximo passo.</span></h2>
+        <p>Explore orientações rápidas ou organize um pedido de ajuda para a casa.</p>
+      </div>
+      <label className="support-search">
+        <Search size={21} aria-hidden />
+        <input aria-label="Buscar ajuda" value={query} onChange={event => { setQuery(event.target.value); setView('help'); }} placeholder="Como podemos ajudar?" />
+      </label>
+      <small>Orientações e histórico de pedidos da sua casa.</small>
+    </section>
+
+    <div className="support-workspace">
+      <aside className="support-index">
+        <div className="finish-tabs" role="group" aria-label="Área de suporte">
+          <button type="button" aria-pressed={view === 'help'} onClick={() => setView('help')}>Orientações</button>
+          <button type="button" aria-pressed={view === 'tickets'} onClick={() => setView('tickets')}>
+            Meus pedidos {all?.data && <span>{all.data.total}</span>}
+          </button>
+        </div>
+        <div className="support-contact">
+          <MessageCircle size={26} aria-hidden />
+          <h3>Não encontrou a resposta?</h3>
+          <p>Descreva o que aconteceu e o resultado que esperava. Evite senhas, documentos pessoais e dados bancários.</p>
+          <button type="button" className="wf-button" onClick={() => { setError(''); setFormOpen(true); }}><Plus size={17} aria-hidden />Novo pedido de ajuda</button>
+          <small>Atendimento dentro do AxéCloud</small>
+        </div>
+      </aside>
+      <section className="support-content">
+        {view === 'help' ? <>
+          <div className="finish-section-head"><div><h3>Um pouco de orientação ajuda.</h3><p>Guias curtos ligados às áreas do sistema.</p></div></div>
+          <div className="finish-filter-chips" role="group" aria-label="Assunto da ajuda">
+            {['Todos', 'Corrente', 'Financeiro', 'Biblioteca', 'Radar', 'Conta', 'Giras'].map(value =>
+              <button type="button" key={value} aria-pressed={topic === value} onClick={() => setTopic(value)}>{value}</button>)}
+          </div>
+          {shown.length ? <div className="support-articles">{shown.map(entry =>
+            <button type="button" key={entry.id} onClick={() => setArticle(entry.id)}>
+              <BookOpen size={20} aria-hidden /><span><small>{entry.topic}</small><strong>{entry.title}</strong><span>{entry.intro}</span></span><ChevronRight size={19} aria-hidden />
+            </button>)}</div> : <WorkflowEmpty title="Nenhuma orientação encontrada." text="Tente outro termo, selecione Todos ou registre um pedido de ajuda." />}
+        </> : <>
+          <div className="finish-section-head">
+            <div><h3>Seu histórico de pedidos</h3><p>Abra um pedido para acompanhar o status e as respostas da equipe.</p></div>
+            <label>Situação
+              <select value={filter} onChange={event => { setFilter(event.target.value as Status | 'all'); setPage(0); }}>
+                <option value="all">Todos</option><option value="open">Abertos</option><option value="closed">Encerrados</option>
+              </select>
+            </label>
+          </div>
+          {!list && <p role="status">Carregando pedidos…</p>}
+          {list?.error && <p className="wf-error" role="alert">{list.error} <button type="button" className="finish-link" onClick={refresh}>Tentar novamente</button></p>}
+          {list?.data && (list.data.tickets.length ? <>
+            <div className="support-tickets">
+              {list.data.tickets.map(entry => <button type="button" key={entry.id} onClick={() => openTicket(entry.id)}>
+                <TicketStatus ticket={entry} />
+                <strong>{entry.subject}</strong>
+                <span>{protocol(entry)}</span>
+                <span><time dateTime={entry.created_at}>{localDate(entry.created_at)}</time> · Brasília</span>
+                <ArrowRight size={18} aria-hidden />
+              </button>)}
+            </div>
+            {(page > 0 || list.data.hasMore) && <nav className="support-order-pages" aria-label="Páginas de pedidos">
+              <button type="button" className="wf-button secondary" disabled={!page} onClick={() => setPage(value => value - 1)}>Anterior</button>
+              <span>Página {page + 1}</span>
+              <button type="button" className="wf-button secondary" disabled={!list.data.hasMore} onClick={() => setPage(value => value + 1)}>Próxima</button>
+            </nav>}
+          </> : <WorkflowEmpty title="Nenhum pedido neste filtro." text="Ao registrar uma dúvida, assunto e descrição ficam disponíveis aqui." />)}
+        </>}
+      </section>
+    </div>
+    <p className="finish-note">Os pedidos enviados ficam salvos na conta. O sino avisa quando a equipe responder.</p>
+
+    <WorkflowDialog overlayClassName="support-dialog-overlay" contentClassName="support-dialog" open={!!article} onOpenChange={open => { if (!open) setArticle(null); }} title={item?.title ?? 'Orientação'} description={item?.intro ?? ''}>
+      {item && <div className="support-guide">
+        <ol>{item.steps.map(step => <li key={step}>{step}</li>)}</ol>
+        <button type="button" className="wf-button" onClick={() => { setArticle(null); onNavigate(item.tab); }}>{item.action}<ArrowRight size={17} aria-hidden /></button>
+      </div>}
+    </WorkflowDialog>
+
+    <WorkflowDialog overlayClassName="support-dialog-overlay" contentClassName="support-dialog" open={formOpen} onOpenChange={open => { if (!busy) setFormOpen(open); }} title="Organizar um pedido de ajuda" description="A equipe responde dentro deste pedido. Confira os dados antes de enviar.">
+      <form onSubmit={send} className="support-request-form">
+        {requester?.name && <label className="wf-field">Zelador(a) / responsável<input readOnly value={requester.name} /></label>}
+        {requester?.house && <label className="wf-field">Nome do terreiro<input readOnly value={requester.house} /></label>}
+        <label className="wf-field">Categoria do pedido
+          <select required value={draft.category} disabled={busy} onChange={event => setDraft({ ...draft, category: event.target.value as SupportDraft['category'] })}>
+            {Object.entries(supportCategories).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          </select>
+        </label>
+        <label className="wf-field">Assunto
+          <input required minLength={3} maxLength={120} value={draft.subject} disabled={busy} onChange={event => setDraft({ ...draft, subject: event.target.value })} />
+        </label>
+        <label className="wf-field">O que aconteceu?
+          <textarea required minLength={5} maxLength={4000} value={draft.description} disabled={busy} onChange={event => setDraft({ ...draft, description: event.target.value })} placeholder="Qual área você usou, o que tentou fazer e o que apareceu?" />
+        </label>
+        {error && <p className="wf-error" role="alert">{error}</p>}
+        <button className="wf-button" disabled={busy}>{busy ? 'Enviando pedido…' : 'Enviar pedido ao suporte'}<Check size={17} aria-hidden /></button>
+      </form>
+    </WorkflowDialog>
+
+    <WorkflowDialog overlayClassName="support-dialog-overlay" contentClassName="support-dialog" open={!!ticket} onOpenChange={open => { if (!open && !busy) openTicket(null); }}
+      title={thread?.ticket.subject ?? 'Pedido de ajuda'}
+      description={thread ? [protocol(thread.ticket), thread.ticket.category && supportCategories[thread.ticket.category], localDate(thread.ticket.created_at) + ' · Brasília'].filter(Boolean).join(' · ') : 'Histórico do atendimento'}>
+      {!conversation.result && <p role="status">Carregando pedido…</p>}
+      {conversation.result?.error && <p className="wf-error" role="alert">{conversation.result.error} <button type="button" className="finish-link" onClick={refresh}>Tentar novamente</button></p>}
+      {thread && <div className="support-ticket-detail">
+        <TicketStatus ticket={thread.ticket} />
+        <p>{thread.ticket.description}</p>
+        <h3>Histórico do atendimento</h3>
+        <ol className="support-message-history" aria-live="polite">
+          {thread.messages.map(message => <li key={message.id}>
+            <small>{message.author_role === 'support' ? 'Equipe AxéCloud' : 'Você'} · <time dateTime={message.created_at}>{localDate(message.created_at)}</time> · Brasília</small>
+            <p>{message.body}</p>
+          </li>)}
+        </ol>
+        {thread.ticket.status === 'open' && <form onSubmit={sendReply}>
+          <label className="wf-field">Complementar pedido
+            <textarea required maxLength={4000} disabled={busy} value={reply} onChange={event => setReply(event.target.value)} />
+          </label>
+          <button className="wf-button secondary" disabled={busy || !reply.trim()}>{busy ? 'Processando…' : 'Enviar complemento ao suporte'}</button>
+        </form>}
+        {error && <p className="wf-error" role="alert">{error}</p>}
+        <button type="button" className="finish-link" disabled={busy} onClick={changeStatus}>
+          {thread.ticket.status === 'open' ? 'Encerrar acompanhamento' : 'Reabrir acompanhamento'}
+        </button>
+      </div>}
+    </WorkflowDialog>
+  </div>;
 }

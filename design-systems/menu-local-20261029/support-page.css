@@ -1,0 +1,50 @@
+.support-order-pages {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: .8rem;
+}
+.support-order-pages button:disabled { opacity: .55; cursor: default; }
+
+.dialog-overlay.support-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #10251d52;
+}
+.dialog.wf-dialog.support-dialog {
+  position: fixed;
+  z-index: 61;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  width: min(600px, calc(100% - 32px));
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: clamp(16px, 4vw, 28px);
+  border-radius: 18px;
+  background: #fff;
+  color: #243c2d;
+  box-shadow: 0 25px 90px #10251d30;
+}
+.support-dialog .dialog-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+.support-dialog .dialog-heading h2 { margin: 0; font-size: 21px; font-weight: 650; overflow-wrap: anywhere; }
+.support-dialog .dialog-heading button { flex-shrink: 0; }
+.support-dialog > p { margin: 0 0 16px; color: #596b50; font-size: .82rem; line-height: 1.6; }
+.support-request-form { display: grid; gap: 12px; }
+.support-request-form > .wf-button { justify-self: start; }
+.support-message-history { list-style: none; margin: 0 0 16px; padding: 0; }
+.support-message-history > li { padding: 16px 0; border-bottom: 1px solid #d7dfce; }
+.support-message-history small { color: #65745a; font-size: .75rem; }
+.support-message-history p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.support-ticket-detail > .finish-link { margin-top: 16px; }
