@@ -17,9 +17,11 @@ test('service worker caches static files, never navigation, API, auth or writes'
 test('BFCache closes and restores realtime transport once without removing channel registrations',()=>{
   const events=new EventTarget(),doc=Object.assign(new EventTarget(),{visibilityState:'visible'}),nav={onLine:true};
   const target=Object.assign(events,{document:doc,navigator:nav}) as unknown as Window;
-  const channels=[{}];let disconnects=0,connects=0;
-  const cleanup=installRealtimePageLifecycle({getChannels:()=>channels,disconnect:()=>{disconnects++;},connect:()=>{connects++;}},target);
+  const channels=[{}];let disconnects=0,connects=0,connecting=false;
+  const cleanup=installRealtimePageLifecycle({getChannels:()=>channels,isConnecting:()=>connecting,disconnect:()=>{disconnects++;},connect:()=>{connects++;}},target);
   events.dispatchEvent(new Event('pageshow'));assert.equal(connects,0);
+  connecting=true;events.dispatchEvent(new Event('pagehide'));doc.dispatchEvent(new Event('freeze'));assert.equal(disconnects,0);
+  connecting=false;events.dispatchEvent(new Event('pageshow'));assert.equal(connects,0);
   doc.visibilityState='hidden';doc.dispatchEvent(new Event('visibilitychange'));assert.equal(disconnects,0);
   doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));assert.equal(connects,0);
   events.dispatchEvent(new Event('pagehide'));assert.equal(disconnects,1);assert.equal(channels.length,1);
@@ -33,7 +35,7 @@ test('realtime resumes when a cached hidden page becomes visible; empty channels
   const events=new EventTarget(),doc=Object.assign(new EventTarget(),{visibilityState:'visible'});
   const target=Object.assign(events,{document:doc,navigator:{onLine:true}}) as unknown as Window;
   const channels=[{}];let connections=0;
-  installRealtimePageLifecycle({getChannels:()=>channels,disconnect:()=>{},connect:()=>{connections++;}},target);
+  installRealtimePageLifecycle({getChannels:()=>channels,isConnecting:()=>false,disconnect:()=>{},connect:()=>{connections++;}},target);
   events.dispatchEvent(new Event('pagehide'));doc.visibilityState='hidden';events.dispatchEvent(new Event('pageshow'));assert.equal(connections,0);
   doc.visibilityState='visible';doc.dispatchEvent(new Event('visibilitychange'));assert.equal(connections,1);
   events.dispatchEvent(new Event('pagehide'));channels.length=0;events.dispatchEvent(new Event('pageshow'));assert.equal(connections,1);

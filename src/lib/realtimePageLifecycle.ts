@@ -1,5 +1,6 @@
 type Realtime = {
   getChannels(): unknown[];
+  isConnecting(): boolean;
   disconnect(): void;
   connect(): void;
 };
@@ -8,11 +9,11 @@ type Realtime = {
 export function installRealtimePageLifecycle(client: Realtime, target: Window) {
   let suspended = false;
   const hide = () => {
-    if (suspended) return;
-    suspended = client.getChannels().length > 0;
+    if (suspended || client.isConnecting() || client.getChannels().length === 0) return;
+    suspended = true;
     try {
       const conn = (client as any)?.socketAdapter?.socket?.conn;
-      if (conn && (conn.readyState === 0 || conn.readyState === 1)) {
+      if (conn?.readyState === 1) {
         conn.close(1000, 'Normal Closure');
       }
     } catch {}
