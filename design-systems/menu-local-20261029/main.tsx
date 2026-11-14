@@ -785,10 +785,10 @@ function Prototype() {
     if (tab !== "financial") setFinancialEntryOpen(false);
     document.title = `${active.label} | AxéCloud · ${location.hostname === "localhost" ? "Prévia local" : "Piloto exclusivo"}`;
     window.scrollTo({ top: 0, behavior: "instant" });
-    if (previousTab.current !== tab)
+    if (previousTab.current !== tab && !financialEntryOpen && !newOpen)
       heading.current?.focus({ preventScroll: true });
     previousTab.current = tab;
-  }, [tab]);
+  }, [tab, financialEntryOpen, newOpen]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 4500);
