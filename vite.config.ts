@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
+import {pdfAssetsPlugin} from './scripts/vite-plugin-pdf-assets.mjs';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import type {Plugin} from 'vite';
@@ -29,6 +30,7 @@ function stripCrossoriginFromBuiltHtml(): Plugin {
 export default defineConfig(() => {
   return {
     plugins: [
+      pdfAssetsPlugin(),
       react(),
       tailwindcss(),
       stripCrossoriginFromBuiltHtml(),

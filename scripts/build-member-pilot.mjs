@@ -1,4 +1,5 @@
 import {build} from 'vite';
+import {pdfAssetsPlugin} from './vite-plugin-pdf-assets.mjs';
 import react from '@vitejs/plugin-react';
 import tailwind from '@tailwindcss/vite';
 import path from 'node:path';
@@ -32,7 +33,7 @@ export async function buildMemberPilot(requestedBuildId){
  const buildId=requestedBuildId||createPilotBuildId();
  fs.rmSync(path.join(outDir,'assets'),{recursive:true,force:true});
  fs.rmSync(path.join(outDir,'index.html'),{force:true});
- await build({configFile:false,root,base:'/assets/member-pilot-20261102/',envDir:process.cwd(),publicDir:false,define:{__PILOT_BUILD_ID__:JSON.stringify(buildId)},plugins:[memberPresentationPlugin(),pilotPwaPlugin(),react(),tailwind()],resolve:{dedupe:['react','react-dom']},build:{outDir,emptyOutDir:false,copyPublicDir:false}});
+ await build({configFile:false,root,base:'/assets/member-pilot-20261102/',envDir:process.cwd(),publicDir:false,define:{__PILOT_BUILD_ID__:JSON.stringify(buildId)},plugins:[pdfAssetsPlugin(),memberPresentationPlugin(),pilotPwaPlugin(),react(),tailwind()],resolve:{dedupe:['react','react-dom']},build:{outDir,emptyOutDir:false,copyPublicDir:false}});
  fs.copyFileSync(path.resolve('public/trident-cropped.png'),path.join(outDir,'trident-cropped.png'));
  fs.copyFileSync(path.resolve('node_modules/pdfjs-dist/build/pdf.worker.min.mjs'),path.join(outDir,'pdf.worker.min.mjs'));
  preloadPanel(outDir,'/assets/member-pilot-20261102/');

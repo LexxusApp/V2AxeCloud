@@ -1,4 +1,5 @@
 import {build} from 'vite';
+import {pdfAssetsPlugin} from './vite-plugin-pdf-assets.mjs';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -16,7 +17,7 @@ const publicFiles=['trident-cropped.png','dashboard/gira-caboclo.webp','dashboar
 fs.rmSync(path.join(outDir,'assets'),{recursive:true,force:true});
 fs.rmSync(path.join(outDir,'index.html'),{force:true});
 const pilotAssets={name:'pilot-public-assets',enforce:'pre',transform(code,id){if(!id.replaceAll('\\','/').startsWith(root.replaceAll('\\','/'))||!/[.](?:tsx?|css)$/.test(id))return;for(const file of publicFiles)code=code.replaceAll('/'+file,prefix+file);return code;}};
-await build({configFile:false,root,base:prefix,envDir:process.cwd(),publicDir:false,define:{__PILOT_BUILD_ID__:JSON.stringify(buildId)},plugins:[pilotAssets,pilotPwaPlugin(),react()],resolve:{dedupe:['react','react-dom']},build:{outDir,emptyOutDir:false,copyPublicDir:false}});
+await build({configFile:false,root,base:prefix,envDir:process.cwd(),publicDir:false,define:{__PILOT_BUILD_ID__:JSON.stringify(buildId)},plugins:[pdfAssetsPlugin(),pilotAssets,pilotPwaPlugin(),react()],resolve:{dedupe:['react','react-dom']},build:{outDir,emptyOutDir:false,copyPublicDir:false}});
 for(const file of publicFiles){const destination=path.join(outDir,file);fs.mkdirSync(path.dirname(destination),{recursive:true});fs.copyFileSync(path.resolve('public',file),destination);}
 const entry=path.join(outDir,'index.html');
 fs.writeFileSync(entry,fs.readFileSync(entry,'utf8').replace('AxéCloud | Protótipo local','AxéCloud | Piloto exclusivo'));

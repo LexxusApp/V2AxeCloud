@@ -1095,6 +1095,10 @@ export default function LibraryPage({
           <Dialog.Overlay className="dialog-overlay lb-reader-overlay" />
           <Dialog.Content
             className="lb-reader"
+            onEscapeKeyDown={(event) => {
+              const target = event.target;
+              if (target instanceof Element && target.closest('.ac-pdf-reader[data-expanded="true"], .ac-pdf-reader[data-search-open="true"]')) event.preventDefault();
+            }}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
               if (readerOpener.current?.isConnected)

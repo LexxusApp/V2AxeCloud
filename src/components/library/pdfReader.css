@@ -1,0 +1,37 @@
+.ac-pdf-reader{display:flex;flex-direction:column;position:relative;flex:1;min-height:0;min-width:0;height:100%;overflow:hidden;background:#e5e9e6;color:#243c31;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:13px;line-height:1.4;color-scheme:light}
+.ac-pdf-reader[data-expanded=true]{position:fixed;inset:0;z-index:1000;height:100dvh}
+.ac-pdf-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;flex-shrink:0;padding:10px 16px;background:#fff;border-bottom:1px solid #d7dfd9}
+.ac-pdf-controls{display:flex;align-items:center;gap:4px;min-width:0}
+.ac-pdf-reader button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:40px;min-height:40px;padding:8px;border:1px solid transparent;border-radius:6px;background:transparent;color:#2e493b;cursor:pointer;flex-shrink:0}
+.ac-pdf-reader button:disabled{opacity:.4;cursor:default}
+.ac-pdf-reader button[aria-pressed=true]{background:#e7ecdf;color:#122d23}
+.ac-pdf-reader :focus-visible{outline:2px solid #a57914;outline-offset:2px}
+.ac-pdf-reader form,.ac-pdf-reader label{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.ac-pdf-reader input,.ac-pdf-reader select{height:36px;border:1px solid #cdd7cf;border-radius:6px;background:#fff;color:#243c31;font:inherit;caret-color:#122d23}
+.ac-pdf-reader form input{width:48px;text-align:center;font-variant-numeric:tabular-nums;padding:4px}
+.ac-pdf-reader select{max-width:165px;padding:4px 8px}
+.ac-pdf-search{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 16px;background:#f4f6f3;border-bottom:1px solid #d7dfd9;flex-shrink:0}
+.ac-pdf-search input{flex:1;min-width:100px;padding:8px;max-width:360px}
+.ac-pdf-search input::placeholder{color:#607166}
+.ac-pdf-search>span{font-size:12px;color:#506257;font-variant-numeric:tabular-nums}
+.ac-pdf-stage{position:relative;flex:1;min-height:0;min-width:0}
+.ac-pdf-scroll{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain;scrollbar-color:#879a8b #e5e9e6;scrollbar-width:thin}
+.ac-pdf-scroll .pdfViewer{padding:14px 0}
+.ac-pdf-scroll .pdfViewer .page{margin:0 auto 14px;border:0;box-shadow:0 2px 8px #122d2326}
+.ac-pdf-scroll .pdfViewer .textLayer{caret-color:transparent}
+.ac-pdf-scroll .pdfViewer .textLayer ::selection{background:#b4cbb9a6}
+.ac-pdf-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#e5e9e6;padding:24px;text-align:center}
+.ac-pdf-state p{max-width:440px;line-height:1.7}
+.ac-pdf-state button{background:#122d23;color:#fff;padding:10px 16px}
+.ac-pdf-loading-sheet{width:120px;height:160px;background:#f9fbf9;box-shadow:0 2px 8px #122d231a}
+.ac-pdf-status{display:flex;justify-content:space-between;gap:12px;padding:7px 16px;background:#f4f6f3;border-top:1px solid #d7dfd9;color:#506257;font-size:11px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.lb-reader:has(.ac-pdf-reader){width:min(1440px,calc(100vw - 40px));height:calc(100dvh - 32px);max-height:none}
+.lb-reader:has(.ac-pdf-reader)>header{padding:12px 20px;align-items:center}
+.lb-reader:has(.ac-pdf-reader)>header p{margin-top:2px}
+.lb-reader:has(.ac-pdf-reader)>footer{min-height:48px;padding:7px 20px}
+.lb-reader:has(.ac-pdf-reader[data-expanded=true]){width:100vw;height:100dvh;border:0;border-radius:0}
+.lb-reader .ac-pdf-reader[data-expanded=true]{position:relative;inset:auto;height:100%}
+.ac-pdf-frame{height:75dvh;min-height:520px;overflow:hidden;border-radius:10px}
+@media(hover:hover){.ac-pdf-reader button:not(:disabled):hover{background:#e7ecdf;color:#122d23}}
+@media(max-width:640px){.lb-reader:has(.ac-pdf-reader){width:100vw;height:100dvh;border:0;border-radius:0}.lb-reader:has(.ac-pdf-reader)>header{padding:10px 12px}.lb-reader:has(.ac-pdf-reader)>footer{padding:6px 12px;min-height:44px}.ac-pdf-toolbar{gap:4px 8px;padding:6px 8px}.ac-pdf-reader button{min-width:44px;min-height:44px}.ac-pdf-controls{gap:0}.ac-pdf-zoom{order:3;flex:1 0 100%;justify-content:center;border-top:1px solid #e6ebe5;padding-top:4px}.ac-pdf-zoom select{flex:1;max-width:240px;text-align:center}.ac-pdf-reader input,.ac-pdf-reader select{font-size:16px}.ac-pdf-search{padding:6px 8px;gap:2px}.ac-pdf-search>svg{display:none}.ac-pdf-search input{max-width:none}.ac-pdf-search>span{order:5;flex-basis:100%;padding:2px 4px}.ac-pdf-status{padding:6px 10px;font-size:10px}.ac-pdf-frame{min-height:420px;height:78dvh}.ac-pdf-scroll .pdfViewer{padding:8px 0}}
+@media(prefers-reduced-motion:reduce){.ac-pdf-reader *{scroll-behavior:auto!important}}
