@@ -1,3 +1,4 @@
+import LibraryAccessPreviewDialog from './LibraryAccessPreviewDialog';
 import PageLoading from "../shared/PageLoading";
 import PrivateStudyDiscussion from "../shared/PrivateStudyDiscussion";
 import { useCreateRequest } from "./useCreateRequest";
@@ -1039,42 +1040,14 @@ export default function LibraryPage({
           </button>
         </div>
       </WorkflowDialog>
-      <WorkflowDialog
+      <LibraryAccessPreviewDialog
         open={previewOpen}
         onOpenChange={setPreviewOpen}
-        title="Testar acesso de um filho"
-        description="Compare o acervo de cada membro sem sair da sessão local da zeladoria."
-      >
-        <label className="wf-field lb-preview-field">
-          Filho para visualizar
-          <select
-            value={selectedMember}
-            onChange={(event) => setSelectedMember(event.target.value)}
-          >
-            <option value="">Escolha um filho</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="wf-demo-note">
-          Você verá o acervo da casa e os materiais privados destinados somente
-          ao membro escolhido.
-        </p>
-        <button
-          className="wf-button"
-          disabled={
-            !selectedMember ||
-            !members.some((member) => member.id === selectedMember)
-          }
-          onClick={() => previewFor(selectedMember)}
-        >
-          <Eye size={17} />
-          Abrir visualização do filho
-        </button>
-      </WorkflowDialog>
+        members={members}
+        selectedMember={selectedMember}
+        onSelectMember={setSelectedMember}
+        onPreview={previewFor}
+      />
       <WorkflowDialog
         open={!!discussion}
         onOpenChange={(open) => {

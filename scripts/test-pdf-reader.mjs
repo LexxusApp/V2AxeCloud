@@ -26,9 +26,11 @@ await fs.writeFile(path.join(root, 'main.tsx'), `
 import React,{useState} from 'react'; import {createRoot} from 'react-dom/client';
 import * as Dialog from '@radix-ui/react-dialog';
 import Reader from '../../src/components/library/PdfReader';
+import AccessPreview from '../../design-systems/menu-local-20261029/LibraryAccessPreviewDialog';
+import {WorkflowDialog} from '../../design-systems/menu-local-20261029/WorkflowUI';
 import '../../design-systems/menu-local-20261029/style.css';
 import '../../design-systems/menu-local-20261029/library.css';
-function App(){const [open,setOpen]=useState(true);const [bad,setBad]=useState(false);return <><button onClick={()=>setOpen(true)}>Abrir PDF</button><button onClick={()=>setBad(!bad)}>Trocar arquivo</button><Dialog.Root open={open} onOpenChange={setOpen}><Dialog.Portal><Dialog.Overlay/><Dialog.Content className="lb-reader"><header><div><Dialog.Title>Acervo de estudos</Dialog.Title><Dialog.Description>Fundamentos · Toda a casa</Dialog.Description></div><Dialog.Close>Fechar leitura</Dialog.Close></header><Reader source={bad?'/invalid.pdf':'/fixture.pdf'} title="Acervo de estudos"/><footer>Arquivo do acervo</footer></Dialog.Content></Dialog.Portal></Dialog.Root></>};
+function App(){const [access,setAccess]=useState(false);const [generic,setGeneric]=useState(false);const [member,setMember]=useState('');const [result,setResult]=useState('');const [open,setOpen]=useState(true);const [bad,setBad]=useState(false);return <><button onClick={()=>setAccess(true)}>Testar acesso</button><button onClick={()=>setGeneric(true)}>Outro modal</button><output>{result}</output><AccessPreview open={access} onOpenChange={setAccess} members={[{id:'ana',name:'Ana de Souza'},{id:'joao',name:'João Pereira'}]} selectedMember={member} onSelectMember={setMember} onPreview={id=>{setResult('Prévia: '+id);setAccess(false)}}/><WorkflowDialog open={generic} onOpenChange={setGeneric} title="Outro fluxo da biblioteca" description="Os estilos devem continuar iguais."><button onClick={()=>setGeneric(false)}>Concluir</button></WorkflowDialog><button onClick={()=>setOpen(true)}>Abrir PDF</button><button onClick={()=>setBad(!bad)}>Trocar arquivo</button><Dialog.Root open={open} onOpenChange={setOpen}><Dialog.Portal><Dialog.Overlay/><Dialog.Content className="lb-reader"><header><div><Dialog.Title>Acervo de estudos</Dialog.Title><Dialog.Description>Fundamentos · Toda a casa</Dialog.Description></div><Dialog.Close>Fechar leitura</Dialog.Close></header><Reader source={bad?'/invalid.pdf':'/fixture.pdf'} title="Acervo de estudos"/><footer>Arquivo do acervo</footer></Dialog.Content></Dialog.Portal></Dialog.Root></>};
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);`);
 await build({ configFile:false, root, base:'/', publicDir:false, plugins:[react(),pdfAssetsPlugin()], logLevel:'warn',
   build:{ outDir:path.join(root,'dist'), emptyOutDir:true }, resolve:{dedupe:['react','react-dom']} });
@@ -95,6 +97,27 @@ try {
     assert.match(await page.locator('[role=alert]').textContent(),/PDF válido/);
     await page.getByRole('button',{name:'Tentar novamente'}).click();
     await page.waitForSelector('[role=alert]');
+    await page.getByRole('button',{name:'Fechar leitura'}).click();
+    for(const colorScheme of ['light','dark']) {
+      await page.emulateMedia({colorScheme});
+      await page.getByRole('button',{name:'Testar acesso',exact:true}).click();
+      const modal=page.getByRole('dialog',{name:'Testar acesso de um filho'});
+      const style=await modal.evaluate(el=>({background:getComputedStyle(el).backgroundColor,color:getComputedStyle(el.querySelector('h2')).color,overflow:el.scrollWidth>el.clientWidth,rootScheme:getComputedStyle(document.documentElement).colorScheme}));
+      assert.equal(style.background,'rgb(255, 255, 255)');
+      assert.equal(style.color,'rgb(36, 60, 49)');
+      assert.equal(style.overflow,false);
+      assert.notEqual(style.rootScheme,'light dark','PDF CSS must not change the root color scheme');
+      await modal.getByRole('combobox',{name:'Escolha um filho'}).selectOption('');
+      assert.equal(await modal.getByRole('button',{name:'Ver biblioteca do filho'}).isDisabled(),true);
+      await modal.getByRole('combobox',{name:'Escolha um filho'}).selectOption('ana');
+      await page.screenshot({path:path.join(root,'access-'+viewport.width+'-'+colorScheme+'.png')});
+      await modal.getByRole('button',{name:'Ver biblioteca do filho'}).click();
+      assert.match(await page.locator('output').textContent(),/Prévia: ana/);
+      await page.getByRole('button',{name:'Outro modal',exact:true}).click();
+      const generic=page.getByRole('dialog',{name:'Outro fluxo da biblioteca'});
+      assert.equal(await generic.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+      await generic.getByRole('button',{name:'Concluir'}).click();
+    }
     console.log(`PASS ${viewport.width}px: 130 pages, fit, navigation, search, zoom, rotation, expand, reopen, invalid PDF and retry`);
     await page.close();
   }
