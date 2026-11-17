@@ -105,6 +105,12 @@ export async function reportFeatureFailure(
   const httpStatus = Number(input.httpStatus || 0) || null;
   const source = String(input.source || "api").slice(0, 40);
   const tenantId = String(input.tenantId || "").trim() || null;
+  // Uma preferência da zeladoria bloqueou o envio; não houve falha do serviço.
+  if (httpStatus === 409 && errorMessage === 'Os disparos deste módulo estão desativados pela zeladoria.' &&
+      [route, String(input.metadata?.action || '')].some(operation =>
+        /^(?:POST )?\/api\/whatsapp\/send(?:\?[^\s]*)?$/.test(operation))) {
+    return { saved: false, deduped: true };
+  }
   const fp = fingerprintOf({ tenantId, feature, route, httpStatus, errorMessage });
 
   const now = Date.now();

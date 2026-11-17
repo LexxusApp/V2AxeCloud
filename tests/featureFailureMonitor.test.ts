@@ -5,6 +5,28 @@ import {
   reportFeatureFailure,
 } from '../api/lib/featureFailureMonitor.js';
 
+test('disparo desativado pela zeladoria não é falha técnica; outros erros continuam registrados', async () => {
+  const rows: unknown[] = [];
+  const sb = { from: (table: string) => ({ insert: async (row: unknown) => {
+    if (table === 'tenant_feature_failures') rows.push(row);
+    return { error: null };
+  } }) };
+  const errorMessage = 'Os disparos deste módulo estão desativados pela zeladoria.';
+  for (const input of [
+    { route: 'POST /api/whatsapp/send', source: 'api' },
+    { route: '/dashboard', source: 'client_telemetry', metadata: { action: 'POST /api/whatsapp/send' } },
+  ]) {
+    assert.equal((await reportFeatureFailure(sb, { ...input, httpStatus: 409, errorMessage })).saved, false);
+  }
+  assert.equal(rows.length, 0);
+  for (const input of [
+    { route: 'POST /api/whatsapp/send', httpStatus: 500, errorMessage },
+    { route: 'POST /api/whatsapp/send', httpStatus: 409, errorMessage: 'Conflito inesperado no envio' },
+    { route: 'POST /api/financeiro', httpStatus: 409, errorMessage },
+  ]) assert.equal((await reportFeatureFailure(sb, input)).saved, true);
+  assert.equal(rows.length, 3);
+});
+
 test('featureFailureMonitor: classifica corretamente as rotas de negócio dos terreiros', () => {
   assert.equal(classifyFeatureFromRoute('/api/v1/gallery/upload-url'), 'fotos');
   assert.equal(classifyFeatureFromRoute('/api/v1/profile/upload-photo'), 'fotos');

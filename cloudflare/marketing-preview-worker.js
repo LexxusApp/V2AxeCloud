@@ -6,42 +6,6 @@ function redirect(location, status) {
   return new Response(null, { status, headers: { Location: location, 'Cache-Control': 'no-store' } });
 }
 
-function staleAssetRecovery(path) {
-  const headers = {
-    'Cache-Control': 'no-store, no-cache, must-revalidate',
-    'X-AxeCloud-Asset-Recovery': '1',
-  };
-  if (path.endsWith('.css')) {
-    return new Response('/* bundle antigo: recuperação conduzida pelo JavaScript */', {
-      status: 200,
-      headers: { ...headers, 'Content-Type': 'text/css; charset=utf-8' },
-    });
-  }
-
-  const source = `(() => {
-    const key = 'axecloud:stale-asset-recovery';
-    const now = Date.now();
-    const last = Number(sessionStorage.getItem(key) || '0');
-    if (now - last < 15000) return;
-    sessionStorage.setItem(key, String(now));
-    const clearWorkers = 'serviceWorker' in navigator
-      ? navigator.serviceWorker.getRegistrations().then((items) => Promise.all(items.map((item) => item.unregister())))
-      : Promise.resolve();
-    const clearCaches = 'caches' in window
-      ? caches.keys().then((items) => Promise.all(items.map((item) => caches.delete(item))))
-      : Promise.resolve();
-    Promise.allSettled([clearWorkers, clearCaches]).finally(() => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('axe_asset_recovery', String(now));
-      window.location.replace(url.href);
-    });
-  })();`;
-  return new Response(source, {
-    status: 200,
-    headers: { ...headers, 'Content-Type': 'text/javascript; charset=utf-8' },
-  });
-}
-
 function finish(response, preview, path, fallback = false) {
   const headers = new Headers(response.headers);
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
@@ -138,7 +102,11 @@ export default {
     const direct = await env.ASSETS.fetch(request);
     if (direct.status !== 404) return respond(direct);
     if (path.startsWith('/m-assets/') && /\.(?:js|css)$/i.test(path)) {
-      return respond(staleAssetRecovery(path));
+      // Um módulo substituto sem os exports esperados falha no linking, antes
+      // de executar qualquer recuperação. Preserve o 404 para o import rejeitar.
+      const headers = new Headers(direct.headers);
+      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      return respond(new Response(direct.body, { status: 404, headers }));
     }
     if (missingAssetPattern.test(path) || path.startsWith('/m-assets/') || path.startsWith('/screenshots/')) {
       return respond(direct);

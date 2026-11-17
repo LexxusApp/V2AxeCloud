@@ -308,6 +308,9 @@ export async function handleWhatsappRoute(action: string, req: any, res: any): P
         if (e.code === "WHATSAPP_INITIALIZING") {
           return whatsappInitializingResponse(res, err);
         }
+        if (e.code === "WA_DISPATCH_DISABLED") {
+          return sendJson(res, 409, { error: safeErrorMessage(e, "Disparos desativados pela zeladoria."), code: e.code });
+        }
         const status =
           e.statusCode === 410 ? 410 : e.statusCode === 403 ? 403 : e.statusCode === 400 ? 400 : e.statusCode === 429 ? 429 : 500;
         return sendJson(res, status, { error: safeErrorMessage(e, "Erro ao enviar mensagem") });

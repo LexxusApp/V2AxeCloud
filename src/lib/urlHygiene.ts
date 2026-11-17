@@ -66,6 +66,7 @@ export function isRecoverableChunkError(error: unknown): boolean {
     msg.includes('error loading dynamically imported module') ||
     msg.includes('chunkloaderror') ||
     msg.includes('loading chunk') ||
+    /the requested module\s+['"][^'"]+\.m?js(?:\?[^'"]*)?['"]\s+does not provide an export named\s+['"][^'"]+['"]/.test(msg) ||
     msg.includes('dynamically imported module')
   );
 }
